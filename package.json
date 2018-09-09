@@ -23,5 +23,9 @@
   "homepage": "https://porla.org",
   "devDependencies": {
     "mocha": "^5.2.0"
+  },
+  "dependencies": {
+    "@porla/libtorrent": "^0.13.0",
+    "lodash": "^4.17.10"
   }
 }
