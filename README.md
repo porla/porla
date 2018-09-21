@@ -2,7 +2,7 @@
 
 Porla is a programmable BitTorrent client written in Node.js. It can be
 extended in a variety of ways through plugins and is perfectly suitable for
-running as a headless BitTorrent server, and other similar setups.
+running as a headless BitTorrent server and other similar setups.
 
 
 ## Getting started
@@ -37,5 +37,7 @@ app.monitor('./torrents');
 
 ## Next steps
 
-- Read the [API documentation](https://docs.porla.org).
-- Join the [Mattermost chat](https://im.porla.org).
+- [Find plugins](https://www.npmjs.com/search?q=keywords%3Aporla-plugin) to
+  make your Porla instance awesome.
+- Join the [Mattermost chat](https://im.porla.org) to get help.
+- Read the [API documentation](https://docs.porla.org) to help yourself.
