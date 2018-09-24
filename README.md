@@ -6,6 +6,7 @@ running as a headless BitTorrent server and other similar setups.
 
 *Porla is currently in its early days - the documentation may be sparse.*
 
+:information_source: Requires Node.js v10.
 
 ### Features
 
