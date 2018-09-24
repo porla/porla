@@ -5,3 +5,4 @@ Getting started
    :maxdepth: 2
 
    getting-started/installing
+   getting-started/configuration

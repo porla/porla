@@ -16,7 +16,7 @@ Yeoman is a scaffolding tool and uses *generators* to create basic scaffolding
 for various things. There is an official Porla generator (*generator-porla*)
 which can be installed and used to generate a basic Porla instance.
 
-.. code:: bash
+.. code-block:: bash
 
    $ npm install -g yo generator-porla
    $ yo porla
@@ -29,14 +29,14 @@ instance.
 Directly from NPM
 -----------------
 
-.. code:: bash
+.. code-block:: bash
 
    $ npm install @porla/porla
 
 The following example application will monitor and download each torrent it
 finds in the :file:`./torrents` directory.
 
-.. code:: javascript
+.. code-block:: javascript
 
    const { Porla } = require('@porla/porla');
 
