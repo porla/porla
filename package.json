@@ -25,7 +25,7 @@
     "mocha": "^5.2.0"
   },
   "dependencies": {
-    "@porla/libtorrent": "^0.19.0",
+    "@porla/libtorrent": "^0.22.0",
     "lodash": "^4.17.10"
   }
 }
