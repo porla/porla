@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@porla/libtorrent": "^0.22.0",
-    "lodash": "^4.17.10"
+    "lodash": "^4.17.10",
+    "winston": "^3.1.0"
   }
 }
