@@ -15,12 +15,13 @@ This is a complete list of the settings you can provide to Porla.
    {
        // The path where Porla stores its data files, such as session state,
        // torrent files, etc. Defaults to '%CWD%/data'.
-       dataPath: './data',
+       dataPath: '/opt/porla/data',
 
+       // Disable DHT
+       dht: false,
+
+       // Enable DHT with custom bootstrap nodes
        dht: {
-           // Enable or disable DHT. Defaults to true - i.e enabled.
-           enabled: false,
-
            // The nodes to use when bootstrapping the DHT. If unspecified,
            // will default to the following.
            // - router.utorrent.com:6881
@@ -38,23 +39,21 @@ This is a complete list of the settings you can provide to Porla.
            [ '0.0.0.0', 6881 ]
        ],
 
-       logging: {
-           // Logging outputs. An array of functions that each receive a log
-           // item when the Porla log functions are called.
-           outputs: [
-               function (logItem) { console.log(logItem); }
-           ]
-       },
-
-       // A list of Plugin instances that should attach to Porla. These should
-       // extend the Plugin class from the @porla/porla package.
+       // A list of plugins that should attach to Porla.
        plugins: [
        ],
+
+       // Enable SOCKS5 proxy
+       proxy: {
+           type: porla.SOCKS5,
+           host: '127.0.0.1',
+           port: 1080
+       },
 
        // Set to true to require encryption for peer connections. Defaults to
        // false.
        requireEncryption: false,
 
        // The path where we should save downloads. Defaults to '%CWD%':
-       savePath: './'
+       savePath: '/mnt/media/downloads'
    }

@@ -26,8 +26,8 @@ def get_porla_version():
 # -- Project information -----------------------------------------------------
 
 project = u'Porla'
-copyright = u'2018, Viktor Elofsson'
-author = u'Viktor Elofsson'
+copyright = u'2019, Viktor Elofsson and other Porla contributors'
+author = u'Viktor Elofsson and other Porla contributors'
 
 # The short X.Y version
 version = get_porla_version()

@@ -29,16 +29,24 @@ instance.
 Directly from NPM
 -----------------
 
-.. code-block:: bash
-
-   $ npm install @porla/porla
-
 The following example application will monitor and download each torrent it
 finds in the :file:`./torrents` directory.
 
+Install *@porla/porla* and *@porla-contrib/autoadd*.
+
+.. code-block:: bash
+
+   $ npm install @porla/porla @porla-contrib/autoadd
+
+Set up a simple Porla client.
+
 .. code-block:: javascript
 
-   const { Porla } = require('@porla/porla');
+   const porla   = require('@porla/porla');
+   const autoadd = require('@porla-contrib/autoadd');
 
-   const app = new Porla();
-   app.monitor('./torrents');
+   const app = new porla({
+       plugins: [
+           autoadd('./torrents')
+       ]
+   });
