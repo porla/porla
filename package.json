@@ -1,5 +1,5 @@
 {
-  "name": "@porla/porla",
+  "name": "porla",
   "version": "0.10.0",
   "description": "A programmable BitTorrent client.",
   "main": "index.js",
@@ -25,8 +25,8 @@
     "mocha": "^5.2.0"
   },
   "dependencies": {
-    "@porla/libtorrent": "^0.22.0",
-    "lodash": "^4.17.10",
-    "winston": "^3.1.0"
+    "@porla/libtorrent": "^0.23.0",
+    "lodash": "^4.17.15",
+    "winston": "^3.2.1"
   }
 }
