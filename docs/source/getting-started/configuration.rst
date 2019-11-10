@@ -38,16 +38,7 @@ This is a complete list of the settings you can provide to Porla.
            [ '0.0.0.0', 6881 ]
        ],
 
-       logging: {
-           // Logging outputs. An array of functions that each receive a log
-           // item when the Porla log functions are called.
-           outputs: [
-               function (logItem) { console.log(logItem); }
-           ]
-       },
-
-       // A list of Plugin instances that should attach to Porla. These should
-       // extend the Plugin class from the @porla/porla package.
+       // An array of plugins to use.
        plugins: [
        ],
 
