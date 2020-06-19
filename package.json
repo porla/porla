@@ -21,9 +21,7 @@
     "url": "https://github.com/porla/porla/issues"
   },
   "homepage": "https://porla.org",
-  "devDependencies": {
-    "mocha": "^5.2.0"
-  },
+  "devDependencies": {},
   "dependencies": {
     "@porla/libtorrent": "^0.24.0",
     "lodash": "^4.17.15",
