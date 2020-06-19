@@ -19,15 +19,14 @@ wish.
 
 ## Getting started
 
-The easiest way to get started is to use our Yeoman generator.
+The easiest way to get started is to use `npm init`.
 
- - `$ npm install --global yo generator-porla`
- - `$ yo porla`
+ - `$ npm init porla`
 
 
 ### Setting up an instance from scratch
 
-Not using Yeoman? Just install Porla as any other NPM package.
+Want to do it the old fashioned way? No problem!
 
 - `$ npm install --save porla @porla-contrib/autoadd`
 
@@ -46,9 +45,10 @@ const app = porla({
     savePath: '/mnt/storage/downloads'
 });
 
-app.on('torrent.finished', [
+app.on('torrent.finished', ({ torrent }) => [
     // Add event handlers for the torrent.finished event here. Perhaps send a
     // notification or execute another application?
+    sendMessage(`Torrent ${torrent.name} finished.`)
 ]);
 ```
 
