@@ -1,6 +1,6 @@
 {
   "name": "porla",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "A programmable BitTorrent client.",
   "main": "index.js",
   "scripts": {
