@@ -6,9 +6,8 @@
   },
   "ts-node": {
     "compilerOptions": {
-      "module": "commonjs"
+      "module": "CommonJS"
     }
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "**/*.spec.ts"]
+  "include": ["src/porla"]
 }
