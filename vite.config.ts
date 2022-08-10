@@ -7,5 +7,10 @@ export default defineConfig({
     outDir: "../../dist/html"
   },
   plugins: [react()],
-  root: "./src/webapp"
+  root: "./src/webapp",
+  server: {
+    proxy: {
+      "/trpc": "http://localhost:4999"
+    }
+  }
 });
