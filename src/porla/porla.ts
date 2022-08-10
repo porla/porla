@@ -2,24 +2,22 @@ import Database from "better-sqlite3";
 import express from "express";
 import * as fs from "fs/promises";
 import path from "path";
-import * as trpc from '@trpc/server';
+import * as lt from "@porla/libtorrent";
 import * as trpcExpress from '@trpc/server/adapters/express';
 import { appRouter } from "./router";
 
-// created for each request
-const createContext = ({
-  req,
-  res,
-}: trpcExpress.CreateExpressContextOptions) => ({}) // no context
-
-type Context = trpc.inferAsyncReturnType<typeof createContext>;
+const s = new lt.Session();
 
 const app = express();
 app.use(
   '/trpc',
   trpcExpress.createExpressMiddleware({
     router: appRouter,
-    createContext,
+    createContext: ({ req, res }) => {
+      return {
+        session: () => s
+      }
+    },
   }));
 
 const db = new Database(":memory:");
