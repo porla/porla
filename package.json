@@ -3,11 +3,14 @@
   "version": "1.0.0",
   "description": "A programmable BitTorrent client.",
   "main": "dist/porla.js",
+  "type": "module",
+  "bin": {
+    "porla": "dist/main.js"
+  },
   "scripts": {
-    "build": "rm -rf dist/ && tsc && vite build && cp -r src/porla/sql dist/",
-    "dev:app": "nodemon src/porla/porla.ts",
-    "dev:web": "vite",
-    "test": "mocha"
+    "build": "rm -rf dist/ && tsc && vite build && cp -r src/porla/sql dist/ && chmod +x dist/main.js",
+    "dev:app": "nodemon src/porla/main.ts",
+    "dev:web": "vite"
   },
   "repository": {
     "type": "git",
@@ -49,6 +52,8 @@
     "@trpc/server": "^9.27.0",
     "better-sqlite3": "^7.6.2",
     "express": "^4.18.1",
+    "pino": "^8.4.0",
+    "pino-pretty": "^9.0.0",
     "zod": "^3.18.0"
   }
 }

@@ -2,3 +2,4 @@
 dist/
 docs/build/
 node_modules/
+porla.db

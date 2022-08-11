@@ -1,6 +1,6 @@
-import { Session } from "@porla/libtorrent";
 import * as trpc from "@trpc/server";
 import { z } from "zod";
+import Session from "./session";
 
 type PorlaContext = trpc.inferAsyncReturnType<() => {
   session(): Session
@@ -15,7 +15,6 @@ export const appRouter = trpc
     },
   })
   .mutation("torrents.add", {
-    // validate input with Zod
     input: z.object({ name: z.string().min(5) }),
     async resolve(req) {
     },

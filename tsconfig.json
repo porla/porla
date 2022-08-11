@@ -1,13 +1,14 @@
 {
   "extends": "@tsconfig/node16/tsconfig.json",
   "compilerOptions": {
+    "declaration": true,
+    "module": "ES2020",
     "outDir": "dist",
-    "preserveConstEnums": true
+    "preserveConstEnums": true,
+    "sourceMap": true
   },
   "ts-node": {
-    "compilerOptions": {
-      "module": "CommonJS"
-    }
+    "esm": true
   },
   "include": ["src/porla"]
 }
