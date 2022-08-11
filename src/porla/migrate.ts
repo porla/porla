@@ -16,7 +16,7 @@ export default async function migrate(db: Database) {
   const {user_version} = db.prepare("PRAGMA user_version;").get();
 
   if (user_version === migrations.length) {
-    logger.info("Database up to date.");
+    logger.info("Database up to date");
     return;
   }
 
