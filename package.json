@@ -48,7 +48,7 @@
     "vite": "^3.0.0"
   },
   "dependencies": {
-    "@porla/libtorrent": "^0.24.0",
+    "@porla/libtorrent": "^1.0.0-rc.1",
     "@trpc/server": "^9.27.0",
     "better-sqlite3": "^7.6.2",
     "express": "^4.18.1",
