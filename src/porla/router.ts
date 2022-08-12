@@ -1,6 +1,6 @@
 import * as trpc from "@trpc/server";
 import { z } from "zod";
-import Session from "./session";
+import Session from "./session.js";
 
 type PorlaContext = trpc.inferAsyncReturnType<() => {
   session(): Session
