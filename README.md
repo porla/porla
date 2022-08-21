@@ -1,55 +1,37 @@
-# Porla
+# Porla - the _ultimate_ BitTorrent seedbox
 
-Porla is a programmable BitTorrent client built for seedboxes and servers. It
-has a feature-rich API allowing users to customize their Porla instance as they
-wish.
+Porla is a highly customizable BitTorrent client built specifically for servers
+and seedboxes. It builds on Rasterbar-libtorrent and contains native Node.js
+bindings for maximum performance and minimal memory usage.
 
-*Porla is currently in its early days - the documentation may be sparse.*
-
-:information_source: Requires Node.js v10.
+:information_source: Requires Node.js v16.
 
 ### Features
 
+ - Supports BitTorrent 2.0 (BEP 52) and all other modern BitTorrent features
+   such as DHT, UPnP, and more.
  - Built with native bindings to Rasterbar-libtorrent to provide great
-   performance and low memory-cost.
+   performance and low memory usage.
  - Easy-to-use API allows users to write plugins and scripts to customize and
    extend Porla.
- - (Optionally) keep Porla in a (D)VCS to track of changes you make.
+ - (Optionally) keep Porla in version control to track of changes you make.
 
 
 ## Getting started
 
-The easiest way to get started is to use `npm init`.
+If you just want to kick the wheels and see if Porla is for you, there is no
+need to install anything other than Node.js (v16).
 
- - `$ npm init porla`
+Simply run `npx porla` to download and run the latest version of Porla.
 
+If you want to set up a permanent application instance, it's almost as easy.
 
-### Setting up an instance from scratch
+```sh
+# Run the `create-porla` package to set up a Porla instance.
+npm create porla
 
-Want to do it the old fashioned way? No problem!
-
-- `$ npm install --save porla @porla-contrib/autoadd`
-
-```js
-const porla   = require('porla');
-const autoadd = require('@porla-contrib/autoadd');
-
-const app = porla({
-    plugins: [
-        // Set up the autoadd plugin to watch a folder for torrents. Any
-        // torrent added here is added to Porla.
-        autoadd('/mnt/storage/torrents'),
-    ],
-
-    // The default save path where new downloads are saved.
-    savePath: '/mnt/storage/downloads'
-});
-
-app.on('torrent.finished', ({ torrent }) => [
-    // Add event handlers for the torrent.finished event here. Perhaps send a
-    // notification or execute another application?
-    sendMessage(`Torrent ${torrent.name} finished.`)
-]);
+# In the created directory, start Porla.
+npm start
 ```
 
 

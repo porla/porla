@@ -1,6 +1,8 @@
 import { Database as DatabaseType } from "better-sqlite3";
 import express from "express";
-import { ISession } from "./session";
+import { ISession } from "./session.js";
+
+export { migrate } from "./migrator.js";
 
 export type PluginLoader = (host: IHost) => Promise<void>;
 

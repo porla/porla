@@ -10,6 +10,7 @@ CREATE TABLE addtorrentparams (
 );
 
 CREATE TABLE sessionparams (
+    id INTEGER PRIMARY KEY,
     data BLOB NOT NULL,
     timestamp INTEGER NOT NULL DEFAULT (strftime('%s'))
 );

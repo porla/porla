@@ -3,13 +3,14 @@
 import { createExpressMiddleware } from "@trpc/server/adapters/express/dist/trpc-server-adapters-express.cjs.js";
 import Database, { Database as DbType } from "better-sqlite3";
 import express from "express";
+import * as fs from "fs/promises";
 import http from "http";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import { logger } from "./logger.js";
-import migrate from "./migrate.js";
+import { migrate } from "./migrator.js";
 import { IHost, PluginLoader } from "./porla.js";
-import { appRouter } from './router.js';
+import { appRouter } from "./router.js";
 import Session, { ISession } from "./session.js";
 
 const __dirname = path.dirname(
@@ -59,7 +60,10 @@ async function main() {
       || path.join(process.cwd(), "porla.db"));
 
   try {
-    await migrate(db);
+    const files = await fs.readdir(path.join(__dirname, "sql"))
+      .then(f => f.map(file => path.join(__dirname, "sql", file)));
+
+    await migrate({ db, files, key: "porla" });
   } catch (err) {
     logger.fatal(err, "Failed to apply migrations");
     return process.exit(1);
@@ -87,14 +91,14 @@ async function main() {
       },
     }));
 
+  for (const loader of config?.plugins || []) {
+    await loader(new Host(app, db, s));
+  }
+
   const httpServer = http.createServer(app);
   httpServer.listen(HTTP_PORT_DEFAULT, () => {
     logger.info(`All done. Visit http://localhost:${HTTP_PORT_DEFAULT} to access Porla`);
   });
-
-  for (const loader of config?.plugins || []) {
-    await loader(new Host(app, db, s));
-  }
 
   let shuttingDown = false;
 
