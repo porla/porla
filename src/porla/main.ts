@@ -15,6 +15,8 @@ import Session, { ISession } from "./session.js";
 const __dirname = path.dirname(
   fileURLToPath(import.meta.url));
 
+const HTTP_PORT_DEFAULT = 4999;
+
 interface IPorlaConfigJs {
   db?: string;
   plugins?: Array<PluginLoader>
@@ -86,8 +88,8 @@ async function main() {
     }));
 
   const httpServer = http.createServer(app);
-  httpServer.listen(4999, () => {
-    logger.info(`All done. Visit http://localhost:4999 to access Porla`);
+  httpServer.listen(HTTP_PORT_DEFAULT, () => {
+    logger.info(`All done. Visit http://localhost:${HTTP_PORT_DEFAULT} to access Porla`);
   });
 
   for (const loader of config?.plugins || []) {
@@ -109,11 +111,12 @@ async function main() {
         httpServer.close(err => err ? reject(err) : resolve());
       });
 
-      await new Promise(resolve => setTimeout(resolve, 4000));
+      await s.unload();
     } catch (err) {
       exitCode = 1;
       logger.error(err, "Failed to shutdown properly");
     } finally {
+      logger.info("Porla exiting. Bye bye...");
       process.exit(exitCode);
     }
   }

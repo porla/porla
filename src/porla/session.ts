@@ -1,5 +1,5 @@
 import lt from "@porla/libtorrent";
-import { Database } from "better-sqlite3";
+import type { Database } from "better-sqlite3";
 import EventEmitter from "events";
 import { logger } from "./logger.js";
 
@@ -28,6 +28,24 @@ export default class Session extends EventEmitter implements ISession {
                                      ORDER BY queue_position ASC`).all();
 
     logger.info("Loading %d torrents", params.length);
+  }
+
+  async unload() {
+    // Unload everything in the session and prepare it for deletion
+    this.#session.removeAllListeners();
+
+    // Get session state and store it in the database
+    const state = lt.write_session_params_buf(
+      this.#session.session_state());
+
+    logger.info("Storing %d byte(s) of session state", state.length);
+
+    const {changes} = this.#db.prepare(`INSERT INTO sessionparams (data)
+                                        VALUES (?);`).run(state);
+
+    if (changes > 0) {
+      logger.info("Session state stored");
+    }
   }
 
   #onAddTorrent(d: lt.AddTorrentAlert) {
