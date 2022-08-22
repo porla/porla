@@ -92,7 +92,11 @@ async function main() {
     }));
 
   for (const loader of config?.plugins || []) {
-    await loader(new Host(app, db, s));
+    try {
+      await loader(new Host(app, db, s));
+    } catch (err) {
+      logger.error(err, "Failed to load plugin (%s).", loader.name);
+    }
   }
 
   const httpServer = http.createServer(app);
