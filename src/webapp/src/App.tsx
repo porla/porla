@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { QueryClient, QueryClientProvider } from "react-query";
 import { NavLink, Outlet } from "react-router-dom";
-import { VscAdd, VscFiles, VscMenu } from "react-icons/vsc";
+import { VscAdd, VscFiles, VscMenu, VscSettingsGear } from "react-icons/vsc";
 import { trpc } from "./utils/trpc";
 
 import "./App.css";
@@ -19,53 +19,80 @@ function App() {
         <Flex
           height={"100vh"}
         >
-          <Box
+          <Flex
             borderRight={"1px solid #f0f0f0"}
             boxShadow={"3px 0 3px #fefefe"}
+            direction="column"
+            justifyContent={"flex-end"}
+            height={"100%"}
             width={"200px"}
             padding={5}
           >
-            <Image
-              marginX="auto"
-              maxWidth={"96px"}
-              src="/porla_logo.png"
-            />
+            <Box
+              flex={1}
+            >
+              <Image
+                marginX="auto"
+                maxWidth={"96px"}
+                src="/porla_logo.png"
+              />
 
-            <Divider marginY={3} />
+              <Divider marginY={3} />
 
-            <List>
-              <ListItem
-              >
-                <Box
+              <List>
+                <ListItem
                 >
-                  <Flex
-                    alignItems={"center"}
-                  >
-                    <ListIcon
-                      as={VscFiles}
-                    />
-                    <Link
-                      _activeLink={{
-                        fontWeight: "bold"
-                      }}
-                      as={NavLink}
-                      flex={1}
-                      to="/"
+                  <Box>
+                    <Flex
+                      alignItems={"center"}
                     >
-                      Torrents
-                    </Link>
-                    <IconButton
-                      aria-label=""
-                      as={NavLink}
-                      icon={<VscAdd />}
-                      size="xs"
-                      to="/add"
-                    />
-                  </Flex>
-                </Box>
-              </ListItem>
-            </List>
-          </Box>
+                      <ListIcon
+                        as={VscFiles}
+                      />
+                      <Link
+                        _activeLink={{
+                          fontWeight: "bold"
+                        }}
+                        as={NavLink}
+                        flex={1}
+                        to="/"
+                      >
+                        Torrents
+                      </Link>
+                      <IconButton
+                        aria-label=""
+                        as={NavLink}
+                        icon={<VscAdd />}
+                        size="xs"
+                        to="/add"
+                      />
+                    </Flex>
+                  </Box>
+                </ListItem>
+              </List>
+            </Box>
+            <Box
+            >
+              <Divider marginY={3} />
+              <List>
+                <ListItem>
+                  <ListIcon
+                    as={VscSettingsGear}
+                  />
+                  <Link
+                    _activeLink={{
+                      fontWeight: "bold"
+                    }}
+                    as={NavLink}
+                    flex={1}
+                    to="/settings"
+                  >
+                    Settings
+                  </Link>
+                </ListItem>
+              </List>
+            </Box>
+          </Flex>
           <Box
             backgroundColor={"#fbfbfb"}
             flex={1}
