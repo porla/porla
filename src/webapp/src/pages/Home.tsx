@@ -39,6 +39,7 @@ function Home() {
             <Tr>
               <Th>Name</Th>
               <Th>Size</Th>
+              <Th>Speed</Th>
               <Th>Peers</Th>
             </Tr>
           </Thead>
