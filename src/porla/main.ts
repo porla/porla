@@ -23,28 +23,6 @@ interface IPorlaConfigJs {
   plugins?: Array<PluginLoader>
 }
 
-class Host implements IHost {
-  readonly #app: express.Application;
-  readonly #db: Database.Database;
-
-  constructor(app: express.Application, db: DbType, session: ISession) {
-    this.#app = app;
-    this.#db = db;
-  }
-
-  database(): DbType {
-    return this.#db;
-  }
-
-  express(): express.Application {
-    return this.#app;
-  }
-
-  session(): ISession {
-    throw new Error("Method not implemented.");
-  }
-}
-
 async function main() {
   logger.info("Porla starting up");
 
@@ -91,9 +69,16 @@ async function main() {
       },
     }));
 
+  const unloaders = new Array<() => Promise<void>>();
+
   for (const loader of config?.plugins || []) {
     try {
-      await loader(new Host(app, db, s));
+      await loader({
+        database: () => db,
+        express: () => app,
+        onUnload: (handler) => unloaders.push(handler),
+        session: () => s,
+      });
     } catch (err) {
       logger.error(err, "Failed to load plugin (%s).", loader.name);
     }
@@ -115,6 +100,12 @@ async function main() {
     let exitCode = 0;
 
     try {
+      try {
+        await Promise.all(unloaders);
+      } catch (err) {
+        logger.error(err, "Error when unloading plugins");
+      }
+
       await new Promise<void>((resolve, reject) => {
         httpServer.close(err => err ? reject(err) : resolve());
       });

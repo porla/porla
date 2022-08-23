@@ -10,4 +10,6 @@ export interface IHost {
   database(): DatabaseType;
   express(): express.Application;
   session(): ISession;
+
+  onUnload(handler: () => Promise<void>): void;
 }
