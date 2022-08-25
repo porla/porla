@@ -8,6 +8,7 @@ import App from "./App";
 import "./index.css";
 import Add from "./pages/Add";
 import Home from "./pages/Home";
+import Settings from "./pages/Settings";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
@@ -17,6 +18,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
           <Route path="/" element={<App />}>
             <Route index element={<Home />} />
             <Route path="add" element={<Add />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>
       </BrowserRouter>
