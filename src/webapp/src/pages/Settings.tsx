@@ -1,21 +1,40 @@
-import { Box, Heading } from "@chakra-ui/react";
+import { Button, FormControl, FormHelperText, FormLabel, Input } from "@chakra-ui/react";
+import { Field, Formik } from "formik";
 import React from "react";
+import Card from "../components/Card";
 
 export default function Settings() {
   return (
-    <Box
-      backgroundColor={"#fff"}
-      border="1px solid #f0f0f0"
-      borderRadius={4}
-      padding={3}
-    >
-      <Heading
-        color={"#444"}
-        marginBottom={3}
-        size="md"
+    <Card heading={"General"}>
+      <Formik
+          initialValues={{ name: "", email: "" }}
+          onSubmit={async ({ name }) => {
+          }}
       >
-        General
-      </Heading>
-    </Box>
+        <form>
+          <FormControl
+            marginBottom={3}
+          >
+            <FormLabel>Default save path</FormLabel>
+            <Field
+              as={Input}
+              id="path"
+              name="path"
+              placeholder="/mnt/downloads"
+              type="text"
+            />
+            <FormHelperText>The default save path. This will be used when no other save path has been specified.</FormHelperText>
+          </FormControl>
+
+          <Button
+            colorScheme={"purple"}
+            marginTop={3}
+            size="sm"
+          >
+            Save settings
+          </Button>
+        </form>
+      </Formik>
+    </Card>
   );
 }
