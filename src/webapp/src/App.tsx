@@ -89,7 +89,7 @@ function App() {
             >
               <Divider marginY={3} />
               <List>
-                <ListItem>
+                <ListItem display={"flex"} alignItems={"center"}>
                   <ListIcon
                     as={VscSettingsGear}
                   />

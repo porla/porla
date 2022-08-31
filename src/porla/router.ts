@@ -37,8 +37,8 @@ export const appRouter = trpc
             name: t.name,
             save_path: t.save_path,
             size: t.size,
-            download_rate: 0,
-            upload_rate: 0
+            download_rate: t.download_payload_rate,
+            upload_rate: t.upload_payload_rate
           }
         });
     },

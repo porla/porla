@@ -12,6 +12,7 @@ interface AddParams {
 interface ITorrent {
   get download_payload_rate(): number;
   get name(): string;
+  get num_peers(): number;
   get save_path(): string;
   get size(): number;
   get upload_payload_rate(): number;
@@ -35,6 +36,7 @@ export default class Session extends EventEmitter implements ISession {
     this.#db = db;
     this.#session = new lt.Session();
     this.#session.on("add_torrent", _ => this.#onAddTorrent(_));
+    this.#session.on("metadata_received", _ => this.#onMetadataReceived(_));
     this.#session.on("save_resume_data", _ => this.#onSaveResumeData(_));
     this.#session.on("state_update", _ => this.#onStateUpdate(_));
     this.#torrents = new Map<string, lt.TorrentStatus>();
@@ -91,6 +93,7 @@ export default class Session extends EventEmitter implements ISession {
       torrents.push({
         download_payload_rate: value.download_payload_rate,
         name: value.name,
+        num_peers: 0,
         save_path: value.save_path,
         size: value.total_wanted,
         upload_payload_rate: value.upload_payload_rate
@@ -131,7 +134,14 @@ export default class Session extends EventEmitter implements ISession {
     let outstanding = -1;
 
     for (const [_, torrent] of this.#torrents) {
-      if (torrent.need_save_resume) outstanding++;
+      if (torrent.need_save_resume) {
+        outstanding++;
+
+        torrent.handle.save_resume_data(
+          lt.resume_data_flags_t.flush_disk_cache
+            | lt.resume_data_flags_t.save_info_dict
+            | lt.resume_data_flags_t.only_if_modified);
+      }
     }
 
     if (outstanding <= 0) {
@@ -197,6 +207,17 @@ export default class Session extends EventEmitter implements ISession {
     this.#torrents.set(
       hash.v1 || "",
       d.handle.status());
+  }
+
+  #onMetadataReceived(d: lt.MetadataReceivedAlert) {
+    logger.info(
+      "Metadata received for %s - saving resume data",
+      d.torrent_name);
+
+    d.handle.save_resume_data(
+      lt.resume_data_flags_t.flush_disk_cache
+        | lt.resume_data_flags_t.save_info_dict
+        | lt.resume_data_flags_t.only_if_modified);
   }
 
   #onSaveResumeData(d: lt.SaveResumeDataAlert) {
