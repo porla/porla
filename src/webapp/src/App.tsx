@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { QueryClient, QueryClientProvider } from "react-query";
 import { NavLink, Outlet } from "react-router-dom";
-import { VscAdd, VscFiles, VscMenu, VscSettingsGear } from "react-icons/vsc";
+import { VscAdd, VscDashboard, VscFiles, VscMenu, VscSettingsGear } from "react-icons/vsc";
 import { trpc } from "./utils/trpc";
 
 import "./App.css";
@@ -12,7 +12,6 @@ function App() {
   const [trpcClient] = useState(() =>
     trpc.createClient({ url: "/trpc" }));
 
-  let activeClassName = "underline";
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
@@ -33,13 +32,28 @@ function App() {
             >
               <Image
                 marginX="auto"
-                maxWidth={"96px"}
-                src="/porla_logo.png"
+                paddingX={5}
+                src="/porla_isotype.svg"
               />
 
               <Divider marginY={3} />
 
               <List>
+                <ListItem mb={3}>
+                  <ListIcon
+                    as={VscDashboard}
+                  />
+                  <Link
+                    _activeLink={{
+                      fontWeight: "bold"
+                    }}
+                    as={NavLink}
+                    flex={1}
+                    to="/"
+                  >
+                    Home
+                  </Link>
+                </ListItem>
                 <ListItem
                 >
                   <Box>
@@ -55,7 +69,7 @@ function App() {
                         }}
                         as={NavLink}
                         flex={1}
-                        to="/"
+                        to="/torrents"
                       >
                         Torrents
                       </Link>
@@ -64,7 +78,7 @@ function App() {
                         as={NavLink}
                         icon={<VscAdd />}
                         size="xs"
-                        to="/add"
+                        to="/torrents/add"
                       />
                     </Flex>
                   </Box>

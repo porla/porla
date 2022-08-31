@@ -7,8 +7,9 @@ import App from "./App";
 
 import "./index.css";
 import Add from "./pages/Add";
-import Home from "./pages/Home";
+import Torrents from "./pages/Torrents";
 import Settings from "./pages/Settings";
+import Home from "./pages/Home";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
@@ -17,7 +18,8 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
         <Routes>
           <Route path="/" element={<App />}>
             <Route index element={<Home />} />
-            <Route path="add" element={<Add />} />
+            <Route path="torrents" element={<Torrents />} />
+            <Route path="torrents/add" element={<Add />} />
             <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>

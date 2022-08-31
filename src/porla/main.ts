@@ -64,6 +64,7 @@ async function main() {
       router: appRouter,
       createContext: () => {
         return {
+          database: () => db,
           session: () => s
         }
       },
