@@ -34,10 +34,11 @@ export const appRouter = trpc
         .torrents()
         .map(t => {
           return {
+            download_rate: t.download_payload_rate,
             name: t.name,
             save_path: t.save_path,
             size: t.size,
-            download_rate: t.download_payload_rate,
+            state: t.state,
             upload_rate: t.upload_payload_rate
           }
         });

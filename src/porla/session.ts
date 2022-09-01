@@ -15,6 +15,7 @@ interface ITorrent {
   get num_peers(): number;
   get save_path(): string;
   get size(): number;
+  get state(): number;
   get upload_payload_rate(): number;
 }
 
@@ -89,13 +90,14 @@ export default class Session extends EventEmitter implements ISession {
   torrents(): ITorrent[] {
     const torrents: ITorrent[] = [];
 
-    for (const [key,value] of this.#torrents) {
+    for (const [,value] of this.#torrents) {
       torrents.push({
         download_payload_rate: value.download_payload_rate,
         name: value.name,
         num_peers: 0,
         save_path: value.save_path,
         size: value.total_wanted,
+        state: value.state,
         upload_payload_rate: value.upload_payload_rate
       });
     }

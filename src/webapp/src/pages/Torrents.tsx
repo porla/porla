@@ -3,6 +3,18 @@ import React from "react";
 import { VscCircleLargeFilled, VscCloudDownload, VscCloudUpload, VscFolder, VscMenu } from "react-icons/vsc";
 import { trpc } from "../utils/trpc";
 import filesize from "filesize";
+import { IconType } from "react-icons/lib";
+
+function getColorFromState(state: number): string {
+  switch (state) {
+    case 5: return "green.400";
+  }
+  return "black";
+}
+
+function getIcon(torrent: any): IconType {
+  return VscCircleLargeFilled;
+}
 
 function Torrents() {
   const torrents = trpc.useQuery(["torrents.list"], {
@@ -56,10 +68,11 @@ function Torrents() {
                   paddingEnd={0}
                 >
                   <Icon
-                    as={VscCircleLargeFilled}
-                    color={"green.400"}
+                    as={getIcon(t)}
+                    color={getColorFromState(t.state)}
                     w={"16px"}
                   />
+                  {t.state}
                 </Td>
                 <Td>
                   <Box>
