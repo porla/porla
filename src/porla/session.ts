@@ -9,10 +9,16 @@ interface AddParams {
   save_path: string;
 }
 
+type InfoHash = [string | null,string | null];
+
 interface ITorrent {
   get download_payload_rate(): number;
+  get flags(): number;
+  get info_hash(): InfoHash;
   get name(): string;
   get num_peers(): number;
+  get num_seeds(): number;
+  get progress(): number;
   get save_path(): string;
   get size(): number;
   get state(): number;
@@ -21,7 +27,9 @@ interface ITorrent {
 
 export interface ISession {
   add(params: AddParams): void;
+  pause(hash: InfoHash): void;
   reloadSettings(): void;
+  resume(hash: InfoHash): void;
   torrents(): ITorrent[];
 }
 
@@ -61,6 +69,15 @@ export default class Session extends EventEmitter implements ISession {
     }
   }
 
+  pause(hash: InfoHash): void {
+    const torrent = this.#torrents.get(hash[0] || hash[1] || "_");
+
+    if (torrent && torrent.handle.is_valid()) {
+      torrent.handle.unset_flags(lt.torrent_flags_t.auto_managed);
+      torrent.handle.pause();
+    }
+  }
+
   reloadSettings(): void {
     const config = this.#db
       .prepare(`SELECT key,value
@@ -87,14 +104,27 @@ export default class Session extends EventEmitter implements ISession {
     this.#session.apply_settings(settings);
   }
 
+  resume(hash: InfoHash): void {
+    const torrent = this.#torrents.get(hash[0] || hash[1] || "_");
+
+    if (torrent && torrent.handle.is_valid()) {
+      torrent.handle.set_flags(lt.torrent_flags_t.auto_managed);
+      torrent.handle.resume();
+    }
+  }
+
   torrents(): ITorrent[] {
     const torrents: ITorrent[] = [];
 
     for (const [,value] of this.#torrents) {
       torrents.push({
         download_payload_rate: value.download_payload_rate,
+        flags: value.flags,
+        info_hash: [value.info_hashes.v1, value.info_hashes.v2],
         name: value.name,
-        num_peers: 0,
+        num_peers: value.num_peers,
+        num_seeds: value.num_seeds,
+        progress: value.progress,
         save_path: value.save_path,
         size: value.total_wanted,
         state: value.state,
@@ -133,7 +163,7 @@ export default class Session extends EventEmitter implements ISession {
 
     this.#session.pause();
 
-    let outstanding = -1;
+    let outstanding = 0;
 
     for (const [_, torrent] of this.#torrents) {
       if (torrent.need_save_resume) {

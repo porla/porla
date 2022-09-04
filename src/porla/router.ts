@@ -35,7 +35,12 @@ export const appRouter = trpc
         .map(t => {
           return {
             download_rate: t.download_payload_rate,
+            flags: t.flags,
+            info_hash: t.info_hash,
             name: t.name,
+            num_peers: t.num_peers,
+            num_seeds: t.num_seeds,
+            progress: t.progress,
             save_path: t.save_path,
             size: t.size,
             state: t.state,
@@ -82,6 +87,20 @@ export const appRouter = trpc
       req.ctx.session()
         .add(req.input);
     },
+  })
+  .mutation("torrents.pause", {
+    input: z.array(z.string().nullable()).length(2),
+    resolve(req) {
+      req.ctx.session()
+        .pause([ req.input[0], req.input[1]]);
+    }
+  })
+  .mutation("torrents.resume", {
+    input: z.array(z.string().nullable()).length(2),
+    resolve(req) {
+      req.ctx.session()
+        .resume([ req.input[0], req.input[1]]);
+    }
   });
 
 export type AppRouter = typeof appRouter;

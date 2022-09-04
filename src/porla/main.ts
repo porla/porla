@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { createExpressMiddleware } from "@trpc/server/adapters/express/dist/trpc-server-adapters-express.cjs.js";
-import Database, { Database as DbType } from "better-sqlite3";
+import Database from "better-sqlite3";
 import express from "express";
 import * as fs from "fs/promises";
 import http from "http";
@@ -9,9 +9,9 @@ import * as path from "path";
 import { fileURLToPath } from "url";
 import { logger } from "./logger.js";
 import { migrate } from "./migrator.js";
-import { IHost, PluginLoader } from "./porla.js";
+import { PluginLoader } from "./porla.js";
 import { appRouter } from "./router.js";
-import Session, { ISession } from "./session.js";
+import Session from "./session.js";
 
 const __dirname = path.dirname(
   fileURLToPath(import.meta.url));
