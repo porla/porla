@@ -4,6 +4,7 @@ import React from "react";
 import { trpc } from "../utils/trpc";
 
 import Card from "../components/Card";
+import Loading from "../components/Loading";
 
 export default function Settings() {
   const config = trpc.useQuery(["config.get", [
@@ -16,7 +17,7 @@ export default function Settings() {
   const setConfig = trpc.useMutation(["config.set"]);
 
   if (!config.data) {
-    return <div>Loading...</div>
+    return <Loading />
   }
 
   return (

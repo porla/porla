@@ -10,7 +10,8 @@ import { Box, Button, Divider, Flex, Heading, IconButton, Image, Input, Link, Li
 function App() {
   const [queryClient] = useState(() => new QueryClient());
   const [trpcClient] = useState(() =>
-    trpc.createClient({ url: "/trpc" }));
+    trpc.createClient({ url: "/trpc" }
+  ));
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>

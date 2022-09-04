@@ -2,13 +2,14 @@ import React from "react";
 import { Formik, Field } from "formik";
 import { trpc } from "../utils/trpc";
 import { Box, Button, FormControl, FormHelperText, FormLabel, Heading, Input } from "@chakra-ui/react";
+import Loading from "../components/Loading";
 
 function Add() {
   const config = trpc.useQuery(["config.get", ["default_save_path"]]);
   const addTorrent = trpc.useMutation(["torrents.add"]);
 
   if (!config.data) {
-    return <div>Loading</div>
+    return <Loading />
   }
 
   return (

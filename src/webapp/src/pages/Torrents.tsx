@@ -5,6 +5,7 @@ import { TbUpload } from "react-icons/tb";
 import { trpc } from "../utils/trpc";
 import filesize from "filesize";
 import { MoveTorrentModal } from "../components/MoveTorrentModal";
+import Loading from "../components/Loading";
 
 function getColorFromState(state: number): string {
   switch (state) {
@@ -75,7 +76,7 @@ function Torrents() {
   } = useDisclosure();
 
   if (!torrents.data) {
-    return <div>Loading</div>
+    return <Loading />
   }
 
   return (
