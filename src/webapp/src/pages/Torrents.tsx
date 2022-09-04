@@ -1,9 +1,10 @@
-import { Box, CircularProgress, CircularProgressLabel, Flex, Icon, IconButton, Input, Menu, MenuButton, MenuGroup, MenuItem, MenuList, Table, Tbody, Td, Th, Thead, Tr } from "@chakra-ui/react";
-import React from "react";
+import { Box, CircularProgress, CircularProgressLabel, Flex, Icon, IconButton, Input, Menu, MenuButton, MenuGroup, MenuItem, MenuList, Table, Tbody, Td, Th, Thead, Tr, useDisclosure } from "@chakra-ui/react";
+import React, { useState } from "react";
 import { MdCheck, MdDriveFileMove, MdMenu, MdOutlineFolder, MdPause, MdPlayArrow, MdRemove } from "react-icons/md";
 import { TbUpload } from "react-icons/tb";
 import { trpc } from "../utils/trpc";
 import filesize from "filesize";
+import { MoveTorrentModal } from "../components/MoveTorrentModal";
 
 function getColorFromState(state: number): string {
   switch (state) {
@@ -62,8 +63,16 @@ function Torrents() {
     refetchInterval: 1000
   });
 
+  const [selectedTorrent,setSelectedTorrent] = useState({});
+
   const pause = trpc.useMutation(["torrents.pause"]);
   const resume = trpc.useMutation(["torrents.resume"]);
+
+  const {
+    isOpen: move_isOpen,
+    onClose: move_onClose,
+    onOpen: move_onOpen
+  } = useDisclosure();
 
   if (!torrents.data) {
     return <div>Loading</div>
@@ -71,6 +80,12 @@ function Torrents() {
 
   return (
     <>
+      <MoveTorrentModal
+        isOpen={move_isOpen}
+        onClose={move_onClose}
+        onOpen={move_onOpen}
+        torrent={selectedTorrent} />
+
       <Flex
         backgroundColor={"#fff"}
         border="1px solid #f0f0f0"
@@ -138,8 +153,8 @@ function Torrents() {
                   </Flex>
                 </Td>
                 <Td textAlign={"right"}>{filesize(t.size)}</Td>
-                <Td textAlign={"right"}>{t.download_rate < 1024 ? "-" : filesize(t.download_rate)+"/s"}</Td>
-                <Td textAlign={"right"}>{t.upload_rate   < 1024 ? "-" : filesize(t.upload_rate)+"/s"}</Td>
+                <Td textAlign={"right"}>{t.download_payload_rate < 1024 ? "-" : filesize(t.download_payload_rate)+"/s"}</Td>
+                <Td textAlign={"right"}>{t.upload_payload_rate   < 1024 ? "-" : filesize(t.upload_payload_rate)+"/s"}</Td>
                 <Td textAlign={"right"}>{t.num_peers === 0 ? "-" : t.num_peers}</Td>
                 <Td
                   paddingEnd={0}
@@ -173,6 +188,10 @@ function Torrents() {
                         }
                         <MenuItem
                           icon={<MdDriveFileMove />}
+                          onClick={() => {
+                            setSelectedTorrent(t);
+                            move_onOpen();
+                          }}
                         >
                           Move
                         </MenuItem>

@@ -32,21 +32,7 @@ export const appRouter = trpc
     resolve(req) {
       return req.ctx.session()
         .torrents()
-        .map(t => {
-          return {
-            download_rate: t.download_payload_rate,
-            flags: t.flags,
-            info_hash: t.info_hash,
-            name: t.name,
-            num_peers: t.num_peers,
-            num_seeds: t.num_seeds,
-            progress: t.progress,
-            save_path: t.save_path,
-            size: t.size,
-            state: t.state,
-            upload_rate: t.upload_payload_rate
-          }
-        });
+        .map(t => t.status());
     },
   })
   .mutation("config.set", {
@@ -88,18 +74,39 @@ export const appRouter = trpc
         .add(req.input);
     },
   })
+  .mutation("torrents.move", {
+    input: z.object({
+      info_hash: z.string().nullable().array().length(2),
+      new_path: z.string()
+    }),
+    resolve(req) {
+      const torrent = req.ctx.session()
+        .get([ req.input.info_hash[0], req.input.info_hash[1] ]);
+      if (torrent) torrent.move(req.input.new_path);
+    }
+  })
   .mutation("torrents.pause", {
     input: z.array(z.string().nullable()).length(2),
     resolve(req) {
-      req.ctx.session()
-        .pause([ req.input[0], req.input[1]]);
+      const torrent = req.ctx.session()
+        .get([ req.input[0], req.input[1] ]);
+      if (torrent) torrent.pause();
+    }
+  })
+  .mutation("torrents.remove", {
+    input: z.array(z.string().nullable()).length(2),
+    resolve(req) {
+      const torrent = req.ctx.session()
+        .get([ req.input[0], req.input[1] ]);
+      if (torrent) req.ctx.session().remove(torrent);
     }
   })
   .mutation("torrents.resume", {
     input: z.array(z.string().nullable()).length(2),
     resolve(req) {
-      req.ctx.session()
-        .resume([ req.input[0], req.input[1]]);
+      const torrent = req.ctx.session()
+        .get([ req.input[0], req.input[1] ]);
+      if (torrent) torrent.resume();
     }
   });
 

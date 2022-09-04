@@ -11,7 +11,7 @@ interface AddParams {
 
 type InfoHash = [string | null,string | null];
 
-interface ITorrent {
+export interface ITorrentStatus {
   get download_payload_rate(): number;
   get flags(): number;
   get info_hash(): InfoHash;
@@ -25,19 +25,76 @@ interface ITorrent {
   get upload_payload_rate(): number;
 }
 
+export abstract class Torrent {
+  abstract move(new_path: string): void;
+  abstract pause(): void;
+  abstract resume(): void;
+  abstract status(): ITorrentStatus;
+}
+
 export interface ISession {
   add(params: AddParams): void;
-  pause(hash: InfoHash): void;
+  get(hash: InfoHash): Torrent | null;
   reloadSettings(): void;
-  resume(hash: InfoHash): void;
-  torrents(): ITorrent[];
+  remove(torrent: Torrent): void;
+  torrents(): Torrent[];
+}
+
+class TorrentWrapper implements Torrent {
+  readonly #handle: lt.TorrentHandle;
+  #status: lt.TorrentStatus;
+
+  constructor(handle: lt.TorrentHandle) {
+    this.#handle = handle;
+    this.#status = handle.status();
+  }
+
+  move(new_path: string): void {
+    this.#handle.move_storage(new_path);
+  }
+
+  pause(): void {
+    this.#handle.pause();
+  }
+
+  resume(): void {
+    this.#handle.resume();
+  }
+
+  raw(): lt.TorrentHandle {
+    return this.#handle;
+  }
+
+  setStatus(status: lt.TorrentStatus): void {
+    this.#status = status;
+  }
+
+  status(): ITorrentStatus {
+    return {
+      download_payload_rate: this.#status.download_payload_rate,
+      flags: this.#status.flags,
+      info_hash: [this.#status.info_hashes.v1, this.#status.info_hashes.v2],
+      name: this.#status.name,
+      num_peers: this.#status.num_peers,
+      num_seeds: this.#status.num_seeds,
+      progress: this.#status.progress,
+      save_path: this.#status.save_path,
+      size: this.#status.total_wanted,
+      state: this.#status.state,
+      upload_payload_rate: this.#status.upload_payload_rate
+    };
+  }
+
+  statusRaw(): lt.TorrentStatus {
+    return this.#status;
+  }
 }
 
 export default class Session extends EventEmitter implements ISession {
   readonly #db: Database;
   readonly #session: lt.Session;
   readonly #timer: NodeJS.Timer;
-  readonly #torrents: Map<string, lt.TorrentStatus>;
+  readonly #torrents: Map<string, TorrentWrapper>;
 
   constructor(db: Database) {
     super();
@@ -48,7 +105,7 @@ export default class Session extends EventEmitter implements ISession {
     this.#session.on("metadata_received", _ => this.#onMetadataReceived(_));
     this.#session.on("save_resume_data", _ => this.#onSaveResumeData(_));
     this.#session.on("state_update", _ => this.#onStateUpdate(_));
-    this.#torrents = new Map<string, lt.TorrentStatus>();
+    this.#torrents = new Map<string, TorrentWrapper>();
 
     this.#timer = setInterval(_ => this.#postUpdates(), 1000);
   }
@@ -59,6 +116,10 @@ export default class Session extends EventEmitter implements ISession {
     this.#session.add_torrent(p);
   }
 
+  get(hash: InfoHash): Torrent | null {
+    return this.#torrents.get(hash[1] || hash[0] || "") || null;
+  }
+
   async load() {
     const params = AddTorrentParams.all(this.#db);
 
@@ -66,15 +127,6 @@ export default class Session extends EventEmitter implements ISession {
 
     for (const param of params) {
       this.#session.add_torrent(param);
-    }
-  }
-
-  pause(hash: InfoHash): void {
-    const torrent = this.#torrents.get(hash[0] || hash[1] || "_");
-
-    if (torrent && torrent.handle.is_valid()) {
-      torrent.handle.unset_flags(lt.torrent_flags_t.auto_managed);
-      torrent.handle.pause();
     }
   }
 
@@ -104,35 +156,14 @@ export default class Session extends EventEmitter implements ISession {
     this.#session.apply_settings(settings);
   }
 
-  resume(hash: InfoHash): void {
-    const torrent = this.#torrents.get(hash[0] || hash[1] || "_");
-
-    if (torrent && torrent.handle.is_valid()) {
-      torrent.handle.set_flags(lt.torrent_flags_t.auto_managed);
-      torrent.handle.resume();
-    }
+  remove(torrent: Torrent): void {
+    const wrap = torrent as TorrentWrapper;
+    if (!wrap) throw new Error();
+    this.#session.remove_torrent(wrap.raw());
   }
 
-  torrents(): ITorrent[] {
-    const torrents: ITorrent[] = [];
-
-    for (const [,value] of this.#torrents) {
-      torrents.push({
-        download_payload_rate: value.download_payload_rate,
-        flags: value.flags,
-        info_hash: [value.info_hashes.v1, value.info_hashes.v2],
-        name: value.name,
-        num_peers: value.num_peers,
-        num_seeds: value.num_seeds,
-        progress: value.progress,
-        save_path: value.save_path,
-        size: value.total_wanted,
-        state: value.state,
-        upload_payload_rate: value.upload_payload_rate
-      });
-    }
-
-    return torrents;
+  torrents(): Torrent[] {
+    return [ ...this.#torrents.values() ];
   }
 
   async unload() {
@@ -166,10 +197,12 @@ export default class Session extends EventEmitter implements ISession {
     let outstanding = 0;
 
     for (const [_, torrent] of this.#torrents) {
-      if (torrent.need_save_resume) {
+      const status = torrent.statusRaw();
+
+      if (status.need_save_resume) {
         outstanding++;
 
-        torrent.handle.save_resume_data(
+        torrent.raw().save_resume_data(
           lt.resume_data_flags_t.flush_disk_cache
             | lt.resume_data_flags_t.save_info_dict
             | lt.resume_data_flags_t.only_if_modified);
@@ -238,7 +271,7 @@ export default class Session extends EventEmitter implements ISession {
 
     this.#torrents.set(
       hash.v1 || "",
-      d.handle.status());
+      new TorrentWrapper(d.handle));
   }
 
   #onMetadataReceived(d: lt.MetadataReceivedAlert) {
@@ -261,9 +294,14 @@ export default class Session extends EventEmitter implements ISession {
 
   #onStateUpdate(d: lt.StateUpdateAlert) {
     for (const status of d.status) {
-      this.#torrents.set(
-        status.info_hashes.v1 || "",
-        status);
+      const torrent = this.#torrents.get(
+        status.info_hashes.v2
+          || status.info_hashes.v1
+          || "");
+
+      if (torrent) {
+        torrent.setStatus(status);
+      }
     }
   }
 
