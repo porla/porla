@@ -94,11 +94,17 @@ export const appRouter = trpc
     }
   })
   .mutation("torrents.remove", {
-    input: z.array(z.string().nullable()).length(2),
+    input: z.object({
+      info_hash: z.array(z.string().nullable()).length(2),
+      remove_files: z.boolean()
+    }),
     resolve(req) {
-      const torrent = req.ctx.session()
-        .get([ req.input[0], req.input[1] ]);
-      if (torrent) req.ctx.session().remove(torrent);
+      const session = req.ctx.session();
+      const torrent = session.get([ req.input.info_hash[0], req.input.info_hash[1] ]);
+
+      if (torrent) {
+        session.remove(torrent, { remove_files: req.input.remove_files });
+      }
     }
   })
   .mutation("torrents.resume", {

@@ -1,11 +1,11 @@
 import { Box, CircularProgress, CircularProgressLabel, Flex, Icon, IconButton, Input, Menu, MenuButton, MenuGroup, MenuItem, MenuList, Table, Tbody, Td, Th, Thead, Tr, useDisclosure } from "@chakra-ui/react";
 import React, { useState } from "react";
-import { MdCheck, MdDriveFileMove, MdMenu, MdOutlineFolder, MdPause, MdPlayArrow, MdRemove } from "react-icons/md";
+import { MdCheck, MdDriveFileMove, MdMenu, MdOutlineFolder, MdOutlineRemove, MdPause, MdPlayArrow } from "react-icons/md";
 import { TbUpload } from "react-icons/tb";
 import { trpc } from "../utils/trpc";
 import filesize from "filesize";
 import { MoveTorrentModal } from "../components/MoveTorrentModal";
-import Loading from "../components/Loading";
+import { RemoveTorrentDialog } from "../components/RemoveTorrentDialog";
 
 function getColorFromState(state: number): string {
   switch (state) {
@@ -75,6 +75,12 @@ function Torrents() {
     onOpen: move_onOpen
   } = useDisclosure();
 
+  const {
+    isOpen: remove_isOpen,
+    onClose: remove_onClose,
+    onOpen: remove_onOpen
+  } = useDisclosure();
+
   if (!torrents.data) {
     return <Loading />
   }
@@ -86,6 +92,13 @@ function Torrents() {
         onClose={move_onClose}
         onOpen={move_onOpen}
         torrent={selectedTorrent} />
+
+      <RemoveTorrentDialog
+        isOpen={remove_isOpen}
+        onClose={remove_onClose}
+        onOpen={remove_onOpen}
+        torrent={selectedTorrent}
+      />
 
       <Flex
         backgroundColor={"#fff"}
@@ -197,7 +210,11 @@ function Torrents() {
                           Move
                         </MenuItem>
                         <MenuItem
-                          icon={<MdRemove />}
+                          icon={<MdOutlineRemove />}
+                          onClick={() => {
+                            setSelectedTorrent(t);
+                            remove_onOpen();
+                          }}
                         >
                           Remove
                         </MenuItem>
