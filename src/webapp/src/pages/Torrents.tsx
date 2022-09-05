@@ -4,6 +4,7 @@ import { MdCheck, MdDriveFileMove, MdMenu, MdOutlineFolder, MdOutlineRemove, MdP
 import { TbUpload } from "react-icons/tb";
 import { trpc } from "../utils/trpc";
 import filesize from "filesize";
+import Loading from "../components/Loading";
 import { MoveTorrentModal } from "../components/MoveTorrentModal";
 import { RemoveTorrentDialog } from "../components/RemoveTorrentDialog";
 
