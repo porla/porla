@@ -36,7 +36,7 @@ export interface ISession {
   add(params: AddParams): void;
   get(hash: InfoHash): Torrent | null;
   reloadSettings(): void;
-  remove(torrent: Torrent): void;
+  remove(torrent: Torrent, opts?: { remove_files?: boolean }): void;
   torrents(): Torrent[];
 }
 
@@ -156,10 +156,13 @@ export default class Session extends EventEmitter implements ISession {
     this.#session.apply_settings(settings);
   }
 
-  remove(torrent: Torrent): void {
+  remove(torrent: Torrent, opts?: { remove_files?: boolean }): void {
     const wrap = torrent as TorrentWrapper;
     if (!wrap) throw new Error();
-    this.#session.remove_torrent(wrap.raw());
+
+    this.#session.remove_torrent(
+      wrap.raw(),
+      opts?.remove_files ? lt.remove_flags_t.delete_files : undefined);
   }
 
   torrents(): Torrent[] {
@@ -167,6 +170,8 @@ export default class Session extends EventEmitter implements ISession {
   }
 
   async unload() {
+    clearTimeout(this.#timer);
+
     // Unload everything in the session and prepare it for deletion
     this.#session.removeAllListeners();
 
@@ -270,7 +275,7 @@ export default class Session extends EventEmitter implements ISession {
     const hash = d.handle.info_hashes();
 
     this.#torrents.set(
-      hash.v1 || "",
+      hash.v2 || hash.v1 || "",
       new TorrentWrapper(d.handle));
   }
 
