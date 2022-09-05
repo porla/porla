@@ -1,6 +1,6 @@
-import { Box, CircularProgress, CircularProgressLabel, Flex, Icon, IconButton, Input, Menu, MenuButton, MenuGroup, MenuItem, MenuList, Table, Tbody, Td, Th, Thead, Tr, useDisclosure } from "@chakra-ui/react";
+import { Box, CircularProgress, CircularProgressLabel, Flex, Icon, IconButton, Input, InputLeftElement, InputGroup, Menu, MenuButton, MenuGroup, MenuItem, MenuList, Table, Tbody, Td, Th, Thead, Tr, useDisclosure } from "@chakra-ui/react";
 import React, { useState } from "react";
-import { MdCheck, MdDriveFileMove, MdMenu, MdOutlineFolder, MdOutlineRemove, MdPause, MdPlayArrow } from "react-icons/md";
+import { MdFilterList, MdCheck, MdDriveFileMove, MdMenu, MdOutlineFolder, MdOutlineRemove, MdPause, MdPlayArrow } from "react-icons/md";
 import { TbUpload } from "react-icons/tb";
 import { trpc } from "../utils/trpc";
 import filesize from "filesize";
@@ -65,7 +65,7 @@ function Torrents() {
     refetchInterval: 1000
   });
 
-  const [selectedTorrent,setSelectedTorrent] = useState({});
+  const [selectedTorrent, setSelectedTorrent] = useState({});
 
   const pause = trpc.useMutation(["torrents.pause"]);
   const resume = trpc.useMutation(["torrents.resume"]);
@@ -108,10 +108,16 @@ function Torrents() {
         marginBottom={5}
         padding={3}
       >
-        <Input
-          marginRight={3}
-          placeholder="Filter torrent list..."
-        />
+        <InputGroup>
+          <InputLeftElement
+            pointerEvents='none'
+            children={<MdFilterList />}
+          />
+          <Input
+            marginRight={3}
+            placeholder="Filter torrent list..."
+          />
+        </InputGroup>
         <IconButton
           aria-label=""
           icon={<MdMenu />}
