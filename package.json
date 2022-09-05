@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "rm -rf dist/ && tsc && vite build && cp -r src/porla/sql dist/ && chmod +x dist/main.js",
+    "build:win": "rd /s /q \"./dist\" && tsc && vite build && xcopy /F /e /i /y /s \"./src/porla/sql\" \"./dist/sql\"",
     "dev:app": "nodemon src/porla/main.ts",
     "dev:web": "vite"
   },
