@@ -105,6 +105,7 @@ export default class Session extends EventEmitter implements ISession {
     this.#session.on("metadata_received", _ => this.#onMetadataReceived(_));
     this.#session.on("save_resume_data", _ => this.#onSaveResumeData(_));
     this.#session.on("state_update", _ => this.#onStateUpdate(_));
+    this.#session.on("torrent_removed", _ => this.#onTorrentRemoved(_));
     this.#torrents = new Map<string, TorrentWrapper>();
 
     this.#timer = setInterval(_ => this.#postUpdates(), 1000);
@@ -308,6 +309,14 @@ export default class Session extends EventEmitter implements ISession {
         torrent.setStatus(status);
       }
     }
+  }
+
+  #onTorrentRemoved(d: lt.TorrentRemovedAlert) {
+    if (!this.#torrents.delete(d.info_hashes.v2 || d.info_hashes.v1 || "")) {
+      logger.warn("Removing unknown torrent (%s,%s)", d.info_hashes.v1, d.info_hashes.v2);
+    }
+
+    AddTorrentParams.delete(this.#db, d.info_hashes);
   }
 
   #postUpdates() {
