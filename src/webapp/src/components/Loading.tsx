@@ -1,7 +1,10 @@
-import { Center, Spinner, VStack, Text } from "@chakra-ui/react";
 import React from "react";
+import { Center, Spinner, VStack, Text } from "@chakra-ui/react";
+import { useTranslation } from "react-i18next";
 
 export default function Loading() {
+  const { t } = useTranslation();
+
   return (
     <Center h="100%">
       <VStack spacing={4}>
@@ -13,7 +16,7 @@ export default function Loading() {
           thickness="5px"
         />
         <Text>
-          Loading...
+          {t('loading')}
         </Text>
       </VStack>
     </Center>

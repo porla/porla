@@ -1,13 +1,15 @@
+import "./App.css";
 import React, { useState } from "react";
 import { QueryClient, QueryClientProvider } from "react-query";
 import { NavLink, Outlet } from "react-router-dom";
 import { VscAdd, VscDashboard, VscFiles, VscMenu, VscSettingsGear } from "react-icons/vsc";
 import { trpc } from "./utils/trpc";
-
-import "./App.css";
 import { Box, Button, Divider, Flex, Heading, IconButton, Image, Input, Link, List, ListIcon, ListItem, Text } from "@chakra-ui/react";
+import "../../../i18n";
+import { useTranslation } from "react-i18next";
 
 function App() {
+  const { t } = useTranslation();
   const [queryClient] = useState(() => new QueryClient());
   const [trpcClient] = useState(() =>
     trpc.createClient({ url: "/trpc" }
@@ -52,7 +54,7 @@ function App() {
                     flex={1}
                     to="/"
                   >
-                    Home
+                    {t('home')}
                   </Link>
                 </ListItem>
                 <ListItem
@@ -72,7 +74,7 @@ function App() {
                         flex={1}
                         to="/torrents"
                       >
-                        Torrents
+                        {t('torrents')}
                       </Link>
                       <IconButton
                         aria-label=""
@@ -102,7 +104,7 @@ function App() {
                     flex={1}
                     to="/settings"
                   >
-                    Settings
+                    {t('settings')}
                   </Link>
                 </ListItem>
               </List>

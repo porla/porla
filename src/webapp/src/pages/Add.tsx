@@ -1,10 +1,13 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Formik, Field } from "formik";
 import { trpc } from "../utils/trpc";
 import { Box, Button, FormControl, FormHelperText, FormLabel, Heading, Input } from "@chakra-ui/react";
 import Loading from "../components/Loading";
 
 function Add() {
+  const { t } = useTranslation();
+
   const config = trpc.useQuery(["config.get", ["default_save_path"]]);
   const addTorrent = trpc.useMutation(["torrents.add"]);
 
@@ -25,7 +28,7 @@ function Add() {
           marginBottom={3}
           size="md"
         >
-          Add torrent
+          {t('add_torrent')}
         </Heading>
         <Formik
           initialValues={{
@@ -41,7 +44,7 @@ function Add() {
               <FormControl
                 marginBottom={3}
               >
-                <FormLabel>Magnet link</FormLabel>
+                <FormLabel>{t('magnet_link')}</FormLabel>
                 <Field
                   as={Input}
                   id="magnet_link"
@@ -49,13 +52,13 @@ function Add() {
                   placeholder="magnet:?xt=urn:btih: ..."
                   type="text"
                 />
-                <FormHelperText>The magnet link to add.</FormHelperText>
+                <FormHelperText>{t('magnet_link_helper')}</FormHelperText>
               </FormControl>
 
               <FormControl
                 marginBottom={3}
               >
-                <FormLabel>Save path</FormLabel>
+                <FormLabel>{t('save_path')}</FormLabel>
                 <Field
                   as={Input}
                   id="save_path"
@@ -63,7 +66,7 @@ function Add() {
                   placeholder="/mnt/downloads"
                   type="text"
                 />
-                <FormHelperText>The full path to where the torrent should be saved.</FormHelperText>
+                <FormHelperText>{t('save_path_helper')}</FormHelperText>
               </FormControl>
 
               <Button
@@ -72,7 +75,7 @@ function Add() {
                 size="sm"
                 type="submit"
               >
-                Add torrent
+                {t('add_torrent')}
               </Button>
             </form>
           )}

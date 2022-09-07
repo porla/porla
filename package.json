@@ -59,8 +59,11 @@
     "better-sqlite3": "^7.6.2",
     "express": "^4.18.1",
     "filesize": "^9.0.11",
+    "i18next": "^21.9.1",
+    "i18next-browser-languagedetector": "^6.1.5",
     "pino": "^8.4.0",
     "pino-pretty": "^9.0.0",
+    "react-i18next": "^11.18.5",
     "zod": "^3.18.0"
   }
 }

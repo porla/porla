@@ -1,5 +1,6 @@
-import { Box, CircularProgress, CircularProgressLabel, Flex, Icon, IconButton, Input, InputLeftElement, InputGroup, Menu, MenuButton, MenuGroup, MenuItem, MenuList, Table, Tbody, Td, Th, Thead, Tr, useDisclosure } from "@chakra-ui/react";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Box, CircularProgress, CircularProgressLabel, Flex, Icon, IconButton, Input, InputLeftElement, InputGroup, Menu, MenuButton, MenuGroup, MenuItem, MenuList, Table, Tbody, Td, Th, Thead, Tr, useDisclosure } from "@chakra-ui/react";
 import { MdFilterList, MdCheck, MdDriveFileMove, MdMenu, MdOutlineFolder, MdOutlineRemove, MdPause, MdPlayArrow } from "react-icons/md";
 import { TbUpload } from "react-icons/tb";
 import { trpc } from "../utils/trpc";
@@ -61,6 +62,8 @@ function ProgressLabel({ torrent }: any) {
 }
 
 function Torrents() {
+  const { t } = useTranslation();
+
   const torrents = trpc.useQuery(["torrents.list"], {
     refetchInterval: 1000
   });
@@ -115,7 +118,7 @@ function Torrents() {
           />
           <Input
             marginRight={3}
-            placeholder="Filter torrent list..."
+            placeholder={t('filter_torrent_list')}
           />
         </InputGroup>
         <IconButton
@@ -133,11 +136,11 @@ function Torrents() {
           <Thead>
             <Tr>
               <Th w={"16px"}></Th>
-              <Th>Name</Th>
-              <Th textAlign={"right"}>Size</Th>
-              <Th textAlign={"right"}>DL</Th>
-              <Th textAlign={"right"}>UL</Th>
-              <Th textAlign={"right"}>Peers</Th>
+              <Th>{t('name')}</Th>
+              <Th textAlign={"right"}>{t('size')}</Th>
+              <Th textAlign={"right"}>{t('dl')}</Th>
+              <Th textAlign={"right"}>{t('ul')}</Th>
+              <Th textAlign={"right"}>{t('peers')}</Th>
               <Th textAlign={"right"} w={"16px"}></Th>
             </Tr>
           </Thead>

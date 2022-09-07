@@ -1,12 +1,15 @@
+import React from "react";
+import { useTranslation } from "react-i18next";
 import { Button, Checkbox, FormControl, FormHelperText, FormLabel, Input, Select } from "@chakra-ui/react";
 import { Field, Formik } from "formik";
-import React from "react";
 import { trpc } from "../utils/trpc";
 
 import Card from "../components/Card";
 import Loading from "../components/Loading";
 
 export default function Settings() {
+  const { t } = useTranslation();
+
   const config = trpc.useQuery(["config.get", [
     "default_save_path",
     "proxy_type",
@@ -39,11 +42,11 @@ export default function Settings() {
       >
         {({ handleChange, handleSubmit, values }) => (
           <form onSubmit={handleSubmit}>
-            <Card heading={"General"}>
+            <Card heading={t('general')}>
               <FormControl
                 marginBottom={3}
               >
-                <FormLabel htmlFor="default_save_path">Default save path</FormLabel>
+                <FormLabel htmlFor="default_save_path">{t('default_save_path')}</FormLabel>
                 <Field
                   as={Input}
                   id="default_save_path"
@@ -51,29 +54,29 @@ export default function Settings() {
                   placeholder="/mnt/downloads"
                   type="text"
                 />
-                <FormHelperText>The default save path. This will be used when no other save path has been specified.</FormHelperText>
+                <FormHelperText>{t('default_save_path_helper')}</FormHelperText>
               </FormControl>
             </Card>
 
-            <Card heading="Proxy" mt={5}>
+            <Card heading={t('proxy')} mt={5}>
               <FormControl
                 marginBottom={3}
               >
-                <FormLabel>Type</FormLabel>
+                <FormLabel>{t('type')}</FormLabel>
                 <Select
                   id="proxy_type"
                   name="proxy_type"
                   onChange={handleChange}
                   value={values.proxy_type}
                 >
-                  <option value="0">None</option>
+                  <option value="0">{t('none')}</option>
                   <option value="5">SOCKS5</option>
                 </Select>
               </FormControl>
               <FormControl
                 marginBottom={3}
               >
-                <FormLabel>Host</FormLabel>
+                <FormLabel>{t('proxy_host')}</FormLabel>
                 <Field
                   as={Input}
                   id="proxy_hostname"
@@ -82,7 +85,7 @@ export default function Settings() {
                   placeholder="10.64.0.1"
                   type="text"
                 />
-                <FormHelperText>The proxy host.</FormHelperText>
+                <FormHelperText>{t('proxy_host_helper')}</FormHelperText>
               </FormControl>
               <FormControl
                 marginBottom={3}
@@ -96,7 +99,7 @@ export default function Settings() {
                   placeholder="1080"
                   type="number"
                 />
-                <FormHelperText>The proxy port.</FormHelperText>
+                <FormHelperText>{t('proxy_port_helper')}</FormHelperText>
               </FormControl>
             </Card>
 
@@ -105,7 +108,7 @@ export default function Settings() {
               marginTop={5}
               type="submit"
             >
-              Save settings
+              {t('save_settings')}
             </Button>
           </form>
         )}
