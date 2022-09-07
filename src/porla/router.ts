@@ -1,6 +1,7 @@
 import * as trpc from "@trpc/server";
 import { Database } from "better-sqlite3";
 import { z } from "zod";
+import { logger } from "./logger.js";
 import { ISession } from "./session.js";
 
 type PorlaContext = trpc.inferAsyncReturnType<() => {

@@ -10,6 +10,18 @@ export default class AddTorrentParams {
       .map(r => lt.read_resume_data(r.resume_data_buf));
   }
 
+  static delete(db: Database, hash: lt.InfoHash) {
+    db.prepare(
+      `DELETE FROM addtorrentparams
+       WHERE (info_hash_v1 = $v1 AND info_hash_v2 IS NULL)
+       OR (info_hash_v1 IS NULL AND info_hash_v2 = $v2)
+       OR (info_hash_v1 = $v1 AND info_hash_v2 = $v2);`)
+      .run({
+        v1: hash.has_v1() ? hash.v1 : null,
+        v2: hash.has_v2() ? hash.v2 : null
+      });
+  }
+
   static exists(db: Database, hash: lt.InfoHash): boolean {
     return db.prepare(
       `SELECT COUNT(*) as cnt

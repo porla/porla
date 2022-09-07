@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { AlertDialog, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogOverlay, Button, Checkbox, useDisclosure } from "@chakra-ui/react";
+import { trpc } from "../utils/trpc";
 
 interface IRemoveTorrentDialogProps {
   isOpen: boolean;
@@ -10,8 +11,8 @@ interface IRemoveTorrentDialogProps {
 
 export function RemoveTorrentDialog(props: IRemoveTorrentDialogProps) {
   const cancelRef = useRef(null);
-
   const [removeFiles,setRemoveFiles] = useState<boolean>(false);
+  const remove = trpc.useMutation("torrents.remove");
 
   return (
     <AlertDialog
@@ -28,7 +29,20 @@ export function RemoveTorrentDialog(props: IRemoveTorrentDialogProps) {
           <AlertDialogFooter>
             <Checkbox flex={1} onChange={(e) => setRemoveFiles(e.target.checked)}>Remove files</Checkbox>
             <Button ref={cancelRef} onClick={props.onClose}>Cancel</Button>
-            <Button colorScheme={removeFiles?"red":"yellow"} ml={3}>Remove</Button>
+            <Button
+              colorScheme={removeFiles?"red":"yellow"}
+              ml={3}
+              onClick={async () => {
+                await remove.mutateAsync({
+                  info_hash: props.torrent.info_hash,
+                  remove_files: removeFiles
+                });
+
+                props.onClose();
+              }}
+            >
+              Remove
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialogOverlay>
