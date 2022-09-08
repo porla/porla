@@ -16,7 +16,7 @@ export default function Loading() {
           thickness="5px"
         />
         <Text>
-          {t('loading')}
+          {t("loading")}
         </Text>
       </VStack>
     </Center>

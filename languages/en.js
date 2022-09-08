@@ -1,6 +1,11 @@
 export default {
   translation: {
+    error: 'Error',
+    success: 'Success',
+    actions: 'Actions',
     add_torrent: 'Add torrent',
+    add_torrent_error: 'There was an error when adding the torrent',
+    add_torrent_success: 'Torrent added successfully!',
     default_save_path_helper: 'The default save path will be used when no other save path has been specified.',
     default_save_path: 'Default save path',
     dl: 'DL',
@@ -30,5 +35,15 @@ export default {
     torrents: 'Torrents',
     type: 'Type',
     ul: 'UL',
+    cancel: 'Cancel',
+    move: 'Move',
+    move_torrent: 'Move torrent',
+    target_path: 'Target path',
+    target_path_helper: 'The path on disk where the torrent will be moved.',
+    remove: 'Remove',
+    remove_torrent: 'Remove torrent',
+    remove_files: 'Remove files',
+    remove_files_dialog: 'Are you sure? The torrent will be removed from Porla.',
+    remove_files_dialog_all: 'Are you sure? The torrent and any downloaded data will be removed from Porla.',
   }
 }

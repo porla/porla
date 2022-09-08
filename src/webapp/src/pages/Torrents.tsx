@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, CircularProgress, CircularProgressLabel, Flex, Icon, IconButton, Input, InputLeftElement, InputGroup, Menu, MenuButton, MenuGroup, MenuItem, MenuList, Table, Tbody, Td, Th, Thead, Tr, useDisclosure } from "@chakra-ui/react";
-import { MdFilterList, MdCheck, MdDriveFileMove, MdMenu, MdOutlineFolder, MdOutlineRemove, MdPause, MdPlayArrow } from "react-icons/md";
+import { MdFilterList, MdCheck, MdDriveFileMove, MdMenu, MdOutlineFolder, MdDelete, MdPause, MdPlayArrow } from "react-icons/md";
 import { TbUpload } from "react-icons/tb";
 import { trpc } from "../utils/trpc";
 import filesize from "filesize";
@@ -118,7 +118,7 @@ function Torrents() {
           />
           <Input
             marginRight={3}
-            placeholder={t('filter_torrent_list')}
+            placeholder={t("filter_torrent_list")}
           />
         </InputGroup>
         <IconButton
@@ -136,33 +136,33 @@ function Torrents() {
           <Thead>
             <Tr>
               <Th w={"16px"}></Th>
-              <Th>{t('name')}</Th>
-              <Th textAlign={"right"}>{t('size')}</Th>
-              <Th textAlign={"right"}>{t('dl')}</Th>
-              <Th textAlign={"right"}>{t('ul')}</Th>
-              <Th textAlign={"right"}>{t('peers')}</Th>
+              <Th>{t("name")}</Th>
+              <Th textAlign={"right"}>{t("size")}</Th>
+              <Th textAlign={"right"}>{t("dl")}</Th>
+              <Th textAlign={"right"}>{t("ul")}</Th>
+              <Th textAlign={"right"}>{t("peers")}</Th>
               <Th textAlign={"right"} w={"16px"}></Th>
             </Tr>
           </Thead>
           <Tbody>
-            { torrents.data.map((t,idx) => (
+            { torrents.data.map((item, idx) => (
               <Tr key={idx}>
                 <Td
                   paddingEnd={0}
                 >
                   <CircularProgress
-                    color={getColorFromState(t.state)}
+                    color={getColorFromState(item.state)}
                     size={"32px"}
-                    value={t.progress*100}
+                    value={item.progress*100}
                   >
                     <CircularProgressLabel display={"flex"} alignItems={"center"} justifyContent={"center"}>
-                      <ProgressLabel torrent={t} />
+                      <ProgressLabel torrent={item} />
                     </CircularProgressLabel>
                   </CircularProgress>
                 </Td>
                 <Td>
                   <Box>
-                    {t.name}
+                    {item.name}
                   </Box>
                   <Flex
                     alignItems={"center"}
@@ -173,13 +173,13 @@ function Torrents() {
                       mr={1}
                       fontSize={"sm"}
                     />
-                    {t.save_path}
+                    {item.save_path}
                   </Flex>
                 </Td>
-                <Td textAlign={"right"}>{filesize(t.size)}</Td>
-                <Td textAlign={"right"}>{t.download_payload_rate < 1024 ? "-" : filesize(t.download_payload_rate)+"/s"}</Td>
-                <Td textAlign={"right"}>{t.upload_payload_rate   < 1024 ? "-" : filesize(t.upload_payload_rate)+"/s"}</Td>
-                <Td textAlign={"right"}>{t.num_peers === 0 ? "-" : t.num_peers}</Td>
+                <Td textAlign={"right"}>{filesize(item.size)}</Td>
+                <Td textAlign={"right"}>{item.download_payload_rate < 1024 ? "-" : filesize(item.download_payload_rate)+"/s"}</Td>
+                <Td textAlign={"right"}>{item.upload_payload_rate   < 1024 ? "-" : filesize(item.upload_payload_rate)+"/s"}</Td>
+                <Td textAlign={"right"}>{item.num_peers === 0 ? "-" : item.num_peers}</Td>
                 <Td
                   paddingEnd={0}
                 >
@@ -191,42 +191,42 @@ function Torrents() {
                       variant={"ghost"}
                     />
                     <MenuList>
-                      <MenuGroup title="Actions">
-                        { isPaused(t.flags)
+                      <MenuGroup title={t("actions")}>
+                        { isPaused(item.flags)
                           ? <MenuItem
                               icon={<MdPlayArrow />}
                               onClick={async () => {
-                                await resume.mutateAsync(t.info_hash)
+                                await resume.mutateAsync(item.info_hash)
                               }}
                             >
-                              Resume
+                              {t("resume")}
                             </MenuItem>
                           : <MenuItem
                               icon={<MdPause />}
                               onClick={async () => {
-                                await pause.mutateAsync(t.info_hash);
+                                await pause.mutateAsync(item.info_hash);
                               }}
                             >
-                              Pause
+                              {t("pause")}
                             </MenuItem>
                         }
                         <MenuItem
                           icon={<MdDriveFileMove />}
                           onClick={() => {
-                            setSelectedTorrent(t);
+                            setSelectedTorrent(item);
                             move_onOpen();
                           }}
                         >
-                          Move
+                          {t("move")}
                         </MenuItem>
                         <MenuItem
-                          icon={<MdOutlineRemove />}
+                          icon={<MdDelete />}
                           onClick={() => {
-                            setSelectedTorrent(t);
+                            setSelectedTorrent(item);
                             remove_onOpen();
                           }}
                         >
-                          Remove
+                          {t("remove")}
                         </MenuItem>
                       </MenuGroup>
                     </MenuList>

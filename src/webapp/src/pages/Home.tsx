@@ -7,7 +7,7 @@ function Home() {
 
   return (
     <>
-      <Card heading={t('overview')}>
+      <Card heading={t("overview")}>
       </Card>
     </>
   )

@@ -1,5 +1,6 @@
-import { Button, FormControl, FormHelperText, FormLabel, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay } from "@chakra-ui/react";
 import React from "react";
+import { Button, FormControl, FormHelperText, FormLabel, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay } from "@chakra-ui/react";
+import { useTranslation } from "react-i18next";
 import { MdDriveFileMove } from "react-icons/md";
 import { Formik, Field } from "formik";
 import { trpc } from "../utils/trpc";
@@ -12,6 +13,8 @@ interface IMoveTorrentModalProps {
 }
 
 export function MoveTorrentModal(props: IMoveTorrentModalProps) {
+  const { t } = useTranslation();
+
   const move = trpc.useMutation("torrents.move");
 
   return (
@@ -33,11 +36,15 @@ export function MoveTorrentModal(props: IMoveTorrentModalProps) {
         {({ handleSubmit }) => (
           <form onSubmit={handleSubmit}>
             <ModalContent>
-              <ModalHeader>Move torrent</ModalHeader>
+              <ModalHeader>
+                {t("move_torrent")}
+              </ModalHeader>
               <ModalCloseButton />
               <ModalBody>
                 <FormControl>
-                  <FormLabel htmlFor="path">Target path</FormLabel>
+                  <FormLabel htmlFor="path">
+                    {t("target_path")}
+                  </FormLabel>
                   <Field
                     as={Input}
                     id="path"
@@ -46,7 +53,9 @@ export function MoveTorrentModal(props: IMoveTorrentModalProps) {
                     required
                     type="text"
                   />
-                  <FormHelperText>The path on disk where the torrent will be moved.</FormHelperText>
+                  <FormHelperText>
+                    {t("target_path_helper")}
+                  </FormHelperText>
                 </FormControl>
               </ModalBody>
               <ModalFooter>
@@ -55,7 +64,7 @@ export function MoveTorrentModal(props: IMoveTorrentModalProps) {
                   leftIcon={<MdDriveFileMove />}
                   type="submit"
                 >
-                  Move
+                  {t("move")}
                 </Button>
               </ModalFooter>
             </ModalContent>

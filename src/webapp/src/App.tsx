@@ -54,7 +54,7 @@ function App() {
                     flex={1}
                     to="/"
                   >
-                    {t('home')}
+                    {t("home")}
                   </Link>
                 </ListItem>
                 <ListItem
@@ -74,7 +74,7 @@ function App() {
                         flex={1}
                         to="/torrents"
                       >
-                        {t('torrents')}
+                        {t("torrents")}
                       </Link>
                       <IconButton
                         aria-label=""
@@ -104,7 +104,7 @@ function App() {
                     flex={1}
                     to="/settings"
                   >
-                    {t('settings')}
+                    {t("settings")}
                   </Link>
                 </ListItem>
               </List>

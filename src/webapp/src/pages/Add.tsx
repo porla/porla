@@ -1,13 +1,15 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Formik, Field } from "formik";
 import { trpc } from "../utils/trpc";
-import { Box, Button, FormControl, FormHelperText, FormLabel, Heading, Input } from "@chakra-ui/react";
+import { Box, Button, FormControl, FormHelperText, FormLabel, Heading, Input, useToast } from "@chakra-ui/react";
 import Loading from "../components/Loading";
 
 function Add() {
   const { t } = useTranslation();
-
+  const toast = useToast();
+  const navigate = useNavigate();
   const config = trpc.useQuery(["config.get", ["default_save_path"]]);
   const addTorrent = trpc.useMutation(["torrents.add"]);
 
@@ -28,15 +30,31 @@ function Add() {
           marginBottom={3}
           size="md"
         >
-          {t('add_torrent')}
+          {t("add_torrent")}
         </Heading>
         <Formik
           initialValues={{
             magnet_link: "",
-            save_path: config.data.default_save_path || ""
+            save_path: config.data.default_save_path || "",
           }}
           onSubmit={async (values) => {
-            await addTorrent.mutateAsync(values)
+            try {
+              await addTorrent.mutateAsync(values);
+              navigate('/torrents');
+              toast({
+                title: t("success"),
+                description: t("add_torrent_success"),
+                status: "success",
+                isClosable: true,
+              })
+            } catch (error) {
+              toast({
+                title: t("error"),
+                description: t("add_torrent_error"),
+                status: "error",
+                isClosable: true,
+              })
+            }
           }}
         >
           {({ handleSubmit }) => (
@@ -44,7 +62,7 @@ function Add() {
               <FormControl
                 marginBottom={3}
               >
-                <FormLabel>{t('magnet_link')}</FormLabel>
+                <FormLabel>{t("magnet_link")}</FormLabel>
                 <Field
                   as={Input}
                   id="magnet_link"
@@ -52,13 +70,13 @@ function Add() {
                   placeholder="magnet:?xt=urn:btih: ..."
                   type="text"
                 />
-                <FormHelperText>{t('magnet_link_helper')}</FormHelperText>
+                <FormHelperText>{t("magnet_link_helper")}</FormHelperText>
               </FormControl>
 
               <FormControl
                 marginBottom={3}
               >
-                <FormLabel>{t('save_path')}</FormLabel>
+                <FormLabel>{t("save_path")}</FormLabel>
                 <Field
                   as={Input}
                   id="save_path"
@@ -66,7 +84,7 @@ function Add() {
                   placeholder="/mnt/downloads"
                   type="text"
                 />
-                <FormHelperText>{t('save_path_helper')}</FormHelperText>
+                <FormHelperText>{t("save_path_helper")}</FormHelperText>
               </FormControl>
 
               <Button
@@ -75,7 +93,7 @@ function Add() {
                 size="sm"
                 type="submit"
               >
-                {t('add_torrent')}
+                {t("add_torrent")}
               </Button>
             </form>
           )}

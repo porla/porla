@@ -42,11 +42,11 @@ export default function Settings() {
       >
         {({ handleChange, handleSubmit, values }) => (
           <form onSubmit={handleSubmit}>
-            <Card heading={t('general')}>
+            <Card heading={t("general")}>
               <FormControl
                 marginBottom={3}
               >
-                <FormLabel htmlFor="default_save_path">{t('default_save_path')}</FormLabel>
+                <FormLabel htmlFor="default_save_path">{t("default_save_path")}</FormLabel>
                 <Field
                   as={Input}
                   id="default_save_path"
@@ -54,29 +54,29 @@ export default function Settings() {
                   placeholder="/mnt/downloads"
                   type="text"
                 />
-                <FormHelperText>{t('default_save_path_helper')}</FormHelperText>
+                <FormHelperText>{t("default_save_path_helper")}</FormHelperText>
               </FormControl>
             </Card>
 
-            <Card heading={t('proxy')} mt={5}>
+            <Card heading={t("proxy")} mt={5}>
               <FormControl
                 marginBottom={3}
               >
-                <FormLabel>{t('type')}</FormLabel>
+                <FormLabel>{t("type")}</FormLabel>
                 <Select
                   id="proxy_type"
                   name="proxy_type"
                   onChange={handleChange}
                   value={values.proxy_type}
                 >
-                  <option value="0">{t('none')}</option>
+                  <option value="0">{t("none")}</option>
                   <option value="5">SOCKS5</option>
                 </Select>
               </FormControl>
               <FormControl
                 marginBottom={3}
               >
-                <FormLabel>{t('proxy_host')}</FormLabel>
+                <FormLabel>{t("proxy_host")}</FormLabel>
                 <Field
                   as={Input}
                   id="proxy_hostname"
@@ -85,7 +85,7 @@ export default function Settings() {
                   placeholder="10.64.0.1"
                   type="text"
                 />
-                <FormHelperText>{t('proxy_host_helper')}</FormHelperText>
+                <FormHelperText>{t("proxy_host_helper")}</FormHelperText>
               </FormControl>
               <FormControl
                 marginBottom={3}
@@ -99,7 +99,7 @@ export default function Settings() {
                   placeholder="1080"
                   type="number"
                 />
-                <FormHelperText>{t('proxy_port_helper')}</FormHelperText>
+                <FormHelperText>{t("proxy_port_helper")}</FormHelperText>
               </FormControl>
             </Card>
 
@@ -108,7 +108,7 @@ export default function Settings() {
               marginTop={5}
               type="submit"
             >
-              {t('save_settings')}
+              {t("save_settings")}
             </Button>
           </form>
         )}
