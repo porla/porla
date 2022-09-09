@@ -49,7 +49,7 @@ export function MoveTorrentModal(props: IMoveTorrentModalProps) {
                     as={Input}
                     id="path"
                     name="path"
-                    placeholder="/mnt/new/path"
+                    placeholder={t("target_path_placeholder")}
                     required
                     type="text"
                   />

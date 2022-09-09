@@ -51,7 +51,7 @@ export default function Settings() {
                   as={Input}
                   id="default_save_path"
                   name="default_save_path"
-                  placeholder="/mnt/downloads"
+                  placeholder={t("default_save_path_placeholder")}
                   type="text"
                 />
                 <FormHelperText>{t("default_save_path_helper")}</FormHelperText>

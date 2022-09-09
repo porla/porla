@@ -3,3 +3,4 @@ dist/
 docs/build/
 node_modules/
 porla.db
+.vscode/settings.json

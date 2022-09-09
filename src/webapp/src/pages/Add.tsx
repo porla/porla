@@ -5,6 +5,7 @@ import { Formik, Field } from "formik";
 import { trpc } from "../utils/trpc";
 import { Box, Button, FormControl, FormHelperText, FormLabel, Heading, Input, useToast } from "@chakra-ui/react";
 import Loading from "../components/Loading";
+import Card from "../components/Card";
 
 function Add() {
   const { t } = useTranslation();
@@ -19,19 +20,7 @@ function Add() {
 
   return (
     <>
-      <Box
-        backgroundColor={"#fff"}
-        border="1px solid #f0f0f0"
-        borderRadius={4}
-        padding={3}
-      >
-        <Heading
-          color={"#444"}
-          marginBottom={3}
-          size="md"
-        >
-          {t("add_torrent")}
-        </Heading>
+      <Card heading={t("add_torrent")}>
         <Formik
           initialValues={{
             magnet_link: "",
@@ -81,7 +70,7 @@ function Add() {
                   as={Input}
                   id="save_path"
                   name="save_path"
-                  placeholder="/mnt/downloads"
+                  placeholder={t("default_save_path_placeholder")}
                   type="text"
                 />
                 <FormHelperText>{t("save_path_helper")}</FormHelperText>
@@ -98,7 +87,7 @@ function Add() {
             </form>
           )}
         </Formik>
-      </Box>
+      </Card>
     </>
   );
 }

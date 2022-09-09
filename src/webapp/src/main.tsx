@@ -5,7 +5,7 @@ import { BrowserRouter, Routes, Route, } from "react-router-dom";
 
 import App from "./App";
 
-import "./index.css";
+import "./scss/main.scss";
 import Add from "./pages/Add";
 import Torrents from "./pages/Torrents";
 import Settings from "./pages/Settings";

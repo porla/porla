@@ -1,12 +1,13 @@
-import "./App.css";
+import "./scss/App.scss";
 import React, { useState } from "react";
 import { QueryClient, QueryClientProvider } from "react-query";
 import { NavLink, Outlet } from "react-router-dom";
 import { VscAdd, VscDashboard, VscFiles, VscMenu, VscSettingsGear } from "react-icons/vsc";
 import { trpc } from "./utils/trpc";
-import { Box, Button, Divider, Flex, Heading, IconButton, Image, Input, Link, List, ListIcon, ListItem, Text } from "@chakra-ui/react";
-import "../../../i18n";
+import { Box, Button, ColorModeScript, Divider, Flex, Heading, IconButton, Image, Input, Link, List, ListIcon, ListItem, Text } from "@chakra-ui/react";
+import "./i18n";
 import { useTranslation } from "react-i18next";
+import theme from "./theme";
 
 function App() {
   const { t } = useTranslation();
@@ -18,28 +19,28 @@ function App() {
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
+        <ColorModeScript initialColorMode={theme.config.initialColorMode} />
         <Flex
           height={"100vh"}
         >
           <Flex
-            borderRight={"1px solid #f0f0f0"}
-            boxShadow={"3px 0 3px #fefefe"}
+            borderRightWidth={1}
             direction="column"
-            justifyContent={"flex-end"}
-            height={"100%"}
-            width={"200px"}
+            justifyContent="flex-end"
+            height="100%"
+            width="250px"
             padding={5}
           >
             <Box
               flex={1}
             >
               <Image
+                maxW="64px"
                 marginX="auto"
-                paddingX={5}
-                src="/porla_isotype.svg"
+                src="/brand/porla_isotype.svg"
               />
 
-              <Divider marginY={3} />
+              <Divider marginY={5} />
 
               <List>
                 <ListItem mb={3}>
@@ -57,8 +58,7 @@ function App() {
                     {t("home")}
                   </Link>
                 </ListItem>
-                <ListItem
-                >
+                <ListItem>
                   <Box>
                     <Flex
                       alignItems={"center"}
@@ -88,9 +88,9 @@ function App() {
                 </ListItem>
               </List>
             </Box>
+            <Divider marginY={3} />
             <Box
             >
-              <Divider marginY={3} />
               <List>
                 <ListItem display={"flex"} alignItems={"center"}>
                   <ListIcon
@@ -111,7 +111,6 @@ function App() {
             </Box>
           </Flex>
           <Box
-            backgroundColor={"#fbfbfb"}
             flex={1}
             padding={5}
           >
