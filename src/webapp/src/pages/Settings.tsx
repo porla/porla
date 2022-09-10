@@ -6,6 +6,7 @@ import { trpc } from "../utils/trpc";
 
 import Card from "../components/Card";
 import Loading from "../components/Loading";
+import ToggleTheme from "../components/ToggleTheme";
 
 export default function Settings() {
   const { t } = useTranslation();
@@ -43,9 +44,7 @@ export default function Settings() {
         {({ handleChange, handleSubmit, values }) => (
           <form onSubmit={handleSubmit}>
             <Card heading={t("general")}>
-              <FormControl
-                marginBottom={3}
-              >
+              <FormControl mb={3}>
                 <FormLabel htmlFor="default_save_path">{t("default_save_path")}</FormLabel>
                 <Field
                   as={Input}
@@ -55,6 +54,10 @@ export default function Settings() {
                   type="text"
                 />
                 <FormHelperText>{t("default_save_path_helper")}</FormHelperText>
+              </FormControl>
+              <FormControl mb={3}>
+                <FormLabel>{t("theme")}</FormLabel>
+                <ToggleTheme />
               </FormControl>
             </Card>
 

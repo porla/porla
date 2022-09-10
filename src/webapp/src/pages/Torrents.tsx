@@ -1,70 +1,47 @@
-import "../scss/pages/Torrents.scss";
+import "../scss/pages/torrents.scss";
+
 import React, { useState } from "react";
 import { useTranslation, Trans } from "react-i18next";
 import {
-  Box, Center, CircularProgress, CircularProgressLabel, Flex, HStack, Icon, IconButton, Input, Link, InputLeftElement, InputGroup, Menu, MenuButton, MenuGroup, MenuItem, MenuList, Text,
+  Box, Center, CircularProgress, CircularProgressLabel, Flex,
+  HStack, Icon, IconButton, Input, Link, InputLeftElement,
+  InputGroup, Menu, MenuButton, MenuGroup, MenuItem, MenuList, Text,
   Table, Tbody, Td, Th, Thead, Tr,
   useColorMode, useDisclosure,
 } from "@chakra-ui/react";
-import { MdFilterList, MdCheck, MdDriveFileMove, MdTableView, MdMenu, MdOutlineFolder, MdDelete, MdPause, MdPlayArrow, } from "react-icons/md";
-import { TbUpload } from "react-icons/tb";
+import {
+  BsArrowDown, BsArrowUp, BsCheck2, BsFilter, BsFolder, BsFolderFill,
+  BsList, BsPause, BsPauseFill, BsPlayFill, BsQuestion, BsTable,
+  BsThreeDotsVertical, BsTrash2Fill, BsX
+} from "react-icons/bs";
+import {
+  getState,
+  getStateColor,
+  isPaused,
+} from "../utils/torrentStates";
 import { trpc } from "../utils/trpc";
 import filesize from "filesize";
 import Loading from "../components/Loading";
-import ToggleTheme from "../components/ToggleTheme";
 import { MoveTorrentModal } from "../components/MoveTorrentModal";
 import { RemoveTorrentDialog } from "../components/RemoveTorrentDialog";
 
-function getColorFromState(state: number): string {
-  switch (state) {
-    case 3: return "blue.400";
-    case 5: return "green.400";
-  }
-  return "black";
-}
+function ProgressLabel({ ...props }: any) {
+  const { t, torrent, showNumber } = props;
+  let state: string = getState(torrent);
+  let color: string = getStateColor(state);
 
-function isCompleted(torrent: {state: number, flags: number}): boolean {
-  return torrent.state === 5 && isPaused(torrent.flags);
-}
+  const icons = {
+    "completed": BsCheck2,
+    "downloading": BsArrowDown,
+    "error": BsX,
+    "paused": BsPause,
+    "seeding": BsArrowUp,
+    "unknown": BsQuestion,
+  };
 
-function isPaused(flags: number): boolean {
-  return (flags & (1<<4)) === 1<<4;
-}
-
-function ProgressLabel({ torrent }: any) {
-  if (torrent.progress === 1 && isCompleted(torrent)) {
-    return (
-      <Icon
-        as={MdCheck}
-        color={"green.700"}
-        fontSize={"sm"}
-      />
-    )
-  }
-
-  if (torrent.progress === 1) {
-    return (
-      <Icon
-        as={TbUpload}
-        color={"green.700"}
-        fontSize={"sm"}
-      />
-    )
-  }
-
-  if (isPaused(torrent.flags)) {
-    return (
-      <Icon
-        as={MdPause}
-        color={"green.700"}
-        fontSize={"sm"}
-      />
-    )
-  }
-
-  return (
-    <>{Math.trunc(torrent.progress * 100)}%</>
-  )
+  return showNumber && state === "downloading"
+    ? (<>{Math.trunc(torrent.progress * 100)}%</>)
+    : (<Icon className="icon-state" aria-label={t(state)} as={icons[state]} color={color} w={4} h={4}/>)
 }
 
 function Torrents() {
@@ -75,7 +52,8 @@ function Torrents() {
     refetchInterval: 1000
   });
 
-  const [tableSize, setTableSize] = useState('md');
+  const [tableSize, setTableSize] = useState<String>("md");
+  const [showCircularProgress] = useState<Boolean>(true);
   const [selectedTorrent, setSelectedTorrent] = useState({});
 
   const pause = trpc.useMutation(["torrents.pause"]);
@@ -100,7 +78,7 @@ function Torrents() {
       case "lg": setTableSize("sm"); break;
       default: setTableSize("md"); break;
     }
-  }
+  };
 
   if (!torrents.data) {
     return <Loading />
@@ -129,22 +107,21 @@ function Torrents() {
       >
         <InputGroup>
           <InputLeftElement
-            pointerEvents='none'
-            children={<MdFilterList />}
+            pointerEvents="none"
+            children={<BsFilter />}
           />
           <Input
             placeholder={t("filter_torrent_list")}
           />
         </InputGroup>
         <IconButton
-          aria-label=""
-          icon={<MdTableView />}
+          aria-label={t("change_table_size")}
+          icon={<BsTable />}
           onClick={changeTableSize}
         />
-        <ToggleTheme/>
         <IconButton
-          aria-label=""
-          icon={<MdMenu />}
+          aria-label={t("menu")}
+          icon={<BsList />}
         />
       </HStack>
       <Box
@@ -156,8 +133,9 @@ function Torrents() {
           <Table className="table-torrents" size={tableSize}>
             <Thead>
               <Tr>
-                <Th w={"16px"}></Th>
+                {showCircularProgress && <Th w={"16px"}></Th>}
                 <Th>{t("name")}</Th>
+                <Th>{t("state")}</Th>
                 <Th textAlign={"right"}>{t("size")}</Th>
                 <Th textAlign={"right"}>{t("dl")}</Th>
                 <Th textAlign={"right"}>{t("ul")}</Th>
@@ -166,103 +144,109 @@ function Torrents() {
               </Tr>
             </Thead>
             <Tbody>
-              {torrents.data.map((item, idx) => (
-                <Tr key={idx}>
-                  <Td
-                    paddingEnd={0}
-                  >
-                    <CircularProgress
-                      color={getColorFromState(item.state)}
-                      value={item.progress*100}
-                      size="32px"
-                      thickness="15px"
-                      trackColor={colorMode === "light" ? "blackAlpha.300" : "whiteAlpha.300"}
-                    >
-                      <CircularProgressLabel display={"flex"} alignItems={"center"} justifyContent={"center"}>
-                        <ProgressLabel torrent={item} />
-                      </CircularProgressLabel>
-                    </CircularProgress>
-                  </Td>
-                  <Td>
-                    <Box>
-                      {item.name}
-                    </Box>
-                    <Flex
-                      alignItems={"center"}
-                      fontSize={"xs"}
-                      opacity={.5}
-                    >
-                      <Icon
-                        as={MdOutlineFolder}
-                        mr={1}
-                        fontSize={"sm"}
-                      />
-                      {item.save_path}
-                    </Flex>
-                  </Td>
-                  <Td textAlign={"right"}>{filesize(item.size)}</Td>
-                  <Td textAlign={"right"}>{item.download_payload_rate < 1024 ? "-" : filesize(item.download_payload_rate)+"/s"}</Td>
-                  <Td textAlign={"right"}>{item.upload_payload_rate   < 1024 ? "-" : filesize(item.upload_payload_rate)+"/s"}</Td>
-                  <Td textAlign={"right"}>{item.num_peers === 0 ? "-" : item.num_peers}</Td>
-                  <Td>
-                    <Menu>
-                      <MenuButton
-                        as={IconButton}
-                        icon={<MdMenu />}
-                        size="sm"
-                        variant="ghost"
-                      />
-                      <MenuList>
-                        <MenuGroup title={t("actions")}>
-                          { isPaused(item.flags)
-                            ? <MenuItem
-                                icon={<MdPlayArrow />}
-                                onClick={async () => {
-                                  await resume.mutateAsync(item.info_hash)
-                                }}
-                              >
-                                {t("resume")}
-                              </MenuItem>
-                            : <MenuItem
-                                icon={<MdPause />}
-                                onClick={async () => {
-                                  await pause.mutateAsync(item.info_hash);
-                                }}
-                              >
-                                {t("pause")}
-                              </MenuItem>
-                          }
-                          <MenuItem
-                            icon={<MdDriveFileMove />}
-                            onClick={() => {
-                              setSelectedTorrent(item);
-                              move_onOpen();
-                            }}
-                          >
-                            {t("move")}
-                          </MenuItem>
-                          <MenuItem
-                            icon={<MdDelete />}
-                            onClick={() => {
-                              setSelectedTorrent(item);
-                              remove_onOpen();
-                            }}
-                          >
-                            {t("remove")}
-                          </MenuItem>
-                        </MenuGroup>
-                      </MenuList>
-                    </Menu>
-                  </Td>
-                </Tr>
-              ))}
+              {torrents.data.map((item, idx) => {
+                const state = getState(item);
+                return (
+                  <Tr key={idx}>
+                    {showCircularProgress &&
+                      <Td
+                        paddingEnd={0}
+                      >
+                        <CircularProgress
+                          color={getStateColor(state)}
+                          value={item.progress*100}
+                          size="30px"
+                          thickness="10px"
+                          trackColor={colorMode === "light" ? "blackAlpha.300" : "whiteAlpha.300"}
+                        >
+                          <CircularProgressLabel display={"flex"} alignItems={"center"} justifyContent={"center"}>
+                            <ProgressLabel t={t} torrent={item} showNumber={true}/>
+                          </CircularProgressLabel>
+                        </CircularProgress>
+                      </Td>
+                    }
+                    <Td>
+                      <Box>
+                        {item.name}
+                      </Box>
+                      <Flex
+                        alignItems={"center"}
+                        fontSize={"xs"}
+                        opacity={.5}
+                      >
+                        <Icon
+                          as={BsFolder}
+                          mr={1}
+                          fontSize={"sm"}
+                        />
+                        {item.save_path}
+                      </Flex>
+                    </Td>
+                    <Td>{t(state)}</Td>
+                    <Td textAlign={"right"}>{filesize(item.size)}</Td>
+                    <Td textAlign={"right"}>{item.download_payload_rate < 1024 ? "‒" : filesize(item.download_payload_rate)+"/s"}</Td>
+                    <Td textAlign={"right"}>{item.upload_payload_rate   < 1024 ? "‒" : filesize(item.upload_payload_rate)+"/s"}</Td>
+                    <Td textAlign={"right"}>{item.num_peers === 0 ? "‒" : item.num_peers}</Td>
+                    <Td>
+                      <Menu>
+                        <MenuButton
+                          as={IconButton}
+                          icon={<BsThreeDotsVertical />}
+                          size={tableSize}
+                          variant="ghost"
+                        />
+                        <MenuList>
+                          <MenuGroup title={t("actions")}>
+                            {isPaused(item.flags)
+                              ? <MenuItem
+                                  icon={<BsPlayFill />}
+                                  onClick={async () => {
+                                    await resume.mutateAsync(item.info_hash)
+                                  }}
+                                >
+                                  {t("resume")}
+                                </MenuItem>
+                              : <MenuItem
+                                  icon={<BsPauseFill />}
+                                  onClick={async () => {
+                                    await pause.mutateAsync(item.info_hash);
+                                  }}
+                                >
+                                  {t("pause")}
+                                </MenuItem>
+                            }
+                            <MenuItem
+                              icon={<BsFolderFill />}
+                              onClick={() => {
+                                setSelectedTorrent(item);
+                                move_onOpen();
+                              }}
+                            >
+                              {t("move")}
+                            </MenuItem>
+                            <MenuItem
+                              icon={<BsTrash2Fill />}
+                              onClick={() => {
+                                setSelectedTorrent(item);
+                                remove_onOpen();
+                              }}
+                            >
+                              {t("remove")}
+                            </MenuItem>
+                          </MenuGroup>
+                        </MenuList>
+                      </Menu>
+                    </Td>
+                  </Tr>
+                )
+              })}
             </Tbody>
           </Table>
         )}
         {torrents.data.length === 0 && (
           <Center padding={10}>
             <Text fontSize="lg">
-              <Trans i18nKey="no_torrents" components={[<Link href="/torrents/add"/>]}/>
+              <Trans i18nKey="no_torrents" components={[<Link className="text-underline" href="/torrents/add"/>]}/>
             </Text>
           </Center>
         )}

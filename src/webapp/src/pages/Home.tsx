@@ -8,6 +8,7 @@ function Home() {
   return (
     <>
       <Card heading={t("overview")}>
+        Porla!
       </Card>
     </>
   )

@@ -1,0 +1,17 @@
+.sidebar {
+  .chakra-button {
+    font-family: var(--chakra-fonts-heading);
+    font-weight: 500;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    height: 50px;
+  }
+  .btn-right {
+    padding: 0.75rem;
+    width: auto !important;
+    min-width: auto !important;
+    height: auto !important;
+    top: 50%;
+    transform: translate(0, -50%);
+  }
+}

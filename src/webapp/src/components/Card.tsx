@@ -1,5 +1,5 @@
-import { Box, BoxProps, Heading } from "@chakra-ui/react";
 import React from "react";
+import { Box, BoxProps, Heading } from "@chakra-ui/react";
 
 interface CardProps extends BoxProps {
   children: JSX.Element[] | JSX.Element | string;
