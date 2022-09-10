@@ -45,7 +45,7 @@ export default {
     save_path_helper: "Le chemin entier de sauvegarde du torrent.",
     save_path: "Enregister le chemin",
     save_settings: "Enregister les réglages",
-    seeding: "Semis",
+    seeding: "Partage",
     seeds: "Seeds",
     settings: "Réglages",
     size: "Taille",
