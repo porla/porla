@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, useColorMode } from "@chakra-ui/react";
-import { BsSun, BsMoon } from "react-icons/bs";
+import { MdDarkMode, MdLightMode } from "react-icons/md";
 import { useTranslation } from "react-i18next";
 
 function ToggleTheme() {
@@ -10,7 +10,7 @@ function ToggleTheme() {
   return (
     <Button
       aria-label={t("change_theme")}
-      leftIcon={colorMode === "light" ? <BsMoon/> : <BsSun/>}
+      leftIcon={colorMode === "light" ? <MdDarkMode/> : <MdLightMode/>}
       onClick={toggleColorMode}
     >
       {t(`toggle_theme_${colorMode}`)}

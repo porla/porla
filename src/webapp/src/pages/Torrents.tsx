@@ -9,40 +9,16 @@ import {
   Table, Tbody, Td, Th, Thead, Tr,
   useColorMode, useDisclosure,
 } from "@chakra-ui/react";
-import {
-  BsArrowDown, BsArrowUp, BsCheck2, BsFilter, BsFolder, BsFolderFill,
-  BsList, BsPause, BsPauseFill, BsPlayFill, BsQuestion, BsTable,
-  BsThreeDotsVertical, BsTrash2Fill, BsX
-} from "react-icons/bs";
-import {
-  getState,
-  getStateColor,
-  isPaused,
-} from "../utils/torrentStates";
-import { trpc } from "../utils/trpc";
+import { MdFilterList, MdFolder, MdOutlineFolder, MdMenu, MdPause, MdPlayArrow, MdOutlineGridView, MdOutlineMoreVert, MdDelete, } from "react-icons/md";
 import filesize from "filesize";
+
+import { getState, getStateColor, isPaused, } from "../utils/torrentStates";
+import { trpc } from "../utils/trpc";
+
 import Loading from "../components/Loading";
+import ProgressLabel from "../components/ProgressLabel";
 import { MoveTorrentModal } from "../components/MoveTorrentModal";
 import { RemoveTorrentDialog } from "../components/RemoveTorrentDialog";
-
-function ProgressLabel({ ...props }: any) {
-  const { t, torrent, showNumber } = props;
-  let state: string = getState(torrent);
-  let color: string = getStateColor(state);
-
-  const icons = {
-    "completed": BsCheck2,
-    "downloading": BsArrowDown,
-    "error": BsX,
-    "paused": BsPause,
-    "seeding": BsArrowUp,
-    "unknown": BsQuestion,
-  };
-
-  return showNumber && state === "downloading"
-    ? (<>{Math.trunc(torrent.progress * 100)}%</>)
-    : (<Icon className="icon-state" aria-label={t(state)} as={icons[state]} color={color} w={4} h={4}/>)
-}
 
 function Torrents() {
   const { t } = useTranslation();
@@ -108,7 +84,7 @@ function Torrents() {
         <InputGroup>
           <InputLeftElement
             pointerEvents="none"
-            children={<BsFilter />}
+            children={<MdFilterList />}
           />
           <Input
             placeholder={t("filter_torrent_list")}
@@ -116,12 +92,12 @@ function Torrents() {
         </InputGroup>
         <IconButton
           aria-label={t("change_table_size")}
-          icon={<BsTable />}
+          icon={<MdOutlineGridView />}
           onClick={changeTableSize}
         />
         <IconButton
           aria-label={t("menu")}
-          icon={<BsList />}
+          icon={<MdMenu />}
         />
       </HStack>
       <Box
@@ -175,7 +151,7 @@ function Torrents() {
                         opacity={.5}
                       >
                         <Icon
-                          as={BsFolder}
+                          as={MdOutlineFolder}
                           mr={1}
                           fontSize={"sm"}
                         />
@@ -191,7 +167,7 @@ function Torrents() {
                       <Menu>
                         <MenuButton
                           as={IconButton}
-                          icon={<BsThreeDotsVertical />}
+                          icon={<MdOutlineMoreVert size={22} />}
                           size={tableSize}
                           variant="ghost"
                         />
@@ -199,7 +175,7 @@ function Torrents() {
                           <MenuGroup title={t("actions")}>
                             {isPaused(item.flags)
                               ? <MenuItem
-                                  icon={<BsPlayFill />}
+                                  icon={<MdPlayArrow size={16} />}
                                   onClick={async () => {
                                     await resume.mutateAsync(item.info_hash)
                                   }}
@@ -207,7 +183,7 @@ function Torrents() {
                                   {t("resume")}
                                 </MenuItem>
                               : <MenuItem
-                                  icon={<BsPauseFill />}
+                                  icon={<MdPause size={16} />}
                                   onClick={async () => {
                                     await pause.mutateAsync(item.info_hash);
                                   }}
@@ -216,7 +192,7 @@ function Torrents() {
                                 </MenuItem>
                             }
                             <MenuItem
-                              icon={<BsFolderFill />}
+                              icon={<MdFolder size={16} />}
                               onClick={() => {
                                 setSelectedTorrent(item);
                                 move_onOpen();
@@ -225,7 +201,7 @@ function Torrents() {
                               {t("move")}
                             </MenuItem>
                             <MenuItem
-                              icon={<BsTrash2Fill />}
+                              icon={<MdDelete size={16} />}
                               onClick={() => {
                                 setSelectedTorrent(item);
                                 remove_onOpen();

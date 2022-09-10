@@ -3,7 +3,7 @@ import "../scss/components/sidebar.scss";
 import React from "react";
 import { NavLink } from "react-router-dom";
 import { Box, Button, HStack, VStack, Flex, Icon, IconButton, Link, useColorMode } from "@chakra-ui/react";
-import { BsColumnsGap, BsGear, BsCollection, BsPlusCircle } from "react-icons/bs";
+import { MdAddCircle, MdOutlineDashboard, MdOutlineSettings, MdOutlineDashboardCustomize, MdOutlineTableRows, MdOutlineAddCircle, MdOutlineAddCircleOutline } from "react-icons/md";
 import { useTranslation } from "react-i18next";
 import { Porla } from "./brand";
 
@@ -15,7 +15,7 @@ export default function Sidebar() {
     size: "md",
     paddingY: 2,
     paddingX: 3,
-    iconSize: 5,
+    iconSize: 6,
     iconMargin: 2,
     active: {
       fontWeight: 700,
@@ -28,19 +28,19 @@ export default function Sidebar() {
       slug: "home",
       to: "/",
       leftIcon: {
-        as: BsColumnsGap
+        as: MdOutlineDashboard,
       },
     }, {
       slug: "torrents",
       to: "/torrents",
       leftIcon: {
         aria: "torrents",
-        as: BsCollection,
+        as: MdOutlineTableRows,
       },
       rightIcon: {
         aria: "add_torrent",
         as: NavLink,
-        icon: <BsPlusCircle />,
+        icon: <MdOutlineAddCircleOutline size={"24px"}/>,
         to: "/torrents/add",
       },
     },
@@ -51,7 +51,7 @@ export default function Sidebar() {
     to: "/settings",
     leftIcon: {
       aria: "settings",
-      as: BsGear,
+      as: MdOutlineSettings,
     },
   };
 
