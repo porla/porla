@@ -10,8 +10,7 @@ import "./i18n";
 function App() {
   const [queryClient] = useState(() => new QueryClient());
   const [trpcClient] = useState(() =>
-    trpc.createClient({ url: "/trpc" }
-  ));
+    trpc.createClient({ url: "/trpc" }));
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>

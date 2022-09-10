@@ -9,8 +9,8 @@ function ToggleTheme() {
 
   return (
     <Button
-      aria-label={t('change_theme')}
-      leftIcon={colorMode === 'light' ? <BsMoon/> : <BsSun/>}
+      aria-label={t("change_theme")}
+      leftIcon={colorMode === "light" ? <BsMoon/> : <BsSun/>}
       onClick={toggleColorMode}
     >
       {t(`toggle_theme_${colorMode}`)}

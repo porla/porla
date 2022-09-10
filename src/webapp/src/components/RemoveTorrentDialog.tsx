@@ -14,7 +14,7 @@ export function RemoveTorrentDialog(props: IRemoveTorrentDialogProps) {
   const { t } = useTranslation();
 
   const cancelRef = useRef(null);
-  const [removeFiles, setRemoveFiles] = useState<boolean>(false);
+  const [removeFiles,setRemoveFiles] = useState<boolean>(false);
   const remove = trpc.useMutation("torrents.remove");
   const removeTranslation = !removeFiles ? 'remove_files_dialog' : 'remove_files_dialog_all';
 
@@ -40,7 +40,7 @@ export function RemoveTorrentDialog(props: IRemoveTorrentDialogProps) {
               {t("cancel")}
             </Button>
             <Button
-              colorScheme={removeFiles ? "red" : "yellow"}
+              colorScheme={removeFiles?"red":"yellow"}
               ml={3}
               onClick={async () => {
                 await remove.mutateAsync({

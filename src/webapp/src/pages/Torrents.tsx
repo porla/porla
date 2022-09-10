@@ -52,8 +52,8 @@ function Torrents() {
     refetchInterval: 1000
   });
 
-  const [tableSize, setTableSize] = useState<String>("md");
-  const [showCircularProgress] = useState<Boolean>(true);
+  const [tableSize, setTableSize] = useState("md");
+  const [showCircularProgress] = useState(true);
   const [selectedTorrent, setSelectedTorrent] = useState({});
 
   const pause = trpc.useMutation(["torrents.pause"]);
