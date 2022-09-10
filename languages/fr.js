@@ -75,7 +75,7 @@ export default {
     torrents: "Torrents",
     type: "Type",
     ul: "UL",
-    unknown: "Inconnue",
+    unknown: "Inconnu(e)",
     menu: "Menu",
     change_table_size : "Modifier la taille du tableau",
     change_theme : "Changer de thème",
