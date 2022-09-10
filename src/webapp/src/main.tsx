@@ -6,7 +6,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, } from "react-router-dom";
 import { ChakraProvider, ColorModeScript } from "@chakra-ui/react";
 
-import App from "./app";
+import App from "./App";
 import theme  from "./theme";
 import Add from "./pages/Add";
 import Torrents from "./pages/Torrents";
