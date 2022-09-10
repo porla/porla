@@ -29,7 +29,7 @@ function Add() {
           onSubmit={async (values) => {
             try {
               await addTorrent.mutateAsync(values);
-              navigate('/torrents');
+              navigate("/torrents");
               toast({
                 title: t("success"),
                 description: t("add_torrent_success"),
