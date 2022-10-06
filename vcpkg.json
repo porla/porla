@@ -3,6 +3,16 @@
   "name": "porla",
   "version-string": "1",
   "dependencies": [
-    "libtorrent"
+    "boost-beast",
+    "boost-log",
+    "boost-program-options",
+    "boost-signals2",
+    "boost-system",
+    "catch2",
+    "gtest",
+    "libtorrent",
+    "nlohmann-json",
+    "sqlite3",
+    "tomlplusplus"
   ]
 }
