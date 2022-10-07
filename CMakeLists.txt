@@ -31,6 +31,8 @@ add_executable(
     src/data/migrations/0001_initialsetup.hpp
     src/data/models/addtorrentparams.cpp
     src/data/models/addtorrentparams.hpp
+    src/data/models/sessionparams.cpp
+    src/data/models/sessionparams.hpp
 
     src/methods/method.hpp
     src/methods/torrentsadd.cpp

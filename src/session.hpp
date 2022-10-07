@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include <boost/asio/io_context.hpp>
+#include <boost/asio.hpp>
 #include <libtorrent/session.hpp>
 #include <sqlite3.h>
 
@@ -34,7 +34,11 @@ namespace porla
         const std::map<lt::info_hash_t, lt::torrent_status>& Torrents() override;
 
     private:
+        void ReadAlerts();
+        void PostUpdates(boost::system::error_code ec);
+
         boost::asio::io_context& m_io;
+        boost::asio::deadline_timer m_timer;
 
         sqlite3* m_db;
         std::unique_ptr<libtorrent::session> m_session;

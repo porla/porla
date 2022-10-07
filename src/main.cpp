@@ -24,6 +24,7 @@ int main(int argc, char* argv[])
 
     sqlite3* db;
     sqlite3_open("porla.sqlite", &db);
+    sqlite3_exec(db, "PRAGMA journal_mode=WAL;", nullptr, nullptr, nullptr);
 
     if (!porla::Data::Migrate(db))
     {
