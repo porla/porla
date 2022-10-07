@@ -33,12 +33,22 @@ add_executable(
     src/data/models/addtorrentparams.hpp
     src/data/models/sessionparams.cpp
     src/data/models/sessionparams.hpp
+    src/data/statement.cpp
+    src/data/statement.hpp
 
     src/methods/method.hpp
     src/methods/torrentsadd.cpp
     src/methods/torrentsadd.hpp
     src/methods/torrentslist.cpp
     src/methods/torrentslist.hpp
+    src/methods/torrentsquery.cpp
+    src/methods/torrentsquery.hpp
+)
+
+target_compile_definitions(
+    ${PROJECT_NAME}
+    PRIVATE
+    -DSQLITE_CORE
 )
 
 target_link_libraries(

@@ -1,5 +1,6 @@
 #include "torrentsadd.hpp"
 
+#include <boost/log/trivial.hpp>
 #include <libtorrent/add_torrent_params.hpp>
 
 #include "../session.hpp"
@@ -18,14 +19,33 @@ TorrentsAdd::TorrentsAdd(std::string const& path, ISession& session)
 
 void TorrentsAdd::Invoke(TorrentsAddReq const& req)
 {
-    lt::error_code ec;
-    lt::bdecode_node node = lt::bdecode(
-        porla::Utils::Base64::Decode(req.ti),
-        ec);
-
     lt::add_torrent_params p;
+
+    if (req.ti.has_value()) {
+        auto buffer = porla::Utils::Base64::Decode(req.ti.value());
+
+        lt::error_code ec;
+        lt::bdecode_node node = lt::bdecode(buffer, ec);
+
+        if (ec) {
+            BOOST_LOG_TRIVIAL(error) << "Failed to decode torrent file: " << ec.message();
+            return;
+        }
+
+        p.ti = std::make_shared<lt::torrent_info>(node, ec);
+
+        if (ec)
+        {
+            BOOST_LOG_TRIVIAL(error) << "Failed to parse torrent file to info: " << ec.message();
+            return;
+        }
+    }
+    else if (req.magnet_uri.has_value())
+    {
+
+    }
+
     p.save_path = req.save_path;
-    p.ti = std::make_shared<lt::torrent_info>(node);
 
     m_session.AddTorrent(p);
 }

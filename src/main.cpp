@@ -9,6 +9,7 @@
 #include "data/migrate.hpp"
 #include "methods/torrentsadd.hpp"
 #include "methods/torrentslist.hpp"
+#include "methods/torrentsquery.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -53,6 +54,7 @@ int main(int argc, char* argv[])
 
     http.Use(porla::Methods::TorrentsAdd("/api/torrents.add", session));
     http.Use(porla::Methods::TorrentsList("/api/torrents.list", session));
+    http.Use(porla::Methods::TorrentsQuery("/api/torrents.query", session));
 
     io.run();
 
