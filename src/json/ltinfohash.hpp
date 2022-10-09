@@ -19,9 +19,8 @@ namespace libtorrent
 {
     static void to_json(json& j, const libtorrent::info_hash_t& ih)
     {
-        j = {
-            {"v1", ih.has_v1() ? ToString(ih.v1) : std::string()},
-            {"v2", ih.has_v2() ? ToString(ih.v2) : std::string()}
-        };
+        j = json::array();
+        j.push_back(ih.has_v1() ? json(ToString(ih.v1)) : nullptr);
+        j.push_back(ih.has_v2() ? json(ToString(ih.v2)) : nullptr);
     }
 }

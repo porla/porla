@@ -3,6 +3,7 @@
 #include <sqlite3.h>
 
 #include "config.hpp"
+#include "httpeventstream.hpp"
 #include "httpserver.hpp"
 #include "session.hpp"
 
@@ -56,6 +57,7 @@ int main(int argc, char* argv[])
             .port = cfg["http"]["port"].value_or<uint16_t>(1337)
         });
 
+        http.Use(porla::HttpGet("/api/events", porla::HttpEventStream(session)));
         http.Use(porla::Methods::TorrentsAdd("/api/torrents.add", session));
         http.Use(porla::Methods::TorrentsList("/api/torrents.list", session));
         http.Use(porla::Methods::TorrentsQuery("/api/torrents.query", session));

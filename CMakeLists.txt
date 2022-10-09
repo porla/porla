@@ -19,6 +19,8 @@ add_executable(
     src/config.hpp
     src/main.cpp
     src/httpcontext.hpp
+    src/httpeventstream.cpp
+    src/httpeventstream.hpp
     src/httpmiddleware.hpp
     src/httpserver.cpp
     src/httpserver.hpp

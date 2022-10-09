@@ -348,6 +348,14 @@ void Session::AddTorrent(lt::add_torrent_params const& p)
         static_cast<int>(th.status().queue_position));
 }
 
+void Session::ForEach(const std::function<void(const libtorrent::torrent_status &)> &cb)
+{
+    for (auto const& [hash,status] : m_torrents)
+    {
+        cb(status);
+    }
+}
+
 void Session::Query(const std::string_view& query, const std::function<int(sqlite3_stmt*)>& cb)
 {
     sqlite3_stmt* stmt;
@@ -404,6 +412,8 @@ void Session::ReadAlerts()
             {
                 m_torrents.at(s.info_hashes) = s;
             }
+
+            m_stateUpdate(sua->status);
 
             break;
         }
