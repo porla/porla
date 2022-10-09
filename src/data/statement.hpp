@@ -20,6 +20,7 @@ namespace porla::Data
             virtual std::string GetStdString(int index) const = 0;
         };
 
+        ~Statement();
         Statement(const Statement&) = delete;
 
         static Statement Prepare(sqlite3* db, const std::string_view& sql);

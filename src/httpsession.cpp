@@ -152,6 +152,7 @@ void HttpSession::EndRead(boost::beast::error_code ec, std::size_t bytes_transfe
     // This means they closed the connection
     if(ec == http::error::end_of_stream)
     {
+        BOOST_LOG_TRIVIAL(info) << "Stream closing";
         return BeginClose();
     }
 
@@ -204,7 +205,7 @@ void HttpSession::EndWrite(bool close, boost::beast::error_code ec, std::size_t 
 
     if (ec)
     {
-        // TODO (log)
+        BOOST_LOG_TRIVIAL(error) << "Error when writing data: " << ec;
         return;
     }
 

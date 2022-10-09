@@ -2,7 +2,7 @@
 #include <boost/log/trivial.hpp>
 #include <sqlite3.h>
 
-#include "httpmiddleware.hpp"
+#include "config.hpp"
 #include "httpserver.hpp"
 #include "session.hpp"
 
@@ -10,9 +10,12 @@
 #include "methods/torrentsadd.hpp"
 #include "methods/torrentslist.hpp"
 #include "methods/torrentsquery.hpp"
+#include "methods/torrentsremove.hpp"
 
 int main(int argc, char* argv[])
 {
+    toml::table cfg = porla::Config::Load(argc, argv);
+
     boost::asio::io_context io;
     boost::asio::signal_set signals(io, SIGINT, SIGTERM);
 
@@ -24,7 +27,7 @@ int main(int argc, char* argv[])
         });
 
     sqlite3* db;
-    sqlite3_open("porla.sqlite", &db);
+    sqlite3_open(cfg["sqlite"]["file"].value_or("porla.sqlite"), &db);
     sqlite3_exec(db, "PRAGMA journal_mode=WAL;", nullptr, nullptr, nullptr);
 
     if (!porla::Data::Migrate(db))
@@ -33,31 +36,37 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    porla::Session session(io, porla::SessionOptions{
-        .db = db
-    });
-
-    try
     {
-        session.Load();
+        porla::Session session(io, porla::SessionOptions{
+            .db = db
+        });
+
+        try
+        {
+            session.Load();
+        }
+        catch (const std::exception &ex)
+        {
+            BOOST_LOG_TRIVIAL(error) << "Failed to load torrents: " << ex.what();
+            return -1;
+        }
+
+        porla::HttpServer http(io, porla::HttpServerOptions{
+            .host = cfg["http"]["host"].value_or("127.0.0.1"),
+            .port = cfg["http"]["port"].value_or<uint16_t>(1337)
+        });
+
+        http.Use(porla::Methods::TorrentsAdd("/api/torrents.add", session));
+        http.Use(porla::Methods::TorrentsList("/api/torrents.list", session));
+        http.Use(porla::Methods::TorrentsQuery("/api/torrents.query", session));
+        http.Use(porla::Methods::TorrentsRemove("/api/torrents.remove", session));
+
+        io.run();
     }
-    catch(const std::exception& ex)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Failed to load torrents: " << ex.what();
-        return -1;
-    }
 
-    porla::HttpServer http(io, porla::HttpServerOptions{
-        .host = "127.0.0.1",
-        .port = 1337
-    });
+    BOOST_LOG_TRIVIAL(info) << "Vacuuming database";
 
-    http.Use(porla::Methods::TorrentsAdd("/api/torrents.add", session));
-    http.Use(porla::Methods::TorrentsList("/api/torrents.list", session));
-    http.Use(porla::Methods::TorrentsQuery("/api/torrents.query", session));
-
-    io.run();
-
+    sqlite3_exec(db, "VACUUM;", nullptr, nullptr, nullptr);
     sqlite3_close(db);
 
     return 0;

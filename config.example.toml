@@ -1,16 +1,12 @@
 # This is a complete example of a config.toml file for Porla. The values shown are the default values which are
 # included in the release config.
 
+[session]
+base = "default"
+presets = [
+    "presets/01-set-utp-params.toml"
+]
+
 [sqlite]
 # the sqlite file to use. set to :memory: to use an in-memory database.
 file = "porla.sqlite"
-# setup statements. these are run on each launch and can be used to setup
-# the database before migrations are run.
-setup = [
-    "PRAGMA journal_mode=WAL;"
-]
-# teardown statements. executed right before closing the database. can be
-# used to clean up data.
-teardown = [
-    "VACUUM;"
-]

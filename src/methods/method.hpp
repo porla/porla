@@ -3,6 +3,7 @@
 #include <memory>
 
 #include <nlohmann/json.hpp>
+#include <utility>
 
 #include "../json/all.hpp"
 #include "../httpcontext.hpp"
@@ -15,7 +16,7 @@ namespace porla::Methods
     class WriteCb
     {
     public:
-        explicit WriteCb(const std::shared_ptr<porla::HttpContext> &ctx)
+        explicit WriteCb(std::shared_ptr<porla::HttpContext> ctx)
             : m_ctx(std::move(ctx))
         {
         }
@@ -30,7 +31,7 @@ namespace porla::Methods
         std::shared_ptr<porla::HttpContext> m_ctx;
     };
 
-    template<typename TReq>
+    template<typename TReq, typename TRes>
     class MethodT
     {
     public:
@@ -39,16 +40,10 @@ namespace porla::Methods
             if (ctx->Request().target() == m_route
                 && ctx->Request().method() == m_verb)
             {
-                if constexpr (std::is_same<TReq, void>::value)
-                {
-                }
-                else
-                {
-                    json req;
-                    req = json::parse(ctx->Request().body());
+                json req;
+                req = json::parse(ctx->Request().body());
 
-                    Invoke(req.get<TReq>());
-                }
+                Invoke(req.get<TReq>(), WriteCb<TRes>(ctx));
             }
             else
             {
@@ -64,7 +59,7 @@ namespace porla::Methods
         }
 
 
-        virtual void Invoke(TReq const& req) {};
+        virtual void Invoke(TReq const& req, WriteCb<TRes>) {};
 
     private:
         boost::beast::http::verb m_verb;

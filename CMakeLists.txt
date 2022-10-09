@@ -15,6 +15,8 @@ find_package(unofficial-sqlite3  CONFIG REQUIRED)
 
 add_executable(
     ${PROJECT_NAME}
+    src/config.cpp
+    src/config.hpp
     src/main.cpp
     src/httpcontext.hpp
     src/httpmiddleware.hpp
@@ -43,6 +45,8 @@ add_executable(
     src/methods/torrentslist.hpp
     src/methods/torrentsquery.cpp
     src/methods/torrentsquery.hpp
+    src/methods/torrentsremove.cpp
+    src/methods/torrentsremove.hpp
 )
 
 target_compile_definitions(
@@ -55,6 +59,7 @@ target_link_libraries(
     ${PROJECT_NAME}
     Boost::boost
     Boost::log
+    Boost::program_options
     LibtorrentRasterbar::torrent-rasterbar
     unofficial::sqlite3::sqlite3
 )

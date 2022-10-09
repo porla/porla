@@ -80,20 +80,21 @@ void AddTorrentParams::Insert(sqlite3 *db, const libtorrent::add_torrent_params 
         .Execute();
 }
 
-void AddTorrentParams::Update(sqlite3 *db, const libtorrent::add_torrent_params &params)
+void AddTorrentParams::Update(sqlite3 *db, const libtorrent::add_torrent_params &params, int pos)
 {
     std::vector<char> buf = lt::write_resume_data_buf(params);
 
-    auto stmt = Statement::Prepare(db, "UPDATE torrents SET resume_data_buf = $1\n"
-                                       "WHERE (info_hash_v1 = $2 AND info_hash_v2 IS NULL)\n"
-                                       "   OR (info_hash_v1 IS NULL AND info_hash_v2 = $3)\n"
-                                       "   OR (info_hash_v1 = $2 AND info_hash_v2 = $3);");
+    auto stmt = Statement::Prepare(db, "UPDATE addtorrentparams SET resume_data_buf = $1, queue_position = $2\n"
+                                       "WHERE (info_hash_v1 = $3 AND info_hash_v2 IS NULL)\n"
+                                       "   OR (info_hash_v1 IS NULL AND info_hash_v2 = $4)\n"
+                                       "   OR (info_hash_v1 = $3 AND info_hash_v2 = $4);");
     stmt
         .Bind(1, buf)
-        .Bind(2, params.info_hashes.has_v1()
+        .Bind(2, pos)
+        .Bind(3, params.info_hashes.has_v1()
                  ? std::optional(ToString(params.info_hashes.v1))
                  : std::nullopt)
-        .Bind(3, params.info_hashes.has_v2()
+        .Bind(4, params.info_hashes.has_v2()
                  ? std::optional(ToString(params.info_hashes.v2))
                  : std::nullopt)
         .Execute();

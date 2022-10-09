@@ -8,20 +8,21 @@
 using json = nlohmann::json;
 
 using porla::Methods::TorrentsQuery;
+using porla::Methods::TorrentsQueryReq;
 using porla::Methods::TorrentsQueryRes;
 
 TorrentsQuery::TorrentsQuery(std::string const& path, ISession& session)
-    : Method(boost::beast::http::verb::get, path)
+    : MethodT(boost::beast::http::verb::post, path)
     , m_session(session)
 {
 }
 
-void TorrentsQuery::Invoke(WriteCb<TorrentsQueryRes> cb)
+void TorrentsQuery::Invoke(const TorrentsQueryReq& req, WriteCb<TorrentsQueryRes> cb)
 {
     TorrentsQueryRes res;
 
     m_session.Query(
-        "select info_hash,name from torrents",
+        req.query,
         [&res](sqlite3_stmt* stmt)
         {
             json j;

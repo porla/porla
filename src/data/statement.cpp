@@ -38,10 +38,20 @@ Statement::Statement(sqlite3_stmt *stmt)
 {
 }
 
+Statement::~Statement()
+{
+    sqlite3_finalize(m_stmt);
+}
+
 Statement Statement::Prepare(sqlite3 *db, const std::string_view &sql)
 {
     sqlite3_stmt* stmt;
-    sqlite3_prepare_v2(db, sql.data(), -1, &stmt, nullptr);
+
+    if (sqlite3_prepare_v2(db, sql.data(), -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to prepare SQLite statement: " << sqlite3_errmsg(db);
+        throw std::runtime_error("Failed to prepare SQLite statement: " + std::string(sqlite3_errmsg(db)));
+    }
 
     return Statement(stmt);
 }

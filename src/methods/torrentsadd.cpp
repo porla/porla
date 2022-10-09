@@ -17,7 +17,7 @@ TorrentsAdd::TorrentsAdd(std::string const& path, ISession& session)
 {
 }
 
-void TorrentsAdd::Invoke(TorrentsAddReq const& req)
+void TorrentsAdd::Invoke(TorrentsAddReq const& req, WriteCb<TorrentsAddRes> cb)
 {
     lt::add_torrent_params p;
 
@@ -29,6 +29,7 @@ void TorrentsAdd::Invoke(TorrentsAddReq const& req)
 
         if (ec) {
             BOOST_LOG_TRIVIAL(error) << "Failed to decode torrent file: " << ec.message();
+            cb({});
             return;
         }
 
@@ -37,6 +38,7 @@ void TorrentsAdd::Invoke(TorrentsAddReq const& req)
         if (ec)
         {
             BOOST_LOG_TRIVIAL(error) << "Failed to parse torrent file to info: " << ec.message();
+            cb({});
             return;
         }
     }
@@ -48,4 +50,8 @@ void TorrentsAdd::Invoke(TorrentsAddReq const& req)
     p.save_path = req.save_path;
 
     m_session.AddTorrent(p);
+
+    cb(TorrentsAddRes{
+        .info_hash = lt::info_hash_t()
+    });
 }

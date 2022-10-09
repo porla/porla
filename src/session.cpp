@@ -1,16 +1,16 @@
 #include "session.hpp"
 
-#include <ranges>
-
 #include <boost/log/trivial.hpp>
 #include <libtorrent/alert_types.hpp>
 #include <sqlite3ext.h>
 
 #include "data/models/addtorrentparams.hpp"
+#include "data/models/sessionparams.hpp"
 
 namespace lt = libtorrent;
 
 using porla::Data::Models::AddTorrentParams;
+using porla::Data::Models::SessionParams;
 using porla::Session;
 
 struct TorrentVTable
@@ -34,8 +34,6 @@ static int vt_destructor(sqlite3_vtab *pVtab)
 
 static int vt_create(sqlite3 *db, void* aux, int argc, const char* const* argv, sqlite3_vtab **pp_vt, char **pzErr)
 {
-    BOOST_LOG_TRIVIAL(info) << "Creating VTable";
-
     auto vtab = new TorrentVTable();
     vtab->db = db;
     vtab->torrents = static_cast<std::map<lt::info_hash_t, lt::torrent_status>*>(aux);
@@ -68,8 +66,6 @@ static int vt_destroy(sqlite3_vtab *pVtab)
 
 static int vt_open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **pp_cursor)
 {
-    BOOST_LOG_TRIVIAL(info) << "vt_open";
-
     auto vtab = reinterpret_cast<TorrentVTable*>(pVTab);
     auto cursor = new TorrentVTableCursor();
     cursor->current = vtab->torrents->begin();
@@ -81,34 +77,22 @@ static int vt_open(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **pp_cursor)
 
 static int vt_close(sqlite3_vtab_cursor *cur)
 {
-    BOOST_LOG_TRIVIAL(info) << "vt_close";
-
     delete reinterpret_cast<TorrentVTableCursor*>(cur);
     return SQLITE_OK;
 }
 
 static int vt_eof(sqlite3_vtab_cursor *cur)
 {
-    BOOST_LOG_TRIVIAL(info) << "vt_eof";
-
     auto cursor = reinterpret_cast<TorrentVTableCursor*>(cur);
     auto vtab = reinterpret_cast<TorrentVTable*>(cur->pVtab);
 
-    bool eof = cursor->current == vtab->torrents->cend();
-
-    BOOST_LOG_TRIVIAL(info) << "is eof: " << eof;
-
-    return eof ? 1 : 0;
+    return cursor->current == vtab->torrents->cend() ? 1 : 0;
 }
 
 static int vt_next(sqlite3_vtab_cursor *cur)
 {
-    BOOST_LOG_TRIVIAL(info) << "vt_next";
-
     auto cursor = reinterpret_cast<TorrentVTableCursor*>(cur);
     auto vtab = reinterpret_cast<TorrentVTable*>(cur->pVtab);
-
-    BOOST_LOG_TRIVIAL(info) << (cursor->current == vtab->torrents->cend());
 
     if (cursor->current != vtab->torrents->cend())
     {
@@ -120,8 +104,6 @@ static int vt_next(sqlite3_vtab_cursor *cur)
 
 static int vt_column(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i)
 {
-    BOOST_LOG_TRIVIAL(info) << "vt_column";
-
     auto cursor = reinterpret_cast<TorrentVTableCursor*>(cur);
 
     switch (i)
@@ -143,8 +125,6 @@ static int vt_column(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i)
 
 static int vt_rowid(sqlite3_vtab_cursor *cur, sqlite_int64 *p_rowid)
 {
-    BOOST_LOG_TRIVIAL(info) << "vt_rowid";
-
     auto cursor = reinterpret_cast<TorrentVTableCursor*>(cur);
     auto vtab = reinterpret_cast<TorrentVTable*>(cur->pVtab);
 
@@ -163,11 +143,8 @@ static int vt_filter(sqlite3_vtab_cursor *p_vtc, int idxNum, const char *idxStr,
     return SQLITE_OK;
 }
 
-/* Pretty involved. We don't implement in this example. */
 static int vt_best_index(sqlite3_vtab *tab, sqlite3_index_info *pIdxInfo)
 {
-    BOOST_LOG_TRIVIAL(info) << "vt_best_index";
-
     return SQLITE_OK;
 }
 
@@ -196,12 +173,6 @@ static sqlite3_module PorlaSqliteModule =
     nullptr,           /* xSavepoint    - function overloading */
     nullptr,           /* xRelease      - function overloading */
     nullptr            /* xRollbackto   - function overloading */
-};
-
-struct AddParams
-{
-    uint32_t current = 0;
-    uint32_t total = 0;
 };
 
 Session::Session(boost::asio::io_context& io, porla::SessionOptions const& options)
@@ -251,6 +222,83 @@ Session::~Session()
 
     m_session->set_alert_notify([]{});
     m_timer.cancel();
+
+    SessionParams::Insert(
+        m_db,
+        m_session->session_state());
+
+    m_session->pause();
+
+    // Save each torrents resume data
+    int outstanding = 0;
+    int paused = 0;
+    int failed = 0;
+
+    auto temp = m_session->get_torrent_status([](lt::torrent_status const&) { return true; });
+
+    for (lt::torrent_status& st : temp)
+    {
+        if (!st.handle.is_valid()
+            || !st.has_metadata
+            || !st.need_save_resume)
+        {
+            continue;
+        }
+
+        st.handle.save_resume_data(
+            lt::torrent_handle::flush_disk_cache
+            | lt::torrent_handle::save_info_dict
+            | lt::torrent_handle::only_if_modified);
+
+        outstanding++;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "Saving data for " << outstanding << " torrent(s)";
+
+    while (outstanding > 0)
+    {
+        lt::alert const* tmp = m_session->wait_for_alert(lt::seconds(10));
+        if (tmp == nullptr) { continue; }
+
+        std::vector<lt::alert*> alerts;
+        m_session->pop_alerts(&alerts);
+
+        for (lt::alert* a : alerts)
+        {
+            auto* tp = lt::alert_cast<lt::torrent_paused_alert>(a);
+
+            if (tp)
+            {
+                paused++;
+                continue;
+            }
+
+            if (auto fail = lt::alert_cast<lt::save_resume_data_failed_alert>(a))
+            {
+                failed++;
+                outstanding--;
+
+                BOOST_LOG_TRIVIAL(error)
+                    << "Failed to save resume data for "
+                    << fail->torrent_name()
+                    << ": " << fail->message();
+
+                continue;
+            }
+
+            auto* rd = lt::alert_cast<lt::save_resume_data_alert>(a);
+            if (!rd) { continue; }
+
+            outstanding--;
+
+            AddTorrentParams::Update(
+                m_db,
+                rd->params,
+                static_cast<int>(rd->handle.status().queue_position));
+        }
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "All state saved";
 }
 
 void Session::Load()
@@ -266,13 +314,13 @@ void Session::Load()
         {
             current++;
 
-            auto ap = new AddParams();
-            ap->current = current;
-            ap->total = count;
+            if (current % 1000 == 0 && current != count)
+            {
+                BOOST_LOG_TRIVIAL(info) << current << " torrents (of " << count << ") added";
+            }
 
-            params.userdata = lt::client_data_t(ap);
-
-            m_session->async_add_torrent(params);
+            lt::torrent_handle th = m_session->add_torrent(params);
+            m_torrents.insert({ th.info_hashes(), th.status() });
         });
 
     if (count > 0)
@@ -283,7 +331,21 @@ void Session::Load()
 
 void Session::AddTorrent(lt::add_torrent_params const& p)
 {
-    m_session->async_add_torrent(p);
+    lt::error_code ec;
+    lt::torrent_handle th = m_session->add_torrent(p, ec);
+
+    if (ec)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to add torrent: " << ec;
+        return;
+    }
+
+    m_torrents.insert({ th.info_hashes(), th.status() });
+
+    AddTorrentParams::Insert(
+        m_db,
+        p,
+        static_cast<int>(th.status().queue_position));
 }
 
 void Session::Query(const std::string_view& query, const std::function<int(sqlite3_stmt*)>& cb)
@@ -297,6 +359,12 @@ void Session::Query(const std::string_view& query, const std::function<int(sqlit
     }
 
     sqlite3_finalize(stmt);
+}
+
+void Session::Remove(const lt::info_hash_t& hash)
+{
+    lt::torrent_status status = m_torrents.at(hash);
+    m_session->remove_torrent(status.handle);
 }
 
 const std::map<lt::info_hash_t, lt::torrent_status>& Session::Torrents()
@@ -314,54 +382,39 @@ void Session::ReadAlerts()
         // BOOST_LOG_TRIVIAL(trace) << alert->message();
         switch (alert->type())
         {
-        case lt::add_torrent_alert::alert_type:
+        case lt::save_resume_data_alert::alert_type:
         {
-            auto ata = lt::alert_cast<lt::add_torrent_alert>(alert);
+            auto srda = lt::alert_cast<lt::save_resume_data_alert>(alert);
+            auto const& status = m_torrents.at(srda->handle.info_hashes());
 
-            if (ata->error)
+            AddTorrentParams::Update(
+                m_db,
+                srda->params,
+                static_cast<int>(status.queue_position));
+
+            BOOST_LOG_TRIVIAL(info) << "Resume data saved for " << status.name;
+
+            break;
+        }
+        case lt::state_update_alert::alert_type:
+        {
+            auto sua = lt::alert_cast<lt::state_update_alert>(alert);
+
+            for (auto const& s : sua->status)
             {
-                BOOST_LOG_TRIVIAL(error) << "Failed to add torrent: " << ata->error;
-                continue;
-            }
-
-            lt::torrent_status ts = ata->handle.status();
-            m_torrents.insert({ ts.info_hashes, ts });
-
-            if (auto extra = ata->params.userdata.get<AddParams>())
-            {
-                if (extra->current % 1000 == 0
-                    && extra->current != extra->total)
-                {
-                    BOOST_LOG_TRIVIAL(info) << extra->current << " torrents (of " << extra->total << ") added";
-                }
-                else if (extra->current == extra->total)
-                {
-                    BOOST_LOG_TRIVIAL(info) << "All torrents added";
-                }
-
-                delete extra;
-            }
-            else
-            {
-                AddTorrentParams::Insert(m_db, ata->params, static_cast<int>(ts.queue_position));
-                BOOST_LOG_TRIVIAL(info) << "Torrent " << ts.name << " added";
-            }
-
-            if (ts.need_save_resume)
-            {
-                ts.handle.save_resume_data(
-                    lt::torrent_handle::flush_disk_cache
-                    | lt::torrent_handle::save_info_dict
-                    | lt::torrent_handle::only_if_modified);
+                m_torrents.at(s.info_hashes) = s;
             }
 
             break;
         }
-        case lt::save_resume_data_alert::alert_type:
+        case lt::torrent_removed_alert::alert_type:
         {
-            auto srda = lt::alert_cast<lt::save_resume_data_alert>(alert);
-            AddTorrentParams::Update(m_db, srda->params);
-            BOOST_LOG_TRIVIAL(info) << "Resume data saved for " << srda->params.name;
+            auto tra = lt::alert_cast<lt::torrent_removed_alert>(alert);
+
+            m_torrents.erase(tra->info_hashes);
+
+            BOOST_LOG_TRIVIAL(info) << "Torrent " << tra->torrent_name() << " removed";
+
             break;
         }
         }
