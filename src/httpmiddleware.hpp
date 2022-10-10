@@ -61,4 +61,22 @@ namespace porla
         {
         }
     };
+
+    class HttpNotFound
+    {
+    public:
+        void operator()(const std::shared_ptr<porla::HttpContext> &ctx)
+        {
+            namespace http = boost::beast::http;
+
+            http::response<http::string_body> res{http::status::not_found, ctx->Request().version()};
+            res.set(http::field::server, "porla/1.0");
+            res.set(http::field::content_type, "text/plain");
+            res.keep_alive(ctx->Request().keep_alive());
+            res.body() = "The resource at '" + std::string(ctx->Request().target()) + "' was not found.";
+            res.prepare_payload();
+
+            ctx->Write(res);
+        }
+    };
 }

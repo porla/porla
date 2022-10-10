@@ -62,6 +62,7 @@ int main(int argc, char* argv[])
         http.Use(porla::Methods::TorrentsList("/api/torrents.list", session));
         http.Use(porla::Methods::TorrentsQuery("/api/torrents.query", session));
         http.Use(porla::Methods::TorrentsRemove("/api/torrents.remove", session));
+        http.Use(porla::HttpNotFound());
 
         io.run();
     }
