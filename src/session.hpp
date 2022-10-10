@@ -13,7 +13,11 @@ namespace porla
 {
     struct SessionOptions
     {
-        sqlite3* db;
+        sqlite3* db = nullptr;
+        lt::settings_pack settings = lt::default_settings();
+        int timer_dht_stats = 5000;
+        int timer_session_stats = 5000;
+        int timer_torrent_updates = 1000;
     };
 
     class ISession
@@ -43,6 +47,12 @@ namespace porla
     {
     public:
         explicit Session(boost::asio::io_context& io, SessionOptions const& options);
+
+        Session(const Session&) = delete;
+        Session(Session&&) = delete;
+        Session& operator=(const Session&) = delete;
+        Session& operator=(Session&&) = delete;
+
         ~Session();
 
         boost::signals2::connection OnSessionStats(const SessionStatsSignal::slot_type& subscriber) override
@@ -89,11 +99,13 @@ namespace porla
         const std::map<lt::info_hash_t, lt::torrent_status>& Torrents() override;
 
     private:
+        class Timer;
+
         void ReadAlerts();
-        void PostUpdates(boost::system::error_code ec);
 
         boost::asio::io_context& m_io;
-        boost::asio::deadline_timer m_timer;
+        std::vector<Timer> m_timers;
+        std::vector<lt::stats_metric> m_stats;
 
         SessionStatsSignal m_sessionStats;
         TorrentStatusListSignal m_stateUpdate;

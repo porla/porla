@@ -6,6 +6,7 @@
 #include "httpeventstream.hpp"
 #include "httpserver.hpp"
 #include "session.hpp"
+#include "settingspack.hpp"
 
 #include "data/migrate.hpp"
 #include "methods/torrentsadd.hpp"
@@ -39,7 +40,11 @@ int main(int argc, char* argv[])
 
     {
         porla::Session session(io, porla::SessionOptions{
-            .db = db
+            .db = db,
+            .settings = porla::SettingsPack::Load(cfg),
+            .timer_dht_stats = cfg["timers"]["dht_stats"].value_or(5000),
+            .timer_session_stats = cfg["timers"]["session_stats"].value_or(5000),
+            .timer_torrent_updates = cfg["timers"]["torrent_updates"].value_or(1000)
         });
 
         try

@@ -2,6 +2,8 @@
 
 #include <boost/log/trivial.hpp>
 #include <libtorrent/alert_types.hpp>
+#include <libtorrent/session_stats.hpp>
+#include <utility>
 #include <sqlite3ext.h>
 
 #include "data/models/addtorrentparams.hpp"
@@ -12,6 +14,68 @@ namespace lt = libtorrent;
 using porla::Data::Models::AddTorrentParams;
 using porla::Data::Models::SessionParams;
 using porla::Session;
+
+class Session::Timer
+{
+public:
+    explicit Timer(boost::asio::io_context& io, int interval, std::function<void()> cb)
+        : m_timer(io)
+        , m_interval(interval)
+        , m_callback(std::move(cb))
+    {
+        boost::system::error_code ec;
+
+        m_timer.expires_from_now(boost::posix_time::milliseconds(m_interval), ec);
+        if (ec) { BOOST_LOG_TRIVIAL(error) << "Failed to set timer expiry: " << ec.message(); }
+
+        m_timer.async_wait([this](auto &&PH1) { OnExpired(std::forward<decltype(PH1)>(PH1)); });
+    }
+
+    Timer(Timer&& t) noexcept
+        : m_timer(std::move(t.m_timer))
+        , m_interval(std::exchange(t.m_interval, 0))
+        , m_callback(std::move(t.m_callback))
+    {
+        boost::system::error_code ec;
+
+        m_timer.cancel(ec);
+        if (ec) { BOOST_LOG_TRIVIAL(error) << "Failed to cancel timer: " << ec.message(); }
+
+        m_timer.expires_from_now(boost::posix_time::milliseconds(m_interval), ec);
+        if (ec) { BOOST_LOG_TRIVIAL(error) << "Failed to set timer expiry: " << ec.message(); }
+
+        m_timer.async_wait([this](auto &&PH1) { OnExpired(std::forward<decltype(PH1)>(PH1)); });
+    }
+
+    Timer(const Timer&) = delete;
+    Timer& operator=(const Timer&) = delete;
+    Timer& operator=(Timer&&) = delete; // noexcept {}
+
+private:
+    void OnExpired(boost::system::error_code ec)
+    {
+        if (ec == boost::system::errc::operation_canceled)
+        {
+            return;
+        }
+        else if (ec)
+        {
+            BOOST_LOG_TRIVIAL(error) << "Error in timer: " << ec.message();
+            return;
+        }
+
+        m_callback();
+
+        m_timer.expires_from_now(boost::posix_time::milliseconds(m_interval), ec);
+        if (ec) { BOOST_LOG_TRIVIAL(error) << "Failed to set timer expiry: " << ec; }
+
+        m_timer.async_wait([this](auto &&PH1) { OnExpired(std::forward<decltype(PH1)>(PH1)); });
+    }
+
+    boost::asio::deadline_timer m_timer;
+    int m_interval;
+    std::function<void()> m_callback;
+};
 
 struct TorrentVTable
 {
@@ -178,7 +242,7 @@ static sqlite3_module PorlaSqliteModule =
 Session::Session(boost::asio::io_context& io, porla::SessionOptions const& options)
     : m_io(io)
     , m_db(options.db)
-    , m_timer(io)
+    , m_stats(lt::session_stats_metrics())
     , m_tdb(nullptr)
 {
     m_session = std::make_unique<lt::session>();
@@ -188,21 +252,14 @@ Session::Session(boost::asio::io_context& io, porla::SessionOptions const& optio
             boost::asio::post(m_io, [this] { ReadAlerts(); });
         });
 
-    boost::system::error_code ec;
-    m_timer.expires_from_now(boost::posix_time::seconds(1), ec);
+    if (options.timer_dht_stats > 0)
+        m_timers.emplace_back(m_io, options.timer_dht_stats, [&]() { m_session->post_dht_stats(); });
 
-    if (ec)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Failed to set timer expiry: " << ec;
-    }
-    else
-    {
-        m_timer.async_wait(
-            [this](auto &&PH1)
-            {
-                PostUpdates(std::forward<decltype(PH1)>(PH1));
-            });
-    }
+    if (options.timer_session_stats > 0)
+        m_timers.emplace_back(m_io, options.timer_session_stats, [&]() { m_session->post_session_stats(); });
+
+    if (options.timer_torrent_updates > 0)
+        m_timers.emplace_back(m_io, options.timer_torrent_updates, [&]() { m_session->post_torrent_updates(); });
 
     sqlite3_open(":memory:", &m_tdb);
     if (sqlite3_create_module(m_tdb, "porla", &PorlaSqliteModule, &m_torrents) != SQLITE_OK)
@@ -221,7 +278,7 @@ Session::~Session()
     BOOST_LOG_TRIVIAL(info) << "Shutting down session";
 
     m_session->set_alert_notify([]{});
-    m_timer.cancel();
+    m_timers.clear();
 
     SessionParams::Insert(
         m_db,
@@ -390,6 +447,12 @@ void Session::ReadAlerts()
         // BOOST_LOG_TRIVIAL(trace) << alert->message();
         switch (alert->type())
         {
+        case lt::dht_stats_alert::alert_type:
+        {
+            auto dsa = lt::alert_cast<lt::dht_stats_alert>(alert);
+            // TODO: emit signal
+            break;
+        }
         case lt::metadata_received_alert::alert_type:
         {
             auto mra = lt::alert_cast<lt::metadata_received_alert>(alert);
@@ -414,6 +477,22 @@ void Session::ReadAlerts()
                 static_cast<int>(status.queue_position));
 
             BOOST_LOG_TRIVIAL(info) << "Resume data saved for " << status.name;
+
+            break;
+        }
+        case lt::session_stats_alert::alert_type:
+        {
+            auto ssa = lt::alert_cast<lt::session_stats_alert>(alert);
+            auto const& counters = ssa->counters();
+
+            std::map<std::string, int64_t> metrics;
+
+            for (auto const& stats : m_stats)
+            {
+                metrics.insert({ stats.name, counters[stats.value_index] });
+            }
+
+            m_sessionStats(metrics);
 
             break;
         }
@@ -478,20 +557,4 @@ void Session::ReadAlerts()
         }
         }
     }
-}
-
-void Session::PostUpdates(boost::system::error_code ec)
-{
-    if (ec)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Error in timer: " << ec;
-        return;
-    }
-
-    m_session->post_dht_stats();
-    m_session->post_session_stats();
-    m_session->post_torrent_updates();
-
-    m_timer.expires_from_now(boost::posix_time::seconds(1), ec);
-    m_timer.async_wait([this](auto && PH1) { PostUpdates(std::forward<decltype(PH1)>(PH1)); });
 }

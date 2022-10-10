@@ -21,7 +21,7 @@ public:
     {
     }
 
-    bool IsDead() const { return m_dead; }
+    bool IsDead() const { return m_ctx == nullptr || m_dead; }
 
     void QueueWrite(std::string data)
     {
@@ -87,6 +87,7 @@ private:
 HttpEventStream::HttpEventStream(porla::ISession &session)
     : m_session(session)
 {
+    m_sessionStatsConnection = m_session.OnSessionStats([this](auto s) { OnSessionStats(s); });
     m_stateUpdateConnection = m_session.OnStateUpdate([this](auto s) { OnStateUpdate(s); });
     m_torrentPausedConnection = m_session.OnTorrentPaused([this](auto s) { OnTorrentPaused(s); });
     m_torrentRemovedConnection = m_session.OnTorrentRemoved([this](auto s) { OnTorrentRemoved(s); });
@@ -96,6 +97,7 @@ HttpEventStream::HttpEventStream(porla::ISession &session)
 HttpEventStream::HttpEventStream(const HttpEventStream& hes)
     : m_session(hes.m_session)
 {
+    m_sessionStatsConnection = m_session.OnSessionStats([this](auto s) { OnSessionStats(s); });
     m_stateUpdateConnection = m_session.OnStateUpdate([this](auto s) { OnStateUpdate(s); });
     m_torrentPausedConnection = m_session.OnTorrentPaused([this](auto s) { OnTorrentPaused(s); });
     m_torrentRemovedConnection = m_session.OnTorrentRemoved([this](auto s) { OnTorrentRemoved(s); });
@@ -104,6 +106,7 @@ HttpEventStream::HttpEventStream(const HttpEventStream& hes)
 
 HttpEventStream::~HttpEventStream()
 {
+    m_sessionStatsConnection.disconnect();
     m_stateUpdateConnection.disconnect();
     m_torrentPausedConnection.disconnect();
     m_torrentRemovedConnection.disconnect();
@@ -150,6 +153,11 @@ void HttpEventStream::Broadcast(const std::string& name, const std::string& data
     {
         ctx->QueueWrite(evt.str());
     }
+}
+
+void HttpEventStream::OnSessionStats(const std::map<std::string, int64_t>& stats)
+{
+    Broadcast("session_metrics_updated", "{}");
 }
 
 void HttpEventStream::OnStateUpdate(const std::vector<lt::torrent_status>& torrents)

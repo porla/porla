@@ -28,6 +28,8 @@ add_executable(
     src/httpsession.hpp
     src/session.cpp
     src/session.hpp
+    src/settingspack.cpp
+    src/settingspack.hpp
 
     src/data/migrate.cpp
     src/data/migrate.hpp
