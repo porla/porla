@@ -27,9 +27,10 @@ namespace porla
         virtual boost::signals2::connection OnSessionStats(const SessionStatsSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnStateUpdate(const TorrentStatusListSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnTorrentAdded(const TorrentStatusSignal::slot_type& subscriber) = 0;
-        virtual boost::signals2::connection OnTorrentPaused(const InfoHashSignal::slot_type& subscriber) = 0;
+        virtual boost::signals2::connection OnTorrentFinished(const TorrentStatusSignal::slot_type& subscriber) = 0;
+        virtual boost::signals2::connection OnTorrentPaused(const TorrentStatusSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnTorrentRemoved(const InfoHashSignal::slot_type& subscriber) = 0;
-        virtual boost::signals2::connection OnTorrentResumed(const InfoHashSignal::slot_type& subscriber) = 0;
+        virtual boost::signals2::connection OnTorrentResumed(const TorrentStatusSignal::slot_type& subscriber) = 0;
 
         virtual void AddTorrent(libtorrent::add_torrent_params const& p) = 0;
         virtual void ForEach(const std::function<void(const libtorrent::torrent_status&)>& cb) = 0;
@@ -59,7 +60,12 @@ namespace porla
             return m_torrentAdded.connect(subscriber);
         }
 
-        boost::signals2::connection OnTorrentPaused(const InfoHashSignal::slot_type& subscriber) override
+        boost::signals2::connection OnTorrentFinished(const TorrentStatusSignal::slot_type& subscriber) override
+        {
+            return m_torrentFinished.connect(subscriber);
+        }
+
+        boost::signals2::connection OnTorrentPaused(const TorrentStatusSignal::slot_type& subscriber) override
         {
             return m_torrentPaused.connect(subscriber);
         }
@@ -69,7 +75,7 @@ namespace porla
             return m_torrentRemoved.connect(subscriber);
         }
 
-        boost::signals2::connection OnTorrentResumed(const InfoHashSignal::slot_type& subscriber) override
+        boost::signals2::connection OnTorrentResumed(const TorrentStatusSignal::slot_type& subscriber) override
         {
             return m_torrentResumed.connect(subscriber);
         }
@@ -92,9 +98,10 @@ namespace porla
         SessionStatsSignal m_sessionStats;
         TorrentStatusListSignal m_stateUpdate;
         TorrentStatusSignal m_torrentAdded;
-        InfoHashSignal m_torrentPaused;
+        TorrentStatusSignal m_torrentFinished;
+        TorrentStatusSignal m_torrentPaused;
         InfoHashSignal m_torrentRemoved;
-        InfoHashSignal m_torrentResumed;
+        TorrentStatusSignal m_torrentResumed;
 
         sqlite3* m_db;
         sqlite3* m_tdb;

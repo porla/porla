@@ -390,6 +390,19 @@ void Session::ReadAlerts()
         // BOOST_LOG_TRIVIAL(trace) << alert->message();
         switch (alert->type())
         {
+        case lt::metadata_received_alert::alert_type:
+        {
+            auto mra = lt::alert_cast<lt::metadata_received_alert>(alert);
+
+            BOOST_LOG_TRIVIAL(info) << "Metadata received for torrent " << mra->handle.status().name;
+
+            mra->handle.save_resume_data(
+                lt::torrent_handle::flush_disk_cache
+                | lt::torrent_handle::save_info_dict
+                | lt::torrent_handle::only_if_modified);
+
+            break;
+        }
         case lt::save_resume_data_alert::alert_type:
         {
             auto srda = lt::alert_cast<lt::save_resume_data_alert>(alert);
@@ -417,13 +430,49 @@ void Session::ReadAlerts()
 
             break;
         }
+        case lt::torrent_finished_alert::alert_type:
+        {
+            auto tfa = lt::alert_cast<lt::torrent_finished_alert>(alert);
+            auto const& status = tfa->handle.status();
+
+            m_torrents.at(status.info_hashes) = status;
+
+            if (status.total_download > 0)
+            {
+                // Only emit this event if we have downloaded any data this session.
+                m_torrentFinished(status);
+            }
+
+            break;
+        }
+        case lt::torrent_paused_alert::alert_type:
+        {
+            auto tpa = lt::alert_cast<lt::torrent_paused_alert>(alert);
+            auto const& status = tpa->handle.status();
+
+            m_torrents.at(status.info_hashes) = status;
+            m_torrentPaused(status);
+
+            break;
+        }
         case lt::torrent_removed_alert::alert_type:
         {
             auto tra = lt::alert_cast<lt::torrent_removed_alert>(alert);
 
             m_torrents.erase(tra->info_hashes);
+            m_torrentRemoved(tra->info_hashes);
 
             BOOST_LOG_TRIVIAL(info) << "Torrent " << tra->torrent_name() << " removed";
+
+            break;
+        }
+        case lt::torrent_resumed_alert::alert_type:
+        {
+            auto tra = lt::alert_cast<lt::torrent_resumed_alert>(alert);
+            auto const& status = tra->handle.status();
+
+            m_torrents.at(status.info_hashes) = status;
+            m_torrentPaused(status);
 
             break;
         }

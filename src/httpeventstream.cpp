@@ -88,17 +88,26 @@ HttpEventStream::HttpEventStream(porla::ISession &session)
     : m_session(session)
 {
     m_stateUpdateConnection = m_session.OnStateUpdate([this](auto s) { OnStateUpdate(s); });
+    m_torrentPausedConnection = m_session.OnTorrentPaused([this](auto s) { OnTorrentPaused(s); });
+    m_torrentRemovedConnection = m_session.OnTorrentRemoved([this](auto s) { OnTorrentRemoved(s); });
+    m_torrentResumedConnection = m_session.OnTorrentResumed([this](auto s) { OnTorrentResumed(s); });
 }
 
 HttpEventStream::HttpEventStream(const HttpEventStream& hes)
     : m_session(hes.m_session)
 {
     m_stateUpdateConnection = m_session.OnStateUpdate([this](auto s) { OnStateUpdate(s); });
+    m_torrentPausedConnection = m_session.OnTorrentPaused([this](auto s) { OnTorrentPaused(s); });
+    m_torrentRemovedConnection = m_session.OnTorrentRemoved([this](auto s) { OnTorrentRemoved(s); });
+    m_torrentResumedConnection = m_session.OnTorrentResumed([this](auto s) { OnTorrentResumed(s); });
 }
 
 HttpEventStream::~HttpEventStream()
 {
     m_stateUpdateConnection.disconnect();
+    m_torrentPausedConnection.disconnect();
+    m_torrentRemovedConnection.disconnect();
+    m_torrentResumedConnection.disconnect();
 }
 
 void HttpEventStream::operator()(std::shared_ptr<HttpContext> context)
@@ -108,22 +117,8 @@ void HttpEventStream::operator()(std::shared_ptr<HttpContext> context)
                           "Content-Type: text/event-stream\n"
                           "Cache-Control: no-cache, no-transform\n\n";
 
-    json::array_t torrents;
-
-    m_session.ForEach(
-        [&torrents](const auto &ts)
-        {
-            torrents.push_back({
-                {"info_hash", ts.info_hashes}
-            });
-        });
-
-    json initial = {
-        {"torrents", torrents}
-    };
-
     std::stringstream evt;
-    evt << "event: initial_state\n";
+    evt << "event: hello\n";
     evt << "data: {}\n\n";
 
     auto state = std::make_shared<ContextState>(std::move(context));
@@ -171,4 +166,19 @@ void HttpEventStream::OnStateUpdate(const std::vector<lt::torrent_status>& torre
     }
 
     Broadcast("state_update", state.dump());
+}
+
+void HttpEventStream::OnTorrentPaused(const libtorrent::torrent_status &status)
+{
+    Broadcast("torrent_paused", json({"info_hash", status.info_hashes}).dump());
+}
+
+void HttpEventStream::OnTorrentRemoved(const libtorrent::info_hash_t &hash)
+{
+    Broadcast("torrent_removed", json({"info_hash", hash}).dump());
+}
+
+void HttpEventStream::OnTorrentResumed(const libtorrent::torrent_status &status)
+{
+    Broadcast("torrent_resumed", json({"info_hash", status.info_hashes}).dump());
 }
