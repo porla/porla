@@ -25,10 +25,17 @@ int PrintSettings(const toml::table& cfg)
             printf("%s = %s\n", lt::name_for_setting(i), settings.get_bool(i) ? "true" : "false");
     }
 
+    for (int i = lt::settings_pack::int_type_base; i < lt::settings_pack::max_int_setting_internal; i++)
+    {
+        if (strcmp(lt::name_for_setting(i), "") == 0) continue;
+        if (settings.has_val(i))
+            printf("%s = %d\n", lt::name_for_setting(i), settings.get_int(i));
+    }
+
     for (int i = lt::settings_pack::string_type_base; i < lt::settings_pack::max_string_setting_internal; i++)
     {
         if (settings.has_val(i) && lt::name_for_setting(i) != nullptr)
-            printf("%s = %s\n", lt::name_for_setting(i), settings.get_str(i).c_str());
+            printf("%s = \"%s\"\n", lt::name_for_setting(i), settings.get_str(i).c_str());
     }
 
     return 0;
@@ -39,7 +46,7 @@ int main(int argc, char* argv[])
     toml::table cfg = porla::Config::Load(argc, argv);
 
     // Set up some debugging commands
-    if (argc >= 2 && strcmp(argv[1], "print-settings") == 0)
+    if (argc >= 2 && strcmp(argv[1], "debug:settings") == 0)
     {
         return PrintSettings(cfg);
     }
