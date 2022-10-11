@@ -34,6 +34,7 @@ int PrintSettings(const toml::table& cfg)
 
     for (int i = lt::settings_pack::string_type_base; i < lt::settings_pack::max_string_setting_internal; i++)
     {
+        if (strcmp(lt::name_for_setting(i), "") == 0) continue;
         if (settings.has_val(i) && lt::name_for_setting(i) != nullptr)
             printf("%s = \"%s\"\n", lt::name_for_setting(i), settings.get_str(i).c_str());
     }
