@@ -19,7 +19,36 @@ lt::settings_pack SettingsPack::Load(const toml::table &cfg)
 
     // Apply default settings here. These can be overwritten by settings from the
     // config file.
-    pack.set_str(lt::settings_pack::user_agent, "porla/1.0");
+
+    if (const toml::array* interfaces = cfg["listen_interfaces"].as<toml::array>())
+    {
+        std::stringstream lt;
+
+        for (auto&& item : *interfaces)
+        {
+            if (const toml::array* interface = item.as<toml::array>())
+            {
+                if (interface->size() < 2)
+                {
+                    BOOST_LOG_TRIVIAL(warning) << "Invalid number of listen interface elements";
+                    continue;
+                }
+
+                auto addr = (*interface)[0].value<std::string>();
+                auto port = (*interface)[1].value<int64_t>();
+
+                if (!addr) { BOOST_LOG_TRIVIAL(warning) << "Invalid listen interface address"; continue; }
+                if (!port) { BOOST_LOG_TRIVIAL(warning) << "Invalid listen interface port"; continue; }
+
+                lt << "," << *addr << ":" << *port;
+            }
+        }
+
+        if (!lt.str().empty())
+        {
+            pack.set_str(lt::settings_pack::listen_interfaces, lt.str().substr(1));
+        }
+    }
 
     if (cfg.contains("proxy"))
     {
@@ -48,6 +77,15 @@ lt::settings_pack SettingsPack::Load(const toml::table &cfg)
 
         if (auto pwd = cfg["proxy"]["password"].value<std::string>())
             pack.set_str(lt::settings_pack::proxy_password, *pwd);
+
+        if (auto hostnames = cfg["proxy"]["hostnames"].value<bool>())
+            pack.set_bool(lt::settings_pack::proxy_hostnames, *hostnames);
+
+        if (auto peerConns = cfg["proxy"]["peer_connections"].value<bool>())
+            pack.set_bool(lt::settings_pack::proxy_peer_connections, *peerConns);
+
+        if (auto trackerConns = cfg["proxy"]["tracker_connections"].value<bool>())
+            pack.set_bool(lt::settings_pack::proxy_tracker_connections, *trackerConns);
     }
 
     for (int i = lt::settings_pack::bool_type_base; i < lt::settings_pack::max_bool_setting_internal; i++)
@@ -110,6 +148,8 @@ lt::settings_pack SettingsPack::Load(const toml::table &cfg)
     // Apply static settings here. These are always set after all other settings from
     // the config are applied, and cannot be overwritten by it.
     pack.set_str(lt::settings_pack::peer_fingerprint, lt::generate_fingerprint("PO", 0, 1));
+    pack.set_str(lt::settings_pack::user_agent, "porla/1.0");
+
 
     return pack;
 }

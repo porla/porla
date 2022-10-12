@@ -5,22 +5,18 @@
 #include <vector>
 
 #include "migrations/0001_initialsetup.hpp"
+#include "statement.hpp"
 
 int GetUserVersion(sqlite3* db)
 {
     int version = 0;
 
-    sqlite3_exec(
-        db,
-        "PRAGMA user_version;",
-        [](void* user, int, char** d, char** a)
+    porla::Data::Statement::Prepare(db, "PRAGMA user_version;")
+        .Step([&version](const auto& row)
         {
-            int* v = reinterpret_cast<int*>(user);
-            *v = std::stoi(d[0]);
+            version = row.GetInt32(0);
             return SQLITE_OK;
-        },
-        &version,
-        nullptr);
+        });
 
     return version;
 }

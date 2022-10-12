@@ -37,17 +37,16 @@ int AddTorrentParams::Count(sqlite3 *db)
     return count;
 }
 
-void AddTorrentParams::ForEach(sqlite3 *db, const std::function<void(libtorrent::add_torrent_params&)>& cb)
+void AddTorrentParams::ForEach(sqlite3 *db, const std::function<void(lt::add_torrent_params&)>& cb)
 {
-    auto stmt = Statement::Prepare(db, "SELECT resume_data_buf FROM addtorrentparams\n"
+    auto stmt = Statement::Prepare(db, "SELECT name,resume_data_buf,save_path FROM addtorrentparams\n"
                                        "ORDER BY queue_position ASC");
     stmt.Step(
         [&cb](const Statement::IRow& row)
         {
-            auto buf = row.GetBuffer(0);
 
             libtorrent::error_code ec;
-            auto params = lt::read_resume_data(buf, ec);
+            auto atp = lt::read_resume_data(row.GetBuffer(1), ec);
 
             if (ec)
             {
@@ -55,47 +54,46 @@ void AddTorrentParams::ForEach(sqlite3 *db, const std::function<void(libtorrent:
                 return SQLITE_OK;
             }
 
-            cb(params);
+            atp.name = row.GetStdString(0);
+            atp.save_path = row.GetStdString(2);
+
+            cb(atp);
 
             return SQLITE_OK;
         });
 }
 
-void AddTorrentParams::Insert(sqlite3 *db, const libtorrent::add_torrent_params &params, int pos)
+void AddTorrentParams::Insert(sqlite3 *db, const libtorrent::info_hash_t& hash, const AddTorrentParams& params)
 {
-    std::vector<char> buf = lt::write_resume_data_buf(params);
+    std::vector<char> buf = lt::write_resume_data_buf(params.params);
 
     auto stmt = Statement::Prepare(db, "INSERT INTO addtorrentparams\n"
-                                       "    (info_hash_v1, info_hash_v2, queue_position, resume_data_buf)\n"
-                                       "VALUES ($1, $2, $3, $4);");
+                                       "    (info_hash_v1, info_hash_v2, name, queue_position, resume_data_buf, save_path)\n"
+                                       "VALUES ($1, $2, $3, $4, $5, $6);");
     stmt
-        .Bind(1, params.info_hashes.has_v1()
-            ? std::optional(ToString(params.info_hashes.v1))
-            : std::nullopt)
-        .Bind(2, params.info_hashes.has_v2()
-            ? std::optional(ToString(params.info_hashes.v2))
-            : std::nullopt)
-        .Bind(3, pos)
-        .Bind(4, buf)
+        .Bind(1, hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
+        .Bind(2, hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
+        .Bind(3, std::string_view(params.name))
+        .Bind(4, params.queue_position)
+        .Bind(5, buf)
+        .Bind(6, std::string_view(params.save_path))
         .Execute();
 }
 
-void AddTorrentParams::Update(sqlite3 *db, const libtorrent::add_torrent_params &params, int pos)
+void AddTorrentParams::Update(sqlite3 *db, const libtorrent::info_hash_t& hash, const AddTorrentParams& params)
 {
-    std::vector<char> buf = lt::write_resume_data_buf(params);
+    std::vector<char> buf = lt::write_resume_data_buf(params.params);
 
-    auto stmt = Statement::Prepare(db, "UPDATE addtorrentparams SET resume_data_buf = $1, queue_position = $2\n"
-                                       "WHERE (info_hash_v1 = $3 AND info_hash_v2 IS NULL)\n"
-                                       "   OR (info_hash_v1 IS NULL AND info_hash_v2 = $4)\n"
-                                       "   OR (info_hash_v1 = $3 AND info_hash_v2 = $4);");
+    auto stmt = Statement::Prepare(db, "UPDATE addtorrentparams SET name = $1, resume_data_buf = $2, queue_position = $3, save_path = $4\n"
+                                       "WHERE (info_hash_v1 = $5 AND info_hash_v2 IS NULL)\n"
+                                       "   OR (info_hash_v1 IS NULL AND info_hash_v2 = $6)\n"
+                                       "   OR (info_hash_v1 = $5 AND info_hash_v2 = $6);");
     stmt
-        .Bind(1, buf)
-        .Bind(2, pos)
-        .Bind(3, params.info_hashes.has_v1()
-                 ? std::optional(ToString(params.info_hashes.v1))
-                 : std::nullopt)
-        .Bind(4, params.info_hashes.has_v2()
-                 ? std::optional(ToString(params.info_hashes.v2))
-                 : std::nullopt)
+        .Bind(1, std::string_view(params.name))
+        .Bind(2, buf)
+        .Bind(3, params.queue_position)
+        .Bind(4, std::string_view(params.save_path))
+        .Bind(5, hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
+        .Bind(6, hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
         .Execute();
 }

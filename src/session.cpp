@@ -348,10 +348,12 @@ Session::~Session()
 
             outstanding--;
 
-            AddTorrentParams::Update(
-                m_db,
-                rd->params,
-                static_cast<int>(rd->handle.status().queue_position));
+            AddTorrentParams::Update(m_db, rd->handle.info_hashes(), AddTorrentParams{
+                .name = rd->params.name,
+                .params = rd->params,
+                .queue_position = static_cast<int>(rd->handle.status().queue_position),
+                .save_path = rd->params.save_path
+            });
         }
     }
 
@@ -371,13 +373,13 @@ void Session::Load()
         {
             current++;
 
+            lt::torrent_handle th = m_session->add_torrent(params);
+            m_torrents.insert({ th.info_hashes(), th.status() });
+
             if (current % 1000 == 0 && current != count)
             {
                 BOOST_LOG_TRIVIAL(info) << current << " torrents (of " << count << ") added";
             }
-
-            lt::torrent_handle th = m_session->add_torrent(params);
-            m_torrents.insert({ th.info_hashes(), th.status() });
         });
 
     if (count > 0)
@@ -390,6 +392,7 @@ void Session::AddTorrent(lt::add_torrent_params const& p)
 {
     lt::error_code ec;
     lt::torrent_handle th = m_session->add_torrent(p, ec);
+    lt::torrent_status ts = th.status();
 
     if (ec)
     {
@@ -397,12 +400,15 @@ void Session::AddTorrent(lt::add_torrent_params const& p)
         return;
     }
 
-    m_torrents.insert({ th.info_hashes(), th.status() });
+    AddTorrentParams::Insert(m_db, ts.info_hashes, AddTorrentParams{
+        .name = ts.name,
+        .params = p,
+        .queue_position = static_cast<int>(ts.queue_position),
+        .save_path = ts.save_path,
+    });
 
-    AddTorrentParams::Insert(
-        m_db,
-        p,
-        static_cast<int>(th.status().queue_position));
+    m_torrents.insert({ ts.info_hashes, ts });
+    m_torrentAdded(ts);
 }
 
 void Session::ForEach(const std::function<void(const libtorrent::torrent_status &)> &cb)
@@ -471,10 +477,12 @@ void Session::ReadAlerts()
             auto srda = lt::alert_cast<lt::save_resume_data_alert>(alert);
             auto const& status = m_torrents.at(srda->handle.info_hashes());
 
-            AddTorrentParams::Update(
-                m_db,
-                srda->params,
-                static_cast<int>(status.queue_position));
+            AddTorrentParams::Update(m_db, status.info_hashes, AddTorrentParams{
+                .name = status.name,
+                .params = srda->params,
+                .queue_position = static_cast<int>(status.queue_position),
+                .save_path = status.save_path
+            });
 
             BOOST_LOG_TRIVIAL(info) << "Resume data saved for " << status.name;
 
@@ -551,7 +559,7 @@ void Session::ReadAlerts()
             auto const& status = tra->handle.status();
 
             m_torrents.at(status.info_hashes) = status;
-            m_torrentPaused(status);
+            m_torrentResumed(status);
 
             break;
         }

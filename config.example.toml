@@ -1,6 +1,10 @@
 # This is a complete example of a config.toml file for Porla. The values shown
 # are the default values which are included in the release config.
 
+listen_interfaces = [
+    ["127.0.0.1", 6881]
+]
+
 [libtorrent]
 # The libtorrent base settings to use. can be 'default',
 # 'high_performance_seed', or 'min_memory_usage'. If not set, 'default' will be
