@@ -388,7 +388,7 @@ void Session::Load()
     }
 }
 
-void Session::AddTorrent(lt::add_torrent_params const& p)
+lt::info_hash_t Session::AddTorrent(lt::add_torrent_params const& p)
 {
     lt::error_code ec;
     lt::torrent_handle th = m_session->add_torrent(p, ec);
@@ -397,7 +397,7 @@ void Session::AddTorrent(lt::add_torrent_params const& p)
     if (ec)
     {
         BOOST_LOG_TRIVIAL(error) << "Failed to add torrent: " << ec;
-        return;
+        return {};
     }
 
     AddTorrentParams::Insert(m_db, ts.info_hashes, AddTorrentParams{
@@ -409,6 +409,8 @@ void Session::AddTorrent(lt::add_torrent_params const& p)
 
     m_torrents.insert({ ts.info_hashes, ts });
     m_torrentAdded(ts);
+
+    return ts.info_hashes;
 }
 
 void Session::ForEach(const std::function<void(const libtorrent::torrent_status &)> &cb)
@@ -432,10 +434,11 @@ void Session::Query(const std::string_view& query, const std::function<int(sqlit
     sqlite3_finalize(stmt);
 }
 
-void Session::Remove(const lt::info_hash_t& hash)
+void Session::Remove(const lt::info_hash_t& hash, bool remove_data)
 {
     lt::torrent_status status = m_torrents.at(hash);
-    m_session->remove_torrent(status.handle);
+
+    m_session->remove_torrent(status.handle, remove_data ? lt::session::delete_files : lt::remove_flags_t{});
 }
 
 const std::map<lt::info_hash_t, lt::torrent_status>& Session::Torrents()

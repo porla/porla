@@ -16,6 +16,6 @@ void TorrentsRemove::Invoke(const TorrentsRemoveReq &req, WriteCb<TorrentsRemove
 {
     for (auto const& hash : req.info_hashes)
     {
-        m_session.Remove(hash);
+        m_session.Remove(hash, req.remove_data);
     }
 }

@@ -36,10 +36,10 @@ namespace porla
         virtual boost::signals2::connection OnTorrentRemoved(const InfoHashSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnTorrentResumed(const TorrentStatusSignal::slot_type& subscriber) = 0;
 
-        virtual void AddTorrent(libtorrent::add_torrent_params const& p) = 0;
+        virtual libtorrent::info_hash_t AddTorrent(libtorrent::add_torrent_params const& p) = 0;
         virtual void ForEach(const std::function<void(const libtorrent::torrent_status&)>& cb) = 0;
         virtual void Query(const std::string_view& query, const std::function<int(sqlite3_stmt*)>& cb) = 0;
-        virtual void Remove(const lt::info_hash_t& hash) = 0;
+        virtual void Remove(const lt::info_hash_t& hash, bool remove_data) = 0;
         virtual const std::map<lt::info_hash_t, lt::torrent_status>& Torrents() = 0;
     };
 
@@ -92,10 +92,10 @@ namespace porla
 
         void Load();
 
-        void AddTorrent(libtorrent::add_torrent_params const& p) override;
+        libtorrent::info_hash_t AddTorrent(libtorrent::add_torrent_params const& p) override;
         void ForEach(const std::function<void(const libtorrent::torrent_status&)>& cb) override;
         void Query(const std::string_view& query, const std::function<int(sqlite3_stmt*)>& cb) override;
-        void Remove(const lt::info_hash_t& hash) override;
+        void Remove(const lt::info_hash_t& hash, bool remove_data) override;
         const std::map<lt::info_hash_t, lt::torrent_status>& Torrents() override;
 
     private:
