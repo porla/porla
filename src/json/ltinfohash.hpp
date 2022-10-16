@@ -17,6 +17,10 @@ static std::string ToString(const T &hash)
 
 namespace libtorrent
 {
+    static void from_json(const json& j, libtorrent::info_hash_t& ih)
+    {
+    }
+
     static void to_json(json& j, const libtorrent::info_hash_t& ih)
     {
         j = json::array();

@@ -11,6 +11,7 @@
 #include "data/migrate.hpp"
 #include "methods/torrentsadd.hpp"
 #include "methods/torrentslist.hpp"
+#include "methods/torrentspeersadd.hpp"
 #include "methods/torrentsquery.hpp"
 #include "methods/torrentsremove.hpp"
 
@@ -99,6 +100,7 @@ int main(int argc, char* argv[])
         http.Use(porla::HttpGet("/api/events", porla::HttpEventStream(session)));
         http.Use(porla::Methods::TorrentsAdd("/api/torrents.add", session));
         http.Use(porla::Methods::TorrentsList("/api/torrents.list", session));
+        http.Use(porla::Methods::TorrentsPeersAdd("/api/torrents.peers.add", session));
         http.Use(porla::Methods::TorrentsQuery("/api/torrents.query", session));
         http.Use(porla::Methods::TorrentsRemove("/api/torrents.remove", session));
         http.Use(porla::HttpNotFound());
