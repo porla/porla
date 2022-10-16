@@ -10,10 +10,10 @@ namespace porla
 
 namespace porla::Methods
 {
-    class TorrentsPeersAdd : public MethodT<TorrentsPeersAddReq, TorrentsPeersAddRes>
+    class TorrentsPeersAdd : public Method<TorrentsPeersAddReq, TorrentsPeersAddRes>
     {
     public:
-        explicit TorrentsPeersAdd(const std::string& path, porla::ISession& session);
+        explicit TorrentsPeersAdd(porla::ISession& session);
 
         void Invoke(const TorrentsPeersAddReq& req, WriteCb<TorrentsPeersAddRes> cb) override;
 

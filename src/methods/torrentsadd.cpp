@@ -12,13 +12,12 @@ namespace lt = libtorrent;
 using porla::Methods::TorrentsAdd;
 using porla::Methods::TorrentsAddReq;
 
-TorrentsAdd::TorrentsAdd(std::string const& path, ISession& session)
-    : MethodT(boost::beast::http::verb::post, path)
-    , m_session(session)
+TorrentsAdd::TorrentsAdd(ISession& session)
+    : m_session(session)
 {
 }
 
-void TorrentsAdd::Invoke(TorrentsAddReq const& req, WriteCb<TorrentsAddRes> cb)
+void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
 {
     lt::add_torrent_params p;
 

@@ -11,13 +11,13 @@ namespace porla
 
 namespace porla::Methods
 {
-    class TorrentsAdd : public MethodT<TorrentsAddReq, TorrentsAddRes>
+    class TorrentsAdd : public Method<TorrentsAddReq, TorrentsAddRes>
     {
     public:
-        explicit TorrentsAdd(std::string const& path, ISession& session);
+        explicit TorrentsAdd(ISession& session);
 
     protected:
-        void Invoke(TorrentsAddReq const& req, WriteCb<TorrentsAddRes> cb) override;
+        void Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb) override;
 
     private:
         ISession& m_session;

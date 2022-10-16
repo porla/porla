@@ -1,8 +1,7 @@
 #pragma once
 
 #include "method.hpp"
-#include "torrentsqueryreq.hpp"
-#include "torrentsqueryres.hpp"
+#include "torrentsquery_reqres.hpp"
 
 namespace porla
 {
@@ -11,10 +10,10 @@ namespace porla
 
 namespace porla::Methods
 {
-    class TorrentsQuery : public MethodT<TorrentsQueryReq, TorrentsQueryRes>
+    class TorrentsQuery : public Method<TorrentsQueryReq, TorrentsQueryRes>
     {
     public:
-        explicit TorrentsQuery(std::string const& path, ISession& session);
+        explicit TorrentsQuery(ISession& session);
 
         void Invoke(const TorrentsQueryReq& req, WriteCb<TorrentsQueryRes> cb) override;
 

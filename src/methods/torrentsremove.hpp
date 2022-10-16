@@ -11,13 +11,13 @@ namespace porla
 
 namespace porla::Methods
 {
-    class TorrentsRemove : public MethodT<TorrentsRemoveReq, TorrentsRemoveRes>
+    class TorrentsRemove : public Method<TorrentsRemoveReq, TorrentsRemoveRes>
     {
     public:
-        explicit TorrentsRemove(std::string const& path, ISession& session);
+        explicit TorrentsRemove(ISession& session);
 
     protected:
-        void Invoke(TorrentsRemoveReq const& req, WriteCb<TorrentsRemoveRes> cb) override;
+        void Invoke(const TorrentsRemoveReq& req, WriteCb<TorrentsRemoveRes> cb) override;
 
     private:
         ISession& m_session;

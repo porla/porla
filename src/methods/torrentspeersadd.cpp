@@ -8,9 +8,8 @@ using porla::Methods::TorrentsPeersAdd;
 using porla::Methods::TorrentsPeersAddReq;
 using porla::Methods::TorrentsPeersAddRes;
 
-TorrentsPeersAdd::TorrentsPeersAdd(const std::string& path, porla::ISession& session)
-    : MethodT(boost::beast::http::verb::post, path)
-    , m_session(session)
+TorrentsPeersAdd::TorrentsPeersAdd(porla::ISession& session)
+    : m_session(session)
 {
 }
 

@@ -6,9 +6,8 @@ using porla::Methods::TorrentsRemove;
 using porla::Methods::TorrentsRemoveReq;
 using porla::Methods::TorrentsRemoveRes;
 
-TorrentsRemove::TorrentsRemove(const std::string &path, porla::ISession &session)
-    : MethodT(boost::beast::http::verb::post, path)
-    , m_session(session)
+TorrentsRemove::TorrentsRemove(porla::ISession &session)
+    : m_session(session)
 {
 }
 

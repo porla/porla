@@ -15,6 +15,35 @@ using porla::Data::Models::AddTorrentParams;
 using porla::Data::Models::SessionParams;
 using porla::Session;
 
+#define COL_INFO_HASH_V1      1
+#define COL_INFO_HASH_V2      2
+#define COL_ACTIVE_DURATION   3
+#define COL_ALL_TIME_DOWNLOAD 4
+#define COL_ALL_TIME_UPLOAD   5
+#define COL_FINISHED_DURATION 6
+#define COL_NAME              7
+#define COL_QUEUE_POSITION    8
+#define COL_SEEDING_DURATION  9
+
+const char* TableSpec = "create table torrents ("
+                        "info_hash_v1,"
+                        "info_hash_v2,"
+                        "active_duration,"
+                        "all_time_download,"
+                        "all_time_upload,"
+                        "finished_duration,"
+                        "name,"
+                        "queue_position,"
+                        "seeding_duration);";
+
+template<typename T>
+static std::string ToString(const T &hash)
+{
+    std::stringstream ss;
+    ss << hash;
+    return ss.str();
+}
+
 class Session::Timer
 {
 public:
@@ -102,7 +131,7 @@ static int vt_create(sqlite3 *db, void* aux, int argc, const char* const* argv, 
     vtab->db = db;
     vtab->torrents = static_cast<std::map<lt::info_hash_t, lt::torrent_status>*>(aux);
 
-    if(sqlite3_declare_vtab(db, "create table torrents (info_hash,name)") != SQLITE_OK)
+    if(sqlite3_declare_vtab(db, TableSpec) != SQLITE_OK)
     {
         vt_destructor(reinterpret_cast<sqlite3_vtab*>(vtab));
         return SQLITE_ERROR;
@@ -169,17 +198,74 @@ static int vt_next(sqlite3_vtab_cursor *cur)
 static int vt_column(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i)
 {
     auto cursor = reinterpret_cast<TorrentVTableCursor*>(cur);
+    auto const& status = cursor->current->second;
 
     switch (i)
     {
-    case 0:
+    case COL_INFO_HASH_V1:
     {
-        sqlite3_result_pointer(ctx, &cursor->current->second.info_hashes, "ih", nullptr);
+        if (status.info_hashes.has_v1())
+        {
+            std::string hash = ToString(status.info_hashes.v1);
+            sqlite3_result_text(ctx, hash.c_str(), -1, SQLITE_TRANSIENT);
+        }
+        else
+        {
+            sqlite3_result_null(ctx);
+        }
         break;
     }
-    case 1:
+    case COL_INFO_HASH_V2:
     {
-        sqlite3_result_text(ctx, cursor->current->second.name.c_str(), -1, SQLITE_TRANSIENT);
+        if (status.info_hashes.has_v2())
+        {
+            std::string hash = ToString(status.info_hashes.v2);
+            sqlite3_result_text(ctx, hash.c_str(), -1, SQLITE_TRANSIENT);
+        }
+        else
+        {
+            sqlite3_result_null(ctx);
+        }
+        break;
+    }
+    case COL_ACTIVE_DURATION:
+    {
+        sqlite3_result_int64(ctx, status.active_duration.count());
+        break;
+    }
+    case COL_ALL_TIME_DOWNLOAD:
+    {
+        sqlite3_result_int64(ctx, status.all_time_download);
+        break;
+    }
+    case COL_ALL_TIME_UPLOAD:
+    {
+        sqlite3_result_int64(ctx, status.all_time_upload);
+        break;
+    }
+    case COL_FINISHED_DURATION:
+    {
+        sqlite3_result_int64(ctx, status.finished_duration.count());
+        break;
+    }
+    case COL_NAME:
+    {
+        sqlite3_result_text(ctx, status.name.c_str(), -1, SQLITE_TRANSIENT);
+        break;
+    }
+    case COL_QUEUE_POSITION:
+    {
+        sqlite3_result_int(ctx, static_cast<int>(status.queue_position));
+        break;
+    }
+    case COL_SEEDING_DURATION:
+    {
+        sqlite3_result_int64(ctx, status.seeding_duration.count());
+        break;
+    }
+    default:
+    {
+        BOOST_LOG_TRIVIAL(warning) << "Unknown column: " << i;
         break;
     }
     }

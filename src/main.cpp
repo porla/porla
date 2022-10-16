@@ -5,12 +5,13 @@
 #include "config.hpp"
 #include "httpeventstream.hpp"
 #include "httpserver.hpp"
+#include "jsonrpchandler.hpp"
 #include "session.hpp"
 #include "settingspack.hpp"
 
 #include "data/migrate.hpp"
 #include "methods/torrentsadd.hpp"
-#include "methods/torrentslist.hpp"
+#include "methods/torrentsget.hpp"
 #include "methods/torrentspeersadd.hpp"
 #include "methods/torrentsquery.hpp"
 #include "methods/torrentsremove.hpp"
@@ -88,21 +89,25 @@ int main(int argc, char* argv[])
         }
         catch (const std::exception &ex)
         {
-            BOOST_LOG_TRIVIAL(error) << "Failed to load torrents: " << ex.what();
+            BOOST_LOG_TRIVIAL(fatal) << "Failed to load torrents: " << ex.what();
             return -1;
         }
+
+        porla::JsonRpcHandler rpc({
+            {"torrents.add", porla::Methods::TorrentsAdd(session)},
+            {"torrents.get", porla::Methods::TorrentsGet(session)},
+            {"torrents.peers.add", porla::Methods::TorrentsPeersAdd(session)},
+            {"torrents.query", porla::Methods::TorrentsQuery(session)},
+            {"torrents.remove", porla::Methods::TorrentsRemove(session)}
+        });
 
         porla::HttpServer http(io, porla::HttpServerOptions{
             .host = cfg["http"]["host"].value_or("127.0.0.1"),
             .port = cfg["http"]["port"].value_or<uint16_t>(1337)
         });
 
-        http.Use(porla::HttpGet("/api/events", porla::HttpEventStream(session)));
-        http.Use(porla::Methods::TorrentsAdd("/api/torrents.add", session));
-        http.Use(porla::Methods::TorrentsList("/api/torrents.list", session));
-        http.Use(porla::Methods::TorrentsPeersAdd("/api/torrents.peers.add", session));
-        http.Use(porla::Methods::TorrentsQuery("/api/torrents.query", session));
-        http.Use(porla::Methods::TorrentsRemove("/api/torrents.remove", session));
+        http.Use(porla::HttpPost("/api/v1/jsonrpc", [&rpc](auto const& ctx) { rpc(ctx); }));
+        http.Use(porla::HttpGet("/api/v1/events", porla::HttpEventStream(session)));
         http.Use(porla::HttpNotFound());
 
         io.run();

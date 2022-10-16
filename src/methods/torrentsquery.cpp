@@ -11,9 +11,8 @@ using porla::Methods::TorrentsQuery;
 using porla::Methods::TorrentsQueryReq;
 using porla::Methods::TorrentsQueryRes;
 
-TorrentsQuery::TorrentsQuery(std::string const& path, ISession& session)
-    : MethodT(boost::beast::http::verb::post, path)
-    , m_session(session)
+TorrentsQuery::TorrentsQuery(ISession& session)
+    : m_session(session)
 {
 }
 

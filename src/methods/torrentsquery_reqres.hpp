@@ -8,4 +8,9 @@ namespace porla::Methods
     {
         std::string query;
     };
+
+    struct TorrentsQueryRes
+    {
+        std::vector<nlohmann::json> results;
+    };
 }

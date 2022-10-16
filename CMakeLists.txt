@@ -26,6 +26,8 @@ add_executable(
     src/httpserver.hpp
     src/httpsession.cpp
     src/httpsession.hpp
+    src/jsonrpchandler.cpp
+    src/jsonrpchandler.hpp
     src/session.cpp
     src/session.hpp
     src/settingspack.cpp
@@ -45,8 +47,8 @@ add_executable(
     src/methods/method.hpp
     src/methods/torrentsadd.cpp
     src/methods/torrentsadd.hpp
-    src/methods/torrentslist.cpp
-    src/methods/torrentslist.hpp
+    src/methods/torrentsget.cpp
+    src/methods/torrentsget.hpp
     src/methods/torrentspeersadd.cpp
     src/methods/torrentspeersadd.hpp
     src/methods/torrentsquery.cpp
