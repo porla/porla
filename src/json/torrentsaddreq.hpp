@@ -64,6 +64,8 @@ namespace porla::Methods
 
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsAddReq,
+        magnet_uri,
         save_path,
-        ti)
+        ti,
+        trackers)
 }

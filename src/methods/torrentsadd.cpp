@@ -58,6 +58,15 @@ void TorrentsAdd::Invoke(TorrentsAddReq const& req, WriteCb<TorrentsAddRes> cb)
 
     p.save_path = req.save_path;
 
+    if (req.download_limit.has_value())  p.download_limit  = req.download_limit.value();
+    if (req.http_seeds.has_value())      p.http_seeds      = req.http_seeds.value();
+    if (req.max_connections.has_value()) p.max_connections = req.max_connections.value();
+    if (req.max_uploads.has_value())     p.max_uploads     = req.max_uploads.value();
+    if (req.name.has_value())            p.name            = req.name.value();
+    if (req.trackers.has_value())        p.trackers        = req.trackers.value();
+    if (req.upload_limit.has_value())    p.upload_limit    = req.upload_limit.value();
+    if (req.url_seeds.has_value())       p.url_seeds       = req.url_seeds.value();
+
     lt::info_hash_t hash = m_session.AddTorrent(p);
 
     if (hash == lt::info_hash_t())
