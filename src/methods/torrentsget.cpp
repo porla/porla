@@ -9,5 +9,9 @@ TorrentsGet::TorrentsGet(porla::ISession& session)
 
 void TorrentsGet::Invoke(const TorrentsGetReq& req, WriteCb<TorrentsGetRes> cb)
 {
-    cb({});
+    TorrentsGetRes result;
+
+
+
+    cb(result);
 }

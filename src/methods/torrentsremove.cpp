@@ -18,5 +18,5 @@ void TorrentsRemove::Invoke(const TorrentsRemoveReq &req, WriteCb<TorrentsRemove
         m_session.Remove(hash, req.remove_data);
     }
 
-    cb({});
+    cb(TorrentsRemoveRes{});
 }

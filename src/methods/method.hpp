@@ -26,6 +26,11 @@ namespace porla::Methods
             json d = res;
             m_ctx->WriteJson(d);
         }
+
+        void operator()(const json& j)
+        {
+            m_ctx->WriteJson(j);
+        }
     
     private:
         std::shared_ptr<porla::HttpContext> m_ctx;

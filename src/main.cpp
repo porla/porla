@@ -13,6 +13,7 @@
 #include "methods/torrentsadd.hpp"
 #include "methods/torrentsget.hpp"
 #include "methods/torrentspeersadd.hpp"
+#include "methods/torrentspeerslist.hpp"
 #include "methods/torrentsquery.hpp"
 #include "methods/torrentsremove.hpp"
 
@@ -94,9 +95,10 @@ int main(int argc, char* argv[])
         }
 
         porla::JsonRpcHandler rpc({
-            {"torrents.add", porla::Methods::TorrentsAdd(session)},
+            {"torrents.add", porla::Methods::TorrentsAdd(session, cfg)},
             {"torrents.get", porla::Methods::TorrentsGet(session)},
             {"torrents.peers.add", porla::Methods::TorrentsPeersAdd(session)},
+            {"torrents.peers.list", porla::Methods::TorrentsPeersList(session)},
             {"torrents.query", porla::Methods::TorrentsQuery(session)},
             {"torrents.remove", porla::Methods::TorrentsRemove(session)}
         });

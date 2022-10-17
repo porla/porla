@@ -36,5 +36,5 @@ void TorrentsPeersAdd::Invoke(const TorrentsPeersAddReq& req, WriteCb<TorrentsPe
         }
     }
 
-    cb({});
+    cb(TorrentsPeersAddRes{});
 }

@@ -51,6 +51,8 @@ add_executable(
     src/methods/torrentsget.hpp
     src/methods/torrentspeersadd.cpp
     src/methods/torrentspeersadd.hpp
+    src/methods/torrentspeerslist.cpp
+    src/methods/torrentspeerslist.hpp
     src/methods/torrentsquery.cpp
     src/methods/torrentsquery.hpp
     src/methods/torrentsremove.cpp
