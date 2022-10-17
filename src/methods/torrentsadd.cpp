@@ -30,8 +30,20 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
         {
             toml::table& preset = *maybePreset;
 
+            if (auto downLimit = preset["dl_limit"].value<int>())
+                p.download_limit = *downLimit;
+
+            if (auto maxConnections = preset["max_connections"].value<int>())
+                p.max_connections = *maxConnections;
+
+            if (auto maxUploads = preset["max_uploads"].value<int>())
+                p.max_uploads = *maxUploads;
+
             if (auto savePath = preset["save_path"].value<std::string>())
                 p.save_path = *savePath;
+
+            if (auto upLimit = preset["ul_limit"].value<int>())
+                p.upload_limit = *upLimit;
 
             if (const toml::array* trackers = preset["trackers"].as_array())
             {
@@ -56,8 +68,7 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
 
         if (ec) {
             BOOST_LOG_TRIVIAL(error) << "Failed to decode torrent file: " << ec.message();
-            cb(TorrentsAddRes{}); // TODO: Return error
-            return;
+            return cb.Error(-1, "Failed to bdecode 'ti' parameter");
         }
 
         p.ti = std::make_shared<lt::torrent_info>(node, ec);
@@ -65,8 +76,7 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
         if (ec)
         {
             BOOST_LOG_TRIVIAL(error) << "Failed to parse torrent file to info: " << ec.message();
-            cb(TorrentsAddRes{}); // TODO: Return error
-            return;
+            return cb.Error(-2, "Failed to parse torrent_info from bdecoded data");
         }
     }
     else if (req.magnet_uri.has_value())
@@ -77,8 +87,7 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
         if (ec)
         {
             BOOST_LOG_TRIVIAL(error) << "Failed to parse magnet uri: " << ec.message();
-            cb(TorrentsAddRes{}); // TODO: Return error
-            return;
+            return cb.Error(-3, "Could not parse 'magnet_uri' param");
         }
     }
 
@@ -96,11 +105,10 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
 
     if (hash == lt::info_hash_t())
     {
-        cb(TorrentsAddRes{}); // TODO: Return error
-        return;
+        return cb.Error(-4, "Failed to add torrent");
     }
 
-    cb(TorrentsAddRes{
+    cb.Ok(TorrentsAddRes{
         .info_hash = hash
     });
 }

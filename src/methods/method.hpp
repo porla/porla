@@ -24,14 +24,33 @@ namespace porla::Methods
         void operator()(const TRes& res)
         {
             json d = res;
-            m_ctx->WriteJson(d);
+            Ok(d);
         }
 
         void operator()(const json& j)
         {
-            m_ctx->WriteJson(j);
+            Ok(j);
         }
-    
+
+        void Error(int code, const std::string_view& message)
+        {
+            m_ctx->WriteJson({
+                {"jsonrpc", "2.0"},
+                {"error", {
+                    {"code", code},
+                    {"message", message}
+                }}
+            });
+        }
+
+        void Ok(const json& result)
+        {
+            m_ctx->WriteJson({
+                {"jsonrpc", "2.0"},
+                {"result", result}
+            });
+        }
+
     private:
         std::shared_ptr<porla::HttpContext> m_ctx;
     };

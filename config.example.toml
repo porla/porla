@@ -1,9 +1,19 @@
-# This is a complete example of a config.toml file for Porla. The values shown
-# are the default values which are included in the release config.
+# This is a complete example of a config.toml file for Porla.
 
 listen_interfaces = [
     ["127.0.0.1", 6881]
 ]
+
+[preset.some-preset]
+# use presets to automatically adjust settings on added torrents. these settings
+# are applied by setting the "preset" key on the object in the torrents.add
+# method.
+dl_limit        = 1000
+ul_limit        = 1000
+max_connections = 200
+max_uploads     = 100
+save_path       = "/some/other/path"
+trackers        = [ "http://some.tracker.com/announce" ]
 
 [libtorrent]
 # The libtorrent base settings to use. can be 'default',
