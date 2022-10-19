@@ -372,74 +372,84 @@ Session::~Session()
 
     m_session->pause();
 
-    // Save each torrents resume data
-    int outstanding = 0;
-    int paused = 0;
-    int failed = 0;
+    int chunk_size = 1000;
+    int chunks = static_cast<int>(m_torrents.size() / chunk_size) + 1;
 
-    auto temp = m_session->get_torrent_status([](lt::torrent_status const&) { return true; });
+    BOOST_LOG_TRIVIAL(info) << "Saving resume data in " << chunks << " chunk(s) - total torrents: " << m_torrents.size();
 
-    for (lt::torrent_status& st : temp)
+    auto current = m_torrents.begin();
+
+    for (int i = 0; i < chunks; i++)
     {
-        if (!st.handle.is_valid()
-            || !st.has_metadata
-            || !st.need_save_resume)
+        int chunk_items = std::min(
+            chunk_size,
+            static_cast<int>(std::distance(current, m_torrents.end())));
+
+        int outstanding = 0;
+
+        for (int j = 0; j < chunk_items; j++)
         {
-            continue;
+            auto const& ts = current->second;
+
+            if (!ts.handle.is_valid()
+                || !ts.has_metadata
+                || !ts.need_save_resume)
+            {
+                std::advance(current, 1);
+                continue;
+            }
+
+            ts.handle.save_resume_data(
+                lt::torrent_handle::flush_disk_cache
+                | lt::torrent_handle::save_info_dict
+                | lt::torrent_handle::only_if_modified);
+
+            outstanding++;
+
+            std::advance(current, 1);
         }
 
-        st.handle.save_resume_data(
-            lt::torrent_handle::flush_disk_cache
-            | lt::torrent_handle::save_info_dict
-            | lt::torrent_handle::only_if_modified);
+        BOOST_LOG_TRIVIAL(info) << "Chunk " << i + 1 << " - Saving state for " << outstanding << " torrent(s) (out of " << chunk_items << ")";
 
-        outstanding++;
-    }
-
-    BOOST_LOG_TRIVIAL(info) << "Saving data for " << outstanding << " torrent(s)";
-
-    while (outstanding > 0)
-    {
-        lt::alert const* tmp = m_session->wait_for_alert(lt::seconds(10));
-        if (tmp == nullptr) { continue; }
-
-        std::vector<lt::alert*> alerts;
-        m_session->pop_alerts(&alerts);
-
-        for (lt::alert* a : alerts)
+        while (outstanding > 0)
         {
-            auto* tp = lt::alert_cast<lt::torrent_paused_alert>(a);
+            lt::alert const* tmp = m_session->wait_for_alert(lt::seconds(10));
+            if (tmp == nullptr) { continue; }
 
-            if (tp)
-            {
-                paused++;
-                continue;
-            }
+            std::vector<lt::alert*> alerts;
+            m_session->pop_alerts(&alerts);
 
-            if (auto fail = lt::alert_cast<lt::save_resume_data_failed_alert>(a))
+            for (lt::alert* a : alerts)
             {
-                failed++;
+                if (lt::alert_cast<lt::torrent_paused_alert>(a))
+                {
+                    continue;
+                }
+
+                if (auto fail = lt::alert_cast<lt::save_resume_data_failed_alert>(a))
+                {
+                    outstanding--;
+
+                    BOOST_LOG_TRIVIAL(error)
+                        << "Failed to save resume data for "
+                        << fail->torrent_name()
+                        << ": " << fail->message();
+
+                    continue;
+                }
+
+                auto* rd = lt::alert_cast<lt::save_resume_data_alert>(a);
+                if (!rd) { continue; }
+
                 outstanding--;
 
-                BOOST_LOG_TRIVIAL(error)
-                    << "Failed to save resume data for "
-                    << fail->torrent_name()
-                    << ": " << fail->message();
-
-                continue;
+                AddTorrentParams::Update(m_db, rd->handle.info_hashes(), AddTorrentParams{
+                    .name = rd->params.name,
+                    .params = rd->params,
+                    .queue_position = static_cast<int>(rd->handle.status().queue_position),
+                    .save_path = rd->params.save_path
+                });
             }
-
-            auto* rd = lt::alert_cast<lt::save_resume_data_alert>(a);
-            if (!rd) { continue; }
-
-            outstanding--;
-
-            AddTorrentParams::Update(m_db, rd->handle.info_hashes(), AddTorrentParams{
-                .name = rd->params.name,
-                .params = rd->params,
-                .queue_position = static_cast<int>(rd->handle.status().queue_position),
-                .save_path = rd->params.save_path
-            });
         }
     }
 
