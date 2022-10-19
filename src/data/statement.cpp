@@ -26,7 +26,12 @@ public:
 
     [[nodiscard]] std::string GetStdString(int pos) const override
     {
-        return {};
+        auto data = sqlite3_column_text(m_stmt, pos);
+        return
+        {
+            reinterpret_cast<const char*>(data),
+            static_cast<unsigned long>(sqlite3_column_bytes(m_stmt, pos))
+        };
     }
 
 private:
