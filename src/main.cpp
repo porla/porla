@@ -56,6 +56,14 @@ int main(int argc, char* argv[])
         return PrintSettings(cfg);
     }
 
+    boost::log::trivial::severity_level log_level = boost::log::trivial::info;
+    if (cfg["log_level"] == "trace")   { log_level = boost::log::trivial::severity_level::trace; }
+    if (cfg["log_level"] == "debug")   { log_level = boost::log::trivial::severity_level::debug; }
+    if (cfg["log_level"] == "info")    { log_level = boost::log::trivial::severity_level::info; }
+    if (cfg["log_level"] == "warning") { log_level = boost::log::trivial::severity_level::warning; }
+    if (cfg["log_level"] == "error")   { log_level = boost::log::trivial::severity_level::error; }
+    if (cfg["log_level"] == "fatal")   { log_level = boost::log::trivial::severity_level::fatal; }
+
     boost::asio::io_context io;
     boost::asio::signal_set signals(io, SIGINT, SIGTERM);
 
