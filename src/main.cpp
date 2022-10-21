@@ -12,6 +12,8 @@
 #include "webroothandler.hpp"
 
 #include "data/migrate.hpp"
+#include "methods/sessionpause.hpp"
+#include "methods/sessionsettingslist.hpp"
 #include "methods/torrentsadd.hpp"
 #include "methods/torrentsget.hpp"
 #include "methods/torrentslist.hpp"
@@ -19,6 +21,7 @@
 #include "methods/torrentspeerslist.hpp"
 #include "methods/torrentsquery.hpp"
 #include "methods/torrentsremove.hpp"
+#include "methods/torrentstrackerslist.hpp"
 
 int PrintSettings(const toml::table& cfg)
 {
@@ -107,13 +110,16 @@ int main(int argc, char* argv[])
         }
 
         porla::JsonRpcHandler rpc({
+            {"session.pause", porla::Methods::SessionPause(session)},
+            {"session.settings.list", porla::Methods::SessionSettingsList(session)},
             {"torrents.add", porla::Methods::TorrentsAdd(session, cfg)},
             {"torrents.get", porla::Methods::TorrentsGet(session)},
             {"torrents.list", porla::Methods::TorrentsList(session)},
             {"torrents.peers.add", porla::Methods::TorrentsPeersAdd(session)},
             {"torrents.peers.list", porla::Methods::TorrentsPeersList(session)},
             {"torrents.query", porla::Methods::TorrentsQuery(session)},
-            {"torrents.remove", porla::Methods::TorrentsRemove(session)}
+            {"torrents.remove", porla::Methods::TorrentsRemove(session)},
+            {"torrents.trackers.list", porla::Methods::TorrentsTrackersList(session)}
         });
 
         porla::HttpServer http(io, porla::HttpServerOptions{

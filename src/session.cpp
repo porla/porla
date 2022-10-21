@@ -503,6 +503,11 @@ lt::info_hash_t Session::AddTorrent(lt::add_torrent_params const& p)
         .save_path = ts.save_path,
     });
 
+    th.save_resume_data(
+        lt::torrent_handle::flush_disk_cache
+        | lt::torrent_handle::save_info_dict
+        | lt::torrent_handle::only_if_modified);
+
     m_torrents.insert({ ts.info_hashes, ts });
     m_torrentAdded(ts);
 
@@ -515,6 +520,11 @@ void Session::ForEach(const std::function<void(const libtorrent::torrent_status 
     {
         cb(status);
     }
+}
+
+void Session::Pause()
+{
+    m_session->pause();
 }
 
 void Session::Query(const std::string_view& query, const std::function<int(sqlite3_stmt*)>& cb)
@@ -535,6 +545,16 @@ void Session::Remove(const lt::info_hash_t& hash, bool remove_data)
     lt::torrent_status status = m_torrents.at(hash);
 
     m_session->remove_torrent(status.handle, remove_data ? lt::session::delete_files : lt::remove_flags_t{});
+}
+
+void Session::Resume()
+{
+    m_session->resume();
+}
+
+lt::settings_pack Session::Settings()
+{
+    return m_session->get_settings();
 }
 
 const std::map<lt::info_hash_t, lt::torrent_status>& Session::Torrents()

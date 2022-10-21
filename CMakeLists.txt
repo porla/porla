@@ -47,6 +47,10 @@ add_executable(
     src/data/statement.hpp
 
     src/methods/method.hpp
+    src/methods/sessionpause.cpp
+    src/methods/sessionpause.hpp
+    src/methods/sessionsettingslist.cpp
+    src/methods/sessionsettingslist.hpp
     src/methods/torrentsadd.cpp
     src/methods/torrentsadd.hpp
     src/methods/torrentsget.cpp
@@ -61,6 +65,8 @@ add_executable(
     src/methods/torrentsquery.hpp
     src/methods/torrentsremove.cpp
     src/methods/torrentsremove.hpp
+    src/methods/torrentstrackerslist.cpp
+    src/methods/torrentstrackerslist.hpp
 )
 
 target_compile_definitions(

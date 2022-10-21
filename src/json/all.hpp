@@ -1,6 +1,9 @@
 #pragma once
 
+#include "ltannounceentry.hpp"
 #include "ltinfohash.hpp"
+#include "sessionpause.hpp"
+#include "sessionsettingsget.hpp"
 #include "torrentsaddreq.hpp"
 #include "torrentsaddres.hpp"
 #include "torrentsget.hpp"
@@ -10,3 +13,4 @@
 #include "torrentsquery.hpp"
 #include "torrentsremovereq.hpp"
 #include "torrentsremoveres.hpp"
+#include "torrentstrackerslist.hpp"
