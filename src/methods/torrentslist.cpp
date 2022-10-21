@@ -17,6 +17,8 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
         {{"name", true},       [](auto const& lhs, auto const& rhs) { return strcmp(lhs.name.c_str(), rhs.name.c_str()) < 0; }},
         {{"queue_pos", false}, [](auto const& lhs, auto const& rhs) { return lhs.queue_pos >= rhs.queue_pos; }},
         {{"queue_pos", true},  [](auto const& lhs, auto const& rhs) { return lhs.queue_pos < rhs.queue_pos; }},
+        {{"save_path", false}, [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) > 0; }},
+        {{"save_path", true},  [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) < 0; }},
     };
 
     std::string field = req.order_by.value_or("queue_pos");
@@ -35,8 +37,12 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
     for (auto const& [_, ts] : m_session.Torrents())
     {
         torrents.push_back(TorrentsListRes::Item{
-            .name      = ts.name,
-            .queue_pos = static_cast<int>(ts.queue_position)
+            .info_hashes = ts.info_hashes,
+            .list_peers  = ts.list_peers,
+            .list_seeds  = ts.list_seeds,
+            .name        = ts.name,
+            .queue_pos   = static_cast<int>(ts.queue_position),
+            .save_path   = ts.save_path
         });
     }
 

@@ -1,4 +1,5 @@
 #include <boost/asio.hpp>
+#include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
 #include <sqlite3.h>
 
@@ -8,6 +9,7 @@
 #include "jsonrpchandler.hpp"
 #include "session.hpp"
 #include "settingspack.hpp"
+#include "webroothandler.hpp"
 
 #include "data/migrate.hpp"
 #include "methods/torrentsadd.hpp"
@@ -63,6 +65,7 @@ int main(int argc, char* argv[])
     if (cfg["log_level"] == "warning") { log_level = boost::log::trivial::severity_level::warning; }
     if (cfg["log_level"] == "error")   { log_level = boost::log::trivial::severity_level::error; }
     if (cfg["log_level"] == "fatal")   { log_level = boost::log::trivial::severity_level::fatal; }
+    boost::log::core::get()->set_filter(boost::log::trivial::severity >= log_level);
 
     boost::asio::io_context io;
     boost::asio::signal_set signals(io, SIGINT, SIGTERM);
@@ -117,6 +120,11 @@ int main(int argc, char* argv[])
             .host = cfg["http"]["host"].value_or("127.0.0.1"),
             .port = cfg["http"]["port"].value_or<uint16_t>(1337)
         });
+
+        if (auto root = cfg["http"]["root_path"].value<std::string>())
+        {
+            http.Use(porla::WebRootHandler(*root));
+        }
 
         http.Use(porla::HttpPost("/api/v1/jsonrpc", [&rpc](auto const& ctx) { rpc(ctx); }));
         http.Use(porla::HttpGet("/api/v1/events", porla::HttpEventStream(session)));

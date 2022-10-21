@@ -19,8 +19,12 @@ namespace porla::Methods
     {
         struct Item
         {
+            lt::info_hash_t info_hashes;
+            int list_peers;
+            int list_seeds;
             std::string name;
             int queue_pos;
+            std::string save_path;
         };
 
         std::vector<Item> torrents;

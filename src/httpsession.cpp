@@ -205,7 +205,7 @@ void HttpSession::EndWrite(bool close, boost::beast::error_code ec, std::size_t 
 
     if (ec)
     {
-        BOOST_LOG_TRIVIAL(error) << "Error when writing data: " << ec;
+        BOOST_LOG_TRIVIAL(error) << "Error when writing data: " << ec.message();
         return;
     }
 

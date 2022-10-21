@@ -15,19 +15,17 @@ namespace porla::Methods
         page,
         page_size)
 
-    static void to_json(json& j, const porla::Methods::TorrentsListRes::Item& item)
-    {
-        j = {
-            {"name", item.name},
-            {"queue_pos", item.queue_pos}
-        };
-    }
+    NLOHMANN_JSONIFY_ALL_THINGS(
+        TorrentsListRes::Item,
+        info_hashes,
+        list_peers,
+        list_seeds,
+        name,
+        queue_pos,
+        save_path)
 
-    static void to_json(json& j, const porla::Methods::TorrentsListRes& res)
-    {
-        j = {
-            {"torrents", res.torrents},
-            {"torrents_total", res.torrents_total}
-        };
-    }
+    NLOHMANN_JSONIFY_ALL_THINGS(
+        TorrentsListRes,
+        torrents,
+        torrents_total)
 }
