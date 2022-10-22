@@ -1,3 +1,5 @@
+.git
+.vscode
 build
 cmake-build-*
 docs
