@@ -3,6 +3,7 @@
 #include <vector>
 
 #include <libtorrent/info_hash.hpp>
+#include <libtorrent/peer_info.hpp>
 
 namespace porla::Methods
 {
@@ -13,13 +14,6 @@ namespace porla::Methods
 
     struct TorrentsPeersListRes
     {
-        struct PeerItem
-        {
-            std::string client;
-            int down_speed;
-            int up_speed;
-        };
-
-        std::vector<PeerItem> peers;
+        std::vector<libtorrent::peer_info> peers;
     };
 }

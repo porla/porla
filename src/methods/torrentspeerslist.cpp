@@ -16,23 +16,13 @@ void TorrentsPeersList::Invoke(const TorrentsPeersListReq& req, WriteCb<Torrents
 
     if (status == torrents.end())
     {
-        cb(TorrentsPeersListRes{}); // TODO: Return error
-        return;
+        return cb.Error(-1, "Torrent not found");
     }
 
     std::vector<lt::peer_info> peers;
     status->second.handle.get_peer_info(peers);
 
-    TorrentsPeersListRes res;
-
-    for (auto const& peer : peers)
-    {
-        res.peers.push_back({
-            .client = peer.client,
-            .down_speed = peer.down_speed,
-            .up_speed = peer.up_speed
-        });
-    }
-
-    cb(res);
+    cb.Ok(TorrentsPeersListRes{
+        .peers = peers
+    });
 }

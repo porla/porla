@@ -9,15 +9,7 @@ namespace porla::Methods
 {
     static void from_json(const json& j, porla::Methods::TorrentsPeersListReq& req)
     {
-    }
-
-    static void to_json(json& j, const porla::Methods::TorrentsPeersListRes::PeerItem& peer)
-    {
-        j = {
-            {"client", peer.client},
-            {"dl_speed", peer.down_speed},
-            {"ul_speed", peer.up_speed}
-        };
+        j.at("info_hash").get_to(req.info_hash);
     }
 
     static void to_json(json& j, const porla::Methods::TorrentsPeersListRes& res)
