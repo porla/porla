@@ -17,12 +17,21 @@ namespace porla::Methods
 
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsListRes::Item,
+        download_rate,
         info_hashes,
         list_peers,
         list_seeds,
         name,
-        queue_pos,
-        save_path)
+        num_peers,
+        num_seeds,
+        progress,
+        queue_position,
+        save_path,
+        size,
+        state,
+        total,
+        total_done,
+        upload_rate)
 
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsListRes,

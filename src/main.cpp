@@ -18,10 +18,12 @@
 #include "methods/torrentsget.hpp"
 #include "methods/torrentslist.hpp"
 #include "methods/torrentsmove.hpp"
+#include "methods/torrentspause.hpp"
 #include "methods/torrentspeersadd.hpp"
 #include "methods/torrentspeerslist.hpp"
 #include "methods/torrentsquery.hpp"
 #include "methods/torrentsremove.hpp"
+#include "methods/torrentsresume.hpp"
 #include "methods/torrentstrackerslist.hpp"
 
 int PrintSettings(const toml::table& cfg)
@@ -117,10 +119,12 @@ int main(int argc, char* argv[])
             {"torrents.get", porla::Methods::TorrentsGet(session)},
             {"torrents.list", porla::Methods::TorrentsList(session)},
             {"torrents.move", porla::Methods::TorrentsMove(session)},
+            {"torrents.pause", porla::Methods::TorrentsPause(session)},
             {"torrents.peers.add", porla::Methods::TorrentsPeersAdd(session)},
             {"torrents.peers.list", porla::Methods::TorrentsPeersList(session)},
             {"torrents.query", porla::Methods::TorrentsQuery(session)},
             {"torrents.remove", porla::Methods::TorrentsRemove(session)},
+            {"torrents.resume", porla::Methods::TorrentsResume(session)},
             {"torrents.trackers.list", porla::Methods::TorrentsTrackersList(session)}
         });
 

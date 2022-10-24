@@ -13,15 +13,15 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 {
     static std::map<std::pair<std::string, bool>, std::function<bool(const TorrentsListRes::Item&, const TorrentsListRes::Item&)>> sorters =
     {
-        {{"name", false},      [](auto const& lhs, auto const& rhs) { return strcmp(lhs.name.c_str(), rhs.name.c_str()) > 0; }},
-        {{"name", true},       [](auto const& lhs, auto const& rhs) { return strcmp(lhs.name.c_str(), rhs.name.c_str()) < 0; }},
-        {{"queue_pos", false}, [](auto const& lhs, auto const& rhs) { return lhs.queue_pos >= rhs.queue_pos; }},
-        {{"queue_pos", true},  [](auto const& lhs, auto const& rhs) { return lhs.queue_pos < rhs.queue_pos; }},
-        {{"save_path", false}, [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) > 0; }},
-        {{"save_path", true},  [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) < 0; }},
+        {{"name", false},           [](auto const& lhs, auto const& rhs) { return strcmp(lhs.name.c_str(), rhs.name.c_str()) > 0; }},
+        {{"name", true},            [](auto const& lhs, auto const& rhs) { return strcmp(lhs.name.c_str(), rhs.name.c_str()) < 0; }},
+        {{"queue_position", false}, [](auto const& lhs, auto const& rhs) { return lhs.queue_position >= rhs.queue_position; }},
+        {{"queue_position", true},  [](auto const& lhs, auto const& rhs) { return lhs.queue_position < rhs.queue_position; }},
+        {{"save_path", false},      [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) > 0; }},
+        {{"save_path", true},       [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) < 0; }},
     };
 
-    std::string field = req.order_by.value_or("queue_pos");
+    std::string field = req.order_by.value_or("queue_position");
     bool order_asc = req.order_by_dir.value_or("asc") == "asc";
 
     auto const& sorter = sorters.find({field,order_asc});
@@ -36,13 +36,28 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
     for (auto const& [_, ts] : m_session.Torrents())
     {
+        std::int64_t size = -1;
+
+        if (auto ti = ts.torrent_file.lock())
+            size = ti->total_size();
+
         torrents.push_back(TorrentsListRes::Item{
-            .info_hashes = ts.info_hashes,
-            .list_peers  = ts.list_peers,
-            .list_seeds  = ts.list_seeds,
-            .name        = ts.name,
-            .queue_pos   = static_cast<int>(ts.queue_position),
-            .save_path   = ts.save_path
+            .download_rate  = ts.download_rate,
+            .flags          = static_cast<std::uint64_t>(ts.flags),
+            .info_hashes    = ts.info_hashes,
+            .list_peers     = ts.list_peers,
+            .list_seeds     = ts.list_seeds,
+            .name           = ts.name,
+            .num_peers      = ts.num_peers,
+            .num_seeds      = ts.num_seeds,
+            .progress       = ts.progress,
+            .queue_position = static_cast<int>(ts.queue_position),
+            .save_path      = ts.save_path,
+            .size           = size,
+            .state          = ts.state,
+            .total          = ts.total,
+            .total_done     = ts.total_done,
+            .upload_rate    = ts.upload_rate,
         });
     }
 

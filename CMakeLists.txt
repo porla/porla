@@ -60,6 +60,8 @@ add_executable(
     src/methods/torrentslist.hpp
     src/methods/torrentsmove.cpp
     src/methods/torrentsmove.hpp
+    src/methods/torrentspause.cpp
+    src/methods/torrentspause.hpp
     src/methods/torrentspeersadd.cpp
     src/methods/torrentspeersadd.hpp
     src/methods/torrentspeerslist.cpp
@@ -68,6 +70,8 @@ add_executable(
     src/methods/torrentsquery.hpp
     src/methods/torrentsremove.cpp
     src/methods/torrentsremove.hpp
+    src/methods/torrentsresume.cpp
+    src/methods/torrentsresume.hpp
     src/methods/torrentstrackerslist.cpp
     src/methods/torrentstrackerslist.hpp
 )
