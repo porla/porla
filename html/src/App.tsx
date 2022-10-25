@@ -1,9 +1,11 @@
-import { Badge, Box, Flex, IconButton, Image, Menu, MenuButton, MenuGroup, MenuItem, MenuList, Table, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react';
-import { MdOutlineMoreVert, MdPause, MdPlayArrow } from 'react-icons/md';
+import { Badge, Box, Button, Flex, IconButton, Image, Menu, MenuButton, MenuGroup, MenuItem, MenuList, Table, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react';
+import { MdDelete, MdOutlineMoreVert, MdPause, MdPlayArrow } from 'react-icons/md';
 import { filesize } from 'filesize';
 import useSWR from 'swr';
 
 import Isotype from './assets/isotype.svg';
+import Pager from './components/Pager';
+import { useEffect, useState } from 'react';
 
 const fetcher = async (input: string, init: RequestInit, ...args: any[]) => {
   const res = await fetch('/api/v1/jsonrpc', {
@@ -18,6 +20,14 @@ const fetcher = async (input: string, init: RequestInit, ...args: any[]) => {
   return res.json();
 };
 
+function checkBit(flags: number, bit: number) {
+  return (flags & (1<<bit)) === 1<<bit;
+}
+
+function isAutoManaged(flags: number) {
+  return checkBit(flags, 5);
+}
+
 function isPaused(flags: number) {
   return (flags & (1<<4)) === 1<<4;
 }
@@ -30,11 +40,19 @@ function stateColor(state: number) {
   return "default";
 }
 
-function stateString(state: number) {
-  switch (state) {
+function stateString(torrent: any) {
+  switch (torrent.state) {
     case 1: return "checking_files";
     case 2: return "downloading_metadata";
-    case 3: return "downloading";
+    case 3: {
+      if (isPaused(torrent.flags)) {
+        if (isAutoManaged(torrent.flags)) {
+          return "queued";
+        }
+        return "paused";
+      }
+      return "downloading";
+    }
     case 4: return "finished";
     case 5: return "seeding";
   }
@@ -42,6 +60,7 @@ function stateString(state: number) {
 }
 
 function App() {
+  const [ page, setPage ] = useState(0);
   const { error, data } = useSWR(['torrents.list'], fetcher, { refreshInterval: 1000 });
 
   if (error) {
@@ -65,6 +84,19 @@ function App() {
       >
         <Image src={Isotype} width={"32px"} />
       </Flex>
+      <Flex
+        justifyContent={"end"}
+        m={3}
+      >
+        <Pager
+          page={page}
+          pageSize={data.result.page_size}
+          totalItems={data.result.torrents_total}
+          setPage={(p) => {
+            setPage(p);
+          }}
+        />
+      </Flex>
       <Table size={"sm"}>
         <Thead>
           <Tr>
@@ -86,7 +118,7 @@ function App() {
             <Td>{t.name}</Td>
             <Td textAlign={"right"}>{t.queue_position < 0 ? "-" : t.queue_position}</Td>
             <Td>
-              <Badge colorScheme={stateColor(t.state)}>{stateString(t.state)}</Badge>
+              <Badge colorScheme={stateColor(t.state)}>{stateString(t)}</Badge>
             </Td>
             <Td textAlign={"right"}>{(t.progress * 100).toFixed(t.progress === 1 ? 0 : 1)}%</Td>
             <Td textAlign={"right"}>{filesize(t.size).toString()}</Td>
@@ -116,6 +148,11 @@ function App() {
                           Pause
                         </MenuItem>
                     }
+                    <MenuItem
+                      icon={<MdDelete />}
+                    >
+                      Remove
+                    </MenuItem>
                   </MenuGroup>
                 </MenuList>
               </Menu>

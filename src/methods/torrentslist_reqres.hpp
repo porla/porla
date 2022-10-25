@@ -37,6 +37,9 @@ namespace porla::Methods
             int upload_rate;
         };
 
+        int page;
+        int page_size;
+
         std::vector<Item> torrents;
         int torrents_total;
     };

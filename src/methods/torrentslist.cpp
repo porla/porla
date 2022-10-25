@@ -80,6 +80,8 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
     }
 
     cb.Ok(TorrentsListRes{
+        .page = req.page.value_or(0),
+        .page_size = req.page_size.value_or(50),
         .torrents = std::vector(
             torrents.begin() + page_beg,
             torrents.begin() + page_end),

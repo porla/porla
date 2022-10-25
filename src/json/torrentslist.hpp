@@ -18,6 +18,7 @@ namespace porla::Methods
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsListRes::Item,
         download_rate,
+        flags,
         info_hashes,
         list_peers,
         list_seeds,
@@ -35,6 +36,8 @@ namespace porla::Methods
 
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsListRes,
+        page,
+        page_size,
         torrents,
         torrents_total)
 }
