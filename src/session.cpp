@@ -514,14 +514,6 @@ lt::info_hash_t Session::AddTorrent(lt::add_torrent_params const& p)
     return ts.info_hashes;
 }
 
-void Session::ForEach(const std::function<void(const libtorrent::torrent_status &)> &cb)
-{
-    for (auto const& [hash,status] : m_torrents)
-    {
-        cb(status);
-    }
-}
-
 void Session::Pause()
 {
     m_session->pause();

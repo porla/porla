@@ -3,10 +3,11 @@
 #include <nlohmann/json.hpp>
 
 #include "../methods/sessionsettingslist_reqres.hpp"
+#include "utils.hpp"
 
 namespace porla::Methods
 {
-    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
+    NLOHMANN_JSONIFY_ALL_THINGS(
         SessionSettingsListReq,
         keys)
 

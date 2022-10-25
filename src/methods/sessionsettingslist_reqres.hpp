@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -9,7 +10,7 @@ namespace porla::Methods
 {
     struct SessionSettingsListReq
     {
-        std::vector<std::string> keys;
+        std::optional<std::vector<std::string>> keys;
     };
 
     struct SessionSettingsListRes
