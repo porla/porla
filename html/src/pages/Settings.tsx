@@ -1,4 +1,6 @@
-import { Box, Checkbox, Input, Tab, Table, TabList, TabPanel, TabPanels, Tabs, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react';
+import { Box, Checkbox, Input, Kbd, Link, Tab, Table, TabList, TabPanel, TabPanels, Tabs, Tbody, Td, Text, Th, Thead, Tr } from '@chakra-ui/react';
+import EncPolicyInput from '../components/settings/EncPolicyInput';
+import IoBufferModeInput from '../components/settings/IoBufferModeInput';
 import jsonrpc from '../services/jsonrpc';
 
 type ISettingsDict = {
@@ -210,7 +212,13 @@ type ISettings = {
   settings: ISettingsDict;
 }
 
-const AdvancedSettings: Array<{ name: keyof ISettingsDict, desc: string }> = [
+type AdvancedSetting = {
+  name: keyof ISettingsDict;
+  desc: string | JSX.Element;
+  el?: (data: boolean | number | string) => JSX.Element;
+}
+
+const AdvancedSettings: Array<AdvancedSetting> = [
   { name: 'active_checking', desc: 'The limit of number of simultaneous checking torrents.' },
   { name: 'active_dht_limit', desc: 'The max number of torrents to announce to the DHT.' },
   { name: 'active_downloads', desc: 'How many active downloading torrents the queuing mechanism allows.' },
@@ -251,56 +259,89 @@ const AdvancedSettings: Array<{ name: keyof ISettingsDict, desc: string }> = [
   { name: 'dht_block_ratelimit', desc: 'The max number of packets per second a DHT node is allowed to send without getting banned.' },
   { name: 'dht_block_timeout', desc: 'The number of seconds a DHT node is banned if it exceeds the rate limit. The rate limit is averaged over 10 seconds to allow for bursts above the limit.' },
   { name: 'dht_bootstrap_nodes', desc: 'A comma-separated list of IP port-pairs. They will be added to the DHT node (if it\'s enabled) as back-up nodes in case we don\'t know of any.' },
-  { name: 'dht_enforce_node_id', desc: '' },
-  { name: 'dht_extended_routing_table', desc: '' },
-  { name: 'dht_ignore_dark_internet', desc: '' },
-  { name: 'dht_item_lifetime', desc: '' },
-  { name: 'dht_max_dht_items', desc: '' },
-  { name: 'dht_max_fail_count', desc: '' },
-  { name: 'dht_max_infohashes_sample_count', desc: '' },
-  { name: 'dht_max_peers', desc: '' },
-  { name: 'dht_max_peers_reply', desc: '' },
-  { name: 'dht_max_torrent_search_reply', desc: '' },
-  { name: 'dht_max_torrents', desc: '' },
-  { name: 'dht_prefer_verified_node_ids', desc: '' },
-  { name: 'dht_privacy_lookups', desc: '' },
-  { name: 'dht_read_only', desc: '' },
-  { name: 'dht_restrict_routing_ips', desc: '' },
-  { name: 'dht_restrict_search_ips', desc: '' },
-  { name: 'dht_sample_infohashes_interval', desc: '' },
-  { name: 'dht_search_branching', desc: '' },
-  { name: 'dht_upload_rate_limit', desc: '' },
-  { name: 'disable_hash_checks', desc: '' },
-  { name: 'disk_io_read_mode', desc: '' },
-  { name: 'disk_io_write_mode', desc: '' },
-  { name: 'dont_count_slow_torrents', desc: '' },
-  { name: 'download_rate_limit', desc: '' },
-  { name: 'enable_dht', desc: '' },
+  { name: 'dht_enforce_node_id', desc: 'When set, node\'s whose IDs that are not correctly generated based on its external IP are ignored. When a query arrives from such node, an error message is returned with a message saying "invalid node ID".' },
+  { name: 'dht_extended_routing_table', desc: 'Makes the first buckets in the DHT routing table fit 128, 64, 32 and 16 nodes respectively, as opposed to the standard size of 8. All other buckets have size 8 still.' },
+  { name: 'dht_ignore_dark_internet', desc: 'Ignore DHT messages from parts of the internet we wouldn\'t expect to see any traffic from' },
+  { name: 'dht_item_lifetime', desc: 'The number of seconds a immutable/mutable item will be expired. Default is 0, means never expires.' },
+  { name: 'dht_max_dht_items', desc: 'Max number of items the DHT will store' },
+  { name: 'dht_max_fail_count', desc: 'The maximum number of failed tries to contact a node before it is removed from the routing table. If there are known working nodes that are ready to replace a failing node, it will be replaced immediately, this limit is only used to clear out nodes that don\'t have any node that can replace them.' },
+  { name: 'dht_max_infohashes_sample_count', desc: 'The maximum number of elements in the sampled subset of info-hashes. If this number is too big, expect the DHT storage implementations to clamp it in order to allow UDP packets go through' },
+  { name: 'dht_max_peers', desc: 'The max number of peers to store per torrent (for the DHT)' },
+  { name: 'dht_max_peers_reply', desc: 'The maximum number of peers to send in a reply to ``get_peers``' },
+  { name: 'dht_max_torrent_search_reply', desc: 'The max number of torrents to return in a torrent search query to the DHT' },
+  { name: 'dht_max_torrents', desc: 'The total number of torrents to track from the DHT. This is simply an upper limit to make sure malicious DHT nodes cannot make us allocate an unbounded amount of memory.' },
+  { name: 'dht_prefer_verified_node_ids', desc: 'When this is true, nodes whose IDs are derived from their source IP according to `BEP 42`_ are preferred in the routing table.' },
+  { name: 'dht_privacy_lookups', desc: 'When set, perform lookups in a way that is slightly more expensive, but which minimizes the amount of information leaked about you.' },
+  { name: 'dht_read_only', desc: 'When set, the other nodes won\'t keep this node in their routing tables, it\'s meant for low-power and/or ephemeral devices that cannot support the DHT, it is also useful for mobile devices which are sensitive to network traffic and battery life. this node no longer responds to \'query\' messages, and will place a \'ro\' key (value = 1) in the top-level message dictionary of outgoing query messages.' },
+  { name: 'dht_restrict_routing_ips', desc: 'Determines if the routing table entries should restrict entries to one per IP. This defaults to true, which helps mitigate some attacks on the DHT. It prevents adding multiple nodes with IPs with a very close CIDR distance.' },
+  { name: 'dht_restrict_search_ips', desc: 'Determines if DHT searches should prevent adding nodes with IPs with very close CIDR distance. This also defaults to true and helps mitigate certain attacks on the DHT.' },
+  { name: 'dht_sample_infohashes_interval', desc: 'The info-hashes sample recomputation interval (in seconds). The node will precompute a subset of the tracked info-hashes and return that instead of calculating it upon each request. The permissible range is between 0 and 21600 seconds (inclusive).' },
+  { name: 'dht_search_branching', desc: 'The number of concurrent search request the node will send when announcing and refreshing the routing table. This parameter is called alpha in the kademlia paper' },
+  { name: 'dht_upload_rate_limit', desc: 'The number of bytes per second (on average) the DHT is allowed to send. If the incoming requests causes to many bytes to be sent in responses, incoming requests will be dropped until the quota has been replenished.' },
+  { name: 'disable_hash_checks', desc: 'When set to true, all data downloaded from peers will be assumed to be correct, and not tested to match the hashes in the torrent this is only useful for simulation and testing purposes (typically combined with disabled_storage)' },
+  { name: 'disk_io_read_mode', desc: 'Determines how files are opened when they\'re in read only mode', el: (val: boolean | number | string) => <IoBufferModeInput value={val as number} /> },
+  { name: 'disk_io_write_mode', desc: 'Determines how files are opened when they\'re in read and write mode', el: (val: boolean | number | string) => <IoBufferModeInput value={val as number} /> },
+  { name: 'dont_count_slow_torrents', desc: 'If true, torrents without any payload transfers are not subject to the ``active_seeds`` and ``active_downloads`` limits. This is intended to make it more likely to utilize all available bandwidth, and avoid having torrents that don\'t transfer anything block the active slots.' },
+  { name: 'download_rate_limit', desc: 'Sets the session-global limits of download rate limits, in bytes per second. By default peers on the local network are not rate limited.' },
+  { name: 'enable_dht', desc: 'If true, starts the dht node and makes the trackerless service available to torrents.' },
   { name: 'enable_incoming_tcp', desc: '' },
   { name: 'enable_incoming_utp', desc: '' },
-  { name: 'enable_ip_notifier', desc: '' },
-  { name: 'enable_lsd', desc: '' },
-  { name: 'enable_natpmp', desc: '' },
+  { name: 'enable_ip_notifier', desc: 'Starts and stops the internal IP table route changes notifier. The current implementation supports multiple platforms, and it is recommended to have it enable, but you may want to disable it if it\'s supported but unreliable, or if you have a better way to detect the changes.' },
+  { name: 'enable_lsd', desc: 'Starts and stops Local Service Discovery. This service will broadcast the info-hashes of all the non-private torrents on the local network to look for peers on the same swarm within multicast reach.' },
+  { name: 'enable_natpmp', desc: 'Starts and stops the NAT-PMP service. When started, the listen port and the DHT port are attempted to be forwarded on the router through NAT-PMP.' },
   { name: 'enable_outgoing_tcp', desc: '' },
   { name: 'enable_outgoing_utp', desc: '' },
-  { name: 'enable_set_file_valid_data', desc: '' },
-  { name: 'enable_upnp', desc: '' },
-  { name: 'file_pool_size', desc: '' },
-  { name: 'handshake_client_version', desc: '' },
-  { name: 'handshake_timeout', desc: '' },
-  { name: 'hashing_threads', desc: '' },
-  { name: 'i2p_hostname', desc: '' },
-  { name: 'i2p_port', desc: '' },
-  { name: 'in_enc_policy', desc: '' },
-  { name: 'inactive_down_rate', desc: '' },
-  { name: 'inactive_up_rate', desc: '' },
-  { name: 'inactivity_timeout', desc: '' },
-  { name: 'incoming_starts_queued_torrents', desc: '' },
-  { name: 'initial_picker_threshold', desc: '' },
-  { name: 'listen_interfaces', desc: '' },
-  { name: 'listen_queue_size', desc: '' },
-  { name: 'listen_system_port_fallback', desc: '' },
-  { name: 'local_service_announce_interval', desc: '' },
+  { name: 'enable_set_file_valid_data', desc: 'When set to true, enables the attempt to use SetFileValidData() to pre-allocate disk space. This system call will only work when running with Administrator privileges on Windows, and so this setting is only relevant in that scenario. Using SetFileValidData() poses a security risk, as it may reveal previously deleted information from the disk.' },
+  { name: 'enable_upnp', desc: 'Starts and stops the UPnP service. When started, the listen port and the DHT port are attempted to be forwarded on local UPnP router devices.' },
+  { name: 'file_pool_size', desc: 'Sets the upper limit on the total number of files this session will keep open. The reason why files are left open at all is that some anti virus software hooks on every file close, and scans the file for viruses. deferring the closing of the files will be the difference between a usable system and a completely hogged down system. Most operating systems also has a limit on the total number of file descriptors a process may have open.' },
+  { name: 'handshake_client_version', desc: 'This is the client name and version identifier sent to peers in the handshake message. If this is an empty string, the user_agent is used instead. This string must be a UTF-8 encoded unicode string.' },
+  { name: 'handshake_timeout', desc: 'The number of seconds to wait for a handshake response from a peer. If no response is received within this time, the peer is disconnected.' },
+  { name: 'hashing_threads',
+    desc: <><p>The number of disk I/O threads to use for
+            piece hash verification. These threads are *in addition* to the
+            regular disk I/O threads specified by <Kbd>aio_threads</Kbd>.
+            These threads are only used for full checking of torrents. The
+            hash checking done while downloading are done by the regular disk
+            I/O threads.</p>
+            <Text mt={2}>The hasher threads do not only compute hashes, but also perform
+            the read from disk. On storage optimal for sequential access,
+            such as hard drives, this setting should be set to 1, which is
+            also the default.</Text></>
+  },
+  { name: 'i2p_hostname',
+    desc: <>Sets the <Link href="http://i2p2.de" isExternal>i2p</Link> SAM bridge to connect to.</>
+  },
+  { name: 'i2p_port',
+    desc: <>Sets the <Link href="http://i2p2.de" isExternal>i2p</Link> SAM bridge port to connect to.</>
+  },
+  { name: 'in_enc_policy',
+    desc:
+    <>
+    Controls the settings for incoming connections. Keep in mind that protocol encryption degrades performance in
+		several respects:
+		<ol>
+      <li>It prevents "zero copy" disk buffers being sent to peers, since
+		   each peer needs to mutate the data (i.e. encrypt it) the data
+		   must be copied per peer connection rather than sending the same
+		   buffer to multiple peers.</li>
+       <li>The encryption itself requires more CPU than plain bittorrent
+		   protocol. The highest cost is the Diffie Hellman exchange on
+		   connection setup.</li>
+       <li>The encryption handshake adds several round-trips to the
+		   connection setup, and delays transferring data.</li>
+    </ol>
+    </>,
+    el: (val: boolean | number | string) => <EncPolicyInput value={val as number} />
+  },
+  { name: 'inactive_down_rate', desc: 'The download rate limit for a torrent to be considered active by the queuing mechanism. A torrent whose download rate is less than ``inactive_down_rate`` and whose upload rate is less than ``inactive_up_rate`` for ``auto_manage_startup`` seconds, is considered inactive, and another queued torrent may be started. This logic is disabled if ``dont_count_slow_torrents`` is false.' },
+  { name: 'inactive_up_rate', desc: 'The upload rate limit for a torrent to be considered active by the queuing mechanism. A torrent whose download rate is less than ``inactive_down_rate`` and whose upload rate is less than ``inactive_up_rate`` for ``auto_manage_startup`` seconds, is considered inactive, and another queued torrent may be started. This logic is disabled if ``dont_count_slow_torrents`` is false.' },
+  { name: 'inactivity_timeout', desc: 'If a peer is uninteresting and uninterested for longer than this number of seconds, it will be disconnected.' },
+  { name: 'incoming_starts_queued_torrents', desc: 'If a torrent has been paused by the auto managed feature in libtorrent, i.e. the torrent is paused and auto managed, this feature affects whether or not it is automatically started on an incoming connection. The main reason to queue torrents, is not to make them unavailable, but to save on the overhead of announcing to the trackers, the DHT and to avoid spreading one\'s unchoke slots too thin. If a peer managed to find us, even though we\'re no in the torrent anymore, this setting can make us start the torrent and serve it.' },
+  { name: 'initial_picker_threshold', desc: 'Specifies the number of pieces we need before we switch to rarest first picking. The first ``initial_picker_threshold`` pieces in any torrent are picked at random , the following pieces are picked in rarest first order.' },
+  { name: 'listen_interfaces', desc: 'A comma-separated list of (IP or device name, port) pairs. These are the listen ports that will be opened for accepting incoming uTP and TCP peer connections. These are also used for *outgoing* uTP and UDP tracker connections and DHT nodes.' },
+  { name: 'listen_queue_size', desc: 'The number of outstanding incoming connections to queue up while we\'re not actively waiting for a connection to be accepted. 5 should be sufficient for any normal client. If this is a high performance server which expects to receive a lot of connections, or used in a simulator or test, it might make sense to raise this number. It will not take affect until the ``listen_interfaces`` settings is updated.' },
+  { name: 'listen_system_port_fallback', desc: 'If this is true, libtorrent will fall back to listening on a port chosen by the operating system (i.e. binding to port 0). If a failure is preferred, set this to false.' },
+  { name: 'local_service_announce_interval', desc: 'The time in seconds between local network announces for a torrent.' },
   { name: 'max_allowed_in_request_queue', desc: '' },
   { name: 'max_concurrent_http_announces', desc: '' },
   { name: 'max_failcount', desc: '' },
@@ -417,7 +458,7 @@ const AdvancedSettings: Array<{ name: keyof ISettingsDict, desc: string }> = [
 
 function settingInput(settings: ISettingsDict, name: keyof ISettingsDict) {
   if (typeof settings[name] === 'boolean') {
-    return <Checkbox checked={settings[name] as boolean} readOnly />
+    return <Checkbox isChecked={settings[name] as boolean} readOnly />
   }
 
   if (typeof settings[name] === 'string') {
@@ -455,7 +496,11 @@ export default function Settings() {
                   <Tr key={as.name}>
                     <Td>{as.name}</Td>
                     <Td>
-                      {settingInput(data.settings, as.name)}
+                      {
+                        as.el
+                          ? as.el(data.settings[as.name])
+                          : settingInput(data.settings, as.name)
+                      }
                     </Td>
                     <Td>{as.desc}</Td>
                   </Tr>
