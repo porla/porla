@@ -21,6 +21,8 @@ void SessionSettingsList::Invoke(const SessionSettingsListReq &req, WriteCb<Sess
     {
         const char *name = lt::name_for_setting(i);
         if (strcmp(name, "") == 0) continue;
+        if (req.keys.has_value() && req.keys.value().find(name) == req.keys.value().end()) continue;
+
         res.settings.insert({name,settings.get_bool(i)});
     }
 
@@ -28,6 +30,8 @@ void SessionSettingsList::Invoke(const SessionSettingsListReq &req, WriteCb<Sess
     {
         const char *name = lt::name_for_setting(i);
         if (strcmp(name, "") == 0) continue;
+        if (req.keys.has_value() && req.keys.value().find(name) == req.keys.value().end()) continue;
+
         res.settings.insert({name,settings.get_int(i)});
     }
 
@@ -35,6 +39,8 @@ void SessionSettingsList::Invoke(const SessionSettingsListReq &req, WriteCb<Sess
     {
         const char *name = lt::name_for_setting(i);
         if (strcmp(name, "") == 0) continue;
+        if (req.keys.has_value() && req.keys.value().find(name) == req.keys.value().end()) continue;
+
         res.settings.insert({name,settings.get_str(i)});
     }
 

@@ -1,12 +1,12 @@
 import useSWR from "swr";
 
 const fetcher = function<T>() {
-  return async (method: string, init: RequestInit, ...args: any[]) => {
+  return async (method: string, params: any, ...args: any[]) => {
     const res = await fetch('/api/v1/jsonrpc', {
       body: JSON.stringify({
         jsonrpc: '2.0',
         method,
-        params: {}
+        params: params || {}
       }),
       method: 'POST'
     });

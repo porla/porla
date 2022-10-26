@@ -2,7 +2,7 @@
 
 #include <optional>
 #include <string>
-#include <vector>
+#include <unordered_set>
 
 #include <nlohmann/json.hpp>
 
@@ -10,7 +10,7 @@ namespace porla::Methods
 {
     struct SessionSettingsListReq
     {
-        std::optional<std::vector<std::string>> keys;
+        std::optional<std::unordered_set<std::string>> keys;
     };
 
     struct SessionSettingsListRes
