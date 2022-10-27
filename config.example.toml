@@ -1,0 +1,36 @@
+# This is a complete example of a config.toml file for Porla.
+
+listen_interfaces = [
+    ["127.0.0.1", 6881]
+]
+
+[preset.some-preset]
+# use presets to automatically adjust settings on added torrents. these settings
+# are applied by setting the "preset" key on the object in the torrents.add
+# method.
+dl_limit        = 1000
+ul_limit        = 1000
+max_connections = 200
+max_uploads     = 100
+save_path       = "/some/other/path"
+trackers        = [ "http://some.tracker.com/announce" ]
+
+[libtorrent]
+# The libtorrent base settings to use. can be 'default',
+# 'high_performance_seed', or 'min_memory_usage'. If not set, 'default' will be
+# used.
+base = "high_performance_seed"
+
+# the libtorrent section also allows you to override most libtorrent settings.
+# Refer to http://libtorrent.org/reference-Settings.html#settings_pack. for
+# more information on settings and their meaning.
+close_redundant_connections = true
+
+[sqlite]
+# the sqlite file to use. set to :memory: to use an in-memory database.
+file = "porla.sqlite"
+
+[timers]
+dht_stats = 3000
+session_stats = 3000
+torrent_updates = 1000
