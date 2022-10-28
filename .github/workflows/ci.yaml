@@ -48,10 +48,27 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          tags: porla-core-tmp,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.gitversion.outputs.semVer }}
+
+      - name: Copy Porla binary from image
+        run: |
+          docker create --name tmp porla-core-tmp
+          docker cp tmp:/usr/bin/porla /tmp/porlac
+          docker rm -f tmp
+
+      - name: Upload Porla binary to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: porlac-linux-amd64
+          path: /tmp/porlac
+
+      - name: Push Docker image
         uses: docker/build-push-action@v3
         with:
           context: .
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.gitversion.outputs.semVer }}
-
