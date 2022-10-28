@@ -65,12 +65,12 @@ int main(int argc, char* argv[])
     }
 
     boost::log::trivial::severity_level log_level = boost::log::trivial::info;
-    if (cfg.tbl["log_level"] == "trace")   { log_level = boost::log::trivial::severity_level::trace; }
-    if (cfg.tbl["log_level"] == "debug")   { log_level = boost::log::trivial::severity_level::debug; }
-    if (cfg.tbl["log_level"] == "info")    { log_level = boost::log::trivial::severity_level::info; }
-    if (cfg.tbl["log_level"] == "warning") { log_level = boost::log::trivial::severity_level::warning; }
-    if (cfg.tbl["log_level"] == "error")   { log_level = boost::log::trivial::severity_level::error; }
-    if (cfg.tbl["log_level"] == "fatal")   { log_level = boost::log::trivial::severity_level::fatal; }
+    if (cfg.log_level == "trace")   { log_level = boost::log::trivial::severity_level::trace; }
+    if (cfg.log_level == "debug")   { log_level = boost::log::trivial::severity_level::debug; }
+    if (cfg.log_level == "info")    { log_level = boost::log::trivial::severity_level::info; }
+    if (cfg.log_level == "warning") { log_level = boost::log::trivial::severity_level::warning; }
+    if (cfg.log_level == "error")   { log_level = boost::log::trivial::severity_level::error; }
+    if (cfg.log_level == "fatal")   { log_level = boost::log::trivial::severity_level::fatal; }
     boost::log::core::get()->set_filter(boost::log::trivial::severity >= log_level);
 
     boost::asio::io_context io;
@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
         });
 
     sqlite3* db;
-    sqlite3_open(cfg.tbl["sqlite"]["file"].value_or("porla.sqlite"), &db);
+    sqlite3_open(cfg.db.value_or("porla.sqlite").c_str(), &db);
     sqlite3_exec(db, "PRAGMA journal_mode=WAL;", nullptr, nullptr, nullptr);
 
     if (!porla::Data::Migrate(db))
@@ -125,9 +125,9 @@ int main(int argc, char* argv[])
         porla::Session session(io, porla::SessionOptions{
             .db = db,
             .settings = porla::SettingsPack::Load(cfg.tbl),
-            .timer_dht_stats = cfg.tbl["timers"]["dht_stats"].value_or(5000),
-            .timer_session_stats = cfg.tbl["timers"]["session_stats"].value_or(5000),
-            .timer_torrent_updates = cfg.tbl["timers"]["torrent_updates"].value_or(1000)
+            .timer_dht_stats = cfg.timer_dht_stats.value_or(5000),
+            .timer_session_stats = cfg.timer_session_stats.value_or(5000),
+            .timer_torrent_updates = cfg.timer_torrent_updates.value_or(1000)
         });
 
         try
@@ -158,8 +158,8 @@ int main(int argc, char* argv[])
         });
 
         porla::HttpServer http(io, porla::HttpServerOptions{
-            .host = cfg.tbl["http"]["host"].value_or("127.0.0.1"),
-            .port = cfg.tbl["http"]["port"].value_or<uint16_t>(1337)
+            .host = cfg.http_host.value_or("127.0.0.1"),
+            .port = cfg.http_port.value_or(1337)
         });
 
         http.Use(porla::HttpPost("/api/v1/jsonrpc", [&rpc](auto const& ctx) { rpc(ctx); }));
