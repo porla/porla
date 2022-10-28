@@ -33,8 +33,6 @@ add_executable(
     src/session.hpp
     src/settingspack.cpp
     src/settingspack.hpp
-    src/webroothandler.cpp
-    src/webroothandler.hpp
 
     src/data/migrate.cpp
     src/data/migrate.hpp

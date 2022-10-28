@@ -9,7 +9,6 @@
 #include "jsonrpchandler.hpp"
 #include "session.hpp"
 #include "settingspack.hpp"
-#include "webroothandler.hpp"
 
 #include "data/migrate.hpp"
 #include "methods/sessionpause.hpp"
@@ -162,11 +161,6 @@ int main(int argc, char* argv[])
             .host = cfg.tbl["http"]["host"].value_or("127.0.0.1"),
             .port = cfg.tbl["http"]["port"].value_or<uint16_t>(1337)
         });
-
-        if (auto root = cfg.tbl["http"]["root_path"].value<std::string>())
-        {
-            http.Use(porla::WebRootHandler(*root));
-        }
 
         http.Use(porla::HttpPost("/api/v1/jsonrpc", [&rpc](auto const& ctx) { rpc(ctx); }));
         http.Use(porla::HttpGet("/api/v1/events", porla::HttpEventStream(session)));
