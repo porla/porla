@@ -57,25 +57,53 @@ int PrintSettings(const toml::table& cfg)
 
 int main(int argc, char* argv[])
 {
-    toml::table cfg = porla::Config::Load(argc, argv);
+    auto const& cfg = porla::Config::Load(argc, argv);
 
     // Set up some debugging commands
     if (argc >= 2 && strcmp(argv[1], "debug:settings") == 0)
     {
-        return PrintSettings(cfg);
+        return PrintSettings(cfg.tbl);
     }
 
     boost::log::trivial::severity_level log_level = boost::log::trivial::info;
-    if (cfg["log_level"] == "trace")   { log_level = boost::log::trivial::severity_level::trace; }
-    if (cfg["log_level"] == "debug")   { log_level = boost::log::trivial::severity_level::debug; }
-    if (cfg["log_level"] == "info")    { log_level = boost::log::trivial::severity_level::info; }
-    if (cfg["log_level"] == "warning") { log_level = boost::log::trivial::severity_level::warning; }
-    if (cfg["log_level"] == "error")   { log_level = boost::log::trivial::severity_level::error; }
-    if (cfg["log_level"] == "fatal")   { log_level = boost::log::trivial::severity_level::fatal; }
+    if (cfg.tbl["log_level"] == "trace")   { log_level = boost::log::trivial::severity_level::trace; }
+    if (cfg.tbl["log_level"] == "debug")   { log_level = boost::log::trivial::severity_level::debug; }
+    if (cfg.tbl["log_level"] == "info")    { log_level = boost::log::trivial::severity_level::info; }
+    if (cfg.tbl["log_level"] == "warning") { log_level = boost::log::trivial::severity_level::warning; }
+    if (cfg.tbl["log_level"] == "error")   { log_level = boost::log::trivial::severity_level::error; }
+    if (cfg.tbl["log_level"] == "fatal")   { log_level = boost::log::trivial::severity_level::fatal; }
     boost::log::core::get()->set_filter(boost::log::trivial::severity >= log_level);
 
     boost::asio::io_context io;
     boost::asio::signal_set signals(io, SIGINT, SIGTERM);
+
+    boost::asio::deadline_timer check_pid_timer(io);
+    std::function<void(boost::system::error_code)> check_pid;
+
+    if (cfg.supervised_pid)
+    {
+        BOOST_LOG_TRIVIAL(info) << "Running in supervised mode - parent: " << cfg.supervised_pid.value();
+
+        check_pid = [&cfg, &check_pid, &check_pid_timer, &io](boost::system::error_code ec)
+        {
+            if (ec)
+            {
+                return;
+            }
+
+            if (kill(cfg.supervised_pid.value(), 0) != 0)
+            {
+                BOOST_LOG_TRIVIAL(warning) << "Parent process died. Shutting down.";
+                io.stop();
+                return;
+            }
+
+            check_pid_timer.expires_from_now(boost::posix_time::seconds(cfg.supervised_interval.value_or(1)));
+            check_pid_timer.async_wait(check_pid);
+        };
+
+        check_pid(boost::system::error_code());
+    }
 
     signals.async_wait(
         [&io](boost::system::error_code const& ec, int signal)
@@ -85,7 +113,7 @@ int main(int argc, char* argv[])
         });
 
     sqlite3* db;
-    sqlite3_open(cfg["sqlite"]["file"].value_or("porla.sqlite"), &db);
+    sqlite3_open(cfg.tbl["sqlite"]["file"].value_or("porla.sqlite"), &db);
     sqlite3_exec(db, "PRAGMA journal_mode=WAL;", nullptr, nullptr, nullptr);
 
     if (!porla::Data::Migrate(db))
@@ -97,10 +125,10 @@ int main(int argc, char* argv[])
     {
         porla::Session session(io, porla::SessionOptions{
             .db = db,
-            .settings = porla::SettingsPack::Load(cfg),
-            .timer_dht_stats = cfg["timers"]["dht_stats"].value_or(5000),
-            .timer_session_stats = cfg["timers"]["session_stats"].value_or(5000),
-            .timer_torrent_updates = cfg["timers"]["torrent_updates"].value_or(1000)
+            .settings = porla::SettingsPack::Load(cfg.tbl),
+            .timer_dht_stats = cfg.tbl["timers"]["dht_stats"].value_or(5000),
+            .timer_session_stats = cfg.tbl["timers"]["session_stats"].value_or(5000),
+            .timer_torrent_updates = cfg.tbl["timers"]["torrent_updates"].value_or(1000)
         });
 
         try
@@ -116,7 +144,7 @@ int main(int argc, char* argv[])
         porla::JsonRpcHandler rpc({
             {"session.pause", porla::Methods::SessionPause(session)},
             {"session.settings.list", porla::Methods::SessionSettingsList(session)},
-            {"torrents.add", porla::Methods::TorrentsAdd(session, cfg)},
+            {"torrents.add", porla::Methods::TorrentsAdd(session, cfg.tbl)},
             {"torrents.files.list", porla::Methods::TorrentsFilesList(session)},
             {"torrents.get", porla::Methods::TorrentsGet(session)},
             {"torrents.list", porla::Methods::TorrentsList(session)},
@@ -131,11 +159,11 @@ int main(int argc, char* argv[])
         });
 
         porla::HttpServer http(io, porla::HttpServerOptions{
-            .host = cfg["http"]["host"].value_or("127.0.0.1"),
-            .port = cfg["http"]["port"].value_or<uint16_t>(1337)
+            .host = cfg.tbl["http"]["host"].value_or("127.0.0.1"),
+            .port = cfg.tbl["http"]["port"].value_or<uint16_t>(1337)
         });
 
-        if (auto root = cfg["http"]["root_path"].value<std::string>())
+        if (auto root = cfg.tbl["http"]["root_path"].value<std::string>())
         {
             http.Use(porla::WebRootHandler(*root));
         }

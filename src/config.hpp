@@ -7,6 +7,10 @@ namespace porla
     class Config
     {
     public:
-        static toml::table Load(int argc, char* argv[]);
+        std::optional<int>   supervised_interval;
+        std::optional<pid_t> supervised_pid;
+        toml::table          tbl;
+
+        static Config Load(int argc, char* argv[]);
     };
 }

@@ -12,7 +12,7 @@ namespace lt = libtorrent;
 using porla::Methods::TorrentsAdd;
 using porla::Methods::TorrentsAddReq;
 
-TorrentsAdd::TorrentsAdd(ISession& session, toml::table& cfg)
+TorrentsAdd::TorrentsAdd(ISession& session, const toml::table& cfg)
     : m_session(session)
     , m_cfg(cfg)
 {
@@ -26,9 +26,9 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
     {
         std::string presetName = req.preset.value();
 
-        if (toml::table* maybePreset = m_cfg["preset"][presetName].as_table())
+        if (const toml::table* maybePreset = m_cfg["preset"][presetName].as_table())
         {
-            toml::table& preset = *maybePreset;
+            const toml::table& preset = *maybePreset;
 
             if (auto downLimit = preset["dl_limit"].value<int>())
                 p.download_limit = *downLimit;
