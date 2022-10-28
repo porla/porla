@@ -52,7 +52,8 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          tags: porla-core-tmp,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.gitversion.outputs.semVer }}
+          load: true
+          tags: porla-core-tmp
 
       - name: Copy Porla binary from image
         run: |
