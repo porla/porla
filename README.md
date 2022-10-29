@@ -14,20 +14,20 @@ first run, however, you can run `porlac` directly from the terminal.
 To do so, download the latest release and put it somewhere safe. Then, run it.
 
 ```sh
-$ ./porla
+$ ./porlac
 ```
 
 To show all options available, suffix with `--help`.
 
 ```sh
-$ ./ porla --help
+$ ./porlac --help
 ```
 
 For example, you can run `porlac` with an in-memory SQLite database by passing
 `--db=:memory:`.
 
 ```sh
-$ ./porla --db=:memory:
+$ ./porlac --db=:memory:
 ```
 
 ## Configuration
