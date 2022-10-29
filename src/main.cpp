@@ -53,7 +53,7 @@ int PrintSettings(const libtorrent::settings_pack& settings)
 
 int main(int argc, char* argv[])
 {
-    auto const& cfg = porla::Config::Load(argc, argv);
+    porla::Config cfg = porla::Config::Load(argc, argv);
 
     // Set up some debugging commands
     if (argc >= 2 && strcmp(argv[1], "debug:settings") == 0)
