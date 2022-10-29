@@ -8,7 +8,6 @@
 #include "httpserver.hpp"
 #include "jsonrpchandler.hpp"
 #include "session.hpp"
-#include "settingspack.hpp"
 
 #include "data/migrate.hpp"
 #include "methods/sessionpause.hpp"
