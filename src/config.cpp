@@ -1,6 +1,7 @@
 #include "config.hpp"
 
 #include <filesystem>
+#include <iostream>
 
 #include <boost/log/trivial.hpp>
 #include <boost/program_options.hpp>
@@ -60,6 +61,7 @@ Config Config::Load(int argc, char **argv)
     desc.add_options()
         ("config-file",           po::value<std::string>(), "Path to a porla.toml config file.")
         ("db",                    po::value<std::string>(), "Path to where the database will be stored.")
+        ("help",                                            "Show usage")
         ("http-host",             po::value<std::string>(), "The host to listen on for HTTP traffic.")
         ("http-port",             po::value<uint16_t>(),    "The port to listen on for HTTP traffic.")
         ("log-level",             po::value<std::string>(), "The minimum log level to print.")
@@ -74,6 +76,12 @@ Config Config::Load(int argc, char **argv)
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
+
+    if (vm.count("help"))
+    {
+        std::cout << desc;
+        exit(0); // TODO: Not ideal.
+    }
 
     if (vm.count("config-file"))
     {
