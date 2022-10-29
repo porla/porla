@@ -1,5 +1,8 @@
 #pragma once
 
+#include <optional>
+#include <string>
+
 #include <libtorrent/settings_pack.hpp>
 
 namespace porla
