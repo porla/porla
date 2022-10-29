@@ -26,10 +26,8 @@
 #include "methods/torrentsresume.hpp"
 #include "methods/torrentstrackerslist.hpp"
 
-int PrintSettings(const toml::table& cfg)
+int PrintSettings(const libtorrent::settings_pack& settings)
 {
-    auto settings = porla::SettingsPack::Load(cfg);
-
     for (int i = lt::settings_pack::bool_type_base; i < lt::settings_pack::max_bool_setting_internal; i++)
     {
         if (strcmp(lt::name_for_setting(i), "") == 0) continue;
@@ -61,7 +59,7 @@ int main(int argc, char* argv[])
     // Set up some debugging commands
     if (argc >= 2 && strcmp(argv[1], "debug:settings") == 0)
     {
-        return PrintSettings(cfg.tbl);
+        return PrintSettings(cfg.session_settings);
     }
 
     boost::log::trivial::severity_level log_level = boost::log::trivial::info;
@@ -123,10 +121,10 @@ int main(int argc, char* argv[])
 
     {
         porla::Session session(io, porla::SessionOptions{
-            .db = db,
-            .settings = porla::SettingsPack::Load(cfg.tbl),
-            .timer_dht_stats = cfg.timer_dht_stats.value_or(5000),
-            .timer_session_stats = cfg.timer_session_stats.value_or(5000),
+            .db                    = db,
+            .settings              = cfg.session_settings,
+            .timer_dht_stats       = cfg.timer_dht_stats.value_or(5000),
+            .timer_session_stats   = cfg.timer_session_stats.value_or(5000),
             .timer_torrent_updates = cfg.timer_torrent_updates.value_or(1000)
         });
 
@@ -143,7 +141,7 @@ int main(int argc, char* argv[])
         porla::JsonRpcHandler rpc({
             {"session.pause", porla::Methods::SessionPause(session)},
             {"session.settings.list", porla::Methods::SessionSettingsList(session)},
-            {"torrents.add", porla::Methods::TorrentsAdd(session, cfg.tbl)},
+            {"torrents.add", porla::Methods::TorrentsAdd(session)},
             {"torrents.files.list", porla::Methods::TorrentsFilesList(session)},
             {"torrents.get", porla::Methods::TorrentsGet(session)},
             {"torrents.list", porla::Methods::TorrentsList(session)},

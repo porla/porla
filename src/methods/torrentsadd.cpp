@@ -12,9 +12,8 @@ namespace lt = libtorrent;
 using porla::Methods::TorrentsAdd;
 using porla::Methods::TorrentsAddReq;
 
-TorrentsAdd::TorrentsAdd(ISession& session, const toml::table& cfg)
+TorrentsAdd::TorrentsAdd(ISession& session)
     : m_session(session)
-    , m_cfg(cfg)
 {
 }
 
@@ -25,39 +24,7 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
     if (req.preset.has_value())
     {
         std::string presetName = req.preset.value();
-
-        if (const toml::table* maybePreset = m_cfg["preset"][presetName].as_table())
-        {
-            const toml::table& preset = *maybePreset;
-
-            if (auto downLimit = preset["dl_limit"].value<int>())
-                p.download_limit = *downLimit;
-
-            if (auto maxConnections = preset["max_connections"].value<int>())
-                p.max_connections = *maxConnections;
-
-            if (auto maxUploads = preset["max_uploads"].value<int>())
-                p.max_uploads = *maxUploads;
-
-            if (auto savePath = preset["save_path"].value<std::string>())
-                p.save_path = *savePath;
-
-            if (auto upLimit = preset["ul_limit"].value<int>())
-                p.upload_limit = *upLimit;
-
-            if (const toml::array* trackers = preset["trackers"].as_array())
-            {
-                for (auto&& item : *trackers)
-                {
-                    if (!item.is_string()) continue;
-                    p.trackers.push_back(*item.value<std::string>());
-                }
-            }
-        }
-        else
-        {
-            BOOST_LOG_TRIVIAL(warning) << "Specified preset '" << presetName << "' is invalid.";
-        }
+        // TODO: Presets should be moved to the database.
     }
 
     if (req.ti.has_value()) {
