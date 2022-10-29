@@ -31,17 +31,12 @@ Config Config::Load(int argc, char **argv)
         std::error_code ec;
         bool regular_file = fs::is_regular_file(path, ec);
 
-        if (ec)
+        if (ec || !regular_file)
         {
-            BOOST_LOG_TRIVIAL(warning) << "Failed to check config file path: " << path;
             continue;
         }
 
-        if (regular_file)
-        {
-            cfg.config_file = path;
-            break;
-        }
+        cfg.config_file = path;
     }
 
     if (auto val = std::getenv("PORLA_CONFIG_FILE"))           cfg.config_file = val;
@@ -91,7 +86,7 @@ Config Config::Load(int argc, char **argv)
     }
 
     // Apply configuration from the config file before we apply the command line args.
-    if (fs::is_regular_file(cfg.config_file.value()))
+    if (cfg.config_file && fs::is_regular_file(cfg.config_file.value()))
     {
         std::ifstream config_file_data(cfg.config_file.value(), std::ios::binary);
 
