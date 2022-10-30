@@ -163,6 +163,13 @@ int main(int argc, char* argv[])
         http.Use(porla::HttpGet("/api/v1/events", porla::HttpEventStream(session)));
         http.Use(porla::HttpNotFound());
 
+        // If we run in supervised mode - print a single line here telling our parent
+        // process that it can now connect to HTTP.
+        if (cfg.supervised_pid)
+        {
+            printf("%s\n", "%SUPERVISED_READY%");
+        }
+
         io.run();
     }
 
