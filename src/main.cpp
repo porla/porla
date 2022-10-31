@@ -175,11 +175,13 @@ int main(int argc, char* argv[])
         http.Use(porla::HttpGet("/api/v1/events", porla::HttpEventStream(session)));
         http.Use(porla::HttpNotFound());
 
-        // If we run in supervised mode - print a single line here telling our parent
-        // process that it can now connect to HTTP.
+        // If we run in supervised mode - print connection information here and finish
+        // with a 'ready' message to allow the supervisor to connect.
         if (cfg.supervised_pid)
         {
-            printf("%s\n", "%SUPERVISED_READY%");
+            printf(":: set http_port=%d\n", http.Endpoint().port());
+            printf(":: ready\n");
+            fflush(stdout);
         }
 
         io.run();

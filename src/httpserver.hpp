@@ -23,6 +23,7 @@ namespace porla
         HttpServer(boost::asio::io_context& io, HttpServerOptions const& options);
         ~HttpServer();
 
+        boost::asio::ip::tcp::endpoint Endpoint();
         void Use(const HttpMiddleware& middleware);
 
     private:

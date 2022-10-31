@@ -28,8 +28,6 @@ public:
 
         auto endpoint = boost::asio::ip::tcp::endpoint{ addr, port };
 
-        BOOST_LOG_TRIVIAL(info) << "Running HTTP server on " << endpoint;
-
         m_acceptor.open(endpoint.protocol(), ec);
         if (ec) { BOOST_LOG_TRIVIAL(error) << ec; }
 
@@ -41,7 +39,11 @@ public:
 
         m_acceptor.listen(boost::asio::socket_base::max_listen_connections, ec);
         if (ec) { BOOST_LOG_TRIVIAL(error) << ec; }
+
+        BOOST_LOG_TRIVIAL(info) << "Running HTTP server on " << m_acceptor.local_endpoint();
     }
+
+    auto Endpoint() { return m_acceptor.local_endpoint(); }
 
     void Start()
     {
@@ -122,6 +124,11 @@ HttpServer::HttpServer(boost::asio::io_context& io, porla::HttpServerOptions con
 HttpServer::~HttpServer()
 {
     m_state->Stop();
+}
+
+boost::asio::ip::tcp::endpoint HttpServer::Endpoint()
+{
+    return m_state->Endpoint();
 }
 
 void HttpServer::Use(const porla::HttpMiddleware& middleware)
