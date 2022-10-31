@@ -3,6 +3,7 @@
 #include <boost/log/trivial.hpp>
 #include <sqlite3.h>
 
+#include "buildinfo.hpp"
 #include "config.hpp"
 #include "httpeventstream.hpp"
 #include "httpserver.hpp"
@@ -51,6 +52,12 @@ int PrintSettings(const libtorrent::settings_pack& settings)
     return 0;
 }
 
+int PrintJsonVersion()
+{
+    printf("{\"branch\": \"%s\"}\n", porla::BuildInfo::Branch());
+    return 0;
+}
+
 int main(int argc, char* argv[])
 {
     porla::Config cfg = porla::Config::Load(argc, argv);
@@ -59,6 +66,11 @@ int main(int argc, char* argv[])
     if (argc >= 2 && strcmp(argv[1], "debug:settings") == 0)
     {
         return PrintSettings(cfg.session_settings);
+    }
+
+    if (argc >= 2 && strcmp(argv[1], "version:json") == 0)
+    {
+        return PrintJsonVersion();
     }
 
     boost::log::trivial::severity_level log_level = boost::log::trivial::info;

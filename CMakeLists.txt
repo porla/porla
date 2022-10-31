@@ -14,8 +14,19 @@ find_package(nlohmann_json       CONFIG REQUIRED)
 find_package(tomlplusplus        CONFIG REQUIRED)
 find_package(unofficial-sqlite3  CONFIG REQUIRED)
 
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/_version.cpp
+    COMMAND ${CMAKE_COMMAND} -P
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateVersion.cmake)
+
 add_executable(
     ${PROJECT_NAME}
+
+    ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
+
+    src/buildinfo.cpp
+    src/buildinfo.hpp
     src/config.cpp
     src/config.hpp
     src/main.cpp
