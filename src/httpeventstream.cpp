@@ -94,16 +94,6 @@ HttpEventStream::HttpEventStream(porla::ISession &session)
     m_torrentResumedConnection = m_session.OnTorrentResumed([this](auto s) { OnTorrentResumed(s); });
 }
 
-HttpEventStream::HttpEventStream(const HttpEventStream& hes)
-    : m_session(hes.m_session)
-{
-    m_sessionStatsConnection = m_session.OnSessionStats([this](auto s) { OnSessionStats(s); });
-    m_stateUpdateConnection = m_session.OnStateUpdate([this](auto s) { OnStateUpdate(s); });
-    m_torrentPausedConnection = m_session.OnTorrentPaused([this](auto s) { OnTorrentPaused(s); });
-    m_torrentRemovedConnection = m_session.OnTorrentRemoved([this](auto s) { OnTorrentRemoved(s); });
-    m_torrentResumedConnection = m_session.OnTorrentResumed([this](auto s) { OnTorrentResumed(s); });
-}
-
 HttpEventStream::~HttpEventStream()
 {
     m_sessionStatsConnection.disconnect();

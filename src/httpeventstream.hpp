@@ -16,7 +16,7 @@ namespace porla
     {
     public:
         explicit HttpEventStream(ISession& session);
-        HttpEventStream(const HttpEventStream&);
+        HttpEventStream(const HttpEventStream&) = delete;
 
         ~HttpEventStream();
 
