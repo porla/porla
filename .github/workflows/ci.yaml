@@ -51,6 +51,7 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v3
         with:
+          build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.semVer }}
           context: .
           load: true
           tags: porla-core-tmp
