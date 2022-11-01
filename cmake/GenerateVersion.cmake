@@ -1,10 +1,10 @@
 execute_process(
-    COMMAND git rev-parse --abbrev-ref HEAD
+    COMMAND git branch --show-current
     OUTPUT_VARIABLE GIT_BRANCH
     ERROR_QUIET)
 
 execute_process(
-    COMMAND git log --pretty=format:'%h' -n 1
+    COMMAND git rev-parse HEAD
     OUTPUT_VARIABLE GIT_COMMITISH
     ERROR_QUIET)
 
@@ -14,9 +14,6 @@ endif()
 
 if ("${GIT_COMMITISH}" STREQUAL "")
     set(GIT_COMMITISH "-")
-else()
-    string(STRIP "${GIT_COMMITISH}" GIT_COMMITISH)
-    string(SUBSTRING "${GIT_COMMITISH}" 1 7 GIT_COMMITISH)
 endif()
 
 set(VERSION "$ENV{GITVERSION_SEMVER}")
