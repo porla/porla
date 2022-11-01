@@ -5,6 +5,7 @@
 
 #include "buildinfo.hpp"
 #include "config.hpp"
+#include "httpauthtokenhandler.hpp"
 #include "httpeventstream.hpp"
 #include "httpserver.hpp"
 #include "jsonrpchandler.hpp"
@@ -172,6 +173,11 @@ int main(int argc, char* argv[])
         });
 
         porla::HttpEventStream eventStream(session);
+
+        if (cfg.http_auth_token)
+        {
+            http.Use(porla::HttpAuthTokenHandler(cfg.http_auth_token.value()));
+        }
 
         http.Use(porla::HttpPost("/api/v1/jsonrpc", [&rpc](auto const& ctx) { rpc(ctx); }));
         http.Use(porla::HttpGet("/api/v1/events", [&eventStream](auto const& ctx) { eventStream(ctx); }));
