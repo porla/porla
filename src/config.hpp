@@ -12,6 +12,7 @@ namespace porla
     public:
         std::optional<std::string> config_file;
         std::optional<std::string> db;
+        std::optional<std::string> http_auth_token;
         std::optional<std::string> http_host;
         std::optional<uint16_t>    http_port;
         std::optional<std::string> log_level;

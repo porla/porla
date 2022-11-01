@@ -40,11 +40,12 @@ Config Config::Load(int argc, char **argv)
         cfg.config_file = path;
     }
 
-    if (auto val = std::getenv("PORLA_CONFIG_FILE"))           cfg.config_file = val;
-    if (auto val = std::getenv("PORLA_DB"))                    cfg.db          = val;
-    if (auto val = std::getenv("PORLA_HTTP_HOST"))             cfg.http_host   = val;
-    if (auto val = std::getenv("PORLA_HTTP_PORT"))             cfg.http_port   = std::stoi(val);
-    if (auto val = std::getenv("PORLA_LOG_LEVEL"))             cfg.log_level   = val;
+    if (auto val = std::getenv("PORLA_CONFIG_FILE"))           cfg.config_file     = val;
+    if (auto val = std::getenv("PORLA_DB"))                    cfg.db              = val;
+    if (auto val = std::getenv("PORLA_HTTP_AUTH_TOKEN"))       cfg.http_auth_token = val;
+    if (auto val = std::getenv("PORLA_HTTP_HOST"))             cfg.http_host       = val;
+    if (auto val = std::getenv("PORLA_HTTP_PORT"))             cfg.http_port       = std::stoi(val);
+    if (auto val = std::getenv("PORLA_LOG_LEVEL"))             cfg.log_level       = val;
     if (auto val = std::getenv("PORLA_SESSION_SETTINGS_BASE"))
     {
         if (strcmp("default", val) == 0)               cfg.session_settings = lt::default_settings();
@@ -62,6 +63,7 @@ Config Config::Load(int argc, char **argv)
         ("config-file",           po::value<std::string>(), "Path to a porla.toml config file.")
         ("db",                    po::value<std::string>(), "Path to where the database will be stored.")
         ("help",                                            "Show usage")
+        ("http-auth-token",       po::value<std::string>(), "The auth token to use for the HTTP server.")
         ("http-host",             po::value<std::string>(), "The host to listen on for HTTP traffic.")
         ("http-port",             po::value<uint16_t>(),    "The port to listen on for HTTP traffic.")
         ("log-level",             po::value<std::string>(), "The minimum log level to print.")
@@ -105,6 +107,9 @@ Config Config::Load(int argc, char **argv)
             if (auto val = config_file_tbl["db"].value<std::string>())
                 cfg.db = *val;
 
+            if (auto val = config_file_tbl["http"]["auth_token"].value<std::string>())
+                cfg.http_auth_token = *val;
+
             if (auto val = config_file_tbl["http"]["host"].value<std::string>())
                 cfg.http_host = *val;
 
@@ -137,6 +142,7 @@ Config Config::Load(int argc, char **argv)
     }
 
     if (vm.count("db"))                    cfg.db                    = vm["db"].as<std::string>();
+    if (vm.count("http-auth-token"))       cfg.http_auth_token       = vm["http-auth-token"].as<std::string>();
     if (vm.count("http-host"))             cfg.http_host             = vm["http-host"].as<std::string>();
     if (vm.count("http-port"))             cfg.http_port             = vm["http-port"].as<uint16_t>();
     if (vm.count("log-level"))             cfg.log_level             = vm["log-level"].as<std::string>();
