@@ -71,6 +71,7 @@ jobs:
       - name: Push Docker image
         uses: docker/build-push-action@v3
         with:
+          build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.semVer }}
           context: .
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.gitversion.outputs.semVer }}
