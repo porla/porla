@@ -31,6 +31,8 @@ add_executable(
     src/config.cpp
     src/config.hpp
     src/main.cpp
+    src/httpauthtokenhandler.cpp
+    src/httpauthtokenhandler.hpp
     src/httpcontext.hpp
     src/httpeventstream.cpp
     src/httpeventstream.hpp
