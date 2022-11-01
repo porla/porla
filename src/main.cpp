@@ -171,8 +171,10 @@ int main(int argc, char* argv[])
             .port = cfg.http_port.value_or(1337)
         });
 
+        porla::HttpEventStream eventStream(session);
+
         http.Use(porla::HttpPost("/api/v1/jsonrpc", [&rpc](auto const& ctx) { rpc(ctx); }));
-        http.Use(porla::HttpGet("/api/v1/events", porla::HttpEventStream(session)));
+        http.Use(porla::HttpGet("/api/v1/events", [&eventStream](auto const& ctx) { eventStream(ctx); }));
         http.Use(porla::HttpNotFound());
 
         // If we run in supervised mode - print connection information here and finish
