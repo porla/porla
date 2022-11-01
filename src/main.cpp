@@ -55,7 +55,11 @@ int PrintSettings(const libtorrent::settings_pack& settings)
 
 int PrintJsonVersion()
 {
-    printf("{\"branch\": \"%s\"}\n", porla::BuildInfo::Branch());
+    printf("{\"branch\": \"%s\",\"commitish\": \"%s\", \"version\": \"%s\"}\n",
+        porla::BuildInfo::Branch(),
+        porla::BuildInfo::Commitish(),
+        porla::BuildInfo::Version());
+
     return 0;
 }
 
