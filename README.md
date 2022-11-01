@@ -41,12 +41,44 @@ configuration and use sensible defaults instead.
 
 ### Environment variables and command line args
 
+ * `PORLA_CONFIG_FILE` or `--config-file` - path to a TOML config file with
+   additional configuration.
  * `PORLA_DB` or `--db` - path a file (which does not need to exist) that `porlac`
    will use to store its state.
-
+ * `PORLA_HTTP_AUTH_TOKEN` or `--http-auth-token` - set to any random alphanumeric
+   string to enable token authentication for the HTTP server.
+ * `PORLA_HTTP_HOST` or `--http-host` - set to an IP address which to bind the HTTP
+   server. Defaults to _127.0.0.1_.
+ * `PORLA_HTTP_PORT` or `--http-port` - set to the port to use for the HTTP server.
+   Defaults to _1337_.
+ * `PORLA_LOG_LEVEL` or `--log-level` - the minimum log level to use. Valid values
+   are _trace_, _debug_, _info_, _warning_, _error_, _fatal_. Defaults to _info_.
+ * `PORLA_SESSION_SETTINGS_BASE` or `--session-settings-base` - the libtorrent
+   settings base to use for session settings. Valid values are _default_,
+   _min\_memory\_usage_, _high\_performance\_seed_. Defaults to _default_.
+ * `PORLA_TIMER_DHT_STATS` or `--timer-dht-stats` - the interval in milliseconds
+   to push DHT stats. Defaults to _5000_.
+ * `PORLA_TIMER_SESSION_STATS` or `--timer-session-stats` - the interval in
+   milliseconds to push session stats. Defaults to _5000_.
+ * `PORLA_TIMER_TORRENT_UPDATES` or `--timer-torrent-updates` - the interval in
+   milliseconds to push torrent state updates. Defaults to _1000_.
 
 ### Config file
 
 ```toml
 db = ":memory:"
+log_level = "info"
+
+[http]
+auth_token = "<random string>"
+host = "127.0.0.1"
+port = 1337
+
+[session_settings]
+base = "min_memory_usage"
+
+[timer]
+dht_stats = 5000
+session_stats = 5000
+torrent_updates = 1000
 ```
