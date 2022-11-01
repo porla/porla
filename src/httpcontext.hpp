@@ -8,9 +8,15 @@ namespace porla
     class HttpContext
     {
     public:
+        struct Uri
+        {
+            std::string path;
+        };
+
         virtual void Next() = 0;
 
         virtual boost::beast::http::request<boost::beast::http::string_body>& Request() = 0;
+        virtual Uri RequestUri() = 0;
         virtual boost::beast::tcp_stream& Stream() = 0;
 
         virtual void Write(std::string body) = 0;

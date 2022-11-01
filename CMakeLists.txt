@@ -13,6 +13,7 @@ find_package(LibtorrentRasterbar CONFIG REQUIRED)
 find_package(nlohmann_json       CONFIG REQUIRED)
 find_package(tomlplusplus        CONFIG REQUIRED)
 find_package(unofficial-sqlite3  CONFIG REQUIRED)
+find_package(uriparser           CONFIG REQUIRED)
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
@@ -100,4 +101,5 @@ target_link_libraries(
     Boost::program_options
     LibtorrentRasterbar::torrent-rasterbar
     unofficial::sqlite3::sqlite3
+    uriparser::uriparser
 )
