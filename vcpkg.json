@@ -13,6 +13,7 @@
     "libtorrent",
     "nlohmann-json",
     "sqlite3",
-    "tomlplusplus"
+    "tomlplusplus",
+    "uriparser"
   ]
 }

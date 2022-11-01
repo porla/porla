@@ -6,6 +6,7 @@
 
 #include <boost/log/trivial.hpp>
 #include <nlohmann/json.hpp>
+#include <uriparser/Uri.h>
 
 #include "httpcontext.hpp"
 #include "httpmiddleware.hpp"
@@ -52,6 +53,25 @@ public:
     boost::beast::tcp_stream& Stream() override
     {
         return m_session->m_stream;
+    }
+
+    porla::HttpContext::Uri RequestUri() override
+    {
+        UriUriA uri = {};
+        uriParseSingleUriA(&uri, m_req.target().data(), nullptr);
+
+        UriPathSegmentStructA* head(uri.pathHead);
+        std::stringstream accum;
+
+        while (head)
+        {
+            accum << "/" << std::string(head->text.first, head->text.afterLast);
+            head = head->next;
+        }
+
+        return {
+            .path = accum.str()
+        };
     }
 
     void Write(std::string body) override
