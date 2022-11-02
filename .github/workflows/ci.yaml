@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: porla/core
+  IMAGE_NAME: porla/porla
 
 jobs:
   build:
@@ -54,19 +54,19 @@ jobs:
           build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.semVer }}
           context: .
           load: true
-          tags: porla-core-tmp
+          tags: porla-tmp
 
       - name: Copy Porla binary from image
         run: |
-          docker create --name tmp porla-core-tmp
-          docker cp tmp:/usr/bin/porla /tmp/porlac
+          docker create --name tmp porla-tmp
+          docker cp tmp:/usr/bin/porla /tmp/porla
           docker rm -f tmp
 
       - name: Upload Porla binary to artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: porlac-linux-amd64
-          path: /tmp/porlac
+          name: porla-linux-amd64
+          path: /tmp/porla
 
       - name: Push Docker image
         uses: docker/build-push-action@v3
