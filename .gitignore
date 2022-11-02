@@ -1,3 +1,7 @@
 .DS_Store
+.idea
+.vscode
+build/
+cmake-build-*
 docs/build/
 node_modules/

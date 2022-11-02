@@ -1,0 +1,17 @@
+# This is a complete example of a config.toml file for Porla.
+
+db = ":memory:"
+log_level = "info"
+
+[http]
+auth_token = "<random string>"
+host = "127.0.0.1"
+port = 1337
+
+[session_settings]
+base = "min_memory_usage"
+
+[timer]
+dht_stats = 5000
+session_stats = 5000
+torrent_updates = 1000

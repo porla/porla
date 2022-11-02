@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+  "name": "porla",
+  "version-string": "1",
+  "dependencies": [
+    "boost-beast",
+    "boost-log",
+    "boost-program-options",
+    "boost-signals2",
+    "boost-system",
+    "catch2",
+    "gtest",
+    "libtorrent",
+    "nlohmann-json",
+    "sqlite3",
+    "tomlplusplus",
+    "uriparser"
+  ]
+}
