@@ -11,6 +11,6 @@ namespace porla
     class SettingsPack
     {
     public:
-        static libtorrent::settings_pack Load(const toml::table& cfg);
+        static void Apply(const toml::table& cfg, libtorrent::settings_pack& pack);
     };
 }

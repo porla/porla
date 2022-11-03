@@ -3,6 +3,10 @@
 db = ":memory:"
 log_level = "info"
 
+listen_interfaces = [
+    ["0.0.0.0", 6881]
+]
+
 [http]
 auth_token = "<random string>"
 host = "127.0.0.1"

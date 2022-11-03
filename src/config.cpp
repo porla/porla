@@ -5,8 +5,11 @@
 
 #include <boost/log/trivial.hpp>
 #include <boost/program_options.hpp>
+#include <libtorrent/fingerprint.hpp>
 #include <libtorrent/session.hpp>
 #include <toml++/toml.h>
+
+#include "settingspack.hpp"
 
 namespace fs = std::filesystem;
 namespace lt = libtorrent;
@@ -116,14 +119,87 @@ Config Config::Load(int argc, char **argv)
             if (auto val = config_file_tbl["http"]["port"].value<uint16_t>())
                 cfg.http_port = *val;
 
+            if (const toml::array* interfaces = config_file_tbl["listen_interfaces"].as<toml::array>())
+            {
+                std::stringstream lt;
+
+                for (auto&& item : *interfaces)
+                {
+                    if (const toml::array* interface = item.as<toml::array>())
+                    {
+                        if (interface->size() < 2)
+                        {
+                            BOOST_LOG_TRIVIAL(warning) << "Invalid number of listen interface elements";
+                            continue;
+                        }
+
+                        auto addr = (*interface)[0].value<std::string>();
+                        auto port = (*interface)[1].value<int64_t>();
+
+                        if (!addr) { BOOST_LOG_TRIVIAL(warning) << "Invalid listen interface address"; continue; }
+                        if (!port) { BOOST_LOG_TRIVIAL(warning) << "Invalid listen interface port"; continue; }
+
+                        lt << "," << *addr << ":" << *port;
+                    }
+                }
+
+                if (!lt.str().empty())
+                {
+                    cfg.session_settings.set_str(lt::settings_pack::listen_interfaces, lt.str().substr(1));
+                }
+            }
+
             if (auto val = config_file_tbl["log_level"].value<std::string>())
                 cfg.log_level = *val;
+
+            if (config_file_tbl.contains("proxy"))
+            {
+                if (auto host = config_file_tbl["proxy"]["host"].value<std::string>())
+                    cfg.session_settings.set_str(lt::settings_pack::proxy_hostname, *host);
+
+                if (auto port = config_file_tbl["proxy"]["port"].value<int>())
+                    cfg.session_settings.set_int(lt::settings_pack::proxy_port, *port);
+
+                if (auto type = config_file_tbl["proxy"]["type"].value<std::string>())
+                {
+                    lt::settings_pack::proxy_type_t ltType = lt::settings_pack::none;
+
+                    if (type == "socks4")    ltType = lt::settings_pack::socks4;
+                    if (type == "socks5")    ltType = lt::settings_pack::socks5;
+                    if (type == "socks5_pw") ltType = lt::settings_pack::socks5_pw;
+                    if (type == "http")      ltType = lt::settings_pack::http;
+                    if (type == "http_pw")   ltType = lt::settings_pack::http_pw;
+                    if (type == "i2p_proxy") ltType = lt::settings_pack::i2p_proxy;
+
+                    cfg.session_settings.set_int(lt::settings_pack::proxy_type, ltType);
+                }
+
+                if (auto user = config_file_tbl["proxy"]["username"].value<std::string>())
+                    cfg.session_settings.set_str(lt::settings_pack::proxy_username, *user);
+
+                if (auto pwd = config_file_tbl["proxy"]["password"].value<std::string>())
+                    cfg.session_settings.set_str(lt::settings_pack::proxy_password, *pwd);
+
+                if (auto hostnames = config_file_tbl["proxy"]["hostnames"].value<bool>())
+                    cfg.session_settings.set_bool(lt::settings_pack::proxy_hostnames, *hostnames);
+
+                if (auto peerConns = config_file_tbl["proxy"]["peer_connections"].value<bool>())
+                    cfg.session_settings.set_bool(lt::settings_pack::proxy_peer_connections, *peerConns);
+
+                if (auto trackerConns = config_file_tbl["proxy"]["tracker_connections"].value<bool>())
+                    cfg.session_settings.set_bool(lt::settings_pack::proxy_tracker_connections, *trackerConns);
+            }
 
             if (auto val = config_file_tbl["session_settings"]["base"].value<std::string>())
             {
                 if (*val == "default")               cfg.session_settings = lt::default_settings();
                 if (*val == "high_performance_seed") cfg.session_settings = lt::high_performance_seed();
                 if (*val == "min_memory_usage")      cfg.session_settings = lt::min_memory_usage();
+            }
+
+            if (auto tbl = config_file_tbl["session_settings"].as_table())
+            {
+                SettingsPack::Apply(*tbl, cfg.session_settings);
             }
 
             if (auto val = config_file_tbl["timer"]["dht_stats"].value<int>())
@@ -159,6 +235,11 @@ Config Config::Load(int argc, char **argv)
     if (vm.count("timer-dht-stats"))       cfg.timer_dht_stats       = vm["timer-dht-stats"].as<int>();
     if (vm.count("timer-session-stats"))   cfg.timer_session_stats   = vm["timer-session-stats"].as<pid_t>();
     if (vm.count("timer-torrent-updates")) cfg.timer_torrent_updates = vm["timer-torrent-updates"].as<pid_t>();
+
+    // Apply static libtorrent settings here. These are always set after all other settings from
+    // the config are applied, and cannot be overwritten by it.
+    cfg.session_settings.set_str(lt::settings_pack::peer_fingerprint, lt::generate_fingerprint("PO", 0, 1));
+    cfg.session_settings.set_str(lt::settings_pack::user_agent, "porla/1.0");
 
     return std::move(cfg);
 }
