@@ -9,6 +9,7 @@
 #include "httpeventstream.hpp"
 #include "httpserver.hpp"
 #include "jsonrpchandler.hpp"
+#include "metricshandler.hpp"
 #include "session.hpp"
 
 #include "data/migrate.hpp"
@@ -177,6 +178,7 @@ int main(int argc, char* argv[])
         });
 
         porla::HttpEventStream eventStream(session);
+        porla::MetricsHandler metrics(session);
 
         if (cfg.http_auth_token)
         {
@@ -185,6 +187,7 @@ int main(int argc, char* argv[])
 
         http.Use(porla::HttpPost("/api/v1/jsonrpc", [&rpc](auto const& ctx) { rpc(ctx); }));
         http.Use(porla::HttpGet("/api/v1/events", [&eventStream](auto const& ctx) { eventStream(ctx); }));
+        http.Use(porla::HttpGet("/metrics", [&metrics](auto const& ctx) { metrics(ctx); }));
         http.Use(porla::HttpNotFound());
 
         // If we run in supervised mode - print connection information here and finish

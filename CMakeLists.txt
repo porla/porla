@@ -43,6 +43,8 @@ add_executable(
     src/httpsession.hpp
     src/jsonrpchandler.cpp
     src/jsonrpchandler.hpp
+    src/metricshandler.cpp
+    src/metricshandler.hpp
     src/session.cpp
     src/session.hpp
     src/settingspack.cpp

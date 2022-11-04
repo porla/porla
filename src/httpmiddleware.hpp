@@ -3,6 +3,8 @@
 #include <functional>
 #include <memory>
 
+#include <boost/log/trivial.hpp>
+
 #include "httpcontext.hpp"
 
 namespace porla
@@ -21,7 +23,7 @@ namespace porla
 
         void operator()(const std::shared_ptr<porla::HttpContext> &ctx)
         {
-            if (ctx->RequestUri().path == m_route
+            if (ctx->Request().target() == m_route
                 && ctx->Request().method() == m_verb)
             {
                 m_middleware(ctx);
