@@ -12,6 +12,13 @@ auth_token = "<random string>"
 host = "127.0.0.1"
 port = 1337
 
+[presets.default]
+max_uploads = 1000
+storage_mode = "allocate"
+
+[presets.my-preset-1]
+max_uploads = 10
+
 [session_settings]
 base = "min_memory_usage"
 

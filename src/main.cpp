@@ -157,7 +157,7 @@ int main(int argc, char* argv[])
         porla::JsonRpcHandler rpc({
             {"session.pause", porla::Methods::SessionPause(session)},
             {"session.settings.list", porla::Methods::SessionSettingsList(session)},
-            {"torrents.add", porla::Methods::TorrentsAdd(session)},
+            {"torrents.add", porla::Methods::TorrentsAdd(session, cfg.presets)},
             {"torrents.files.list", porla::Methods::TorrentsFilesList(session)},
             {"torrents.get", porla::Methods::TorrentsGet(session)},
             {"torrents.list", porla::Methods::TorrentsList(session)},

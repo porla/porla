@@ -12,19 +12,32 @@ namespace lt = libtorrent;
 using porla::Methods::TorrentsAdd;
 using porla::Methods::TorrentsAddReq;
 
-TorrentsAdd::TorrentsAdd(ISession& session)
+TorrentsAdd::TorrentsAdd(ISession& session, const std::map<std::string, Config::Preset>& presets)
     : m_session(session)
+    , m_presets(presets)
 {
 }
 
 void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
 {
     lt::add_torrent_params p;
+    std::string preset_name = "default";
 
     if (req.preset.has_value())
     {
-        std::string presetName = req.preset.value();
-        // TODO: Presets should be moved to the database.
+        preset_name = req.preset.value();
+    }
+
+    if (m_presets.find(preset_name) != m_presets.end())
+    {
+        auto const& preset = m_presets.at(preset_name);
+
+        if (preset.download_limit.has_value())  p.download_limit  = preset.download_limit.value();
+        if (preset.max_connections.has_value()) p.max_connections = preset.max_connections.value();
+        if (preset.max_uploads.has_value())     p.max_uploads     = preset.max_uploads.value();
+        if (preset.save_path.has_value())       p.save_path       = preset.save_path.value();
+        if (preset.storage_mode.has_value())    p.storage_mode    = preset.storage_mode.value();
+        if (preset.upload_limit.has_value())    p.upload_limit    = preset.upload_limit.value();
     }
 
     if (req.ti.has_value()) {

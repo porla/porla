@@ -152,6 +152,46 @@ Config Config::Load(int argc, char **argv)
             if (auto val = config_file_tbl["log_level"].value<std::string>())
                 cfg.log_level = *val;
 
+            // Load presets
+            if (auto const* presets_tbl = config_file_tbl["presets"].as_table())
+            {
+                for (auto const [key,value] : *presets_tbl)
+                {
+                    if (!value.is_table())
+                    {
+                        BOOST_LOG_TRIVIAL(warning) << "Preset '" << key << "' is not a TOML table";
+                        continue;
+                    }
+
+                    const toml::table value_tbl = *value.as_table();
+
+                    Preset p = {};
+
+                    if (auto val = value_tbl["download_limit"].value<int>())
+                        p.download_limit = *val;
+
+                    if (auto val = value_tbl["max_connections"].value<int>())
+                        p.max_connections = *val;
+
+                    if (auto val = value_tbl["max_uploads"].value<int>())
+                        p.max_uploads = *val;
+
+                    if (auto val = value_tbl["save_path"].value<std::string>())
+                        p.save_path = *val;
+
+                    if (auto val = value_tbl["storage_mode"].value<std::string>())
+                    {
+                        if (strcmp(val->c_str(), "allocate") == 0) p.storage_mode = lt::storage_mode_allocate;
+                        if (strcmp(val->c_str(), "sparse") == 0)   p.storage_mode = lt::storage_mode_sparse;
+                    }
+
+                    if (auto val = value_tbl["upload_limit"].value<int>())
+                        p.upload_limit = *val;
+
+                    cfg.presets.insert({ key.data(), std::move(p) });
+                }
+            }
+
             if (config_file_tbl.contains("proxy"))
             {
                 if (auto host = config_file_tbl["proxy"]["host"].value<std::string>())
