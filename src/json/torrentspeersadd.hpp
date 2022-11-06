@@ -15,8 +15,6 @@ namespace porla::Methods
 
     static void to_json(json& j, const porla::Methods::TorrentsPeersAddRes& res)
     {
-        j = json{
-            {"foo", "bar"}
-        };
+        j = true;
     }
 }
