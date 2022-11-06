@@ -17,7 +17,7 @@ namespace porla::Methods
     void optional_from_json(const J& j, const char* name, std::optional<T>& value)
     {
         const auto it = j.find(name);
-        if (it != j.end())
+        if (it != j.end() && !it->is_null())
         {
             value = it->template get<T>();
         }

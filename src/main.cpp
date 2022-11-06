@@ -13,6 +13,7 @@
 #include "session.hpp"
 
 #include "data/migrate.hpp"
+#include "methods/presetslist.hpp"
 #include "methods/sessionpause.hpp"
 #include "methods/sessionsettingslist.hpp"
 #include "methods/torrentsadd.hpp"
@@ -156,6 +157,7 @@ int main(int argc, char* argv[])
         }
 
         porla::JsonRpcHandler rpc({
+            {"presets.list", porla::Methods::PresetsList(cfg.presets)},
             {"session.pause", porla::Methods::SessionPause(session)},
             {"session.settings.list", porla::Methods::SessionSettingsList(session)},
             {"torrents.add", porla::Methods::TorrentsAdd(session, cfg.presets)},

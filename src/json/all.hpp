@@ -3,6 +3,7 @@
 #include "ltannounceentry.hpp"
 #include "ltinfohash.hpp"
 #include "ltpeerinfo.hpp"
+#include "presetslist.hpp"
 #include "sessionpause.hpp"
 #include "sessionsettingsget.hpp"
 #include "torrentsaddreq.hpp"

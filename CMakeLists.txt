@@ -62,6 +62,8 @@ add_executable(
     src/data/statement.hpp
 
     src/methods/method.hpp
+    src/methods/presetslist.cpp
+    src/methods/presetslist.hpp
     src/methods/sessionpause.cpp
     src/methods/sessionpause.hpp
     src/methods/sessionsettingslist.cpp

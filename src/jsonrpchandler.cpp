@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include <boost/log/trivial.hpp>
+
 using json = nlohmann::json;
 using porla::JsonRpcHandler;
 
@@ -25,5 +27,19 @@ void JsonRpcHandler::operator()(const std::shared_ptr<porla::HttpContext> &ctx)
         return;
     }
 
-    m_methods.at(method)(req.at("params"), ctx);
+    try
+    {
+        m_methods.at(method)(req.at("params"), ctx);
+    }
+    catch (const std::exception& ex)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Error when executing JSONRPC method '" << method << "': " << ex.what();
+
+        ctx->WriteJson({
+            {"error", {
+                {"code", -2332},
+                {"message", ex.what()}
+            }}
+        });
+    }
 }

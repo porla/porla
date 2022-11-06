@@ -74,7 +74,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
         page_beg + req.page_size.value_or(50),
         static_cast<int>(torrents.size()));
 
-    if (page_beg >= torrents.size())
+    if (page_beg > torrents.size())
     {
         return cb.Error(-2, "Invalid page - too large.");
     }

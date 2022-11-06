@@ -488,13 +488,14 @@ lt::info_hash_t Session::AddTorrent(lt::add_torrent_params const& p)
 {
     lt::error_code ec;
     lt::torrent_handle th = m_session->add_torrent(p, ec);
-    lt::torrent_status ts = th.status();
 
     if (ec)
     {
         BOOST_LOG_TRIVIAL(error) << "Failed to add torrent: " << ec;
         return {};
     }
+
+    lt::torrent_status ts = th.status();
 
     AddTorrentParams::Insert(m_db, ts.info_hashes, AddTorrentParams{
         .name = ts.name,
