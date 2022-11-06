@@ -80,6 +80,21 @@ void AddTorrentParams::Insert(sqlite3 *db, const libtorrent::info_hash_t& hash, 
         .Execute();
 }
 
+void AddTorrentParams::Remove(sqlite3 *db, const libtorrent::info_hash_t& hash)
+{
+    auto stmt = Statement::Prepare(
+        db,
+        "DELETE FROM addtorrentparams\n"
+        "WHERE (info_hash_v1 = $1 AND info_hash_v2 IS NULL)\n"
+        "   OR (info_hash_v1 IS NULL AND info_hash_v2 = $2)\n"
+        "   OR (info_hash_v1 = $1 AND info_hash_v2 = $2);");
+
+    stmt
+        .Bind(1, hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
+        .Bind(2, hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
+        .Execute();
+}
+
 void AddTorrentParams::Update(sqlite3 *db, const libtorrent::info_hash_t& hash, const AddTorrentParams& params)
 {
     std::vector<char> buf = lt::write_resume_data_buf(params.params);

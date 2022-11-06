@@ -658,6 +658,8 @@ void Session::ReadAlerts()
         {
             auto tra = lt::alert_cast<lt::torrent_removed_alert>(alert);
 
+            AddTorrentParams::Remove(m_db, tra->info_hashes);
+
             m_torrents.erase(tra->info_hashes);
             m_torrentRemoved(tra->info_hashes);
 
