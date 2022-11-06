@@ -51,7 +51,7 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v3
         with:
-          build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.semVer }}
+          build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
           load: true
           tags: porla-tmp
@@ -71,7 +71,7 @@ jobs:
       - name: Push Docker image
         uses: docker/build-push-action@v3
         with:
-          build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.semVer }}
+          build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.gitversion.outputs.semVer }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.gitversion.outputs.fullSemVer }}
