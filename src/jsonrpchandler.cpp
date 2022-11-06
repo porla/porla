@@ -15,16 +15,33 @@ JsonRpcHandler::JsonRpcHandler(
 
 void JsonRpcHandler::operator()(const std::shared_ptr<porla::HttpContext> &ctx)
 {
-    json req = json::parse(ctx->Request().body());
+    json req = {};
+
+    try
+    {
+        req = json::parse(ctx->Request().body());
+    }
+    catch (const std::exception& ex)
+    {
+        return ctx->WriteJson({
+            {"error", {
+                {"code", -32700},
+                {"message", "Parse error"},
+                {"data", ex.what()}
+            }}
+        });
+    }
+
     std::string method = req.at("method").get<std::string>();
 
     if (m_methods.find(method) == m_methods.end())
     {
-        ctx->WriteJson({
-            {}
+        return ctx->WriteJson({
+            {"error", {
+                {"code", -32601},
+                {"message", "Method not found"}
+            }}
         });
-
-        return;
     }
 
     try
@@ -37,8 +54,9 @@ void JsonRpcHandler::operator()(const std::shared_ptr<porla::HttpContext> &ctx)
 
         ctx->WriteJson({
             {"error", {
-                {"code", -2332},
-                {"message", ex.what()}
+                {"code", -32603},
+                {"message", "Internal error"},
+                {"data", ex.what()}
             }}
         });
     }
