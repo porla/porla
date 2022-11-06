@@ -25,9 +25,9 @@ void TorrentsFilesList::Invoke(const TorrentsFilesListReq& req, WriteCb<Torrents
 
     if (auto tf = status->second.torrent_file.lock())
     {
-        auto const& storage = tf->files();
-
-        return cb.Ok(res);
+        return cb.Ok(TorrentsFilesListRes{
+            .file_storage = tf->files()
+        });
     }
 
     return cb.Error(-2, "Failed to lock torrent file");

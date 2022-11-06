@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include <libtorrent/file_storage.hpp>
 #include <libtorrent/info_hash.hpp>
 
 namespace porla::Methods
@@ -13,12 +14,6 @@ namespace porla::Methods
 
     struct TorrentsFilesListRes
     {
-        struct FileItem
-        {
-            int index;
-            std::string name;
-        };
-
-        std::vector<FileItem> files;
+        libtorrent::file_storage file_storage;
     };
 }
