@@ -15,14 +15,14 @@ namespace libtorrent
             {"connection_type", static_cast<uint8_t>(pi.connection_type)},
             {"down_speed", pi.down_speed},
             {"download_queue_length", pi.download_queue_length},
-            {"download_queue_time", pi.download_queue_time.count()},
+            {"download_queue_time", lt::total_seconds(pi.download_queue_time)},
             {"flags", static_cast<uint32_t>(pi.flags)},
             {"ip", {
                 pi.ip.address().to_string(),
                 pi.ip.port()
             }},
-            {"last_active", pi.last_active.count()},
-            {"last_request", pi.last_request.count()},
+            {"last_active", lt::total_seconds(pi.last_active)},
+            {"last_request", lt::total_seconds(pi.last_request)},
             {"local_endpoint", {
                 pi.local_endpoint.address().to_string(),
                 pi.local_endpoint.port()
