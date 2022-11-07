@@ -18,7 +18,6 @@
 #include "methods/sessionsettingslist.hpp"
 #include "methods/torrentsadd.hpp"
 #include "methods/torrentsfileslist.hpp"
-#include "methods/torrentsget.hpp"
 #include "methods/torrentslist.hpp"
 #include "methods/torrentsmove.hpp"
 #include "methods/torrentspause.hpp"
@@ -162,7 +161,6 @@ int main(int argc, char* argv[])
             {"session.settings.list", porla::Methods::SessionSettingsList(session)},
             {"torrents.add", porla::Methods::TorrentsAdd(session, cfg.presets)},
             {"torrents.files.list", porla::Methods::TorrentsFilesList(session)},
-            {"torrents.get", porla::Methods::TorrentsGet(session)},
             {"torrents.list", porla::Methods::TorrentsList(session)},
             {"torrents.move", porla::Methods::TorrentsMove(session)},
             {"torrents.pause", porla::Methods::TorrentsPause(session)},

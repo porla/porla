@@ -9,7 +9,6 @@
 #include "torrentsaddreq.hpp"
 #include "torrentsaddres.hpp"
 #include "torrentsfileslist.hpp"
-#include "torrentsget.hpp"
 #include "torrentslist.hpp"
 #include "torrentsmove.hpp"
 #include "torrentspause.hpp"
