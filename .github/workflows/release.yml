@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0.9.15
+        with:
+          versionSpec: '5.x'
+
+      - name: Calculate version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v0.9.15
+        with:
+          useConfigFile: true
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to the container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create draft release
+        run: gh release create $GITHUB_REF_NAME -d -t "Porla $GITHUB_REF_NAME"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v3
+        with:
+          build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
+          context: .
+          load: true
+          tags: porla
+
+      - name: Copy Porla binary from image
+        run: |
+          docker create --name tmp porla
+          docker cp tmp:/usr/bin/porla /tmp/porla
+          docker rm -f tmp
+
+      - name: Upload Porla binary to release
+        run: gh release upload $GITHUB_REF_NAME /tmp/porla#porla-linux-amd64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Docker image
+        uses: docker/build-push-action@v3
+        with:
+          build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ env.GITHUB_REPOSITORY }}:latest
+            ghcr.io/${{ env.GITHUB_REPOSITORY }}:${{ github.sha }}
+            ghcr.io/${{ env.GITHUB_REPOSITORY }}:${{ steps.gitversion.outputs.fullSemVer }}
