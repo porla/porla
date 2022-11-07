@@ -54,11 +54,11 @@ jobs:
           build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
           load: true
-          tags: porla-tmp
+          tags: porla
 
       - name: Copy Porla binary from image
         run: |
-          docker create --name tmp porla-tmp
+          docker create --name tmp porla
           docker cp tmp:/usr/bin/porla /tmp/porla
           docker rm -f tmp
 
@@ -74,4 +74,4 @@ jobs:
           build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.gitversion.outputs.fullSemVer }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
