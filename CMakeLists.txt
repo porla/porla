@@ -72,8 +72,6 @@ add_executable(
     src/methods/torrentsadd.hpp
     src/methods/torrentsfileslist.cpp
     src/methods/torrentsfileslist.hpp
-    src/methods/torrentsget.cpp
-    src/methods/torrentsget.hpp
     src/methods/torrentslist.cpp
     src/methods/torrentslist.hpp
     src/methods/torrentsmove.cpp
