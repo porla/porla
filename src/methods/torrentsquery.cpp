@@ -35,6 +35,9 @@ void TorrentsQuery::Invoke(const TorrentsQueryReq& req, WriteCb<TorrentsQueryRes
                 case SQLITE_INTEGER:
                     j[columnName] = sqlite3_column_int64(stmt, i);
                     continue;
+                case SQLITE_FLOAT:
+                    j[columnName] = sqlite3_column_double(stmt, i);
+                    continue;
                 case SQLITE_TEXT:
                     j[columnName] = reinterpret_cast<const char*>(sqlite3_column_text(stmt, i));
                     continue;
