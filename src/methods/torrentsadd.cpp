@@ -94,7 +94,32 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
     if (req.upload_limit.has_value())    p.upload_limit    = req.upload_limit.value();
     if (req.url_seeds.has_value())       p.url_seeds       = req.url_seeds.value();
 
-    lt::info_hash_t hash = m_session.AddTorrent(p);
+    // Before passing our params to the session. Validate that we have at least
+    // an info hash, or
+    // a torrent info object, and
+    // a save path
+
+    if (p.save_path.empty())
+    {
+        return cb.Error(-4, "'save_path' missing");
+    }
+
+    if (!p.ti && p.info_hashes == lt::info_hash_t())
+    {
+        return cb.Error(-4, "Either 'ti' or 'magnet_uri' must be set");
+    }
+
+    lt::info_hash_t hash;
+
+    try
+    {
+        hash = m_session.AddTorrent(p);
+    }
+    catch (const std::exception& ex)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to add torrent to session: " << ex.what();
+        return cb.Error(-5, "Failed to add torrent to session");
+    }
 
     if (hash == lt::info_hash_t())
     {
