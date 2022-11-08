@@ -5,6 +5,7 @@
 #include "ltpeerinfo.hpp"
 #include "presetslist.hpp"
 #include "sessionpause.hpp"
+#include "sessionresume.hpp"
 #include "sessionsettingsget.hpp"
 #include "torrentsaddreq.hpp"
 #include "torrentsaddres.hpp"

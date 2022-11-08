@@ -66,6 +66,8 @@ add_executable(
     src/methods/presetslist.hpp
     src/methods/sessionpause.cpp
     src/methods/sessionpause.hpp
+    src/methods/sessionresume.cpp
+    src/methods/sessionresume.hpp
     src/methods/sessionsettingslist.cpp
     src/methods/sessionsettingslist.hpp
     src/methods/torrentsadd.cpp
