@@ -14,4 +14,5 @@ SessionPause::SessionPause(porla::ISession &session)
 void SessionPause::Invoke(const SessionPauseReq& req, WriteCb<SessionPauseRes> cb)
 {
     m_session.Pause();
+    return cb.Ok(SessionPauseRes{});
 }
