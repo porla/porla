@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*.*.*'
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: porla/porla
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -75,6 +79,6 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ env.GITHUB_REPOSITORY }}:latest
-            ghcr.io/${{ env.GITHUB_REPOSITORY }}:${{ github.sha }}
-            ghcr.io/${{ env.GITHUB_REPOSITORY }}:${{ steps.gitversion.outputs.fullSemVer }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.gitversion.outputs.fullSemVer }}
