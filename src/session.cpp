@@ -15,26 +15,15 @@ using porla::Data::Models::AddTorrentParams;
 using porla::Data::Models::SessionParams;
 using porla::Session;
 
-#define COL_INFO_HASH_V1      1
-#define COL_INFO_HASH_V2      2
-#define COL_ACTIVE_DURATION   3
-#define COL_ALL_TIME_DOWNLOAD 4
-#define COL_ALL_TIME_UPLOAD   5
-#define COL_FINISHED_DURATION 6
-#define COL_NAME              7
-#define COL_QUEUE_POSITION    8
-#define COL_SEEDING_DURATION  9
-
-const char* TableSpec = "create table torrents ("
-                        "info_hash_v1,"
-                        "info_hash_v2,"
-                        "active_duration,"
-                        "all_time_download,"
-                        "all_time_upload,"
-                        "finished_duration,"
-                        "name,"
-                        "queue_position,"
-                        "seeding_duration);";
+#define COL_INFO_HASH_V1
+#define COL_INFO_HASH_V2
+#define COL_ACTIVE_DURATION
+#define COL_ALL_TIME_DOWNLOAD
+#define COL_ALL_TIME_UPLOAD
+#define COL_FINISHED_DURATION
+#define COL_NAME
+#define COL_QUEUE_POSITION
+#define COL_SEEDING_DURATION
 
 template<typename T>
 static std::string ToString(const T &hash)
@@ -43,6 +32,209 @@ static std::string ToString(const T &hash)
     ss << hash;
     return ss.str();
 }
+
+static const std::vector<std::tuple<std::string, std::function<void(const lt::torrent_status&, sqlite3_context*)>>> Tbl =
+{
+    {"info_hash_v1",
+        [](const lt::torrent_status& ts, sqlite3_context* ctx)
+        {
+            if (ts.info_hashes.has_v1())
+            {
+                std::string hash = ToString(ts.info_hashes.v1);
+                sqlite3_result_text(ctx, hash.c_str(), -1, SQLITE_TRANSIENT);
+            }
+            else
+            {
+                sqlite3_result_null(ctx);
+            }
+        }},
+    {"info_hash_v2", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+         if (ts.info_hashes.has_v2())
+         {
+             std::string hash = ToString(ts.info_hashes.v2);
+             sqlite3_result_text(ctx, hash.c_str(), -1, SQLITE_TRANSIENT);
+         }
+         else
+         {
+             sqlite3_result_null(ctx);
+         }
+    }},
+    {"errc_value", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        ts.errc
+            ? sqlite3_result_int(ctx, ts.errc.value())
+            : sqlite3_result_null(ctx);
+    }},
+    {"save_path", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_text(ctx, ts.save_path.c_str(), -1, SQLITE_TRANSIENT);
+    }},
+    {"name", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_text(ctx, ts.name.c_str(), -1, SQLITE_TRANSIENT);
+    }},
+    {"next_announce", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, lt::total_seconds(ts.next_announce));
+    }},
+    {"current_tracker", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_text(ctx, ts.current_tracker.c_str(), -1, SQLITE_TRANSIENT);
+    }},
+    {"total_download", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, ts.total_download);
+    }},
+    {"total_upload", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, ts.total_upload);
+    }},
+    {"total_payload_download", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, ts.total_payload_download);
+    }},
+    {"total_payload_upload", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, ts.total_payload_upload);
+    }},
+    {"total_failed_bytes", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, ts.total_failed_bytes);
+    }},
+    {"total_redundant_bytes", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, ts.total_redundant_bytes);
+    }},
+    // TODO: pieces
+    // TODO: verified_pieces
+    {"total_done", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, ts.total_done);
+    }},
+    {"total", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, ts.total);
+    }},
+    {"total_wanted_done", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, ts.total_wanted_done);
+    }},
+    {"total_wanted", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, ts.total_wanted);
+    }},
+    {"all_time_upload", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, ts.all_time_upload);
+    }},
+    {"all_time_download", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, ts.all_time_download);
+    }},
+    {"added_time", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, ts.added_time);
+    }},
+    {"completed_time", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, ts.completed_time);
+    }},
+    {"last_seen_complete", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, ts.last_seen_complete);
+    }},
+    // TODO: storage_mode
+    {"progress", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_double(ctx, ts.progress);
+    }},
+    {"queue_position", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, static_cast<int>(ts.queue_position));
+    }},
+    {"download_rate", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.download_rate);
+    }},
+    {"upload_rate", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.upload_rate);
+    }},
+    {"download_payload_rate", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.download_payload_rate);
+    }},
+    {"upload_payload_rate", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.upload_payload_rate);
+    }},
+    {"num_seeds", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.num_seeds);
+    }},
+    {"num_peers", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.num_peers);
+    }},
+    {"num_complete", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.num_complete);
+    }},
+    {"num_incomplete", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.num_incomplete);
+    }},
+    {"list_seeds", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.list_seeds);
+    }},
+    {"list_peers", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.list_peers);
+    }},
+    {"connect_candidates", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.connect_candidates);
+    }},
+    {"num_pieces", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.num_pieces);
+    }},
+    // TODO: distributed_copies
+    {"block_size", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.block_size);
+    }},
+    {"num_uploads", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.num_uploads);
+    }},
+    {"num_connections", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.num_connections);
+    }},
+    {"uploads_limit", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.uploads_limit);
+    }},
+    {"connections_limit", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.connections_limit);
+    }},
+    {"up_bandwidth_queue", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.up_bandwidth_queue);
+    }},
+    {"down_bandwidth_queue", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.down_bandwidth_queue);
+    }},
+    {"seed_rank", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.seed_rank);
+    }},
+    // TODO: state
+    {"need_save_resume", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.need_save_resume ? 1 : 0);
+    }},
+    {"is_seeding", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.is_seeding ? 1 : 0);
+    }},
+    {"is_finished", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.is_finished ? 1 : 0);
+    }},
+    {"has_metadata", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.has_metadata ? 1 : 0);
+    }},
+    {"has_incoming", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.has_incoming ? 1 : 0);
+    }},
+    {"moving_storage", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.moving_storage ? 1 : 0);
+    }},
+    {"announcing_to_trackers", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.announcing_to_trackers ? 1 : 0);
+    }},
+    {"announcing_to_lsd", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.announcing_to_lsd ? 1 : 0);
+    }},
+    {"announcing_to_dht", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int(ctx, ts.announcing_to_dht ? 1 : 0);
+    }},
+    {"last_upload", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, lt::total_seconds(ts.last_upload.time_since_epoch()));
+    }},
+    {"last_download", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, lt::total_seconds(ts.last_download.time_since_epoch()));
+    }},
+    {"active_duration", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, ts.active_duration.count());
+    }},
+    {"finished_duration", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, ts.finished_duration.count());
+    }},
+    {"seeding_duration", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        sqlite3_result_int64(ctx, ts.seeding_duration.count());
+    }},
+};
 
 class Session::Timer
 {
@@ -131,7 +323,17 @@ static int vt_create(sqlite3 *db, void* aux, int argc, const char* const* argv, 
     vtab->db = db;
     vtab->torrents = static_cast<std::map<lt::info_hash_t, lt::torrent_status>*>(aux);
 
-    if(sqlite3_declare_vtab(db, TableSpec) != SQLITE_OK)
+    std::stringstream spec;
+    spec << "CREATE TABLE torrents (\n";
+
+    for (auto const& [col, _] : Tbl)
+    {
+        spec << col << ",\n";
+    }
+
+    spec << "_dummy_);";
+
+    if(sqlite3_declare_vtab(db, spec.str().c_str()) != SQLITE_OK)
     {
         vt_destructor(reinterpret_cast<sqlite3_vtab*>(vtab));
         return SQLITE_ERROR;
@@ -200,75 +402,8 @@ static int vt_column(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i)
     auto cursor = reinterpret_cast<TorrentVTableCursor*>(cur);
     auto const& status = cursor->current->second;
 
-    switch (i)
-    {
-    case COL_INFO_HASH_V1:
-    {
-        if (status.info_hashes.has_v1())
-        {
-            std::string hash = ToString(status.info_hashes.v1);
-            sqlite3_result_text(ctx, hash.c_str(), -1, SQLITE_TRANSIENT);
-        }
-        else
-        {
-            sqlite3_result_null(ctx);
-        }
-        break;
-    }
-    case COL_INFO_HASH_V2:
-    {
-        if (status.info_hashes.has_v2())
-        {
-            std::string hash = ToString(status.info_hashes.v2);
-            sqlite3_result_text(ctx, hash.c_str(), -1, SQLITE_TRANSIENT);
-        }
-        else
-        {
-            sqlite3_result_null(ctx);
-        }
-        break;
-    }
-    case COL_ACTIVE_DURATION:
-    {
-        sqlite3_result_int64(ctx, status.active_duration.count());
-        break;
-    }
-    case COL_ALL_TIME_DOWNLOAD:
-    {
-        sqlite3_result_int64(ctx, status.all_time_download);
-        break;
-    }
-    case COL_ALL_TIME_UPLOAD:
-    {
-        sqlite3_result_int64(ctx, status.all_time_upload);
-        break;
-    }
-    case COL_FINISHED_DURATION:
-    {
-        sqlite3_result_int64(ctx, status.finished_duration.count());
-        break;
-    }
-    case COL_NAME:
-    {
-        sqlite3_result_text(ctx, status.name.c_str(), -1, SQLITE_TRANSIENT);
-        break;
-    }
-    case COL_QUEUE_POSITION:
-    {
-        sqlite3_result_int(ctx, static_cast<int>(status.queue_position));
-        break;
-    }
-    case COL_SEEDING_DURATION:
-    {
-        sqlite3_result_int64(ctx, status.seeding_duration.count());
-        break;
-    }
-    default:
-    {
-        BOOST_LOG_TRIVIAL(warning) << "Unknown column: " << i;
-        break;
-    }
-    }
+    auto const& [_, resolver] = Tbl.at(i);
+    resolver(status, ctx);
 
     return SQLITE_OK;
 }
