@@ -17,6 +17,7 @@
 #include "methods/sessionpause.hpp"
 #include "methods/sessionresume.hpp"
 #include "methods/sessionsettingslist.hpp"
+#include "methods/sysversions.hpp"
 #include "methods/torrentsadd.hpp"
 #include "methods/torrentsfileslist.hpp"
 #include "methods/torrentslist.hpp"
@@ -162,6 +163,7 @@ int main(int argc, char* argv[])
             {"session.pause", porla::Methods::SessionPause(session)},
             {"session.resume", porla::Methods::SessionResume(session)},
             {"session.settings.list", porla::Methods::SessionSettingsList(session)},
+            {"sys.versions", porla::Methods::SysVersions()},
             {"torrents.add", porla::Methods::TorrentsAdd(session, cfg.presets)},
             {"torrents.files.list", porla::Methods::TorrentsFilesList(session)},
             {"torrents.list", porla::Methods::TorrentsList(session)},
