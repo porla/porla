@@ -2,6 +2,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include <boost/asio.hpp>
@@ -9,11 +10,14 @@
 #include <libtorrent/session.hpp>
 #include <sqlite3.h>
 
+typedef std::function<std::shared_ptr<libtorrent::torrent_plugin>(libtorrent:: torrent_handle const&, libtorrent::client_data_t)> lt_plugin;
+
 namespace porla
 {
     struct SessionOptions
     {
         sqlite3* db = nullptr;
+        std::optional<std::vector<lt_plugin>> extensions;
         lt::settings_pack settings = lt::default_settings();
         int timer_dht_stats = 5000;
         int timer_session_stats = 5000;

@@ -5,6 +5,9 @@
 
 #include <boost/log/trivial.hpp>
 #include <boost/program_options.hpp>
+#include <libtorrent/extensions/ut_metadata.hpp>
+#include <libtorrent/extensions/ut_pex.hpp>
+#include <libtorrent/extensions/smart_ban.hpp>
 #include <libtorrent/fingerprint.hpp>
 #include <libtorrent/session.hpp>
 #include <toml++/toml.h>
@@ -228,6 +231,33 @@ Config Config::Load(int argc, char **argv)
 
                 if (auto trackerConns = config_file_tbl["proxy"]["tracker_connections"].value<bool>())
                     cfg.session_settings.set_bool(lt::settings_pack::proxy_tracker_connections, *trackerConns);
+            }
+
+            if (auto val = config_file_tbl["session_settings"]["extensions"].as_array())
+            {
+                std::vector<lt_plugin> extensions;
+
+                for (auto const& item : *val)
+                {
+                    if (auto const item_value = item.value<std::string>())
+                    {
+                        if (*item_value == "smart_ban")
+                            extensions.emplace_back(&lt::create_smart_ban_plugin);
+
+                        if (*item_value == "ut_metadata")
+                            extensions.emplace_back(&lt::create_ut_metadata_plugin);
+
+                        if (*item_value == "ut_pex")
+                            extensions.emplace_back(&lt::create_ut_pex_plugin);
+                    }
+                    else
+                    {
+                        BOOST_LOG_TRIVIAL(warning)
+                            << "Item in session_extension array is not a string (" << item.type() << ")";
+                    }
+                }
+
+                cfg.session_extensions = extensions;
             }
 
             if (auto val = config_file_tbl["session_settings"]["base"].value<std::string>())
