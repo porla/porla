@@ -233,7 +233,7 @@ Config Config::Load(int argc, char **argv)
                     cfg.session_settings.set_bool(lt::settings_pack::proxy_tracker_connections, *trackerConns);
             }
 
-            if (auto val = config_file_tbl["session_extensions"].as_array())
+            if (auto val = config_file_tbl["session_settings"]["extensions"].as_array())
             {
                 std::vector<lt_plugin> extensions;
 

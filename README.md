@@ -72,6 +72,11 @@ port = 1337
 
 [session_settings]
 base = "min_memory_usage"
+extensions = [
+   "smart_ban",
+   "ut_metadata",
+   "ut_pex"
+]
 
 [timer]
 dht_stats = 5000
