@@ -70,6 +70,8 @@ add_executable(
     src/methods/sessionresume.hpp
     src/methods/sessionsettingslist.cpp
     src/methods/sessionsettingslist.hpp
+    src/methods/sysversions.cpp
+    src/methods/sysversions.hpp
     src/methods/torrentsadd.cpp
     src/methods/torrentsadd.hpp
     src/methods/torrentsfileslist.cpp
