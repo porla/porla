@@ -2,6 +2,9 @@
 
 #include <boost/log/trivial.hpp>
 #include <libtorrent/alert_types.hpp>
+#include <libtorrent/extensions/ut_metadata.hpp>
+#include <libtorrent/extensions/ut_pex.hpp>
+#include <libtorrent/extensions/smart_ban.hpp>
 #include <libtorrent/session_stats.hpp>
 #include <utility>
 #include <sqlite3ext.h>
@@ -457,6 +460,25 @@ Session::Session(boost::asio::io_context& io, porla::SessionOptions const& optio
     , m_tdb(nullptr)
 {
     m_session = std::make_unique<lt::session>();
+
+    if (auto extensions = options.extensions)
+    {
+        BOOST_LOG_TRIVIAL(info) << "Loading " << extensions.value().size() << " user-specified extension(s)";
+
+        for (auto const& extension : extensions.value())
+        {
+            m_session->add_extension(extension);
+        }
+    }
+    else
+    {
+        BOOST_LOG_TRIVIAL(info) << "Loading default session extensions (ut_metadata, ut_pex, smart_ban)";
+
+        m_session->add_extension(&lt::create_ut_metadata_plugin);
+        m_session->add_extension(&lt::create_ut_pex_plugin);
+        m_session->add_extension(&lt::create_smart_ban_plugin);
+    }
+
     m_session->set_alert_notify(
         [this]()
         {

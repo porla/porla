@@ -140,6 +140,7 @@ int main(int argc, char* argv[])
     {
         porla::Session session(io, porla::SessionOptions{
             .db                    = db,
+            .extensions            = cfg.session_extensions,
             .settings              = cfg.session_settings,
             .timer_dht_stats       = cfg.timer_dht_stats.value_or(5000),
             .timer_session_stats   = cfg.timer_session_stats.value_or(5000),
