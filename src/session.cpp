@@ -15,16 +15,6 @@ using porla::Data::Models::AddTorrentParams;
 using porla::Data::Models::SessionParams;
 using porla::Session;
 
-#define COL_INFO_HASH_V1
-#define COL_INFO_HASH_V2
-#define COL_ACTIVE_DURATION
-#define COL_ALL_TIME_DOWNLOAD
-#define COL_ALL_TIME_UPLOAD
-#define COL_FINISHED_DURATION
-#define COL_NAME
-#define COL_QUEUE_POSITION
-#define COL_SEEDING_DURATION
-
 template<typename T>
 static std::string ToString(const T &hash)
 {
