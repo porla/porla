@@ -1,0 +1,10 @@
+.git
+.vscode
+build
+cmake-build-*
+docs
+lib
+vendor/vcpkg/buildtrees
+vendor/vcpkg/downloads
+vendor/vcpkg/packages
+vendor/vcpkg/vcpkg

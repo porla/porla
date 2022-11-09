@@ -1,4 +1,4 @@
-FROM ghcr.io/porla/build-env:202210272121 AS build-env
+FROM ghcr.io/porla/build-env:202211091940 AS build-env
 WORKDIR /src
 COPY . .
 ARG GITVERSION_SEMVER="0.0.0"
