@@ -36,8 +36,6 @@ namespace porla
         std::map<std::string, Preset>         presets;
         std::optional<std::vector<lt_plugin>> session_extensions;
         libtorrent::settings_pack             session_settings;
-        std::optional<int>                    supervised_interval;
-        std::optional<pid_t>                  supervised_pid;
         std::optional<int>                    timer_dht_stats;
         std::optional<int>                    timer_session_stats;
         std::optional<int>                    timer_torrent_updates;

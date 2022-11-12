@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
         return PrintJsonVersion();
     }
 
-    std::unique_ptr<porla::Config> cfg = nullptr;
+    std::unique_ptr<porla::Config> cfg;
 
     try
     {
@@ -69,34 +69,6 @@ int main(int argc, char* argv[])
 
     boost::asio::io_context io;
     boost::asio::signal_set signals(io, SIGINT, SIGTERM);
-
-    boost::asio::deadline_timer check_pid_timer(io);
-    std::function<void(boost::system::error_code)> check_pid;
-
-    if (cfg->supervised_pid)
-    {
-        BOOST_LOG_TRIVIAL(info) << "Running in supervised mode - parent: " << cfg->supervised_pid.value();
-
-        check_pid = [&cfg, &check_pid, &check_pid_timer, &io](boost::system::error_code ec)
-        {
-            if (ec)
-            {
-                return;
-            }
-
-            if (kill(cfg->supervised_pid.value(), 0) != 0)
-            {
-                BOOST_LOG_TRIVIAL(warning) << "Parent process died. Shutting down.";
-                io.stop();
-                return;
-            }
-
-            check_pid_timer.expires_from_now(boost::posix_time::seconds(cfg->supervised_interval.value_or(1)));
-            check_pid_timer.async_wait(check_pid);
-        };
-
-        check_pid(boost::system::error_code());
-    }
 
     signals.async_wait(
         [&io](boost::system::error_code const& ec, int signal)
@@ -162,15 +134,6 @@ int main(int argc, char* argv[])
         http.Use(porla::HttpGet("/api/v1/events", [&eventStream](auto const& ctx) { eventStream(ctx); }));
         http.Use(porla::HttpGet("/metrics", [&metrics](auto const& ctx) { metrics(ctx); }));
         http.Use(porla::HttpNotFound());
-
-        // If we run in supervised mode - print connection information here and finish
-        // with a 'ready' message to allow the supervisor to connect.
-        if (cfg->supervised_pid)
-        {
-            printf(":: set http_port=%d\n", http.Endpoint().port());
-            printf(":: ready\n");
-            fflush(stdout);
-        }
 
         io.run();
     }

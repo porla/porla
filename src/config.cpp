@@ -59,8 +59,6 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
         if (strcmp("high_performance_seed", val) == 0) cfg->session_settings = lt::high_performance_seed();
         if (strcmp("min_memory_usage", val) == 0)      cfg->session_settings = lt::min_memory_usage();
     }
-    if (auto val = std::getenv("PORLA_SUPERVISED_INTERVAL"))   cfg->supervised_interval   = std::stoi(val);
-    if (auto val = std::getenv("PORLA_SUPERVISED_PID"))        cfg->supervised_pid        = std::stoi(val);
     if (auto val = std::getenv("PORLA_TIMER_DHT_STATS"))       cfg->timer_dht_stats       = std::stoi(val);
     if (auto val = std::getenv("PORLA_TIMER_SESSION_STATS"))   cfg->timer_session_stats   = std::stoi(val);
     if (auto val = std::getenv("PORLA_TIMER_TORRENT_UPDATES")) cfg->timer_torrent_updates = std::stoi(val);
@@ -228,8 +226,6 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
         if (val == "high_performance_seed") cfg->session_settings = lt::high_performance_seed();
         if (val == "min_memory_usage")      cfg->session_settings = lt::min_memory_usage();
     }
-    if (vm.count("supervised-interval"))   cfg->supervised_interval   = vm["supervised-interval"].as<int>();
-    if (vm.count("supervised-pid"))        cfg->supervised_pid        = vm["supervised-pid"].as<pid_t>();
     if (vm.count("timer-dht-stats"))       cfg->timer_dht_stats       = vm["timer-dht-stats"].as<int>();
     if (vm.count("timer-session-stats"))   cfg->timer_session_stats   = vm["timer-session-stats"].as<pid_t>();
     if (vm.count("timer-torrent-updates")) cfg->timer_torrent_updates = vm["timer-torrent-updates"].as<pid_t>();
