@@ -230,8 +230,17 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
     if (vm.count("timer-session-stats"))   cfg->timer_session_stats   = vm["timer-session-stats"].as<pid_t>();
     if (vm.count("timer-torrent-updates")) cfg->timer_torrent_updates = vm["timer-torrent-updates"].as<pid_t>();
 
-    sqlite3_open(cfg->db_file.value_or("porla.sqlite").c_str(), &cfg->db);
-    sqlite3_exec(cfg->db, "PRAGMA journal_mode=WAL;", nullptr, nullptr, nullptr);
+    if (sqlite3_open(cfg->db_file.value_or("porla.sqlite").c_str(), &cfg->db) != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(fatal) << "Failed to open SQLite connection: " << sqlite3_errmsg(cfg->db);
+        throw std::runtime_error("Failed to open SQLite connection");
+    }
+
+    if (sqlite3_exec(cfg->db, "PRAGMA journal_mode=WAL;", nullptr, nullptr, nullptr) != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(fatal) << "Failed to enable WAL journal mode: " << sqlite3_errmsg(cfg->db);
+        throw std::runtime_error("Failed to enable WAL journal mode");
+    }
 
     if (!porla::Data::Migrate(cfg->db))
     {

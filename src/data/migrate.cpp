@@ -38,7 +38,10 @@ bool porla::Data::Migrate(sqlite3* db)
 
     for (int i = GetUserVersion(db); i < Migrations.size(); i++)
     {
-        Migrations.at(i)(db);
+        if (Migrations.at(i)(db) != SQLITE_OK)
+        {
+            return false;
+        }
     }
 
     SetUserVersion(db, static_cast<int>(Migrations.size()));
