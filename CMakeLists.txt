@@ -47,8 +47,6 @@ add_executable(
     src/metricshandler.hpp
     src/session.cpp
     src/session.hpp
-    src/settingspack.cpp
-    src/settingspack.hpp
 
     src/data/migrate.cpp
     src/data/migrate.hpp

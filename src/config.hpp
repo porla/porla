@@ -1,11 +1,13 @@
 #pragma once
 
+#include <memory>
 #include <optional>
 #include <string>
 
 #include <libtorrent/extensions.hpp>
 #include <libtorrent/settings_pack.hpp>
 #include <libtorrent/storage_defs.hpp>
+#include <sqlite3.h>
 
 typedef std::function<std::shared_ptr<libtorrent::torrent_plugin>(libtorrent:: torrent_handle const&, libtorrent::client_data_t)> lt_plugin;
 
@@ -25,7 +27,8 @@ namespace porla
         };
 
         std::optional<std::string>            config_file;
-        std::optional<std::string>            db;
+        sqlite3*                              db;
+        std::optional<std::string>            db_file;
         std::optional<std::string>            http_auth_token;
         std::optional<std::string>            http_host;
         std::optional<uint16_t>               http_port;
@@ -39,6 +42,16 @@ namespace porla
         std::optional<int>                    timer_session_stats;
         std::optional<int>                    timer_torrent_updates;
 
-        static Config Load(int argc, char* argv[]);
+        static std::unique_ptr<Config> Load(int argc, char* argv[]);
+
+        ~Config();
+
+        Config(const Config&) = delete;
+        Config(const Config&&) = delete;
+        Config& operator=(const Config&) = delete;
+        Config& operator=(Config&&) = delete;
+
+    private:
+        explicit Config() = default;
     };
 }
