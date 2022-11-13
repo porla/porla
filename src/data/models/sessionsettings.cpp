@@ -92,7 +92,8 @@ void SessionSettings::Update(sqlite3 *db, const std::string &name, const nlohman
         return;
     }
 
-    Statement::Prepare(db, "REPLACE INTO sessionsettings (key, value) VALUES ($1, $2);")
+    Statement::Prepare(db, "INSERT INTO sessionsettings (key, value) VALUES ($1, $2)"
+                           "ON CONFLICT (key) DO UPDATE SET value = excluded.value;")
         .Bind(1, std::string_view(name))
         .Bind(2, std::string_view(value.dump()))
         .Execute();
