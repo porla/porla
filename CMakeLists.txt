@@ -47,17 +47,19 @@ add_executable(
     src/metricshandler.hpp
     src/session.cpp
     src/session.hpp
-    src/settingspack.cpp
-    src/settingspack.hpp
 
     src/data/migrate.cpp
     src/data/migrate.hpp
     src/data/migrations/0001_initialsetup.cpp
     src/data/migrations/0001_initialsetup.hpp
+    src/data/migrations/0002_addsessionsettings.cpp
+    src/data/migrations/0002_addsessionsettings.hpp
     src/data/models/addtorrentparams.cpp
     src/data/models/addtorrentparams.hpp
     src/data/models/sessionparams.cpp
     src/data/models/sessionparams.hpp
+    src/data/models/sessionsettings.cpp
+    src/data/models/sessionsettings.hpp
     src/data/statement.cpp
     src/data/statement.hpp
 
@@ -70,6 +72,8 @@ add_executable(
     src/methods/sessionresume.hpp
     src/methods/sessionsettingslist.cpp
     src/methods/sessionsettingslist.hpp
+    src/methods/sessionsettingsupdate.cpp
+    src/methods/sessionsettingsupdate.hpp
     src/methods/sysversions.cpp
     src/methods/sysversions.hpp
     src/methods/torrentsadd.cpp

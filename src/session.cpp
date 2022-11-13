@@ -662,6 +662,11 @@ lt::info_hash_t Session::AddTorrent(lt::add_torrent_params const& p)
     return ts.info_hashes;
 }
 
+void Session::ApplySettings(const libtorrent::settings_pack& settings)
+{
+    m_session->apply_settings(settings);
+}
+
 void Session::Pause()
 {
     m_session->pause();

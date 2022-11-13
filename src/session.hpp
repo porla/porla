@@ -41,6 +41,7 @@ namespace porla
         virtual boost::signals2::connection OnTorrentResumed(const TorrentStatusSignal::slot_type& subscriber) = 0;
 
         virtual libtorrent::info_hash_t AddTorrent(libtorrent::add_torrent_params const& p) = 0;
+        virtual void ApplySettings(const libtorrent::settings_pack& settings) = 0;
         virtual void Pause() = 0;
         virtual void Query(const std::string_view& query, const std::function<int(sqlite3_stmt*)>& cb) = 0;
         virtual void Remove(const lt::info_hash_t& hash, bool remove_data) = 0;
@@ -99,6 +100,7 @@ namespace porla
         void Load();
 
         libtorrent::info_hash_t AddTorrent(libtorrent::add_torrent_params const& p) override;
+        void ApplySettings(const libtorrent::settings_pack& settings) override;
         void Pause() override;
         void Query(const std::string_view& query, const std::function<int(sqlite3_stmt*)>& cb) override;
         void Remove(const lt::info_hash_t& hash, bool remove_data) override;

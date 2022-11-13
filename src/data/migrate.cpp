@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "migrations/0001_initialsetup.hpp"
+#include "migrations/0002_addsessionsettings.hpp"
 #include "statement.hpp"
 
 int GetUserVersion(sqlite3* db)
@@ -31,12 +32,16 @@ bool porla::Data::Migrate(sqlite3* db)
 {
     static std::vector<std::function<int(sqlite3*)>> Migrations =
     {
-        &porla::Data::Migrations::InitialSetup::Migrate
+        &porla::Data::Migrations::InitialSetup::Migrate,
+        &porla::Data::Migrations::AddSessionSettings::Migrate
     };
 
     for (int i = GetUserVersion(db); i < Migrations.size(); i++)
     {
-        Migrations.at(i)(db);
+        if (Migrations.at(i)(db) != SQLITE_OK)
+        {
+            return false;
+        }
     }
 
     SetUserVersion(db, static_cast<int>(Migrations.size()));
