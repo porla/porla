@@ -459,7 +459,10 @@ Session::Session(boost::asio::io_context& io, porla::SessionOptions const& optio
     , m_stats(lt::session_stats_metrics())
     , m_tdb(nullptr)
 {
-    m_session = std::make_unique<lt::session>(options.settings);
+    lt::session_params params = SessionParams::GetLatest(m_db);
+    params.settings = options.settings;
+
+    m_session = std::make_unique<lt::session>(params);
 
     if (auto extensions = options.extensions)
     {
@@ -515,7 +518,7 @@ Session::~Session()
 
     SessionParams::Insert(
         m_db,
-        m_session->session_state());
+        m_session->session_state(lt::session::save_dht_state));
 
     m_session->pause();
 
