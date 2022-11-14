@@ -459,7 +459,7 @@ Session::Session(boost::asio::io_context& io, porla::SessionOptions const& optio
     , m_stats(lt::session_stats_metrics())
     , m_tdb(nullptr)
 {
-    m_session = std::make_unique<lt::session>();
+    m_session = std::make_unique<lt::session>(options.settings);
 
     if (auto extensions = options.extensions)
     {
