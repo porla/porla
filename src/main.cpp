@@ -132,7 +132,13 @@ int main(int argc, char* argv[])
 
         http.Use(porla::HttpPost("/api/v1/jsonrpc", [&rpc](auto const& ctx) { rpc(ctx); }));
         http.Use(porla::HttpGet("/api/v1/events", [&eventStream](auto const& ctx) { eventStream(ctx); }));
-        http.Use(porla::HttpGet("/metrics", [&metrics](auto const& ctx) { metrics(ctx); }));
+
+        if (cfg->http_metrics_enabled.value_or(true))
+        {
+            BOOST_LOG_TRIVIAL(info) << "Enabling HTTP metrics endpoint";
+            http.Use(porla::HttpGet("/metrics", [&metrics](auto const &ctx) { metrics(ctx); }));
+        }
+
         http.Use(porla::HttpNotFound());
 
         io.run();
