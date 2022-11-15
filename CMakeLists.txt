@@ -47,6 +47,8 @@ add_executable(
     src/metricshandler.hpp
     src/session.cpp
     src/session.hpp
+    src/torrentsvt.cpp
+    src/torrentsvt.hpp
 
     src/data/migrate.cpp
     src/data/migrate.hpp

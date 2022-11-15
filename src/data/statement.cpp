@@ -45,7 +45,10 @@ Statement::Statement(sqlite3_stmt *stmt)
 
 Statement::~Statement()
 {
-    sqlite3_finalize(m_stmt);
+    if (sqlite3_finalize(m_stmt) != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to finalize SQLite statement";
+    }
 }
 
 Statement Statement::Prepare(sqlite3 *db, const std::string_view &sql)
@@ -63,25 +66,36 @@ Statement Statement::Prepare(sqlite3 *db, const std::string_view &sql)
 
 Statement& Statement::Bind(int pos, int value)
 {
-    sqlite3_bind_int(m_stmt, pos, value);
+    if (sqlite3_bind_int(m_stmt, pos, value) != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value";
+        throw std::runtime_error("Failed to bind SQLite value");
+    }
+
     return *this;
 }
 
 Statement& Statement::Bind(int pos, const std::string_view &value)
 {
-    sqlite3_bind_text(m_stmt, pos, value.data(), static_cast<int>(value.size()), nullptr);
+    if (sqlite3_bind_text(m_stmt, pos, value.data(), static_cast<int>(value.size()), nullptr) != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value";
+        throw std::runtime_error("Failed to bind SQLite value");
+    }
+
     return *this;
 }
 
 Statement& Statement::Bind(int pos, const std::optional<std::string_view> &value)
 {
-    if (value == std::nullopt)
+    int res = value == std::nullopt
+        ? sqlite3_bind_null(m_stmt, pos)
+        : sqlite3_bind_text(m_stmt, pos, value->data(), static_cast<int>(value->size()), nullptr);
+
+    if (res != SQLITE_OK)
     {
-        sqlite3_bind_null(m_stmt, pos);
-    }
-    else
-    {
-        sqlite3_bind_text(m_stmt, pos, value->data(), static_cast<int>(value->size()), nullptr);
+        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value";
+        throw std::runtime_error("Failed to bind SQLite value");
     }
 
     return *this;
@@ -89,20 +103,27 @@ Statement& Statement::Bind(int pos, const std::optional<std::string_view> &value
 
 Statement& Statement::Bind(int pos, const std::vector<char>& buffer)
 {
-    sqlite3_bind_blob(m_stmt, pos, buffer.data(), static_cast<int>(buffer.size()), SQLITE_TRANSIENT);
+    if (sqlite3_bind_blob(m_stmt, pos, buffer.data(), static_cast<int>(buffer.size()), SQLITE_TRANSIENT) != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value";
+        throw std::runtime_error("Failed to bind SQLite value");
+    }
+
     return *this;
 }
 
 void Statement::Execute()
 {
-    switch (int res = sqlite3_step(m_stmt))
+    int res = sqlite3_step(m_stmt);
+
+    if (res == SQLITE_DONE)
     {
-    case SQLITE_DONE:
         return;
-    default:
-        BOOST_LOG_TRIVIAL(error) << "Unexpected SQLite return code for Execute. If results are expected, use Step instead. Expected 101, got " << res;
-        throw std::runtime_error("Unexpected SQLite return code for Execute: " + std::to_string(res));
     }
+
+    BOOST_LOG_TRIVIAL(error) << "Unexpected SQLite return code for Execute. If results are expected, use Step instead. Expected 101, got " << res;
+
+    throw std::runtime_error("Unexpected SQLite return code for Execute: " + std::to_string(res));
 }
 
 void Statement::Step(const std::function<int(const Statement::IRow&)>& cb)
@@ -121,7 +142,7 @@ void Statement::Step(const std::function<int(const Statement::IRow&)>& cb)
         }
         default:
             BOOST_LOG_TRIVIAL(error) << "Unexpected SQLite return code " << res;
-            break;
+            throw std::runtime_error("Unexpected SQLite return code");
         }
     } while (true);
 }
