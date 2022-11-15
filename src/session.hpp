@@ -43,7 +43,7 @@ namespace porla
         virtual libtorrent::info_hash_t AddTorrent(libtorrent::add_torrent_params const& p) = 0;
         virtual void ApplySettings(const libtorrent::settings_pack& settings) = 0;
         virtual void Pause() = 0;
-        virtual void Query(const std::string_view& query, const std::function<int(sqlite3_stmt*)>& cb) = 0;
+        virtual int Query(const std::string_view& query, const std::function<int(sqlite3_stmt*)>& cb) = 0;
         virtual void Remove(const lt::info_hash_t& hash, bool remove_data) = 0;
         virtual void Resume() = 0;
         virtual libtorrent::settings_pack Settings() = 0;
@@ -102,7 +102,7 @@ namespace porla
         libtorrent::info_hash_t AddTorrent(libtorrent::add_torrent_params const& p) override;
         void ApplySettings(const libtorrent::settings_pack& settings) override;
         void Pause() override;
-        void Query(const std::string_view& query, const std::function<int(sqlite3_stmt*)>& cb) override;
+        int Query(const std::string_view& query, const std::function<int(sqlite3_stmt*)>& cb) override;
         void Remove(const lt::info_hash_t& hash, bool remove_data) override;
         void Resume() override;
         libtorrent::settings_pack Settings() override;

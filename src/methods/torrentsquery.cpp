@@ -20,7 +20,7 @@ void TorrentsQuery::Invoke(const TorrentsQueryReq& req, WriteCb<TorrentsQueryRes
 {
     TorrentsQueryRes res;
 
-    m_session.Query(
+    int query_result = m_session.Query(
         req.query,
         [&res](sqlite3_stmt* stmt)
         {
@@ -28,18 +28,18 @@ void TorrentsQuery::Invoke(const TorrentsQueryReq& req, WriteCb<TorrentsQueryRes
 
             for (int i = 0; i < sqlite3_column_count(stmt); i++)
             {
-                std::string columnName = sqlite3_column_name(stmt, i);
+                std::string col_name = sqlite3_column_name(stmt, i);
 
                 switch (sqlite3_column_type(stmt, i))
                 {
                 case SQLITE_INTEGER:
-                    j[columnName] = sqlite3_column_int64(stmt, i);
+                    j[col_name] = sqlite3_column_int64(stmt, i);
                     continue;
                 case SQLITE_FLOAT:
-                    j[columnName] = sqlite3_column_double(stmt, i);
+                    j[col_name] = sqlite3_column_double(stmt, i);
                     continue;
                 case SQLITE_TEXT:
-                    j[columnName] = reinterpret_cast<const char*>(sqlite3_column_text(stmt, i));
+                    j[col_name] = reinterpret_cast<const char*>(sqlite3_column_text(stmt, i));
                     continue;
                 default:
                     BOOST_LOG_TRIVIAL(warning) << "Unknown column type: " << sqlite3_column_type(stmt, i);
@@ -52,5 +52,10 @@ void TorrentsQuery::Invoke(const TorrentsQueryReq& req, WriteCb<TorrentsQueryRes
             return 0;
         });
 
-    cb(res);
+    if (query_result != SQLITE_OK)
+    {
+        return cb.Error(-1, "Error when querying torrents");
+    }
+
+    return cb.Ok(res);
 }

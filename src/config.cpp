@@ -275,6 +275,13 @@ Config::~Config()
 {
     BOOST_LOG_TRIVIAL(info) << "Vacuuming database";
 
-    sqlite3_exec(db, "VACUUM;", nullptr, nullptr, nullptr);
-    sqlite3_close(db);
+    if (sqlite3_exec(db, "VACUUM;", nullptr, nullptr, nullptr) != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to vacuum database: " << sqlite3_errmsg(db);
+    }
+
+    if (sqlite3_close(db) != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to close SQLite connection: " << sqlite3_errmsg(db);
+    }
 }
