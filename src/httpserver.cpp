@@ -29,16 +29,16 @@ public:
         auto endpoint = boost::asio::ip::tcp::endpoint{ addr, port };
 
         m_acceptor.open(endpoint.protocol(), ec);
-        if (ec) { BOOST_LOG_TRIVIAL(error) << ec; }
+        if (ec) { BOOST_LOG_TRIVIAL(error) << "Failed to open TCP endpoint: " << ec; }
 
         m_acceptor.set_option(boost::asio::socket_base::reuse_address(true), ec);
-        if (ec) { BOOST_LOG_TRIVIAL(error) << ec; }
+        if (ec) { BOOST_LOG_TRIVIAL(error) << "Failed to set reuse_address(true): " << ec; }
 
         m_acceptor.bind(endpoint, ec);
-        if (ec) { BOOST_LOG_TRIVIAL(error) << ec; }
+        if (ec) { BOOST_LOG_TRIVIAL(error) << "Failed to bind TCP endpoint: " << ec; }
 
         m_acceptor.listen(boost::asio::socket_base::max_listen_connections, ec);
-        if (ec) { BOOST_LOG_TRIVIAL(error) << ec; }
+        if (ec) { BOOST_LOG_TRIVIAL(error) << "Failed to listen: " << ec; }
 
         BOOST_LOG_TRIVIAL(info) << "Running HTTP server on " << m_acceptor.local_endpoint();
     }

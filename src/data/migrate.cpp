@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <boost/log/trivial.hpp>
+
 #include "migrations/0001_initialsetup.hpp"
 #include "migrations/0002_addsessionsettings.hpp"
 #include "statement.hpp"
@@ -36,10 +38,18 @@ bool porla::Data::Migrate(sqlite3* db)
         &porla::Data::Migrations::AddSessionSettings::Migrate
     };
 
+    int user_version = GetUserVersion(db);
+
+    if (user_version < Migrations.size())
+    {
+        BOOST_LOG_TRIVIAL(info) << "Migrating database from version " << user_version << " to " << Migrations.size();
+    }
+
     for (int i = GetUserVersion(db); i < Migrations.size(); i++)
     {
         if (Migrations.at(i)(db) != SQLITE_OK)
         {
+            BOOST_LOG_TRIVIAL(error) << "Failed to apply migration " << i << ": " << sqlite3_errmsg(db);
             return false;
         }
     }

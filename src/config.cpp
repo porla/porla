@@ -45,6 +45,8 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
         }
 
         cfg->config_file = path;
+
+        break;
     }
 
     if (auto val = std::getenv("PORLA_CONFIG_FILE"))           cfg->config_file     = val;
@@ -102,13 +104,17 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
 
         if (!fs::is_regular_file(cfg->config_file.value()))
         {
-            BOOST_LOG_TRIVIAL(warning) << "User-specified config file does not exist: " << cfg->config_file.value();
+            BOOST_LOG_TRIVIAL(warning)
+                << "User-specified config file does not exist: "
+                << fs::absolute(cfg->config_file.value());
         }
     }
 
     // Apply configuration from the config file before we apply the command line args.
     if (cfg->config_file && fs::is_regular_file(cfg->config_file.value()))
     {
+        BOOST_LOG_TRIVIAL(info) << "Reading config file at " << cfg->config_file.value();
+
         std::ifstream config_file_data(cfg->config_file.value(), std::ios::binary);
 
         try

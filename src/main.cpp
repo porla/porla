@@ -127,6 +127,7 @@ int main(int argc, char* argv[])
 
         if (cfg->http_auth_token)
         {
+            BOOST_LOG_TRIVIAL(info) << "Enabling HTTP token auth";
             http.Use(porla::HttpAuthTokenHandler(cfg->http_auth_token.value()));
         }
 
