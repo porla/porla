@@ -305,6 +305,7 @@ lt::info_hash_t Session::AddTorrent(lt::add_torrent_params const& p)
 
 void Session::ApplySettings(const libtorrent::settings_pack& settings)
 {
+    BOOST_LOG_TRIVIAL(debug) << "Applying session settings";
     m_session->apply_settings(settings);
 }
 
@@ -369,7 +370,8 @@ void Session::ReadAlerts()
 
     for (auto const alert : alerts)
     {
-        // BOOST_LOG_TRIVIAL(trace) << alert->message();
+        BOOST_LOG_TRIVIAL(trace) << "Session alert: " << alert->message();
+
         switch (alert->type())
         {
         case lt::dht_stats_alert::alert_type:
@@ -443,6 +445,8 @@ void Session::ReadAlerts()
 
             m_torrents.at(status.info_hashes) = status;
 
+            BOOST_LOG_TRIVIAL(info) << "Torrent " << status.name << " finished";
+
             if (status.total_download > 0)
             {
                 // Only emit this event if we have downloaded any data this session.
@@ -455,6 +459,8 @@ void Session::ReadAlerts()
         {
             auto tpa = lt::alert_cast<lt::torrent_paused_alert>(alert);
             auto const& status = tpa->handle.status();
+
+            BOOST_LOG_TRIVIAL(debug) << "Torrent " << status.name << " paused";
 
             m_torrents.at(status.info_hashes) = status;
             m_torrentPaused(status);
@@ -478,6 +484,8 @@ void Session::ReadAlerts()
         {
             auto tra = lt::alert_cast<lt::torrent_resumed_alert>(alert);
             auto const& status = tra->handle.status();
+
+            BOOST_LOG_TRIVIAL(debug) << "Torrent " << status.name << " resumed";
 
             m_torrents.at(status.info_hashes) = status;
             m_torrentResumed(status);

@@ -23,6 +23,8 @@ void JsonRpcHandler::operator()(const std::shared_ptr<porla::HttpContext> &ctx)
     }
     catch (const std::exception& ex)
     {
+        BOOST_LOG_TRIVIAL(warning) << "Failed to parse JSONRPC request: " << ex.what();
+
         return ctx->WriteJson({
             {"error", {
                 {"code", -32700},
@@ -36,6 +38,8 @@ void JsonRpcHandler::operator()(const std::shared_ptr<porla::HttpContext> &ctx)
 
     if (m_methods.find(method) == m_methods.end())
     {
+        BOOST_LOG_TRIVIAL(warning) << "Failed to find JSONRPC method '" << method << "'";
+
         return ctx->WriteJson({
             {"error", {
                 {"code", -32601},
@@ -46,6 +50,7 @@ void JsonRpcHandler::operator()(const std::shared_ptr<porla::HttpContext> &ctx)
 
     try
     {
+        BOOST_LOG_TRIVIAL(debug) << "Executing JSONRPC method '" << method << "'";
         m_methods.at(method)(req.at("params"), ctx);
     }
     catch (const std::exception& ex)
