@@ -31,6 +31,11 @@ void SessionSettingsUpdate::Invoke(const SessionSettingsUpdateReq& req, WriteCb<
             continue;
         }
 
+        if (SessionSettings::BlockedKeys.contains(key))
+        {
+            continue;
+        }
+
         if ((type & lt::settings_pack::type_mask) == lt::settings_pack::bool_type_base)
         {
             if (!value.is_boolean())

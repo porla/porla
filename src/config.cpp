@@ -21,6 +21,8 @@ namespace po = boost::program_options;
 
 using porla::Config;
 
+static void ApplySettings(const toml::table& tbl, lt::settings_pack& settings);
+
 std::unique_ptr<Config> Config::Load(int argc, char **argv)
 {
     const static std::vector<fs::path> config_file_search_paths =
@@ -213,6 +215,9 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
                 if (*val == "min_memory_usage")      cfg->session_settings = lt::min_memory_usage();
             }
 
+            if (auto session_settings_tbl = config_file_tbl["session_settings"].as_table())
+                ApplySettings(*session_settings_tbl, cfg->session_settings);
+
             if (auto val = config_file_tbl["timer"]["dht_stats"].value<int>())
                 cfg->timer_dht_stats = *val;
 
@@ -289,5 +294,54 @@ Config::~Config()
     if (sqlite3_close(db) != SQLITE_OK)
     {
         BOOST_LOG_TRIVIAL(error) << "Failed to close SQLite connection: " << sqlite3_errmsg(db);
+    }
+}
+
+static void ApplySettings(const toml::table& tbl, lt::settings_pack& settings)
+{
+    for (auto const& [key,value] : tbl)
+    {
+        const int type = lt::setting_by_name(key.data());
+
+        if (type == -1)
+        {
+            continue;
+        }
+
+        if (porla::Data::Models::SessionSettings::BlockedKeys.contains(key.data()))
+        {
+            continue;
+        }
+
+        if ((type & lt::settings_pack::type_mask) == lt::settings_pack::bool_type_base)
+        {
+            if (!value.is_boolean())
+            {
+                BOOST_LOG_TRIVIAL(warning) << "Value for setting " << key << " is not a boolean";
+                continue;
+            }
+
+            settings.set_bool(type, *value.value<bool>());
+        }
+        else if((type & lt::settings_pack::type_mask) == lt::settings_pack::int_type_base)
+        {
+            if (!value.is_integer())
+            {
+                BOOST_LOG_TRIVIAL(warning) << "Value for setting " << key << " is not an integer";
+                continue;
+            }
+
+            settings.set_int(type, *value.value<int>());
+        }
+        else if((type & lt::settings_pack::type_mask) == lt::settings_pack::string_type_base)
+        {
+            if (!value.is_string())
+            {
+                BOOST_LOG_TRIVIAL(warning) << "Value for setting " << key << " is not a string";
+                continue;
+            }
+
+            settings.set_str(type, *value.value<std::string>());
+        }
     }
 }
