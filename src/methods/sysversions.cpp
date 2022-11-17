@@ -32,27 +32,27 @@ void SysVersions::Invoke(const json &req, WriteCb<std::map<std::string, std::str
             {"branch", porla::BuildInfo::Branch()},
             {"commitish", porla::BuildInfo::Commitish()},
             {"version", porla::BuildInfo::Version()}
-        },
-         "libtorrent", {
+        }},
+        {"libtorrent", {
             {"revision", LIBTORRENT_REVISION},
             {"version", LIBTORRENT_VERSION}
-        },
-         "boost", {
+        }},
+        {"boost", {
             {"version", boost_version.str()}
-        },
-         "nlohmann_json", {
+        }},
+        {"nlohmann_json", {
             {"version", nljson.str()}
-        },
-         "openssl", {
+        }},
+        {"openssl", {
             {"release_date", OPENSSL_RELEASE_DATE},
             {"version", OPENSSL_VERSION_STR},
             {"version_text", OPENSSL_VERSION_TEXT}
-        },
-         "sqlite", {
+        }},
+        {"sqlite", {
             {"source_id", SQLITE_SOURCE_ID},
             {"version", SQLITE_VERSION}
-        },
-         "tomlplusplus", {
+        }},
+        {"tomlplusplus", {
             {"version", toml_version.str()}
         }}
     });
