@@ -438,6 +438,12 @@ void Session::ReadAlerts()
 
             break;
         }
+        case lt::storage_moved_alert::alert_type:
+        {
+            auto const sma = lt::alert_cast<lt::storage_moved_alert>(alert);
+            BOOST_LOG_TRIVIAL(info) << "Torrent " << sma->torrent_name() << " moved to " << sma->storage_path();
+            break;
+        }
         case lt::torrent_finished_alert::alert_type:
         {
             auto tfa = lt::alert_cast<lt::torrent_finished_alert>(alert);
