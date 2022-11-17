@@ -31,4 +31,6 @@ void TorrentsMove::Invoke(const TorrentsMoveReq &req, WriteCb<TorrentsMoveRes> c
     }
 
     status->second.handle.move_storage(req.path, flags);
+
+    return cb.Ok(TorrentsMoveRes{});
 }
