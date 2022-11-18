@@ -3,7 +3,7 @@
 build
 cmake-build-*
 docs
-html
+html/node_modules
 lib
 vendor/vcpkg/buildtrees
 vendor/vcpkg/downloads

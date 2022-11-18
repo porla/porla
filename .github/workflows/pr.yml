@@ -58,7 +58,7 @@ jobs:
         working-directory: ./html
 
       - name: Package web UI
-        run: pushd html/dist && zip -9 -r ../webui.zip * && popd
+        run: pushd html/dist && zip -9 -r ../webui.zip * && popd && ls -la
 
       - name: Build Docker image
         uses: docker/build-push-action@v3
