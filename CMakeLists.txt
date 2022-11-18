@@ -13,8 +13,11 @@ find_package(libzip              CONFIG REQUIRED)
 find_package(LibtorrentRasterbar CONFIG REQUIRED)
 find_package(nlohmann_json       CONFIG REQUIRED)
 find_package(tomlplusplus        CONFIG REQUIRED)
+find_package(unofficial-sodium   CONFIG REQUIRED)
 find_package(unofficial-sqlite3  CONFIG REQUIRED)
 find_package(uriparser           CONFIG REQUIRED)
+
+find_path(JWT_CPP_INCLUDE_DIRS "jwt-cpp/base.h")
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
@@ -34,6 +37,10 @@ add_executable(
     ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/webui.cpp
 
+    src/authinithandler.cpp
+    src/authinithandler.hpp
+    src/authloginhandler.cpp
+    src/authloginhandler.hpp
     src/buildinfo.cpp
     src/buildinfo.hpp
     src/config.cpp
@@ -66,12 +73,16 @@ add_executable(
     src/data/migrations/0001_initialsetup.hpp
     src/data/migrations/0002_addsessionsettings.cpp
     src/data/migrations/0002_addsessionsettings.hpp
+    src/data/migrations/0003_users.cpp
+    src/data/migrations/0003_users.hpp
     src/data/models/addtorrentparams.cpp
     src/data/models/addtorrentparams.hpp
     src/data/models/sessionparams.cpp
     src/data/models/sessionparams.hpp
     src/data/models/sessionsettings.cpp
     src/data/models/sessionsettings.hpp
+    src/data/models/users.cpp
+    src/data/models/users.hpp
     src/data/statement.cpp
     src/data/statement.hpp
 
@@ -118,6 +129,12 @@ target_compile_definitions(
     -DSQLITE_CORE
 )
 
+target_include_directories(
+    ${PROJECT_NAME}
+    PRIVATE
+    ${JWT_CPP_INCLUDE_DIRS}
+)
+
 target_link_libraries(
     ${PROJECT_NAME}
 
@@ -126,6 +143,8 @@ target_link_libraries(
     Boost::program_options
     libzip::zip
     LibtorrentRasterbar::torrent-rasterbar
+    unofficial-sodium::sodium
+    unofficial-sodium::sodium_config_public
     unofficial::sqlite3::sqlite3
     uriparser::uriparser
 )

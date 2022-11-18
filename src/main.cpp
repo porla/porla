@@ -1,8 +1,9 @@
 #include <boost/asio.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
-#include <zip.h>
 
+#include "authinithandler.hpp"
+#include "authloginhandler.hpp"
 #include "buildinfo.hpp"
 #include "config.hpp"
 #include "embeddedwebuihandler.hpp"
@@ -126,6 +127,12 @@ int main(int argc, char* argv[])
 
         porla::HttpEventStream eventStream(session);
         porla::MetricsHandler metrics(session);
+
+        porla::AuthInitHandler authInitHandler(io, cfg->db);
+        porla::AuthLoginHandler authLoginHandler(io, cfg->db);
+
+        http.Use(porla::HttpPost("/api/v1/auth/init", [&authInitHandler](auto const& ctx) { authInitHandler(ctx); }));
+        http.Use(porla::HttpPost("/api/v1/auth/login", [&authLoginHandler](auto const& ctx) { authLoginHandler(ctx); }));
 
         if (cfg->http_auth_token)
         {

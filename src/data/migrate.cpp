@@ -8,6 +8,7 @@
 
 #include "migrations/0001_initialsetup.hpp"
 #include "migrations/0002_addsessionsettings.hpp"
+#include "migrations/0003_users.hpp"
 #include "statement.hpp"
 
 int GetUserVersion(sqlite3* db)
@@ -35,7 +36,8 @@ bool porla::Data::Migrate(sqlite3* db)
     static std::vector<std::function<int(sqlite3*)>> Migrations =
     {
         &porla::Data::Migrations::InitialSetup::Migrate,
-        &porla::Data::Migrations::AddSessionSettings::Migrate
+        &porla::Data::Migrations::AddSessionSettings::Migrate,
+        &porla::Data::Migrations::Users::Migrate
     };
 
     int user_version = GetUserVersion(db);
