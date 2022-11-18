@@ -1,9 +1,11 @@
 #include <boost/asio.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
+#include <zip.h>
 
 #include "buildinfo.hpp"
 #include "config.hpp"
+#include "embeddedwebuihandler.hpp"
 #include "httpauthtokenhandler.hpp"
 #include "httpeventstream.hpp"
 #include "httpserver.hpp"
@@ -138,6 +140,12 @@ int main(int argc, char* argv[])
         {
             BOOST_LOG_TRIVIAL(info) << "Enabling HTTP metrics endpoint";
             http.Use(porla::HttpGet("/metrics", [&metrics](auto const &ctx) { metrics(ctx); }));
+        }
+
+        if (cfg->http_webui_enabled.value_or(true))
+        {
+            BOOST_LOG_TRIVIAL(info) << "Enabling HTTP web UI";
+            http.Use(porla::EmbeddedWebUIHandler());
         }
 
         http.Use(porla::HttpNotFound());

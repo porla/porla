@@ -5,3 +5,4 @@ build/
 cmake-build-*
 docs/build/
 node_modules/
+webui.zip
