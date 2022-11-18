@@ -11,6 +11,7 @@
     "catch2",
     "gtest",
     "libtorrent",
+    "libzip",
     "nlohmann-json",
     "sqlite3",
     "tomlplusplus",

@@ -61,6 +61,11 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
         if (strcmp("false", val) == 0) cfg->http_metrics_enabled = false;
     }
     if (auto val = std::getenv("PORLA_HTTP_PORT"))             cfg->http_port       = std::stoi(val);
+    if (auto val = std::getenv("PORLA_HTTP_WEBUI_ENABLED"))
+    {
+        if (strcmp("true", val) == 0)  cfg->http_webui_enabled = true;
+        if (strcmp("false", val) == 0) cfg->http_webui_enabled = false;
+    }
     if (auto val = std::getenv("PORLA_LOG_LEVEL"))             cfg->log_level       = val;
     if (auto val = std::getenv("PORLA_SESSION_SETTINGS_BASE"))
     {
@@ -81,6 +86,7 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
         ("http-host",             po::value<std::string>(), "The host to listen on for HTTP traffic.")
         ("http-metrics-enabled",  po::value<bool>(),        "Set to true if the metrics endpoint should be enabled")
         ("http-port",             po::value<uint16_t>(),    "The port to listen on for HTTP traffic.")
+        ("http-webui-enabled",    po::value<bool>(),        "Set to true if the web UI should be enabled")
         ("log-level",             po::value<std::string>(), "The minimum log level to print.")
         ("session-settings-base", po::value<std::string>(), "The libtorrent base settings to use")
         ("supervised-interval",   po::value<int>(),         "The interval to use when checking the supervisor pid.")
@@ -137,6 +143,9 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
 
             if (auto val = config_file_tbl["http"]["port"].value<uint16_t>())
                 cfg->http_port = *val;
+
+            if (auto val = config_file_tbl["http"]["webui_enabled"].value<bool>())
+                cfg->http_webui_enabled = *val;
 
             if (auto val = config_file_tbl["log_level"].value<std::string>())
                 cfg->log_level = *val;
@@ -241,6 +250,10 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
         cfg->http_metrics_enabled = vm["http-metrics-enabled"].as<bool>();
     }
     if (vm.count("http-port"))             cfg->http_port             = vm["http-port"].as<uint16_t>();
+    if (vm.count("http-webui-enabled"))
+    {
+        cfg->http_webui_enabled = vm["http-webui-enabled"].as<bool>();
+    }
     if (vm.count("log-level"))             cfg->log_level             = vm["log-level"].as<std::string>();
     if (vm.count("session-settings-base"))
     {

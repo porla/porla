@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 find_package(Boost                      REQUIRED COMPONENTS log program_options system)
 #find_package(GTest               CONFIG REQUIRED)
+find_package(libzip              CONFIG REQUIRED)
 find_package(LibtorrentRasterbar CONFIG REQUIRED)
 find_package(nlohmann_json       CONFIG REQUIRED)
 find_package(tomlplusplus        CONFIG REQUIRED)
@@ -21,15 +22,24 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -P
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateVersion.cmake)
 
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/webui.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/_webui.cpp
+    COMMAND ${CMAKE_COMMAND} -P
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FileEmbed.cmake)
+
 add_executable(
     ${PROJECT_NAME}
 
     ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/webui.cpp
 
     src/buildinfo.cpp
     src/buildinfo.hpp
     src/config.cpp
     src/config.hpp
+    src/embeddedwebuihandler.cpp
+    src/embeddedwebuihandler.hpp
     src/main.cpp
     src/httpauthtokenhandler.cpp
     src/httpauthtokenhandler.hpp
@@ -110,9 +120,11 @@ target_compile_definitions(
 
 target_link_libraries(
     ${PROJECT_NAME}
+
     Boost::boost
     Boost::log
     Boost::program_options
+    libzip::zip
     LibtorrentRasterbar::torrent-rasterbar
     unofficial::sqlite3::sqlite3
     uriparser::uriparser
