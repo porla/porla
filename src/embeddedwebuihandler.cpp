@@ -10,22 +10,22 @@ using porla::EmbeddedWebUIHandler;
 
 extern "C"
 {
-    extern const uint8_t webui_zip_data[];
-    extern const unsigned webui_zip_size;
+    extern const uint8_t* webui_zip_data();
+    extern const size_t webui_zip_size();
 }
 
 EmbeddedWebUIHandler::EmbeddedWebUIHandler()
 {
-    if (webui_zip_size == 0)
+    if (webui_zip_size() == 0)
     {
-        BOOST_LOG_TRIVIAL(info) << "No embedded web UI found";
+        BOOST_LOG_TRIVIAL(warning) << "No embedded web UI found";
     }
     else
     {
-        BOOST_LOG_TRIVIAL(info) << "Loading embedded web UI (" << webui_zip_size/1024 << " kB)";
+        BOOST_LOG_TRIVIAL(debug) << "Loading embedded web UI (" << webui_zip_size()/1024 << " kB)";
 
         zip_error_t err;
-        zip_source_t *source = zip_source_buffer_create(webui_zip_data, webui_zip_size, 0, &err);
+        zip_source_t *source = zip_source_buffer_create(webui_zip_data(), webui_zip_size(), 0, &err);
 
         zip_t *webui = zip_open_from_source(source, ZIP_RDONLY, &err);
         zip_int64_t num_entries = zip_get_num_entries(webui, ZIP_FL_UNCHANGED);

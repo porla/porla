@@ -84,9 +84,17 @@ function(FileEmbedGenerate file generated_c)
 endfunction()
 
 set(WEBUI_SRC "
+#include \"stddef.h\"
 #include \"stdint.h\"
-const uint8_t webui_zip_data={0x00};
-const unsigned webui_zip_size = sizeof(webui_zip_data);")
+extern \"C\" const uint8_t* webui_zip_data()
+{
+    return nullptr;
+}
+
+extern \"C\" const size_t webui_zip_size()
+{
+    return 0;
+}")
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/webui.cpp)
     file(READ ${CMAKE_CURRENT_SOURCE_DIR}/webui.cpp WEBUI_SRC_)
