@@ -143,7 +143,10 @@ int main(int argc, char* argv[])
         porla::MetricsHandler metrics(session);
 
         porla::AuthInitHandler authInitHandler(io, cfg->db);
-        porla::AuthLoginHandler authLoginHandler(io, cfg->db);
+        porla::AuthLoginHandler authLoginHandler(io, porla::AuthLoginHandlerOptions{
+            .db         = cfg->db,
+            .secret_key = cfg->secret_key
+        });
 
         http.Use(porla::HttpPost("/api/v1/auth/init", [&authInitHandler](auto const& ctx) { authInitHandler(ctx); }));
         http.Use(porla::HttpPost("/api/v1/auth/login", [&authLoginHandler](auto const& ctx) { authLoginHandler(ctx); }));

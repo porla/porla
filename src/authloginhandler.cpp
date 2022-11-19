@@ -8,9 +8,10 @@
 
 using porla::AuthLoginHandler;
 
-AuthLoginHandler::AuthLoginHandler(boost::asio::io_context& io, sqlite3* db)
+AuthLoginHandler::AuthLoginHandler(boost::asio::io_context& io, const AuthLoginHandlerOptions& opts)
     : m_io(io)
-    , m_db(db)
+    , m_db(opts.db)
+    , m_secret_key(opts.secret_key)
 {
 }
 
@@ -34,7 +35,7 @@ void AuthLoginHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
     }
 
     std::thread t(
-        [ctx, &io = m_io, password, user]()
+        [ctx, &io = m_io, password, secret_key = m_secret_key, user]()
         {
             int result = crypto_pwhash_str_verify(
                 user->password_hashed.c_str(),
@@ -43,7 +44,7 @@ void AuthLoginHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
 
             boost::asio::dispatch(
                 io,
-                [ctx, result, username = user->username]()
+                [ctx, result, secret_key, username = user->username]()
                 {
                     if (result != 0)
                     {
@@ -56,7 +57,7 @@ void AuthLoginHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
                         .set_issuer("porla")
                         .set_type("JWS")
                         .set_subject(username)
-                        .sign(jwt::algorithm::hs256{"secret"});
+                        .sign(jwt::algorithm::hs256{secret_key});
 
                     ctx->WriteJson({
                         {"token", token}
