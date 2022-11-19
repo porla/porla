@@ -14,6 +14,7 @@
 
 #include "data/migrate.hpp"
 #include "data/models/sessionsettings.hpp"
+#include "utils/secretkey.hpp"
 
 namespace fs = std::filesystem;
 namespace lt = libtorrent;
@@ -67,6 +68,7 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
         if (strcmp("false", val) == 0) cfg->http_webui_enabled = false;
     }
     if (auto val = std::getenv("PORLA_LOG_LEVEL"))             cfg->log_level       = val;
+    if (auto val = std::getenv("PORLA_SECRET_KEY"))            cfg->secret_key      = val;
     if (auto val = std::getenv("PORLA_SESSION_SETTINGS_BASE"))
     {
         if (strcmp("default", val) == 0)               cfg->session_settings = lt::default_settings();
@@ -88,6 +90,7 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
         ("http-port",             po::value<uint16_t>(),    "The port to listen on for HTTP traffic.")
         ("http-webui-enabled",    po::value<bool>(),        "Set to true if the web UI should be enabled")
         ("log-level",             po::value<std::string>(), "The minimum log level to print.")
+        ("secret-key",            po::value<std::string>(), "The secret key to use when protecting various pieces of data.")
         ("session-settings-base", po::value<std::string>(), "The libtorrent base settings to use")
         ("supervised-interval",   po::value<int>(),         "The interval to use when checking the supervisor pid.")
         ("supervised-pid",        po::value<pid_t>(),       "A pid to a parent process. If this pid dies, we shut down.")
@@ -190,6 +193,9 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
                 }
             }
 
+            if (auto val = config_file_tbl["secret_key"].value<std::string>())
+                cfg->secret_key = *val;
+
             if (auto val = config_file_tbl["session_settings"]["extensions"].as_array())
             {
                 std::vector<lt_plugin> extensions;
@@ -255,6 +261,7 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
         cfg->http_webui_enabled = vm["http-webui-enabled"].as<bool>();
     }
     if (vm.count("log-level"))             cfg->log_level             = vm["log-level"].as<std::string>();
+    if (vm.count("secret-key"))            cfg->secret_key            = vm["secret-key"].as<std::string>();
     if (vm.count("session-settings-base"))
     {
         auto val = vm["session-settings-base"].as<std::string>();
@@ -291,6 +298,17 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
     // the config are applied, and cannot be overwritten by it.
     cfg->session_settings.set_str(lt::settings_pack::peer_fingerprint, lt::generate_fingerprint("PO", 0, 1));
     cfg->session_settings.set_str(lt::settings_pack::user_agent, "porla/1.0");
+
+    // If we get here without having a secret key, we must generate one. Also log a warning because
+    // if the secret key changes, JWT's will not work if restarting.
+
+    if (cfg->secret_key.empty())
+    {
+        BOOST_LOG_TRIVIAL(warning) << "No secret key set. Porla will generate one";
+        BOOST_LOG_TRIVIAL(warning) << "Use './porla key:generate' to generate a secret key";
+
+        cfg->secret_key = porla::Utils::SecretKey::New();
+    }
 
     return std::move(cfg);
 }

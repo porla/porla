@@ -36,6 +36,7 @@ namespace porla
         std::optional<bool>                   http_webui_enabled;
         std::optional<std::string>            log_level;
         std::map<std::string, Preset>         presets;
+        std::string                           secret_key;
         std::optional<std::vector<lt_plugin>> session_extensions;
         libtorrent::settings_pack             session_settings;
         std::optional<int>                    timer_dht_stats;
