@@ -53,6 +53,8 @@ add_executable(
     src/httpcontext.hpp
     src/httpeventstream.cpp
     src/httpeventstream.hpp
+    src/httpjwtauth.cpp
+    src/httpjwtauth.hpp
     src/httpmiddleware.hpp
     src/httpserver.cpp
     src/httpserver.hpp

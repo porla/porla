@@ -3,7 +3,6 @@
 #include <thread>
 
 #include <boost/log/trivial.hpp>
-#include <jwt-cpp/jwt.h>
 #include <sodium.h>
 
 #include "data/models/users.hpp"

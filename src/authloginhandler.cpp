@@ -1,6 +1,5 @@
 #include "authloginhandler.hpp"
 
-#include <boost/log/trivial.hpp>
 #include <jwt-cpp/jwt.h>
 #include <sodium.h>
 
@@ -54,10 +53,12 @@ void AuthLoginHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
                     }
 
                     auto token = jwt::create()
+                        .set_expires_at(std::chrono::system_clock::now() + std::chrono::seconds{3600})
                         .set_issuer("porla")
-                        .set_type("JWS")
+                        .set_issued_at(std::chrono::system_clock::now())
                         .set_subject(username)
-                        .sign(jwt::algorithm::hs256{secret_key});
+                        .set_type("JWS")
+                        .sign(jwt::algorithm::hs256(secret_key));
 
                     ctx->WriteJson({
                         {"token", token}

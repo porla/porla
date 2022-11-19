@@ -10,6 +10,7 @@
 #include "embeddedwebuihandler.hpp"
 #include "httpauthtokenhandler.hpp"
 #include "httpeventstream.hpp"
+#include "httpjwtauth.hpp"
 #include "httpserver.hpp"
 #include "jsonrpchandler.hpp"
 #include "metricshandler.hpp"
@@ -157,8 +158,19 @@ int main(int argc, char* argv[])
             http.Use(porla::HttpAuthTokenHandler(cfg->http_auth_token.value()));
         }
 
-        http.Use(porla::HttpPost("/api/v1/jsonrpc", [&rpc](auto const& ctx) { rpc(ctx); }));
-        http.Use(porla::HttpGet("/api/v1/events", [&eventStream](auto const& ctx) { eventStream(ctx); }));
+        http.Use(
+            porla::HttpPost(
+                "/api/v1/jsonrpc",
+                porla::HttpJwtAuth(
+                    cfg->secret_key,
+                    [&rpc](auto const& ctx) { rpc(ctx); })));
+
+        http.Use(
+            porla::HttpGet(
+                "/api/v1/events",
+                porla::HttpJwtAuth(
+                    cfg->secret_key,
+                    [&eventStream](auto const& ctx) { eventStream(ctx); })));
 
         if (cfg->http_metrics_enabled.value_or(true))
         {
