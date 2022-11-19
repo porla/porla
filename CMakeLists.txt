@@ -66,6 +66,8 @@ add_executable(
     src/session.hpp
     src/torrentsvt.cpp
     src/torrentsvt.hpp
+    src/utils/secretkey.cpp
+    src/utils/secretkey.hpp
 
     src/data/migrate.cpp
     src/data/migrate.hpp

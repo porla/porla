@@ -1,6 +1,7 @@
 #include <boost/asio.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
+#include <sodium.h>
 
 #include "authinithandler.hpp"
 #include "authloginhandler.hpp"
@@ -13,6 +14,7 @@
 #include "jsonrpchandler.hpp"
 #include "metricshandler.hpp"
 #include "session.hpp"
+#include "utils/secretkey.hpp"
 
 #include "methods/presetslist.hpp"
 #include "methods/sessionpause.hpp"
@@ -32,6 +34,13 @@
 #include "methods/torrentsresume.hpp"
 #include "methods/torrentstrackerslist.hpp"
 
+int GenerateSecretKey()
+{
+    const std::string key = porla::Utils::SecretKey::New();
+    printf("%s\n", key.c_str());
+    return 0;
+}
+
 int PrintJsonVersion()
 {
     printf("{\"branch\": \"%s\",\"commitish\": \"%s\", \"version\": \"%s\"}\n",
@@ -44,6 +53,11 @@ int PrintJsonVersion()
 
 int main(int argc, char* argv[])
 {
+    if (argc >= 2 && strcmp(argv[1], "key:generate") == 0)
+    {
+        return GenerateSecretKey();
+    }
+
     if (argc >= 2 && strcmp(argv[1], "version:json") == 0)
     {
         return PrintJsonVersion();
