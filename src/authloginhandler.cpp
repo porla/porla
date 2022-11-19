@@ -14,16 +14,6 @@ AuthLoginHandler::AuthLoginHandler(boost::asio::io_context& io, sqlite3* db)
 {
 }
 
-AuthLoginHandler::~AuthLoginHandler()
-{
-    for (auto& thread : m_workers)
-    {
-        if (thread.joinable()) thread.join();
-    }
-
-    m_workers.clear();
-}
-
 void AuthLoginHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
 {
     const auto req = nlohmann::json::parse(ctx->Request().body());
@@ -43,13 +33,7 @@ void AuthLoginHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
         return ctx->Write("No");
     }
 
-    if (m_workers.size() >= 3)
-    {
-        BOOST_LOG_TRIVIAL(warning) << "Max amount of hash workers running";
-        return ctx->Write("No");
-    }
-
-    m_workers.emplace_back(
+    std::thread t(
         [ctx, &io = m_io, password, user]()
         {
             int result = crypto_pwhash_str_verify(
@@ -79,4 +63,6 @@ void AuthLoginHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
                     });
                 });
         });
+
+    t.detach();
 }
