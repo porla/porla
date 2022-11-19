@@ -48,8 +48,6 @@ add_executable(
     src/embeddedwebuihandler.cpp
     src/embeddedwebuihandler.hpp
     src/main.cpp
-    src/httpauthtokenhandler.cpp
-    src/httpauthtokenhandler.hpp
     src/httpcontext.hpp
     src/httpeventstream.cpp
     src/httpeventstream.hpp

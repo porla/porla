@@ -8,7 +8,6 @@
 #include "buildinfo.hpp"
 #include "config.hpp"
 #include "embeddedwebuihandler.hpp"
-#include "httpauthtokenhandler.hpp"
 #include "httpeventstream.hpp"
 #include "httpjwtauth.hpp"
 #include "httpserver.hpp"
@@ -151,12 +150,6 @@ int main(int argc, char* argv[])
 
         http.Use(porla::HttpPost("/api/v1/auth/init", [&authInitHandler](auto const& ctx) { authInitHandler(ctx); }));
         http.Use(porla::HttpPost("/api/v1/auth/login", [&authLoginHandler](auto const& ctx) { authLoginHandler(ctx); }));
-
-        if (cfg->http_auth_token)
-        {
-            BOOST_LOG_TRIVIAL(info) << "Enabling HTTP token auth";
-            http.Use(porla::HttpAuthTokenHandler(cfg->http_auth_token.value()));
-        }
 
         http.Use(
             porla::HttpPost(
