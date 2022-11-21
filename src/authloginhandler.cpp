@@ -7,6 +7,7 @@
 #include "data/models/users.hpp"
 
 using porla::AuthLoginHandler;
+using porla::Data::Models::Users;
 
 AuthLoginHandler::AuthLoginHandler(boost::asio::io_context& io, const AuthLoginHandlerOptions& opts)
     : m_io(io)
@@ -17,6 +18,11 @@ AuthLoginHandler::AuthLoginHandler(boost::asio::io_context& io, const AuthLoginH
 
 void AuthLoginHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
 {
+    if (m_threads.size() >= 5)
+    {
+        return ctx->Write("Noo");
+    }
+
     const auto req = nlohmann::json::parse(ctx->Request().body());
 
     if (!req.contains("username") || !req.contains("password"))
@@ -27,25 +33,31 @@ void AuthLoginHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
     auto const username = req["username"].get<std::string>();
     auto const password = req["password"].get<std::string>();
 
-    auto const user = porla::Data::Models::Users::GetByUsername(m_db, username);
-
-    if (!user)
-    {
-        return ctx->Write("No");
-    }
-
-    if (m_threads.size() >= 5)
-    {
-        return ctx->Write("Noo");
-    }
+    auto const user = Users::GetByUsername(m_db, username);
 
     m_threads.emplace_back(
         [ctx, &io = m_io, password, secret_key = m_secret_key, &threads = m_threads, user]()
         {
-            int result = crypto_pwhash_str_verify(
-                user->password_hashed.c_str(),
-                password.c_str(),
-                password.size());
+            int result = -1;
+
+            if (user)
+            {
+                result = crypto_pwhash_str_verify(
+                    user->password_hashed.c_str(),
+                    password.c_str(),
+                    password.size());
+            }
+            else
+            {
+                // No user found. Still calculate a pwhash to not make it easy to
+                // enumerate usernames. Do not set the result. The hashed password is
+                // just 'hunter2'.
+
+                (void) crypto_pwhash_str_verify(
+                    "$argon2id$v=19$m=1048576,t=4,p=1$MNy6/sqw4+WlGyeRDxiFdw$+FnYmB7Qfz+JKQeCzpjQW7rmpW/uqZxwGqDRDweBQRE",
+                    "hunter2",
+                    7);
+            }
 
             boost::asio::dispatch(
                 io,
@@ -80,8 +92,9 @@ void AuthLoginHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
                         });
                     }
 
+                    // Issue a JWT valid for 1 day. This should be enough for most users.
                     auto token = jwt::create()
-                        .set_expires_at(std::chrono::system_clock::now() + std::chrono::seconds{3600})
+                        .set_expires_at(std::chrono::system_clock::now() + std::chrono::days{1})
                         .set_issuer("porla")
                         .set_issued_at(std::chrono::system_clock::now())
                         .set_subject(username)
