@@ -2,7 +2,8 @@ import { Box, Flex, HStack, IconButton, Image, Link, Spacer, Stack, Text, useCol
 import { useState } from 'react';
 import { MdDarkMode, MdHelp, MdLightMode, MdSettings } from 'react-icons/md';
 import { SiDiscord } from 'react-icons/si';
-import { Outlet } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
+import useSWR from 'swr';
 
 import Isotype from './assets/isotype.svg';
 import AppErrorModal from './components/AppErrorModal';
@@ -17,10 +18,35 @@ type IVersionInfo = {
   }
 }
 
+const fetcher = async (
+  input: RequestInfo,
+  init: RequestInit,
+  ...args: any[]
+) => {
+  const res = await fetch(input, init);
+  return res.json();
+};
+
 export default function App() {
+  const { data: system, error: system_error } = useSWR("/api/v1/system", fetcher);
+
   const { data, error } = useRPC<IVersionInfo>("sys.versions");
   const [ showSettings, setShowSettings ] = useState(false);
   const { colorMode, toggleColorMode } = useColorMode();
+
+  if (system_error) {
+    return <div>{system_error.toString()}</div>
+  }
+
+  if (!system) {
+    return <div>Loading</div>
+  }
+
+  if (system && system.status === "setup") {
+    return (
+      <Navigate to={"/setup"} />
+    )
+  }
 
   if (error) {
     return (
