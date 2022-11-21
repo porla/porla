@@ -3,8 +3,8 @@ import { Form, Formik } from "formik";
 import { useState } from "react";
 import * as Yup from "yup";
 
-import { ISettingsDict, ISettingsList } from "../services";
-import { jsonrpc, useRPC } from "../services/jsonrpc";
+import { ISettingsDict, ISettingsList } from "../types";
+import { jsonrpc, useInvoker, useRPC } from "../services/jsonrpc";
 import GeneralSettingsTab from "./settings/GeneralSettingsTab";
 import ProxySettingsTab from "./settings/ProxySettingsTab";
 
@@ -48,6 +48,8 @@ type SettingsFormProps = {
 function SettingsForm(props: SettingsFormProps) {
   const { onSubmitting, settings } = props;
 
+  const sessionSettingsUpdate = useInvoker<void>("session.settings.update");
+
   return (
     <Formik
       initialValues={{
@@ -70,7 +72,7 @@ function SettingsForm(props: SettingsFormProps) {
           delta.listen_interfaces = delta.listen_interfaces.replace("\n", ",");
         }
 
-        await jsonrpc("session.settings.update", {
+        await sessionSettingsUpdate({
           settings: delta
         });
 

@@ -1,6 +1,6 @@
 import { Box, Flex, HStack, IconButton, Image, Link, Spacer, Stack, Text, useColorMode } from '@chakra-ui/react';
 import { useState } from 'react';
-import { MdDarkMode, MdHelp, MdLightMode, MdSettings } from 'react-icons/md';
+import { MdDarkMode, MdLightMode, MdSettings } from 'react-icons/md';
 import { SiDiscord } from 'react-icons/si';
 import { Navigate, Outlet } from 'react-router-dom';
 import useSWR from 'swr';
@@ -8,6 +8,7 @@ import useSWR from 'swr';
 import Isotype from './assets/isotype.svg';
 import AppErrorModal from './components/AppErrorModal';
 import SettingsDrawer from './components/SettingsDrawer';
+import useAuth from './contexts/auth';
 import { useRPC } from './services/jsonrpc';
 
 type IVersionInfo = {
@@ -27,26 +28,10 @@ const fetcher = async (
   return res.json();
 };
 
-export default function App() {
-  const { data: system, error: system_error } = useSWR("/api/v1/system", fetcher);
-
+function AuthApp() {
   const { data, error } = useRPC<IVersionInfo>("sys.versions");
   const [ showSettings, setShowSettings ] = useState(false);
   const { colorMode, toggleColorMode } = useColorMode();
-
-  if (system_error) {
-    return <div>{system_error.toString()}</div>
-  }
-
-  if (!system) {
-    return <div>Loading</div>
-  }
-
-  if (system && system.status === "setup") {
-    return (
-      <Navigate to={"/setup"} />
-    )
-  }
 
   if (error) {
     return (
@@ -116,4 +101,30 @@ export default function App() {
       </HStack>
     </Flex>
   )
+}
+
+export default function App() {
+  const { data: system, error: system_error } = useSWR("/api/v1/system", fetcher);
+
+  const {
+    user
+  } = useAuth();
+
+  if (system_error) {
+    return <div>{system_error.toString()}</div>
+  }
+
+  if (!system) {
+    return <div>Loading</div>
+  }
+
+  if (system.status === "setup") {
+    return <Navigate to={"/setup"} />
+  }
+
+  if (!user) {
+    return <Navigate to={"/login"} />
+  }
+
+  return <AuthApp />
 }

@@ -3,7 +3,8 @@ import { Field, Form, Formik } from "formik";
 import useSWR from "swr";
 import * as Yup from "yup";
 
-import porla, { InfoHash } from "../services/index";
+import { InfoHash, PresetsList } from "../types/index";
+import { useInvoker } from "../services/jsonrpc";
 
 const readFile = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -44,9 +45,10 @@ type AddTorrentModalProps = {
 
 export default function AddTorrentModal(props: AddTorrentModalProps) {
   const {
-    data: presets,
-    error: presets_error
-  } = useSWR("presets", porla.presets.list);
+    data: presets
+  } = useSWR<PresetsList>("presets.list");
+
+  const torrentsAdd = useInvoker<InfoHash>("torrents.add")
 
   return (
     <Modal
@@ -63,9 +65,7 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
             save_path: "",
             ti: ""
           }}
-          onSubmit={async (values, actions) => {
-            actions.setSubmitting(true);
-
+          onSubmit={async (values) => {
             const params: any = {
               save_path: values.save_path,
             };
@@ -79,8 +79,8 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
                 break;
             }
 
-            const hash = await porla.torrents.add(params);
-            actions.setSubmitting(false);
+            const hash = await torrentsAdd(params);
+
             props.onClose(hash);
           }}
           validationSchema={AddTorrentSchema}
