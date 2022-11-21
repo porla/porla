@@ -7,6 +7,13 @@ const fetcher = function<T>(token: string) {
   };
 }
 
+export class AuthError extends Error {
+  constructor(message: string) {
+    super();
+    this.message = message;
+  }
+}
+
 export async function jsonrpc<T>(token: string, method: string, params?: any) {
   const res = await fetch('/api/v1/jsonrpc', {
     body: JSON.stringify({
@@ -19,6 +26,10 @@ export async function jsonrpc<T>(token: string, method: string, params?: any) {
     },
     method: 'POST'
   });
+
+  if (res.status === 401) {
+    throw new AuthError(res.statusText);
+  }
 
   if (res.status !== 200) {
     throw new Error(res.statusText);

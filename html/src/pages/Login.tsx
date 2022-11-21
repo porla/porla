@@ -4,8 +4,8 @@ import { Input } from "@chakra-ui/input";
 import { Box, Flex, Text } from "@chakra-ui/layout";
 import { Heading, Spinner, VStack } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
 import useAuth from "../contexts/auth";
 
 type Status = {
@@ -14,12 +14,23 @@ type Status = {
 }
 
 export default function Login() {
-  const {
-    login
-  } = useAuth();
+  const { login } = useAuth();
 
   const navigate = useNavigate();
   const [ status, setStatus ] = useState<Status | undefined>();
+  const [ systemStatus, setSystemStatus ] = useState<string | undefined>();
+
+  useEffect(() => {
+    fetch("/api/v1/system")
+      .then(r => r.json())
+      .then(s => {
+        setSystemStatus(s.status);
+      });
+  }, []);
+
+  if (systemStatus === "setup") {
+    return <Navigate to={"/setup"} />
+  }
 
   return (
     <Flex

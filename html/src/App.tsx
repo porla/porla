@@ -1,15 +1,14 @@
 import { Box, Flex, HStack, IconButton, Image, Link, Spacer, Stack, Text, useColorMode } from '@chakra-ui/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MdDarkMode, MdLightMode, MdSettings } from 'react-icons/md';
 import { SiDiscord } from 'react-icons/si';
 import { Navigate, Outlet } from 'react-router-dom';
-import useSWR from 'swr';
 
 import Isotype from './assets/isotype.svg';
 import AppErrorModal from './components/AppErrorModal';
 import SettingsDrawer from './components/SettingsDrawer';
 import useAuth from './contexts/auth';
-import { useRPC } from './services/jsonrpc';
+import { AuthError, useRPC } from './services/jsonrpc';
 
 type IVersionInfo = {
   porla: {
@@ -19,19 +18,14 @@ type IVersionInfo = {
   }
 }
 
-const fetcher = async (
-  input: RequestInfo,
-  init: RequestInit,
-  ...args: any[]
-) => {
-  const res = await fetch(input, init);
-  return res.json();
-};
-
 function AuthApp() {
   const { data, error } = useRPC<IVersionInfo>("sys.versions");
   const [ showSettings, setShowSettings ] = useState(false);
   const { colorMode, toggleColorMode } = useColorMode();
+
+  if (error && error instanceof AuthError) {
+    return <Navigate to="/login" />
+  }
 
   if (error) {
     return (
@@ -104,25 +98,29 @@ function AuthApp() {
 }
 
 export default function App() {
-  const { data: system, error: system_error } = useSWR("/api/v1/system", fetcher);
+  const { user } = useAuth();
+  const [status, setStatus] = useState<string | undefined>();
 
-  const {
-    user
-  } = useAuth();
+  useEffect(() => {
+    fetch("/api/v1/system")
+      .then(r => r.json())
+      .then(s => {
+        setStatus(s.status);
+      });
+  }, []);
 
-  if (system_error) {
-    return <div>{system_error.toString()}</div>
-  }
-
-  if (!system) {
+  if (!status) {
     return <div>Loading</div>
   }
 
-  if (system.status === "setup") {
+  console.log(status, user);
+
+  if (status === "setup") {
     return <Navigate to={"/setup"} />
   }
 
   if (!user) {
+    console.log('redir to login');
     return <Navigate to={"/login"} />
   }
 

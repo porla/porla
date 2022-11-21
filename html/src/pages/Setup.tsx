@@ -7,6 +7,7 @@ import { Field, Form, Formik } from "formik";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Isotype from '../assets/isotype.svg';
+import useAuth from "../contexts/auth";
 import auth from "../services/auth";
 
 type Status = {
@@ -15,6 +16,7 @@ type Status = {
 }
 
 export default function Setup() {
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [ status, setStatus ] = useState<Status | undefined>();
 
@@ -45,32 +47,27 @@ export default function Setup() {
             username: "",
             password: ""
           }}
-          onSubmit={async (values, actions) => {
+          onSubmit={async ({ username, password }) => {
             setStatus({ level: "info", message: "Creating user account" });
 
-            const { ok } = await auth.init(values.username, values.password);
+            const { ok } = await auth.init(username, password);
 
             if (!ok) {
-              // TODO: Show an error
-              return;
+              return setStatus({ level: "error", message: "Failed to create user account" });
             }
 
             setStatus({ level: "info", message: "Signing in" });
 
-            if (await auth.login(values.username, values.password)) {
-              setStatus({ level: "info", message: "All done. Redirecting" });
-              await new Promise(r => setTimeout(r, 500));
-              return navigate("/");
-            }
+            await login(username, password);
 
-            // Set error
+            navigate("/");
           }}
         >
           {({ isSubmitting }) => (
             <Form>
               <Field name="username">
                 {(w: any) => (
-                  <FormControl>
+                  <FormControl isDisabled={isSubmitting}>
                     <FormLabel>Username</FormLabel>
                     <Input {...w.field} />
                     <FormHelperText>Your chosen username</FormHelperText>
@@ -80,7 +77,7 @@ export default function Setup() {
 
               <Field name="password">
                 {(w: any) => (
-                  <FormControl mt={3}>
+                  <FormControl isDisabled={isSubmitting} mt={3}>
                     <FormLabel>Password</FormLabel>
                     <Input {...w.field} type={"password"} />
                     <FormHelperText>A secure password</FormHelperText>
@@ -88,7 +85,7 @@ export default function Setup() {
                 )}
               </Field>
 
-              <FormControl mt={3}>
+              <FormControl isDisabled={isSubmitting} mt={3}>
                 <FormLabel>Repeat password</FormLabel>
                 <Input type={"password"} />
                 <FormHelperText>Repeat your password</FormHelperText>
