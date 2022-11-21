@@ -65,6 +65,10 @@ void HttpJwtAuth::operator()(const std::shared_ptr<porla::HttpContext> &ctx)
     {
         BOOST_LOG_TRIVIAL(warning) << "Failed to verify JWT token: " << ex.what();
     }
+    catch (const std::exception& ex)
+    {
+        BOOST_LOG_TRIVIAL(warning) << "Failed to decode token: " << ex.what();
+    }
 
     return ctx->Write(not_authorized());
 }
