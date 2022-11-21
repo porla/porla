@@ -1,5 +1,6 @@
 #include "authloginhandler.hpp"
 
+#include <boost/log/trivial.hpp>
 #include <jwt-cpp/jwt.h>
 #include <sodium.h>
 
@@ -33,8 +34,13 @@ void AuthLoginHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
         return ctx->Write("No");
     }
 
-    std::thread t(
-        [ctx, &io = m_io, password, secret_key = m_secret_key, user]()
+    if (m_threads.size() >= 5)
+    {
+        return ctx->Write("Noo");
+    }
+
+    m_threads.emplace_back(
+        [ctx, &io = m_io, password, secret_key = m_secret_key, &threads = m_threads, user]()
         {
             int result = crypto_pwhash_str_verify(
                 user->password_hashed.c_str(),
@@ -43,8 +49,30 @@ void AuthLoginHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
 
             boost::asio::dispatch(
                 io,
-                [ctx, result, secret_key, username = user->username]()
+                [ctx, result, secret_key, thread_id = std::this_thread::get_id(), &threads, username = user->username]()
                 {
+                    auto thread = std::find_if(
+                        threads.begin(),
+                        threads.end(),
+                        [&thread_id](auto const& t) { return t.get_id() == thread_id; });
+
+                    if (thread == threads.end())
+                    {
+                        // This really shouldn't happen.
+                        BOOST_LOG_TRIVIAL(error) << "Could not find thread";
+                    }
+                    else
+                    {
+                        BOOST_LOG_TRIVIAL(debug) << "Erasing worker thread " << thread_id;
+
+                        if (thread->joinable())
+                        {
+                            thread->join();
+                        }
+
+                        threads.erase(thread);
+                    }
+
                     if (result != 0)
                     {
                         return ctx->WriteJson({
@@ -65,6 +93,4 @@ void AuthLoginHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
                     });
                 });
         });
-
-    t.detach();
 }
