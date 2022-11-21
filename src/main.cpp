@@ -14,6 +14,7 @@
 #include "jsonrpchandler.hpp"
 #include "metricshandler.hpp"
 #include "session.hpp"
+#include "systemhandler.hpp"
 #include "utils/secretkey.hpp"
 
 #include "methods/presetslist.hpp"
@@ -150,6 +151,7 @@ int main(int argc, char* argv[])
 
         http.Use(porla::HttpPost("/api/v1/auth/init", [&authInitHandler](auto const& ctx) { authInitHandler(ctx); }));
         http.Use(porla::HttpPost("/api/v1/auth/login", [&authLoginHandler](auto const& ctx) { authLoginHandler(ctx); }));
+        http.Use(porla::HttpGet("/api/v1/system", porla::SystemHandler(cfg->db)));
 
         http.Use(
             porla::HttpPost(

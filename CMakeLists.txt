@@ -64,6 +64,8 @@ add_executable(
     src/metricshandler.hpp
     src/session.cpp
     src/session.hpp
+    src/systemhandler.cpp
+    src/systemhandler.hpp
     src/torrentsvt.cpp
     src/torrentsvt.hpp
     src/utils/secretkey.cpp
