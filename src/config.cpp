@@ -54,6 +54,7 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
 
     if (auto val = std::getenv("PORLA_CONFIG_FILE"))           cfg->config_file     = val;
     if (auto val = std::getenv("PORLA_DB"))                    cfg->db_file         = val;
+    if (auto val = std::getenv("PORLA_HTTP_BASE_PATH"))        cfg->http_base_path  = val;
     if (auto val = std::getenv("PORLA_HTTP_HOST"))             cfg->http_host       = val;
     if (auto val = std::getenv("PORLA_HTTP_METRICS_ENABLED"))
     {
@@ -83,6 +84,7 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
         ("config-file",           po::value<std::string>(), "Path to a porla.toml config file.")
         ("db",                    po::value<std::string>(), "Path to where the database will be stored.")
         ("help",                                            "Show usage")
+        ("http-base-path",        po::value<std::string>(), "The base path for HTTP routes")
         ("http-host",             po::value<std::string>(), "The host to listen on for HTTP traffic.")
         ("http-metrics-enabled",  po::value<bool>(),        "Set to true if the metrics endpoint should be enabled")
         ("http-port",             po::value<uint16_t>(),    "The port to listen on for HTTP traffic.")
@@ -132,6 +134,9 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
 
             if (auto val = config_file_tbl["db"].value<std::string>())
                 cfg->db_file = *val;
+
+            if (auto val = config_file_tbl["http"]["base_path"].value<std::string>())
+                cfg->http_base_path = *val;
 
             if (auto val = config_file_tbl["http"]["host"].value<std::string>())
                 cfg->http_host = *val;
@@ -244,6 +249,7 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
     }
 
     if (vm.count("db"))                    cfg->db_file               = vm["db"].as<std::string>();
+    if (vm.count("http-base-path"))        cfg->http_base_path        = vm["http-base-path"].as<std::string>();
     if (vm.count("http-host"))             cfg->http_host             = vm["http-host"].as<std::string>();
     if (vm.count("http-metrics-enabled"))
     {

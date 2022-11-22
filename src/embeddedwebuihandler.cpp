@@ -1,8 +1,10 @@
 #include "embeddedwebuihandler.hpp"
 
 #include <filesystem>
+#include <regex>
 
 #include <boost/log/trivial.hpp>
+#include <utility>
 #include <zip.h>
 
 namespace fs = std::filesystem;
@@ -14,7 +16,24 @@ extern "C"
     extern const size_t webui_zip_size();
 }
 
-EmbeddedWebUIHandler::EmbeddedWebUIHandler()
+void str_replace_all(std::string& str, const std::string& from, const std::string& to)
+{
+    if (from.empty())
+    {
+        return;
+    }
+
+    size_t start_pos = 0;
+
+    while ((start_pos = str.find(from, start_pos)) != std::string::npos)
+    {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length();
+    }
+}
+
+EmbeddedWebUIHandler::EmbeddedWebUIHandler(std::string base_path)
+    : m_base_path(std::move(base_path))
 {
     if (webui_zip_size() == 0)
     {
@@ -80,19 +99,47 @@ void EmbeddedWebUIHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
             mime_type = MimeTypes.at(file.extension());
         }
 
+        std::string data = std::string(m_files.at(file).data(), m_files.at(file).size());
+
+        if (file == "index.html")
+        {
+            str_replace_all(data, "%BASE_PATH%", m_base_path);
+
+            // Try to patch in our base path
+            std::regex href_expression(R"(href=\"(\.\/)(.*)\")");
+            std::regex src_expression(R"(src=\"(\.\/)(.*)\")");
+
+            data = std::regex_replace(data, href_expression, "href=\"" + m_base_path + "/$2\"");
+            data = std::regex_replace(data, src_expression, "src=\"" + m_base_path + "/$2\"");
+        }
+
         http::response<http::string_body> res{http::status::ok, ctx->Request().version()};
         res.set(http::field::server, "porla/1.0");
         res.set(http::field::content_type, mime_type);
         res.keep_alive(ctx->Request().keep_alive());
-        res.body() = std::string(m_files.at(file).data(), m_files.at(file).size());
+        res.body() = data;
         res.prepare_payload();
         return res;
     };
 
     std::string path = ctx->Request().target().to_string();
-    if (path.length() > 0 && path[0] == '/') path = path.substr(1);
-    if (path.empty())                        path = "index.html";
-    if (!m_files.contains(path))             path = "index.html";
 
-    ctx->Write(respond_with_file(path));
+    // If the path is shorter than our base path, do not handle this request.
+    // For example,
+    // path: /      base_path: /porla
+    // Also check that the path is prefixed with the base path.
+
+    if (path.length() < m_base_path.length()
+        || path.substr(0, m_base_path.length()) != m_base_path)
+    {
+        return ctx->Next();
+    }
+
+    std::string rooted_path = path.substr(m_base_path.length());
+
+    if (rooted_path.length() > 0 && rooted_path[0] == '/') rooted_path = rooted_path.substr(1);
+    if (rooted_path.empty())                               rooted_path = "index.html";
+    if (!m_files.contains(rooted_path))                    rooted_path = "index.html";
+
+    ctx->Write(respond_with_file(rooted_path));
 }

@@ -5,6 +5,7 @@ import { SiDiscord } from 'react-icons/si';
 import { Navigate, Outlet } from 'react-router-dom';
 
 import Isotype from './assets/isotype.svg';
+import prefixPath from './base';
 import AppErrorModal from './components/AppErrorModal';
 import SettingsDrawer from './components/SettingsDrawer';
 import useAuth from './contexts/auth';
@@ -102,7 +103,7 @@ export default function App() {
   const [status, setStatus] = useState<string | undefined>();
 
   useEffect(() => {
-    fetch("/api/v1/system")
+    fetch(prefixPath("/api/v1/system"))
       .then(r => r.json())
       .then(s => {
         setStatus(s.status);
@@ -113,14 +114,11 @@ export default function App() {
     return <div>Loading</div>
   }
 
-  console.log(status, user);
-
   if (status === "setup") {
     return <Navigate to={"/setup"} />
   }
 
   if (!user) {
-    console.log('redir to login');
     return <Navigate to={"/login"} />
   }
 

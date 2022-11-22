@@ -6,6 +6,7 @@ import { Heading, Spinner, VStack } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
+import prefixPath from "../base";
 import useAuth from "../contexts/auth";
 
 type Status = {
@@ -21,7 +22,7 @@ export default function Login() {
   const [ systemStatus, setSystemStatus ] = useState<string | undefined>();
 
   useEffect(() => {
-    fetch("/api/v1/system")
+    fetch(prefixPath("/api/v1/system"))
       .then(r => r.json())
       .then(s => {
         setSystemStatus(s.status);

@@ -5,7 +5,15 @@
     <link rel="icon" type="image/svg+xml" href="/isotype.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Porla</title>
-    <style type="text/css">#root { height: 100vh; }</style>
+    <style>#root { height: 100vh; }</style>
+    <script>
+      window.porla = {
+        base_path: "%BASE_PATH%"
+      };
+      if (window.porla.base_path === "%BASE" + "_" + "PATH%") {
+        window.porla.base_path = "/";
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

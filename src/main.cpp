@@ -173,20 +173,25 @@ int main(int argc, char* argv[])
             .secret_key = cfg->secret_key
         });
 
-        http.Use(porla::HttpPost("/api/v1/auth/init", [&authInitHandler](auto const& ctx) { authInitHandler(ctx); }));
-        http.Use(porla::HttpPost("/api/v1/auth/login", [&authLoginHandler](auto const& ctx) { authLoginHandler(ctx); }));
-        http.Use(porla::HttpGet("/api/v1/system", porla::SystemHandler(cfg->db)));
+        std::string http_base_path = cfg->http_base_path.value_or("/");
+        if (http_base_path.empty())        http_base_path = "/";
+        if (http_base_path[0] != '/')      http_base_path = "/" + http_base_path;
+        if (http_base_path.ends_with("/")) http_base_path = http_base_path.substr(0, http_base_path.size() - 1);
+
+        http.Use(porla::HttpPost(http_base_path + "/api/v1/auth/init",  [&authInitHandler](auto const& ctx) { authInitHandler(ctx); }));
+        http.Use(porla::HttpPost(http_base_path + "/api/v1/auth/login", [&authLoginHandler](auto const& ctx) { authLoginHandler(ctx); }));
+        http.Use(porla::HttpGet(http_base_path +  "/api/v1/system",     porla::SystemHandler(cfg->db)));
 
         http.Use(
             porla::HttpPost(
-                "/api/v1/jsonrpc",
+                http_base_path + "/api/v1/jsonrpc",
                 porla::HttpJwtAuth(
                     cfg->secret_key,
                     [&rpc](auto const& ctx) { rpc(ctx); })));
 
         http.Use(
             porla::HttpGet(
-                "/api/v1/events",
+                http_base_path + "/api/v1/events",
                 porla::HttpJwtAuth(
                     cfg->secret_key,
                     [&eventStream](auto const& ctx) { eventStream(ctx); })));
@@ -194,13 +199,13 @@ int main(int argc, char* argv[])
         if (cfg->http_metrics_enabled.value_or(true))
         {
             BOOST_LOG_TRIVIAL(info) << "Enabling HTTP metrics endpoint";
-            http.Use(porla::HttpGet("/metrics", [&metrics](auto const &ctx) { metrics(ctx); }));
+            http.Use(porla::HttpGet(http_base_path + "/metrics", [&metrics](auto const &ctx) { metrics(ctx); }));
         }
 
         if (cfg->http_webui_enabled.value_or(true))
         {
             BOOST_LOG_TRIVIAL(info) << "Enabling HTTP web UI";
-            http.Use(porla::EmbeddedWebUIHandler());
+            http.Use(porla::EmbeddedWebUIHandler(http_base_path));
         }
 
         http.Use(porla::HttpNotFound());
