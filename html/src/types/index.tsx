@@ -1,5 +1,3 @@
-import { jsonrpc } from "./jsonrpc";
-
 type AddTorrentParams = {
   save_path: string;
   ti?: string;
@@ -228,20 +226,4 @@ export type ISettingsDict = {
 
 export type ISettingsList = {
   settings: ISettingsDict;
-}
-
-export default {
-  presets: {
-    list: () => jsonrpc<PresetsList>("presets.list")
-  },
-  session: {
-    settings: {
-      list: () => jsonrpc<ISettingsList>("session.settings.list")
-    }
-  },
-  torrents: {
-    add: (params: AddTorrentParams) => jsonrpc<InfoHash>("torrents.add", params),
-    move: (info_hash: InfoHash, path: string) => jsonrpc<void>("torrents.move", { info_hash, path }),
-    remove: (hash: InfoHash, remove_data: boolean) => jsonrpc<void>("torrents.remove", { info_hashes: [ hash ], remove_data})
-  }
 }

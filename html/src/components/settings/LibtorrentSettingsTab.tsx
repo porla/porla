@@ -1,6 +1,6 @@
 import { Kbd, Checkbox, Input, Link, Text, FormControl, FormLabel, FormHelperText, Divider, Box } from "@chakra-ui/react";
 import { FastField, useFormikContext } from "formik";
-import { ISettingsDict } from "../../services";
+import { ISettingsDict } from "../../types";
 import EncPolicyInput from "./EncPolicyInput";
 import IoBufferModeInput from "./IoBufferModeInput";
 

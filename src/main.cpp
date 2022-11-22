@@ -1,17 +1,22 @@
 #include <boost/asio.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
-#include <zip.h>
+#include <jwt-cpp/jwt.h>
+#include <sodium.h>
 
+#include "authinithandler.hpp"
+#include "authloginhandler.hpp"
 #include "buildinfo.hpp"
 #include "config.hpp"
 #include "embeddedwebuihandler.hpp"
-#include "httpauthtokenhandler.hpp"
 #include "httpeventstream.hpp"
+#include "httpjwtauth.hpp"
 #include "httpserver.hpp"
 #include "jsonrpchandler.hpp"
 #include "metricshandler.hpp"
 #include "session.hpp"
+#include "systemhandler.hpp"
+#include "utils/secretkey.hpp"
 
 #include "methods/presetslist.hpp"
 #include "methods/sessionpause.hpp"
@@ -31,6 +36,13 @@
 #include "methods/torrentsresume.hpp"
 #include "methods/torrentstrackerslist.hpp"
 
+int GenerateSecretKey()
+{
+    const std::string key = porla::Utils::SecretKey::New();
+    printf("%s\n", key.c_str());
+    return 0;
+}
+
 int PrintJsonVersion()
 {
     printf("{\"branch\": \"%s\",\"commitish\": \"%s\", \"version\": \"%s\"}\n",
@@ -41,8 +53,30 @@ int PrintJsonVersion()
     return 0;
 }
 
+int AuthToken(int argc, char* argv[], std::unique_ptr<porla::Config> cfg)
+{
+    auto token = jwt::create()
+        .set_issuer("porla")
+        .set_issued_at(std::chrono::system_clock::now())
+        .set_type("JWS")
+        .sign(jwt::algorithm::hs256(cfg->secret_key));
+
+    printf("%s\n", token.c_str());
+
+    return 0;
+}
+
 int main(int argc, char* argv[])
 {
+    // Default log level is info (or above)
+    boost::log::core::get()->set_filter(
+        boost::log::trivial::severity >= boost::log::trivial::info);
+
+    if (argc >= 2 && strcmp(argv[1], "key:generate") == 0)
+    {
+        return GenerateSecretKey();
+    }
+
     if (argc >= 2 && strcmp(argv[1], "version:json") == 0)
     {
         return PrintJsonVersion();
@@ -58,6 +92,12 @@ int main(int argc, char* argv[])
     {
         BOOST_LOG_TRIVIAL(fatal) << "Failed to load configuration: " << ex.what();
         return -1;
+    }
+
+    // These commands require our config loaded and ready.
+    if (argc >= 2 && strcmp(argv[1], "auth:token") == 0)
+    {
+        return AuthToken(argc, argv, std::move(cfg));
     }
 
     boost::log::trivial::severity_level log_level = boost::log::trivial::info;
@@ -127,14 +167,29 @@ int main(int argc, char* argv[])
         porla::HttpEventStream eventStream(session);
         porla::MetricsHandler metrics(session);
 
-        if (cfg->http_auth_token)
-        {
-            BOOST_LOG_TRIVIAL(info) << "Enabling HTTP token auth";
-            http.Use(porla::HttpAuthTokenHandler(cfg->http_auth_token.value()));
-        }
+        porla::AuthInitHandler authInitHandler(io, cfg->db);
+        porla::AuthLoginHandler authLoginHandler(io, porla::AuthLoginHandlerOptions{
+            .db         = cfg->db,
+            .secret_key = cfg->secret_key
+        });
 
-        http.Use(porla::HttpPost("/api/v1/jsonrpc", [&rpc](auto const& ctx) { rpc(ctx); }));
-        http.Use(porla::HttpGet("/api/v1/events", [&eventStream](auto const& ctx) { eventStream(ctx); }));
+        http.Use(porla::HttpPost("/api/v1/auth/init", [&authInitHandler](auto const& ctx) { authInitHandler(ctx); }));
+        http.Use(porla::HttpPost("/api/v1/auth/login", [&authLoginHandler](auto const& ctx) { authLoginHandler(ctx); }));
+        http.Use(porla::HttpGet("/api/v1/system", porla::SystemHandler(cfg->db)));
+
+        http.Use(
+            porla::HttpPost(
+                "/api/v1/jsonrpc",
+                porla::HttpJwtAuth(
+                    cfg->secret_key,
+                    [&rpc](auto const& ctx) { rpc(ctx); })));
+
+        http.Use(
+            porla::HttpGet(
+                "/api/v1/events",
+                porla::HttpJwtAuth(
+                    cfg->secret_key,
+                    [&eventStream](auto const& ctx) { eventStream(ctx); })));
 
         if (cfg->http_metrics_enabled.value_or(true))
         {

@@ -29,13 +29,13 @@ namespace porla
         std::optional<std::string>            config_file;
         sqlite3*                              db;
         std::optional<std::string>            db_file;
-        std::optional<std::string>            http_auth_token;
         std::optional<std::string>            http_host;
         std::optional<bool>                   http_metrics_enabled;
         std::optional<uint16_t>               http_port;
         std::optional<bool>                   http_webui_enabled;
         std::optional<std::string>            log_level;
         std::map<std::string, Preset>         presets;
+        std::string                           secret_key;
         std::optional<std::vector<lt_plugin>> session_extensions;
         libtorrent::settings_pack             session_settings;
         std::optional<int>                    timer_dht_stats;

@@ -1,13 +1,14 @@
 import { Box, Flex, HStack, IconButton, Image, Link, Spacer, Stack, Text, useColorMode } from '@chakra-ui/react';
-import { useState } from 'react';
-import { MdDarkMode, MdHelp, MdLightMode, MdSettings } from 'react-icons/md';
+import { useEffect, useState } from 'react';
+import { MdDarkMode, MdLightMode, MdSettings } from 'react-icons/md';
 import { SiDiscord } from 'react-icons/si';
-import { Outlet } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 
 import Isotype from './assets/isotype.svg';
 import AppErrorModal from './components/AppErrorModal';
 import SettingsDrawer from './components/SettingsDrawer';
-import { useRPC } from './services/jsonrpc';
+import useAuth from './contexts/auth';
+import { AuthError, useRPC } from './services/jsonrpc';
 
 type IVersionInfo = {
   porla: {
@@ -17,10 +18,14 @@ type IVersionInfo = {
   }
 }
 
-export default function App() {
+function AuthApp() {
   const { data, error } = useRPC<IVersionInfo>("sys.versions");
   const [ showSettings, setShowSettings ] = useState(false);
   const { colorMode, toggleColorMode } = useColorMode();
+
+  if (error && error instanceof AuthError) {
+    return <Navigate to="/login" />
+  }
 
   if (error) {
     return (
@@ -90,4 +95,34 @@ export default function App() {
       </HStack>
     </Flex>
   )
+}
+
+export default function App() {
+  const { user } = useAuth();
+  const [status, setStatus] = useState<string | undefined>();
+
+  useEffect(() => {
+    fetch("/api/v1/system")
+      .then(r => r.json())
+      .then(s => {
+        setStatus(s.status);
+      });
+  }, []);
+
+  if (!status) {
+    return <div>Loading</div>
+  }
+
+  console.log(status, user);
+
+  if (status === "setup") {
+    return <Navigate to={"/setup"} />
+  }
+
+  if (!user) {
+    console.log('redir to login');
+    return <Navigate to={"/login"} />
+  }
+
+  return <AuthApp />
 }

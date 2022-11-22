@@ -3,12 +3,11 @@ import { useState } from "react";
 import Pager from "../components/Pager";
 import RemoveTorrentModal from "../components/RemoveTorrentModal";
 import TorrentsTable from "../components/TorrentsTable";
-import { ITorrentsList } from "../services/index";
-import { useRPC } from "../services/jsonrpc";
-import porla from "../services/index";
+import { useInvoker, useRPC } from "../services/jsonrpc";
 import AddTorrentModal from "../components/AddTorrentModal";
 import MoveTorrentModal from "../components/MoveTorrentModal";
 import { MdAddBox } from "react-icons/md";
+import { ITorrentsList } from "../types";
 
 
 export default function Home() {
@@ -23,6 +22,9 @@ export default function Home() {
   }, {
     refreshInterval: 1000
   });
+
+  const torrentsMove = useInvoker<void>("torrents.move");
+  const torrentsRemove = useInvoker<void>("torrents.remove");
 
   if (error) {
     return (
@@ -67,7 +69,10 @@ export default function Home() {
             return;
           }
 
-          await porla.torrents.move(torrent.info_hash, path);
+          await torrentsMove({
+            info_hash: torrent.info_hash,
+            path
+          });
 
           setMoveTorrent(null);
         }}
@@ -80,7 +85,12 @@ export default function Home() {
             return setRemoveTorrent(null);
           }
           setDeleting(torrent);
-          await porla.torrents.remove(torrent.info_hash, remove_data);
+
+          await torrentsRemove({
+            info_hashes: [torrent.info_hash],
+            remove_data
+          });
+
           setRemoveTorrent(null);
         }}
       />

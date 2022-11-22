@@ -41,8 +41,6 @@ configuration and use sensible defaults instead.
    additional configuration.
  * `PORLA_DB` or `--db` - path a file (which does not need to exist) that `porla`
    will use to store its state.
- * `PORLA_HTTP_AUTH_TOKEN` or `--http-auth-token` - set to any random alphanumeric
-   string to enable token authentication for the HTTP server.
  * `PORLA_HTTP_HOST` or `--http-host` - set to an IP address which to bind the HTTP
    server. Defaults to _127.0.0.1_.
  * `PORLA_HTTP_METRICS_ENABLED` or `--http-metrics-enabled` - set to true/false to
@@ -68,7 +66,6 @@ db = ":memory:"
 log_level = "info"
 
 [http]
-auth_token = "<random string>"
 host = "127.0.0.1"
 metrics_enabled = true
 port = 1337

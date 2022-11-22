@@ -1,20 +1,18 @@
 #pragma once
 
-#include <memory>
-#include <string>
+#include <sqlite3.h>
 
 #include "httpcontext.hpp"
 
 namespace porla
 {
-    class HttpAuthTokenHandler
+    class SystemHandler
     {
     public:
-        explicit HttpAuthTokenHandler(std::string token);
-
+        explicit SystemHandler(sqlite3* db);
         void operator()(const std::shared_ptr<HttpContext>&);
 
     private:
-        std::string m_token;
+        sqlite3* m_db;
     };
 }
