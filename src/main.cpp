@@ -1,6 +1,7 @@
 #include <boost/asio.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
+#include <jwt-cpp/jwt.h>
 #include <sodium.h>
 
 #include "authinithandler.hpp"
@@ -52,8 +53,25 @@ int PrintJsonVersion()
     return 0;
 }
 
+int AuthToken(int argc, char* argv[], std::unique_ptr<porla::Config> cfg)
+{
+    auto token = jwt::create()
+        .set_issuer("porla")
+        .set_issued_at(std::chrono::system_clock::now())
+        .set_type("JWS")
+        .sign(jwt::algorithm::hs256(cfg->secret_key));
+
+    printf("%s\n", token.c_str());
+
+    return 0;
+}
+
 int main(int argc, char* argv[])
 {
+    // Default log level is info (or above)
+    boost::log::core::get()->set_filter(
+        boost::log::trivial::severity >= boost::log::trivial::info);
+
     if (argc >= 2 && strcmp(argv[1], "key:generate") == 0)
     {
         return GenerateSecretKey();
@@ -74,6 +92,12 @@ int main(int argc, char* argv[])
     {
         BOOST_LOG_TRIVIAL(fatal) << "Failed to load configuration: " << ex.what();
         return -1;
+    }
+
+    // These commands require our config loaded and ready.
+    if (argc >= 2 && strcmp(argv[1], "auth:token") == 0)
+    {
+        return AuthToken(argc, argv, std::move(cfg));
     }
 
     boost::log::trivial::severity_level log_level = boost::log::trivial::info;

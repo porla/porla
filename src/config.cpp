@@ -122,7 +122,7 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
     // Apply configuration from the config file before we apply the command line args.
     if (cfg->config_file && fs::is_regular_file(cfg->config_file.value()))
     {
-        BOOST_LOG_TRIVIAL(info) << "Reading config file at " << cfg->config_file.value();
+        BOOST_LOG_TRIVIAL(debug) << "Reading config file at " << cfg->config_file.value();
 
         std::ifstream config_file_data(cfg->config_file.value(), std::ios::binary);
 
@@ -309,7 +309,7 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
 
 Config::~Config()
 {
-    BOOST_LOG_TRIVIAL(info) << "Vacuuming database";
+    BOOST_LOG_TRIVIAL(debug) << "Vacuuming database";
 
     if (sqlite3_exec(db, "VACUUM;", nullptr, nullptr, nullptr) != SQLITE_OK)
     {
