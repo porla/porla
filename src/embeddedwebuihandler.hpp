@@ -11,11 +11,12 @@ namespace porla
     class EmbeddedWebUIHandler
     {
     public:
-        explicit EmbeddedWebUIHandler();
+        explicit EmbeddedWebUIHandler(std::string base_path);
 
         void operator()(const std::shared_ptr<HttpContext>&);
 
     private:
+        std::string m_base_path;
         std::map<std::string, std::vector<char>> m_files;
     };
 }

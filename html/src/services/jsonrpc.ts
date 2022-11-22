@@ -1,4 +1,5 @@
 import useSWR from "swr";
+import prefixPath from "../base";
 import useAuth from "../contexts/auth";
 
 const fetcher = function<T>(token: string) {
@@ -15,7 +16,7 @@ export class AuthError extends Error {
 }
 
 export async function jsonrpc<T>(token: string, method: string, params?: any) {
-  const res = await fetch('/api/v1/jsonrpc', {
+  const res = await fetch(prefixPath('/api/v1/jsonrpc'), {
     body: JSON.stringify({
       jsonrpc: '2.0',
       method,

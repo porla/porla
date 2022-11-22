@@ -10,10 +10,12 @@ import Setup from './pages/Setup';
 import { AuthProvider } from './contexts/auth';
 import Login from './pages/Login';
 
+const basename = (window as any).porla.base_path;
+
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <ChakraProvider theme={theme}>
-        <BrowserRouter>
+        <BrowserRouter basename={basename}>
           <AuthProvider>
             <Routes>
               <Route path="/" element={<App />}>

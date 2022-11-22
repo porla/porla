@@ -1,6 +1,8 @@
+import prefixPath from "../base";
+
 export default {
   init: async (username: string, password: string) => {
-    const res = await fetch("/api/v1/auth/init", {
+    const res = await fetch(prefixPath("/api/v1/auth/init"), {
       body: JSON.stringify({
         username,
         password
@@ -16,7 +18,7 @@ export default {
   },
 
   login: async (username: string, password: string): Promise<string> => {
-    const res = await fetch("/api/v1/auth/login", {
+    const res = await fetch(prefixPath("/api/v1/auth/login"), {
       body: JSON.stringify({
         username,
         password
