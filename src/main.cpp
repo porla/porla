@@ -7,12 +7,14 @@
 #include "authinithandler.hpp"
 #include "authloginhandler.hpp"
 #include "buildinfo.hpp"
+#include "cmdargs.hpp"
 #include "config.hpp"
 #include "embeddedwebuihandler.hpp"
 #include "httpeventstream.hpp"
 #include "httpjwtauth.hpp"
 #include "httpserver.hpp"
 #include "jsonrpchandler.hpp"
+#include "logger.hpp"
 #include "metricshandler.hpp"
 #include "session.hpp"
 #include "systemhandler.hpp"
@@ -68,9 +70,14 @@ int AuthToken(int argc, char* argv[], std::unique_ptr<porla::Config> cfg)
 
 int main(int argc, char* argv[])
 {
-    // Default log level is info (or above)
-    boost::log::core::get()->set_filter(
-        boost::log::trivial::severity >= boost::log::trivial::info);
+    const boost::program_options::variables_map cmd = porla::CmdArgs::Parse(argc, argv);
+
+    if (cmd.count("help"))
+    {
+        return porla::CmdArgs::Help();
+    }
+
+    porla::Logger::Setup(cmd);
 
     if (argc >= 2 && strcmp(argv[1], "key:generate") == 0)
     {
@@ -86,7 +93,7 @@ int main(int argc, char* argv[])
 
     try
     {
-        cfg = porla::Config::Load(argc, argv);
+        cfg = porla::Config::Load(cmd);
     }
     catch (const std::exception& ex)
     {
@@ -99,15 +106,6 @@ int main(int argc, char* argv[])
     {
         return AuthToken(argc, argv, std::move(cfg));
     }
-
-    boost::log::trivial::severity_level log_level = boost::log::trivial::info;
-    if (cfg->log_level == "trace")   { log_level = boost::log::trivial::severity_level::trace; }
-    if (cfg->log_level == "debug")   { log_level = boost::log::trivial::severity_level::debug; }
-    if (cfg->log_level == "info")    { log_level = boost::log::trivial::severity_level::info; }
-    if (cfg->log_level == "warning") { log_level = boost::log::trivial::severity_level::warning; }
-    if (cfg->log_level == "error")   { log_level = boost::log::trivial::severity_level::error; }
-    if (cfg->log_level == "fatal")   { log_level = boost::log::trivial::severity_level::fatal; }
-    boost::log::core::get()->set_filter(boost::log::trivial::severity >= log_level);
 
     boost::asio::io_context io;
     boost::asio::signal_set signals(io, SIGINT, SIGTERM);

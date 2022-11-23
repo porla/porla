@@ -43,10 +43,14 @@ add_executable(
     src/authloginhandler.hpp
     src/buildinfo.cpp
     src/buildinfo.hpp
+    src/cmdargs.cpp
+    src/cmdargs.hpp
     src/config.cpp
     src/config.hpp
     src/embeddedwebuihandler.cpp
     src/embeddedwebuihandler.hpp
+    src/logger.cpp
+    src/logger.hpp
     src/main.cpp
     src/httpcontext.hpp
     src/httpeventstream.cpp

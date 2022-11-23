@@ -24,7 +24,7 @@ using porla::Config;
 
 static void ApplySettings(const toml::table& tbl, lt::settings_pack& settings);
 
-std::unique_ptr<Config> Config::Load(int argc, char **argv)
+std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map& cmd)
 {
     const static std::vector<fs::path> config_file_search_paths =
     {
@@ -86,7 +86,6 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
         if (strcmp("true", val) == 0)  cfg->http_webui_enabled = true;
         if (strcmp("false", val) == 0) cfg->http_webui_enabled = false;
     }
-    if (auto val = std::getenv("PORLA_LOG_LEVEL"))             cfg->log_level       = val;
     if (auto val = std::getenv("PORLA_SECRET_KEY"))            cfg->secret_key      = val;
     if (auto val = std::getenv("PORLA_SESSION_SETTINGS_BASE"))
     {
@@ -98,39 +97,9 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
     if (auto val = std::getenv("PORLA_TIMER_SESSION_STATS"))   cfg->timer_session_stats   = std::stoi(val);
     if (auto val = std::getenv("PORLA_TIMER_TORRENT_UPDATES")) cfg->timer_torrent_updates = std::stoi(val);
 
-    po::options_description desc("Allowed options");
-    desc.add_options()
-        ("config-file",           po::value<std::string>(), "Path to a porla.toml config file.")
-        ("db",                    po::value<std::string>(), "Path to where the database will be stored.")
-        ("help",                                            "Show usage")
-        ("http-base-path",        po::value<std::string>(), "The base path for HTTP routes")
-        ("http-host",             po::value<std::string>(), "The host to listen on for HTTP traffic.")
-        ("http-metrics-enabled",  po::value<bool>(),        "Set to true if the metrics endpoint should be enabled")
-        ("http-port",             po::value<uint16_t>(),    "The port to listen on for HTTP traffic.")
-        ("http-webui-enabled",    po::value<bool>(),        "Set to true if the web UI should be enabled")
-        ("log-level",             po::value<std::string>(), "The minimum log level to print.")
-        ("secret-key",            po::value<std::string>(), "The secret key to use when protecting various pieces of data.")
-        ("session-settings-base", po::value<std::string>(), "The libtorrent base settings to use")
-        ("supervised-interval",   po::value<int>(),         "The interval to use when checking the supervisor pid.")
-        ("supervised-pid",        po::value<pid_t>(),       "A pid to a parent process. If this pid dies, we shut down.")
-        ("timer-dht-stats",       po::value<int>(),         "The interval to use for the DHT stats updates.")
-        ("timer-session-stats",   po::value<int>(),         "The interval to use for the session stats updates.")
-        ("timer-torrent-updates", po::value<int>(),         "The interval to use for the torrent updates.")
-        ;
-
-    po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);
-
-    if (vm.count("help"))
+    if (cmd.count("config-file"))
     {
-        std::cout << desc;
-        exit(0); // TODO: Not ideal.
-    }
-
-    if (vm.count("config-file"))
-    {
-        cfg->config_file = vm["config-file"].as<std::string>();
+        cfg->config_file = cmd["config-file"].as<std::string>();
 
         if (!fs::is_regular_file(cfg->config_file.value()))
         {
@@ -168,9 +137,6 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
 
             if (auto val = config_file_tbl["http"]["webui_enabled"].value<bool>())
                 cfg->http_webui_enabled = *val;
-
-            if (auto val = config_file_tbl["log_level"].value<std::string>())
-                cfg->log_level = *val;
 
             // Load presets
             if (auto const* presets_tbl = config_file_tbl["presets"].as_table())
@@ -267,31 +233,30 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
         }
     }
 
-    if (vm.count("db"))                    cfg->db_file               = vm["db"].as<std::string>();
-    if (vm.count("http-base-path"))        cfg->http_base_path        = vm["http-base-path"].as<std::string>();
-    if (vm.count("http-host"))             cfg->http_host             = vm["http-host"].as<std::string>();
-    if (vm.count("http-metrics-enabled"))
+    if (cmd.count("db"))                    cfg->db_file               = cmd["db"].as<std::string>();
+    if (cmd.count("http-base-path"))        cfg->http_base_path        = cmd["http-base-path"].as<std::string>();
+    if (cmd.count("http-host"))             cfg->http_host             = cmd["http-host"].as<std::string>();
+    if (cmd.count("http-metrics-enabled"))
     {
-        cfg->http_metrics_enabled = vm["http-metrics-enabled"].as<bool>();
+        cfg->http_metrics_enabled = cmd["http-metrics-enabled"].as<bool>();
     }
-    if (vm.count("http-port"))             cfg->http_port             = vm["http-port"].as<uint16_t>();
-    if (vm.count("http-webui-enabled"))
+    if (cmd.count("http-port"))             cfg->http_port             = cmd["http-port"].as<uint16_t>();
+    if (cmd.count("http-webui-enabled"))
     {
-        cfg->http_webui_enabled = vm["http-webui-enabled"].as<bool>();
+        cfg->http_webui_enabled = cmd["http-webui-enabled"].as<bool>();
     }
-    if (vm.count("log-level"))             cfg->log_level             = vm["log-level"].as<std::string>();
-    if (vm.count("secret-key"))            cfg->secret_key            = vm["secret-key"].as<std::string>();
-    if (vm.count("session-settings-base"))
+    if (cmd.count("secret-key"))            cfg->secret_key            = cmd["secret-key"].as<std::string>();
+    if (cmd.count("session-settings-base"))
     {
-        auto val = vm["session-settings-base"].as<std::string>();
+        auto val = cmd["session-settings-base"].as<std::string>();
 
         if (val == "default")               cfg->session_settings = lt::default_settings();
         if (val == "high_performance_seed") cfg->session_settings = lt::high_performance_seed();
         if (val == "min_memory_usage")      cfg->session_settings = lt::min_memory_usage();
     }
-    if (vm.count("timer-dht-stats"))       cfg->timer_dht_stats       = vm["timer-dht-stats"].as<int>();
-    if (vm.count("timer-session-stats"))   cfg->timer_session_stats   = vm["timer-session-stats"].as<pid_t>();
-    if (vm.count("timer-torrent-updates")) cfg->timer_torrent_updates = vm["timer-torrent-updates"].as<pid_t>();
+    if (cmd.count("timer-dht-stats"))       cfg->timer_dht_stats       = cmd["timer-dht-stats"].as<int>();
+    if (cmd.count("timer-session-stats"))   cfg->timer_session_stats   = cmd["timer-session-stats"].as<pid_t>();
+    if (cmd.count("timer-torrent-updates")) cfg->timer_torrent_updates = cmd["timer-torrent-updates"].as<pid_t>();
 
     if (sqlite3_open(cfg->db_file.value_or("porla.sqlite").c_str(), &cfg->db) != SQLITE_OK)
     {
