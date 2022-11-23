@@ -29,6 +29,22 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
     const static std::vector<fs::path> config_file_search_paths =
     {
         fs::current_path() / "porla.toml",
+
+        // Check $XDG_CONFIG_HOME/porla/porla.toml
+        std::getenv("XDG_CONFIG_HOME")
+            ? fs::path(std::getenv("XDG_CONFIG_HOME")) / "porla" / "porla.toml"
+            : fs::path(),
+
+        // Check $HOME/.config/porla/porla.toml
+        std::getenv("HOME")
+            ? fs::path(std::getenv("HOME")) / ".config" / "porla" / "porla.toml"
+            : fs::path(),
+
+        // Check $HOME/.config/porla.toml
+        std::getenv("HOME")
+            ? fs::path(std::getenv("HOME")) / ".config" / "porla.toml"
+            : fs::path(),
+
         "/etc/porla/porla.toml",
         "/etc/porla.toml"
     };
@@ -39,6 +55,9 @@ std::unique_ptr<Config> Config::Load(int argc, char **argv)
     // Check default locations for a config file.
     for (auto const& path : config_file_search_paths)
     {
+        // Skip empty paths.
+        if (path == fs::path()) continue;
+
         std::error_code ec;
         bool regular_file = fs::is_regular_file(path, ec);
 
