@@ -1,21 +1,25 @@
 #include <boost/asio.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
-#include <jwt-cpp/jwt.h>
 #include <sodium.h>
 
 #include "authinithandler.hpp"
 #include "authloginhandler.hpp"
 #include "buildinfo.hpp"
+#include "cmdargs.hpp"
 #include "config.hpp"
 #include "embeddedwebuihandler.hpp"
 #include "httpeventstream.hpp"
 #include "httpjwtauth.hpp"
 #include "httpserver.hpp"
 #include "jsonrpchandler.hpp"
+#include "logger.hpp"
 #include "metricshandler.hpp"
 #include "session.hpp"
 #include "systemhandler.hpp"
+#include "tools/authtoken.hpp"
+#include "tools/generatesecretkey.hpp"
+#include "tools/versionjson.hpp"
 #include "utils/secretkey.hpp"
 
 #include "methods/presetslist.hpp"
@@ -36,57 +40,29 @@
 #include "methods/torrentsresume.hpp"
 #include "methods/torrentstrackerslist.hpp"
 
-int GenerateSecretKey()
-{
-    const std::string key = porla::Utils::SecretKey::New();
-    printf("%s\n", key.c_str());
-    return 0;
-}
-
-int PrintJsonVersion()
-{
-    printf("{\"branch\": \"%s\",\"commitish\": \"%s\", \"version\": \"%s\"}\n",
-        porla::BuildInfo::Branch(),
-        porla::BuildInfo::Commitish(),
-        porla::BuildInfo::Version());
-
-    return 0;
-}
-
-int AuthToken(int argc, char* argv[], std::unique_ptr<porla::Config> cfg)
-{
-    auto token = jwt::create()
-        .set_issuer("porla")
-        .set_issued_at(std::chrono::system_clock::now())
-        .set_type("JWS")
-        .sign(jwt::algorithm::hs256(cfg->secret_key));
-
-    printf("%s\n", token.c_str());
-
-    return 0;
-}
-
 int main(int argc, char* argv[])
 {
-    // Default log level is info (or above)
-    boost::log::core::get()->set_filter(
-        boost::log::trivial::severity >= boost::log::trivial::info);
-
-    if (argc >= 2 && strcmp(argv[1], "key:generate") == 0)
+    static std::map<std::string, std::function<int(int, char**, std::unique_ptr<porla::Config>)>> subcommands =
     {
-        return GenerateSecretKey();
+        {"auth:token", &porla::Tools::AuthToken},
+        {"key:generate", &porla::Tools::GenerateSecretKey},
+        {"version:json", &porla::Tools::VersionJson}
+    };
+
+    const boost::program_options::variables_map cmd = porla::CmdArgs::Parse(argc, argv);
+
+    if (cmd.count("help"))
+    {
+        return porla::CmdArgs::Help();
     }
 
-    if (argc >= 2 && strcmp(argv[1], "version:json") == 0)
-    {
-        return PrintJsonVersion();
-    }
+    porla::Logger::Setup(cmd);
 
     std::unique_ptr<porla::Config> cfg;
 
     try
     {
-        cfg = porla::Config::Load(argc, argv);
+        cfg = porla::Config::Load(cmd);
     }
     catch (const std::exception& ex)
     {
@@ -94,20 +70,11 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    // These commands require our config loaded and ready.
-    if (argc >= 2 && strcmp(argv[1], "auth:token") == 0)
+    // Check if we should run one of the subcommands we have.
+    if (argc >= 2 && subcommands.contains(argv[1]))
     {
-        return AuthToken(argc, argv, std::move(cfg));
+        return subcommands.at(argv[1])(argc, argv, std::move(cfg));
     }
-
-    boost::log::trivial::severity_level log_level = boost::log::trivial::info;
-    if (cfg->log_level == "trace")   { log_level = boost::log::trivial::severity_level::trace; }
-    if (cfg->log_level == "debug")   { log_level = boost::log::trivial::severity_level::debug; }
-    if (cfg->log_level == "info")    { log_level = boost::log::trivial::severity_level::info; }
-    if (cfg->log_level == "warning") { log_level = boost::log::trivial::severity_level::warning; }
-    if (cfg->log_level == "error")   { log_level = boost::log::trivial::severity_level::error; }
-    if (cfg->log_level == "fatal")   { log_level = boost::log::trivial::severity_level::fatal; }
-    boost::log::core::get()->set_filter(boost::log::trivial::severity >= log_level);
 
     boost::asio::io_context io;
     boost::asio::signal_set signals(io, SIGINT, SIGTERM);

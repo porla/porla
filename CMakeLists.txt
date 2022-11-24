@@ -43,10 +43,14 @@ add_executable(
     src/authloginhandler.hpp
     src/buildinfo.cpp
     src/buildinfo.hpp
+    src/cmdargs.cpp
+    src/cmdargs.hpp
     src/config.cpp
     src/config.hpp
     src/embeddedwebuihandler.cpp
     src/embeddedwebuihandler.hpp
+    src/logger.cpp
+    src/logger.hpp
     src/main.cpp
     src/httpcontext.hpp
     src/httpeventstream.cpp
@@ -125,6 +129,13 @@ add_executable(
     src/methods/torrentsresume.hpp
     src/methods/torrentstrackerslist.cpp
     src/methods/torrentstrackerslist.hpp
+
+    src/tools/authtoken.cpp
+    src/tools/authtoken.hpp
+    src/tools/generatesecretkey.cpp
+    src/tools/generatesecretkey.hpp
+    src/tools/versionjson.cpp
+    src/tools/versionjson.hpp
 )
 
 target_compile_definitions(
