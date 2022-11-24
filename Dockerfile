@@ -12,9 +12,8 @@ ENV VCPKG_FORCE_SYSTEM_BINARIES="1"
 ARG GITVERSION_SEMVER="0.0.0"
 
 RUN apk add --update ccache \
-    && cd build \
-    && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache --build . \
-    && GIVERSION_SEMVER=$GITVERSION_SEMVER ninja porla \
+    && cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+    && cmake --build build \
     && strip porla
 
 # -- runtime layer
