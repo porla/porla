@@ -129,6 +129,13 @@ add_executable(
     src/methods/torrentsresume.hpp
     src/methods/torrentstrackerslist.cpp
     src/methods/torrentstrackerslist.hpp
+
+    src/tools/authtoken.cpp
+    src/tools/authtoken.hpp
+    src/tools/generatesecretkey.cpp
+    src/tools/generatesecretkey.hpp
+    src/tools/versionjson.cpp
+    src/tools/versionjson.hpp
 )
 
 target_compile_definitions(

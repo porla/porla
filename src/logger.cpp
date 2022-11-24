@@ -14,6 +14,11 @@ void Logger::Setup(const boost::program_options::variables_map& cmd) noexcept
         configured_level = env_level;
     }
 
+    if (cmd.count("log-level"))
+    {
+        configured_level = cmd["log-level"].as<std::string>();
+    }
+
     boost::log::trivial::severity_level log_level = boost::log::trivial::info;
 
     if (configured_level == "trace")   { log_level = boost::log::trivial::severity_level::trace; }

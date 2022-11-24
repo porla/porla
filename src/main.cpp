@@ -1,7 +1,6 @@
 #include <boost/asio.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
-#include <jwt-cpp/jwt.h>
 #include <sodium.h>
 
 #include "authinithandler.hpp"
@@ -18,6 +17,9 @@
 #include "metricshandler.hpp"
 #include "session.hpp"
 #include "systemhandler.hpp"
+#include "tools/authtoken.hpp"
+#include "tools/generatesecretkey.hpp"
+#include "tools/versionjson.hpp"
 #include "utils/secretkey.hpp"
 
 #include "methods/presetslist.hpp"
@@ -38,38 +40,15 @@
 #include "methods/torrentsresume.hpp"
 #include "methods/torrentstrackerslist.hpp"
 
-int GenerateSecretKey()
-{
-    const std::string key = porla::Utils::SecretKey::New();
-    printf("%s\n", key.c_str());
-    return 0;
-}
-
-int PrintJsonVersion()
-{
-    printf("{\"branch\": \"%s\",\"commitish\": \"%s\", \"version\": \"%s\"}\n",
-        porla::BuildInfo::Branch(),
-        porla::BuildInfo::Commitish(),
-        porla::BuildInfo::Version());
-
-    return 0;
-}
-
-int AuthToken(int argc, char* argv[], std::unique_ptr<porla::Config> cfg)
-{
-    auto token = jwt::create()
-        .set_issuer("porla")
-        .set_issued_at(std::chrono::system_clock::now())
-        .set_type("JWS")
-        .sign(jwt::algorithm::hs256(cfg->secret_key));
-
-    printf("%s\n", token.c_str());
-
-    return 0;
-}
-
 int main(int argc, char* argv[])
 {
+    static std::map<std::string, std::function<int(int, char**, std::unique_ptr<porla::Config>)>> subcommands =
+    {
+        {"auth:token", &porla::Tools::AuthToken},
+        {"key:generate", &porla::Tools::GenerateSecretKey},
+        {"version:json", &porla::Tools::VersionJson}
+    };
+
     const boost::program_options::variables_map cmd = porla::CmdArgs::Parse(argc, argv);
 
     if (cmd.count("help"))
@@ -78,16 +57,6 @@ int main(int argc, char* argv[])
     }
 
     porla::Logger::Setup(cmd);
-
-    if (argc >= 2 && strcmp(argv[1], "key:generate") == 0)
-    {
-        return GenerateSecretKey();
-    }
-
-    if (argc >= 2 && strcmp(argv[1], "version:json") == 0)
-    {
-        return PrintJsonVersion();
-    }
 
     std::unique_ptr<porla::Config> cfg;
 
@@ -101,10 +70,10 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    // These commands require our config loaded and ready.
-    if (argc >= 2 && strcmp(argv[1], "auth:token") == 0)
+    // Check if we should run one of the subcommands we have.
+    if (argc >= 2 && subcommands.contains(argv[1]))
     {
-        return AuthToken(argc, argv, std::move(cfg));
+        return subcommands.at(argv[1])(argc, argv, std::move(cfg));
     }
 
     boost::asio::io_context io;
