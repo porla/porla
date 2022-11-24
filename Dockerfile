@@ -2,6 +2,7 @@ FROM alpine:3.16.2 AS build-env
 WORKDIR /src
 COPY . .
 
+ENV CCACHE_DEBUG=1
 ENV CCACHE_REMOTE_STORAGE=http://ccache.blinkenlights.cloud
 ENV VCPKG_FORCE_SYSTEM_BINARIES="1"
 
