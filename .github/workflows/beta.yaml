@@ -3,11 +3,7 @@ name: Beta
 on:
   push:
     branches:
-      - main
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: porla/porla
+      - ccache
 
 jobs:
   build:
@@ -47,17 +43,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Node.js dependencies
-        run: npm ci
-        working-directory: ./html
-
-      - name: Build web UI
-        run: npm run build
-        working-directory: ./html
-
-      - name: Package web UI
-        run: pushd html/dist && zip -9 -r ../webui.zip * && popd && ls -la
-
       - name: Build Docker image
         uses: docker/build-push-action@v3
         with:
@@ -77,13 +62,3 @@ jobs:
         with:
           name: porla-linux-amd64
           path: /tmp/porla
-
-      - name: Push Docker image
-        uses: docker/build-push-action@v3
-        with:
-          build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
-          context: .
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:beta-latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:beta-${{ steps.gitversion.outputs.shortSha }}
