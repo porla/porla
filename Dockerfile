@@ -13,8 +13,7 @@ RUN apk add --update --no-cache ccache cmake curl g++ git libc6-compat linux-hea
     && chmod +x /usr/bin/ninja \
     && mkdir build \
     && cd build \
-    && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_EXE_LINKER_FLAGS="-static -Os" -DCMAKE_BUILD_TYPE=Release 
--DVCPKG_TARGET_TRIPLET=x64-linux-musl-release -G Ninja .. \
+    && cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_EXE_LINKER_FLAGS="-static -Os" -DCMAKE_BUILD_TYPE=Release -DVCPKG_TARGET_TRIPLET=x64-linux-musl-release -G Ninja .. \
     && GIVERSION_SEMVER=$GITVERSION_SEMVER ninja porla \
     && strip porla
 
