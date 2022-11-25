@@ -1,6 +1,7 @@
 #include <boost/asio.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
+#include <duktape.h>
 #include <sodium.h>
 
 #include "authinithandler.hpp"
@@ -176,6 +177,9 @@ int main(int argc, char* argv[])
         }
 
         http.Use(porla::HttpNotFound());
+
+        duk_context* duk_ctx = duk_create_heap_default();
+        duk_destroy_heap(duk_ctx);
 
         io.run();
     }

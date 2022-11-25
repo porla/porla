@@ -7,7 +7,10 @@ project(porla)
 
 set(CMAKE_CXX_STANDARD 20)
 
+include(cmake/Duktape.cmake)
+
 find_package(Boost                      REQUIRED COMPONENTS log program_options system)
+find_package(duktape)
 #find_package(GTest               CONFIG REQUIRED)
 find_package(libzip              CONFIG REQUIRED)
 find_package(LibtorrentRasterbar CONFIG REQUIRED)
@@ -156,6 +159,7 @@ target_link_libraries(
     Boost::boost
     Boost::log
     Boost::program_options
+    duktape
     libzip::zip
     LibtorrentRasterbar::torrent-rasterbar
     unofficial-sodium::sodium
