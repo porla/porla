@@ -3,20 +3,9 @@ message("Checking ${CMAKE_SOURCE_DIR}/webui.zip")
 if (EXISTS "${CMAKE_SOURCE_DIR}/webui.zip")
     message("Embedding ${CMAKE_SOURCE_DIR}/webui.zip in Porla")
 
-    file(READ "${CMAKE_SOURCE_DIR}/webui.zip" content HEX)
-
-    # Separate into individual bytes.
-    string(REGEX MATCHALL "([A-Fa-f0-9][A-Fa-f0-9])" SEPARATED_HEX ${content})
-
-    set(counter 0)
-    foreach (hex IN LISTS SEPARATED_HEX)
-        string(APPEND output_c "0x${hex},")
-        MATH(EXPR counter "${counter}+1")
-        if (counter GREATER 16)
-            string(APPEND output_c "\n    ")
-            set(counter 0)
-        endif ()
-    endforeach ()
+    execute_process(
+        COMMAND /bin/sh -c "hexdump -ve '1/1 \"0x%.2x,\"' ${CMAKE_SOURCE_DIR}/webui.zip"
+        OUTPUT_VARIABLE output_c)
 endif()
 
 set(WEBUI_SRC "
