@@ -11,11 +11,11 @@ ARG GITVERSION_SEMVER="0.0.0"
 ARG CCACHE_REMOTE_STORAGE="http://ccache.blinkenlights.cloud/porla|read-only"
 
 ENV CCACHE_REMOTE_ONLY="1"
+ENV CCACHE_REMOTE_STORAGE=${CCACHE_REMOTE_STORAGE}
+ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
 ENV VCPKG_FORCE_SYSTEM_BINARIES="1"
 
 RUN apk add --update ccache \
-    && export CCACHE_REMOTE_STORAGE=$CCACHE_REMOTE_STORAGE \
-    && export GIVERSION_SEMVER=$GITVERSION_SEMVER \
     && cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
     && cmake --build build \
     && ccache -s -v \
