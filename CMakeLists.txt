@@ -6,8 +6,7 @@ set(CMAKE_TOOLCHAIN_FILE   ${CMAKE_CURRENT_SOURCE_DIR}/vendor/vcpkg/scripts/buil
 project(porla)
 
 set(CMAKE_CXX_STANDARD 20)
-
-include(cmake/Duktape.cmake)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 find_package(Boost                      REQUIRED COMPONENTS log program_options system)
 find_package(duktape)
