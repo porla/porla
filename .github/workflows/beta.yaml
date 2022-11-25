@@ -61,7 +61,9 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v3
         with:
-          build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
+          build-args: |
+            CCACHE_REMOTE_STORAGE=${{ secrets.PORLA_CCACHE_REMOTE_STORAGE_WRITE }}
+            GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
           load: true
           tags: porla
@@ -81,7 +83,9 @@ jobs:
       - name: Push Docker image
         uses: docker/build-push-action@v3
         with:
-          build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
+          build-args: |
+            CCACHE_REMOTE_STORAGE=${{ secrets.PORLA_CCACHE_REMOTE_STORAGE_WRITE }}
+            GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
           push: true
           tags: |
