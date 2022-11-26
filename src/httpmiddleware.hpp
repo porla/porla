@@ -23,7 +23,7 @@ namespace porla
 
         void operator()(const std::shared_ptr<porla::HttpContext> &ctx)
         {
-            if (ctx->Request().target() == m_route
+            if (ctx->RequestUri().path == m_route
                 && ctx->Request().method() == m_verb)
             {
                 m_middleware(ctx);
@@ -75,7 +75,7 @@ namespace porla
             res.set(http::field::server, "porla/1.0");
             res.set(http::field::content_type, "text/plain");
             res.keep_alive(ctx->Request().keep_alive());
-            res.body() = "The resource at '" + std::string(ctx->Request().target()) + "' was not found.";
+            res.body() = "The resource at '" + ctx->RequestUri().path + "' was not found.";
             res.prepare_payload();
 
             ctx->Write(res);
