@@ -78,6 +78,13 @@ EmbeddedWebUIHandler::EmbeddedWebUIHandler(std::string base_path)
 
 void EmbeddedWebUIHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
 {
+    // If files are empty (we have no embedded web UI) - return next middleware
+    // and ignore this request.
+    if (m_files.empty())
+    {
+        return ctx->Next();
+    }
+
     namespace http = boost::beast::http;
 
     const static std::map<std::string, std::string> MimeTypes =
