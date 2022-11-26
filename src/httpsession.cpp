@@ -31,6 +31,37 @@ public:
         , m_mws(std::move(mws))
         , m_curr(current)
     {
+        UriUriA uri = {};
+
+        UriParserStateA state;
+        state.uri = &uri;
+
+        std::string faked_url = "http://porla" + m_req.target().to_string();
+
+        if (uriParseUriA(&state, faked_url.c_str()) != URI_SUCCESS)
+        {
+            BOOST_LOG_TRIVIAL(error) << "Invalid uri: " << m_req.target();
+        }
+        else
+        {
+            UriPathSegmentStructA *head(uri.pathHead);
+            std::stringstream accum;
+
+            const auto fromRange = [](const UriTextRangeA &range) -> std::string
+            {
+                return {range.first, range.afterLast};
+            };
+
+            while (head)
+            {
+                accum << "/" << fromRange(head->text);
+                head = head->next;
+            }
+
+            m_uri = Uri{
+                .path = accum.str()
+            };
+        }
     }
 
     void Next() override
@@ -55,23 +86,9 @@ public:
         return m_session->m_stream;
     }
 
-    porla::HttpContext::Uri RequestUri() override
+    porla::HttpContext::Uri& RequestUri() override
     {
-        UriUriA uri = {};
-        uriParseSingleUriA(&uri, m_req.target().data(), nullptr);
-
-        UriPathSegmentStructA* head(uri.pathHead);
-        std::stringstream accum;
-
-        while (head)
-        {
-            accum << "/" << std::string(head->text.first, head->text.afterLast);
-            head = head->next;
-        }
-
-        return {
-            .path = accum.str()
-        };
+        return m_uri;
     }
 
     void Write(std::string body) override
@@ -117,6 +134,7 @@ private:
     BasicHttpRequest m_req;
     std::vector<porla::HttpMiddleware> m_mws;
     std::vector<porla::HttpMiddleware>::const_iterator m_curr;
+    Uri m_uri;
 };
 
 HttpSession::HttpSession(
