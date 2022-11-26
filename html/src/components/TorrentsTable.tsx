@@ -1,6 +1,7 @@
 import { Table, Thead, Tr, Th, Tbody, Td, Badge, Menu, MenuButton, IconButton, MenuList, MenuGroup, MenuItem, Text, Icon, HStack, Box, Tooltip } from "@chakra-ui/react";
 import { filesize } from "filesize";
-import { MdOutlineMoreVert, MdDelete, MdFolder, MdWarning } from "react-icons/md";
+import { MdOutlineMoreVert, MdDelete, MdFolder, MdWarning, MdPlayArrow, MdPause } from "react-icons/md";
+import { Torrent } from "../types";
 
 function checkBit(flags: number, bit: number) {
   return (flags & (1<<bit)) === 1<<bit;
@@ -62,13 +63,12 @@ function stateString(torrent: any) {
   return "unknown";
 }
 
-type Torrent = {
-}
-
 type TorrentsTableProps = {
   isDeleting: (torrent: Torrent) => boolean;
   onMove: (torrent: Torrent) => void;
+  onPause: (torrent: Torrent) => void;
   onRemove: (torrent: Torrent) => void;
+  onResume: (torrent: Torrent) => void;
   torrents: Torrent[];
 }
 
@@ -76,7 +76,9 @@ export default function TorrentsTable(props: TorrentsTableProps) {
   const {
     isDeleting,
     onMove,
+    onPause,
     onRemove,
+    onResume,
     torrents
   } = props;
 
@@ -111,14 +113,16 @@ export default function TorrentsTable(props: TorrentsTableProps) {
                 spacing={2}
               >
                 <Box>{isDeleting(t) ? <Text color={"gray.600"}>{t.name}</Text> : t.name}</Box>
-                <Box>
-                  <Tooltip label={t.error.message} shouldWrapChildren>
-                    <Icon
-                      as={MdWarning}
-                      color={"yellow.300"}
-                    />
-                  </Tooltip>
-                </Box>
+                { t.error && (
+                  <Box>
+                    <Tooltip label={t.error.message} shouldWrapChildren>
+                      <Icon
+                        as={MdWarning}
+                        color={"yellow.300"}
+                      />
+                    </Tooltip>
+                  </Box>
+                )}
               </HStack>
             </Td>
             <Td textAlign={"right"}>{t.queue_position < 0 ? "-" : t.queue_position}</Td>
@@ -140,6 +144,21 @@ export default function TorrentsTable(props: TorrentsTableProps) {
                 />
                 <MenuList>
                   <MenuGroup title="Actions">
+                    {
+                      isPaused(t.flags)
+                        ? <MenuItem
+                            icon={<MdPlayArrow />}
+                            onClick={() => onResume(t)}
+                          >
+                            Resume
+                          </MenuItem>
+                        : <MenuItem
+                            icon={<MdPause />}
+                            onClick={() => onPause(t)}
+                          >
+                            Pause
+                          </MenuItem>
+                    }
                     <MenuItem
                       icon={<MdFolder />}
                       onClick={() => onMove(t)}

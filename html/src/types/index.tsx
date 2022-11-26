@@ -11,6 +11,10 @@ export type Preset = {
   save_path: string | null
 };
 
+export type Torrent = {
+  info_hash: InfoHash;
+}
+
 export type ITorrentsList = {
   page_size: number;
   torrents: any;

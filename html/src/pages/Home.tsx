@@ -24,7 +24,9 @@ export default function Home() {
   });
 
   const torrentsMove = useInvoker<void>("torrents.move");
+  const torrentsPause = useInvoker<void>("torrents.pause");
   const torrentsRemove = useInvoker<void>("torrents.remove");
+  const torrentsResume = useInvoker<void>("torrents.resume");
 
   if (error) {
     return (
@@ -126,7 +128,17 @@ export default function Home() {
               <TorrentsTable
                 isDeleting={() => false}
                 onMove={t => setMoveTorrent(t)}
+                onPause={async (t) => {
+                  await torrentsPause({
+                    info_hash: t.info_hash
+                  })
+                }}
                 onRemove={(torrent) => setRemoveTorrent(torrent)}
+                onResume={async (t) => {
+                  await torrentsResume({
+                    info_hash: t.info_hash
+                  })
+                }}
                 torrents={data?.torrents || []}
               />
             </>
