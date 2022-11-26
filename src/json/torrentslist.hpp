@@ -2,6 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "lterrorcode.hpp"
 #include "ltinfohash.hpp"
 #include "utils.hpp"
 #include "../methods/torrentslist_reqres.hpp"
@@ -18,6 +19,7 @@ namespace porla::Methods
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsListRes::Item,
         download_rate,
+        error,
         flags,
         info_hash,
         list_peers,

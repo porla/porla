@@ -63,6 +63,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
         torrents.push_back(TorrentsListRes::Item{
             .download_rate  = ts.download_rate,
+            .error          = ts.errc,
             .flags          = static_cast<std::uint64_t>(ts.flags),
             .info_hash      = ts.info_hashes,
             .list_peers     = ts.list_peers,

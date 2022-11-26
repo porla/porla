@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ltannounceentry.hpp"
+#include "lterrorcode.hpp"
 #include "ltinfohash.hpp"
 #include "ltpeerinfo.hpp"
 #include "presetslist.hpp"
