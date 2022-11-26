@@ -127,6 +127,8 @@ add_executable(
     src/methods/torrentsremove.hpp
     src/methods/torrentsresume.cpp
     src/methods/torrentsresume.hpp
+    src/methods/torrentsset.cpp
+    src/methods/torrentsset.hpp
     src/methods/torrentstrackerslist.cpp
     src/methods/torrentstrackerslist.hpp
 

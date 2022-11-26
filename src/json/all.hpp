@@ -20,4 +20,5 @@
 #include "torrentsquery.hpp"
 #include "torrentsremove.hpp"
 #include "torrentsresume.hpp"
+#include "torrentsset.hpp"
 #include "torrentstrackerslist.hpp"
