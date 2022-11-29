@@ -6,7 +6,7 @@
 
 namespace porla::Methods
 {
-    struct TorrentsSetReq
+    struct TorrentsPropertiesSetReq
     {
         libtorrent::info_hash_t info_hash;
         std::optional<int> download_limit;
@@ -17,7 +17,7 @@ namespace porla::Methods
         std::optional<int> upload_limit;
     };
 
-    struct TorrentsSetRes
+    struct TorrentsPropertiesSetRes
     {
     };
 }

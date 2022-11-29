@@ -1,17 +1,17 @@
-#include "torrentsset.hpp"
+#include "torrentspropertiesset.hpp"
 
 #include "../session.hpp"
 
-using porla::Methods::TorrentsSet;
-using porla::Methods::TorrentsSetReq;
-using porla::Methods::TorrentsSetRes;
+using porla::Methods::TorrentsPropertiesSet;
+using porla::Methods::TorrentsPropertiesSetReq;
+using porla::Methods::TorrentsPropertiesSetRes;
 
-TorrentsSet::TorrentsSet(porla::ISession& session)
+TorrentsPropertiesSet::TorrentsPropertiesSet(porla::ISession& session)
     : m_session(session)
 {
 }
 
-void TorrentsSet::Invoke(const TorrentsSetReq& req, WriteCb<TorrentsSetRes> cb)
+void TorrentsPropertiesSet::Invoke(const TorrentsPropertiesSetReq& req, WriteCb<TorrentsPropertiesSetRes> cb)
 {
     auto& torrents = m_session.Torrents();
     auto torrent = torrents.find(req.info_hash);

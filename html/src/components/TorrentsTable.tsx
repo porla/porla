@@ -1,6 +1,6 @@
-import { Table, Thead, Tr, Th, Tbody, Td, Badge, Menu, MenuButton, IconButton, MenuList, MenuGroup, MenuItem, Text, Icon, HStack, Box, Tooltip } from "@chakra-ui/react";
+import { Table, Thead, Tr, Th, Tbody, Td, Badge, Menu, MenuButton, IconButton, MenuList, MenuGroup, MenuItem, Text, Icon, HStack, Box, Tooltip, Divider, MenuDivider } from "@chakra-ui/react";
 import { filesize } from "filesize";
-import { MdOutlineMoreVert, MdDelete, MdFolder, MdWarning, MdPlayArrow, MdPause } from "react-icons/md";
+import { MdOutlineMoreVert, MdDelete, MdFolder, MdWarning, MdPlayArrow, MdPause, MdOutlineCheckBoxOutlineBlank, MdOutlineCheckBox, MdViewList } from "react-icons/md";
 import { Torrent } from "../types";
 
 function checkBit(flags: number, bit: number) {
@@ -69,6 +69,7 @@ type TorrentsTableProps = {
   onPause: (torrent: Torrent) => void;
   onRemove: (torrent: Torrent) => void;
   onResume: (torrent: Torrent) => void;
+  onShowProperties: (torrent: Torrent) => void;
   torrents: Torrent[];
 }
 
@@ -79,6 +80,7 @@ export default function TorrentsTable(props: TorrentsTableProps) {
     onPause,
     onRemove,
     onResume,
+    onShowProperties,
     torrents
   } = props;
 
@@ -172,6 +174,13 @@ export default function TorrentsTable(props: TorrentsTableProps) {
                       Remove
                     </MenuItem>
                   </MenuGroup>
+                  <MenuDivider />
+                  <MenuItem
+                    icon={<MdViewList />}
+                    onClick={() => onShowProperties(t)}
+                  >
+                    Properties
+                  </MenuItem>
                 </MenuList>
               </Menu>
             </Td>
