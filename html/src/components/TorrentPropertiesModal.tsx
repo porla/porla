@@ -22,6 +22,7 @@ export default function TorrentPropertiesModal(props: TorrentPropertiesModalProp
 
   useEffect(() => {
     if (!props.torrent) {
+      setTorrentProps(undefined);
       return;
     }
 
@@ -97,7 +98,10 @@ export default function TorrentPropertiesModal(props: TorrentPropertiesModalProp
                   {(w: any) => (
                     <FormControl mt={3}>
                       <FormLabel>Download limit</FormLabel>
-                      <NumberInput value={values.download_limit}>
+                      <NumberInput
+                        onChange={(_, n) => setFieldValue("download_limit", n || 0)}
+                        value={values.download_limit}
+                      >
                         <NumberInputField value={values.download_limit} />
                       </NumberInput>
                       <FormHelperText>The download limit for this torrent. -1 means unlimited.</FormHelperText>
@@ -106,19 +110,28 @@ export default function TorrentPropertiesModal(props: TorrentPropertiesModalProp
                 </Field>
                 <FormControl mt={3}>
                   <FormLabel>Max connections</FormLabel>
-                  <NumberInput value={values.max_connections}>
+                  <NumberInput
+                    onChange={(_, n) => setFieldValue("max_connections", n || 0)}
+                    value={values.max_connections}
+                  >
                     <NumberInputField />
                   </NumberInput>
                 </FormControl>
                 <FormControl mt={3}>
                   <FormLabel>Max uploads</FormLabel>
-                  <NumberInput value={values.max_uploads}>
+                  <NumberInput
+                    onChange={(_, n) => setFieldValue("max_uploads", n || 0)}
+                    value={values.max_uploads}
+                  >
                     <NumberInputField />
                   </NumberInput>
                 </FormControl>
                 <FormControl mt={3}>
                   <FormLabel>Upload limit</FormLabel>
-                  <NumberInput value={values.upload_limit}>
+                  <NumberInput
+                    onChange={(_, n) => setFieldValue("upload_limit", n || 0)}
+                    value={values.upload_limit}
+                  >
                     <NumberInputField />
                   </NumberInput>
                 </FormControl>
