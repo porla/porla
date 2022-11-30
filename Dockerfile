@@ -8,7 +8,7 @@ COPY ./html/webui.zip /src/build/webui.zip
 RUN mkdir -p /src/build
 
 ARG GITVERSION_SEMVER="0.0.0"
-ARG CCACHE_REMOTE_STORAGE="http://ccache.blinkenlights.cloud/porla|read-only"
+ARG CCACHE_REMOTE_STORAGE="http://ccache.blinkenlights.cloud/porla|read-only|connect-timeout=500"
 
 ENV CCACHE_REMOTE_ONLY="1"
 ENV CCACHE_REMOTE_STORAGE=${CCACHE_REMOTE_STORAGE}
