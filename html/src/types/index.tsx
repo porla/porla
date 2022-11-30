@@ -11,6 +11,19 @@ export type Preset = {
   save_path: string | null
 };
 
+export type Torrent = {
+  info_hash: InfoHash;
+  download_limit: number;
+}
+
+export type TorrentProperties = {
+  download_limit: number;
+  flags: number;
+  max_connections: number;
+  max_uploads: number;
+  upload_limit: number;
+}
+
 export type ITorrentsList = {
   page_size: number;
   torrents: any;

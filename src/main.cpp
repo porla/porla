@@ -5,7 +5,6 @@
 
 #include "authinithandler.hpp"
 #include "authloginhandler.hpp"
-#include "buildinfo.hpp"
 #include "cmdargs.hpp"
 #include "config.hpp"
 #include "embeddedwebuihandler.hpp"
@@ -38,6 +37,8 @@
 #include "methods/torrentsquery.hpp"
 #include "methods/torrentsremove.hpp"
 #include "methods/torrentsresume.hpp"
+#include "methods/torrentspropertiesget.hpp"
+#include "methods/torrentspropertiesset.hpp"
 #include "methods/torrentstrackerslist.hpp"
 
 int main(int argc, char* argv[])
@@ -120,6 +121,8 @@ int main(int argc, char* argv[])
             {"torrents.pause", porla::Methods::TorrentsPause(session)},
             {"torrents.peers.add", porla::Methods::TorrentsPeersAdd(session)},
             {"torrents.peers.list", porla::Methods::TorrentsPeersList(session)},
+            {"torrents.properties.get", porla::Methods::TorrentsPropertiesGet(session)},
+            {"torrents.properties.set", porla::Methods::TorrentsPropertiesSet(session)},
             {"torrents.query", porla::Methods::TorrentsQuery(session)},
             {"torrents.remove", porla::Methods::TorrentsRemove(session)},
             {"torrents.resume", porla::Methods::TorrentsResume(session)},

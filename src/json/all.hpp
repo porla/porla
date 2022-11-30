@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ltannounceentry.hpp"
+#include "lterrorcode.hpp"
 #include "ltinfohash.hpp"
 #include "ltpeerinfo.hpp"
 #include "presetslist.hpp"
@@ -16,7 +17,9 @@
 #include "torrentspause.hpp"
 #include "torrentspeersadd.hpp"
 #include "torrentspeerslist.hpp"
+#include "torrentspropertiesget.hpp"
 #include "torrentsquery.hpp"
 #include "torrentsremove.hpp"
 #include "torrentsresume.hpp"
+#include "torrentspropertiesset.hpp"
 #include "torrentstrackerslist.hpp"

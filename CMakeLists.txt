@@ -121,12 +121,16 @@ add_executable(
     src/methods/torrentspeersadd.hpp
     src/methods/torrentspeerslist.cpp
     src/methods/torrentspeerslist.hpp
+    src/methods/torrentspropertiesget.cpp
+    src/methods/torrentspropertiesget.hpp
     src/methods/torrentsquery.cpp
     src/methods/torrentsquery.hpp
     src/methods/torrentsremove.cpp
     src/methods/torrentsremove.hpp
     src/methods/torrentsresume.cpp
     src/methods/torrentsresume.hpp
+    src/methods/torrentspropertiesset.cpp
+    src/methods/torrentspropertiesset.hpp
     src/methods/torrentstrackerslist.cpp
     src/methods/torrentstrackerslist.hpp
 

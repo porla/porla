@@ -7,7 +7,8 @@ import { useInvoker, useRPC } from "../services/jsonrpc";
 import AddTorrentModal from "../components/AddTorrentModal";
 import MoveTorrentModal from "../components/MoveTorrentModal";
 import { MdAddBox } from "react-icons/md";
-import { ITorrentsList } from "../types";
+import { ITorrentsList, Torrent } from "../types";
+import TorrentPropertiesModal from "../components/TorrentPropertiesModal";
 
 
 export default function Home() {
@@ -16,6 +17,7 @@ export default function Home() {
   const [ removeTorrent, setRemoveTorrent ] = useState<{} | null>();
   const [ isDeleting, setIsDeleting ] = useState<Array<string>>([]);
   const [ showAdd, setShowAdd ] = useState(false);
+  const [ propsTorrent, setPropsTorrent ] = useState<Torrent | null>();
 
   const { error, data } = useRPC<ITorrentsList>('torrents.list', {
     page
@@ -24,7 +26,9 @@ export default function Home() {
   });
 
   const torrentsMove = useInvoker<void>("torrents.move");
+  const torrentsPause = useInvoker<void>("torrents.pause");
   const torrentsRemove = useInvoker<void>("torrents.remove");
+  const torrentsResume = useInvoker<void>("torrents.resume");
 
   if (error) {
     return (
@@ -95,6 +99,11 @@ export default function Home() {
         }}
       />
 
+      <TorrentPropertiesModal
+        torrent={propsTorrent}
+        onClose={() => setPropsTorrent(null)}
+      />
+
       {
         data?.torrents.length > 0
           ? (
@@ -126,7 +135,18 @@ export default function Home() {
               <TorrentsTable
                 isDeleting={() => false}
                 onMove={t => setMoveTorrent(t)}
+                onPause={async (t) => {
+                  await torrentsPause({
+                    info_hash: t.info_hash
+                  })
+                }}
                 onRemove={(torrent) => setRemoveTorrent(torrent)}
+                onResume={async (t) => {
+                  await torrentsResume({
+                    info_hash: t.info_hash
+                  })
+                }}
+                onShowProperties={t => setPropsTorrent(t)}
                 torrents={data?.torrents || []}
               />
             </>

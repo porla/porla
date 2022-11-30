@@ -1,6 +1,7 @@
-import { Table, Thead, Tr, Th, Tbody, Td, Badge, Menu, MenuButton, IconButton, MenuList, MenuGroup, MenuItem, Text } from "@chakra-ui/react";
+import { Table, Thead, Tr, Th, Tbody, Td, Badge, Menu, MenuButton, IconButton, MenuList, MenuGroup, MenuItem, Text, Icon, HStack, Box, Tooltip, Divider, MenuDivider } from "@chakra-ui/react";
 import { filesize } from "filesize";
-import { MdOutlineMoreVert, MdDelete, MdFolder } from "react-icons/md";
+import { MdOutlineMoreVert, MdDelete, MdFolder, MdWarning, MdPlayArrow, MdPause, MdOutlineCheckBoxOutlineBlank, MdOutlineCheckBox, MdViewList } from "react-icons/md";
+import { Torrent } from "../types";
 
 function checkBit(flags: number, bit: number) {
   return (flags & (1<<bit)) === 1<<bit;
@@ -14,8 +15,12 @@ function isPaused(flags: number) {
   return (flags & (1<<4)) === 1<<4;
 }
 
-function stateColor(state: number) {
-  switch (state) {
+function stateColor(torrent: any) {
+  if (torrent.error) {
+    return "red";
+  }
+
+  switch (torrent.state) {
     case 3: return "blue";
     case 5: return "green";
   }
@@ -23,6 +28,10 @@ function stateColor(state: number) {
 }
 
 function stateString(torrent: any) {
+  if (torrent.error) {
+    return "error";
+  }
+
   switch (torrent.state) {
     case 1: {
       if (isPaused(torrent.flags)) {
@@ -54,13 +63,13 @@ function stateString(torrent: any) {
   return "unknown";
 }
 
-type Torrent = {
-}
-
 type TorrentsTableProps = {
   isDeleting: (torrent: Torrent) => boolean;
   onMove: (torrent: Torrent) => void;
+  onPause: (torrent: Torrent) => void;
   onRemove: (torrent: Torrent) => void;
+  onResume: (torrent: Torrent) => void;
+  onShowProperties: (torrent: Torrent) => void;
   torrents: Torrent[];
 }
 
@@ -68,7 +77,10 @@ export default function TorrentsTable(props: TorrentsTableProps) {
   const {
     isDeleting,
     onMove,
+    onPause,
     onRemove,
+    onResume,
+    onShowProperties,
     torrents
   } = props;
 
@@ -98,10 +110,26 @@ export default function TorrentsTable(props: TorrentsTableProps) {
         { torrents.map((t: any) => (
           <Tr key={torrentKey(t)}>
             {/*<Td><Checkbox isChecked={isSelected(t)} onChange={a => setSelected(t, a.target.checked)} /></Td>*/}
-            <Td>{isDeleting(t) ? <Text color={"gray.600"}>{t.name}</Text> : t.name}</Td>
+            <Td>
+              <HStack
+                spacing={2}
+              >
+                <Box>{isDeleting(t) ? <Text color={"gray.600"}>{t.name}</Text> : t.name}</Box>
+                { t.error && (
+                  <Box>
+                    <Tooltip label={t.error.message} shouldWrapChildren>
+                      <Icon
+                        as={MdWarning}
+                        color={"yellow.300"}
+                      />
+                    </Tooltip>
+                  </Box>
+                )}
+              </HStack>
+            </Td>
             <Td textAlign={"right"}>{t.queue_position < 0 ? "-" : t.queue_position}</Td>
             <Td>
-              <Badge colorScheme={stateColor(t.state)}>{stateString(t)}</Badge>
+              <Badge colorScheme={stateColor(t)}>{stateString(t)}</Badge>
             </Td>
             <Td textAlign={"right"} whiteSpace={"nowrap"} >{(t.progress * 100).toFixed(t.progress === 1 ? 0 : 1)}%</Td>
             <Td textAlign={"right"} whiteSpace={"nowrap"} >{filesize(t.size).toString()}</Td>
@@ -118,6 +146,21 @@ export default function TorrentsTable(props: TorrentsTableProps) {
                 />
                 <MenuList>
                   <MenuGroup title="Actions">
+                    {
+                      isPaused(t.flags)
+                        ? <MenuItem
+                            icon={<MdPlayArrow />}
+                            onClick={() => onResume(t)}
+                          >
+                            Resume
+                          </MenuItem>
+                        : <MenuItem
+                            icon={<MdPause />}
+                            onClick={() => onPause(t)}
+                          >
+                            Pause
+                          </MenuItem>
+                    }
                     <MenuItem
                       icon={<MdFolder />}
                       onClick={() => onMove(t)}
@@ -131,6 +174,13 @@ export default function TorrentsTable(props: TorrentsTableProps) {
                       Remove
                     </MenuItem>
                   </MenuGroup>
+                  <MenuDivider />
+                  <MenuItem
+                    icon={<MdViewList />}
+                    onClick={() => onShowProperties(t)}
+                  >
+                    Properties
+                  </MenuItem>
                 </MenuList>
               </Menu>
             </Td>

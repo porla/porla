@@ -20,6 +20,7 @@ namespace porla::Methods
         struct Item
         {
             int download_rate;
+            libtorrent::error_code error;
             std::uint64_t flags;
             lt::info_hash_t info_hash;
             int list_peers;
