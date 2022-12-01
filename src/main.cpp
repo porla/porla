@@ -92,6 +92,7 @@ int main(int argc, char* argv[])
             .db                    = cfg->db,
             .extensions            = cfg->session_extensions,
             .settings              = cfg->session_settings,
+            .session_params_file   = cfg->state_dir.value_or(fs::current_path()) / "session_params.dat",
             .timer_dht_stats       = cfg->timer_dht_stats.value_or(5000),
             .timer_session_stats   = cfg->timer_session_stats.value_or(5000),
             .timer_torrent_updates = cfg->timer_torrent_updates.value_or(1000)

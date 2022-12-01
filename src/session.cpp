@@ -1,5 +1,7 @@
 #include "session.hpp"
 
+#include <fstream>
+
 #include <boost/log/trivial.hpp>
 #include <libtorrent/alert_types.hpp>
 #include <libtorrent/extensions/ut_metadata.hpp>
@@ -12,6 +14,7 @@
 #include "data/models/sessionparams.hpp"
 #include "torrentsvt.hpp"
 
+namespace fs = std::filesystem;
 namespace lt = libtorrent;
 
 using porla::Data::Models::AddTorrentParams;
@@ -88,16 +91,68 @@ private:
     std::function<void()> m_callback;
 };
 
+static lt::session_params ReadSessionParams(const fs::path& file)
+{
+    if (fs::exists(file))
+    {
+        std::ifstream session_params_file(file, std::ios::binary);
+
+        // Get the params file size
+        session_params_file.seekg(0, std::ios_base::end);
+        const std::streamsize session_params_size = session_params_file.tellg();
+        session_params_file.seekg(0, std::ios_base::beg);
+
+        BOOST_LOG_TRIVIAL(info) << "Reading session params (" << session_params_size << " bytes)";
+
+        // Create a buffer to hold the contents of the session params file
+        std::vector<char> session_params_buffer;
+        session_params_buffer.resize(session_params_size);
+
+        // Actually read the file
+        session_params_file.read(session_params_buffer.data(), session_params_size);
+
+        // Only load the DHT state from the session params. Settings are stored in our database.
+        return lt::read_session_params(session_params_buffer, lt::session::save_dht_state);
+    }
+
+    return {};
+}
+
+static void WriteSessionParams(const fs::path& file, const lt::session_params& params)
+{
+    std::vector<char> buf = lt::write_session_params_buf(
+        params,
+        lt::session::save_dht_state);
+
+    BOOST_LOG_TRIVIAL(info) << "Writing session params (" << buf.size() << " bytes)";
+
+    std::ofstream session_params_file(file, std::ios::binary | std::ios::trunc);
+
+    if (!session_params_file.is_open())
+    {
+        BOOST_LOG_TRIVIAL(error) << "Error while opening session_params.dat: " << strerror(errno);
+        return;
+    }
+
+    session_params_file.write(buf.data(), static_cast<std::streamsize>(buf.size()));
+
+    if (session_params_file.fail())
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to write session_params.dat file: " << strerror(errno);
+    }
+}
+
 Session::Session(boost::asio::io_context& io, porla::SessionOptions const& options)
     : m_io(io)
     , m_db(options.db)
+    , m_session_params_file(options.session_params_file)
     , m_stats(lt::session_stats_metrics())
     , m_tdb(nullptr)
 {
-    lt::session_params params = SessionParams::GetLatest(m_db);
+    lt::session_params params = ReadSessionParams(m_session_params_file);
     params.settings = options.settings;
 
-    m_session = std::make_unique<lt::session>(params);
+    m_session = std::make_unique<lt::session>(std::move(params));
 
     if (auto extensions = options.extensions)
     {
@@ -154,9 +209,9 @@ Session::~Session()
     m_session->set_alert_notify([]{});
     m_timers.clear();
 
-    SessionParams::Insert(
-        m_db,
-        m_session->session_state(lt::session::save_dht_state));
+    WriteSessionParams(
+            m_session_params_file,
+            m_session->session_state());
 
     m_session->pause();
 
