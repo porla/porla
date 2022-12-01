@@ -11,14 +11,12 @@
 #include <utility>
 
 #include "data/models/addtorrentparams.hpp"
-#include "data/models/sessionparams.hpp"
 #include "torrentsvt.hpp"
 
 namespace fs = std::filesystem;
 namespace lt = libtorrent;
 
 using porla::Data::Models::AddTorrentParams;
-using porla::Data::Models::SessionParams;
 using porla::Session;
 
 template<typename T>

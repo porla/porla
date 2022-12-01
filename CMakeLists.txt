@@ -83,10 +83,10 @@ add_executable(
     src/data/migrations/0002_addsessionsettings.hpp
     src/data/migrations/0003_users.cpp
     src/data/migrations/0003_users.hpp
+    src/data/migrations/0004_removesessionparams.cpp
+    src/data/migrations/0004_removesessionparams.hpp
     src/data/models/addtorrentparams.cpp
     src/data/models/addtorrentparams.hpp
-    src/data/models/sessionparams.cpp
-    src/data/models/sessionparams.hpp
     src/data/models/sessionsettings.cpp
     src/data/models/sessionsettings.hpp
     src/data/models/users.cpp
