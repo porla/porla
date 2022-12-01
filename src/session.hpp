@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <map>
 #include <memory>
 #include <optional>
@@ -19,6 +20,7 @@ namespace porla
         sqlite3* db = nullptr;
         std::optional<std::vector<lt_plugin>> extensions;
         lt::settings_pack settings = lt::default_settings();
+        std::filesystem::path session_params_file = std::filesystem::path();
         int timer_dht_stats = 5000;
         int timer_session_stats = 5000;
         int timer_torrent_updates = 1000;
@@ -116,6 +118,8 @@ namespace porla
         boost::asio::io_context& m_io;
         std::vector<Timer> m_timers;
         std::vector<lt::stats_metric> m_stats;
+
+        std::filesystem::path m_session_params_file;
 
         SessionStatsSignal m_sessionStats;
         TorrentStatusListSignal m_stateUpdate;

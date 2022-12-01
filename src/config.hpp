@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <string>
@@ -11,6 +12,8 @@
 #include <sqlite3.h>
 
 typedef std::function<std::shared_ptr<libtorrent::torrent_plugin>(libtorrent:: torrent_handle const&, libtorrent::client_data_t)> lt_plugin;
+
+namespace fs = std::filesystem;
 
 namespace porla
 {
@@ -39,6 +42,7 @@ namespace porla
         std::string                           secret_key;
         std::optional<std::vector<lt_plugin>> session_extensions;
         libtorrent::settings_pack             session_settings;
+        std::optional<fs::path>               state_dir;
         std::optional<int>                    timer_dht_stats;
         std::optional<int>                    timer_session_stats;
         std::optional<int>                    timer_torrent_updates;
