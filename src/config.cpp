@@ -263,6 +263,12 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (cmd.count("timer-session-stats"))   cfg->timer_session_stats   = cmd["timer-session-stats"].as<pid_t>();
     if (cmd.count("timer-torrent-updates")) cfg->timer_torrent_updates = cmd["timer-torrent-updates"].as<pid_t>();
 
+    // If no db_file is set, default to a file in state_dir.
+    if (!cfg->db_file.has_value())
+    {
+        cfg->db_file = cfg->state_dir.value_or(fs::current_path()) / "porla.sqlite";
+    }
+
     if (sqlite3_open(cfg->db_file.value_or("porla.sqlite").c_str(), &cfg->db) != SQLITE_OK)
     {
         BOOST_LOG_TRIVIAL(fatal) << "Failed to open SQLite connection: " << sqlite3_errmsg(cfg->db);
