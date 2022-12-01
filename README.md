@@ -54,6 +54,8 @@ configuration and use sensible defaults instead.
  * `PORLA_SESSION_SETTINGS_BASE` or `--session-settings-base` - the libtorrent
    settings base to use for session settings. Valid values are _default_,
    _min\_memory\_usage_, _high\_performance\_seed_. Defaults to _default_.
+ * `PORLA_STATE_DIR` or `--state-dir` - a path to a directory where Porla will
+   store its state.
  * `PORLA_TIMER_DHT_STATS` or `--timer-dht-stats` - the interval in milliseconds
    to push DHT stats. Defaults to _5000_.
  * `PORLA_TIMER_SESSION_STATS` or `--timer-session-stats` - the interval in
@@ -66,6 +68,7 @@ configuration and use sensible defaults instead.
 ```toml
 db = ":memory:"
 log_level = "info"
+state_dir = "/opt/porla"
 
 [http]
 base_path = "/"
