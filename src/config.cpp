@@ -93,6 +93,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         if (strcmp("high_performance_seed", val) == 0) cfg->session_settings = lt::high_performance_seed();
         if (strcmp("min_memory_usage", val) == 0)      cfg->session_settings = lt::min_memory_usage();
     }
+    if (auto val = std::getenv("PORLA_STATE_DIR"))             cfg->state_dir             = val;
     if (auto val = std::getenv("PORLA_TIMER_DHT_STATS"))       cfg->timer_dht_stats       = std::stoi(val);
     if (auto val = std::getenv("PORLA_TIMER_SESSION_STATS"))   cfg->timer_session_stats   = std::stoi(val);
     if (auto val = std::getenv("PORLA_TIMER_TORRENT_UPDATES")) cfg->timer_torrent_updates = std::stoi(val);
@@ -218,6 +219,9 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
             if (auto session_settings_tbl = config_file_tbl["session_settings"].as_table())
                 ApplySettings(*session_settings_tbl, cfg->session_settings);
 
+            if (auto val = config_file_tbl["state_dir"].value<std::string>())
+                cfg->state_dir = *val;
+
             if (auto val = config_file_tbl["timer"]["dht_stats"].value<int>())
                 cfg->timer_dht_stats = *val;
 
@@ -254,6 +258,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         if (val == "high_performance_seed") cfg->session_settings = lt::high_performance_seed();
         if (val == "min_memory_usage")      cfg->session_settings = lt::min_memory_usage();
     }
+    if (cmd.count("state-dir"))             cfg->state_dir             = cmd["state-dir"].as<std::string>();
     if (cmd.count("timer-dht-stats"))       cfg->timer_dht_stats       = cmd["timer-dht-stats"].as<int>();
     if (cmd.count("timer-session-stats"))   cfg->timer_session_stats   = cmd["timer-session-stats"].as<pid_t>();
     if (cmd.count("timer-torrent-updates")) cfg->timer_torrent_updates = cmd["timer-torrent-updates"].as<pid_t>();
