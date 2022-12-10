@@ -74,6 +74,8 @@ add_executable(
     src/torrentsvt.hpp
     src/utils/secretkey.cpp
     src/utils/secretkey.hpp
+    src/webhookclient.cpp
+    src/webhookclient.hpp
 
     src/data/migrate.cpp
     src/data/migrate.hpp

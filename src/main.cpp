@@ -20,6 +20,7 @@
 #include "tools/generatesecretkey.hpp"
 #include "tools/versionjson.hpp"
 #include "utils/secretkey.hpp"
+#include "webhookclient.hpp"
 
 #include "methods/presetslist.hpp"
 #include "methods/sessionpause.hpp"
@@ -180,6 +181,8 @@ int main(int argc, char* argv[])
         }
 
         http.Use(porla::HttpNotFound());
+
+        porla::WebhookClient wh(io, session);
 
         io.run();
     }
