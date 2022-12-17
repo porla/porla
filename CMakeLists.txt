@@ -8,7 +8,6 @@ project(porla)
 set(CMAKE_CXX_STANDARD 20)
 
 find_package(Boost                      REQUIRED COMPONENTS log program_options system)
-#find_package(GTest               CONFIG REQUIRED)
 find_package(libzip              CONFIG REQUIRED)
 find_package(LibtorrentRasterbar CONFIG REQUIRED)
 find_package(nlohmann_json       CONFIG REQUIRED)
@@ -72,6 +71,8 @@ add_executable(
     src/systemhandler.hpp
     src/torrentsvt.cpp
     src/torrentsvt.hpp
+    src/uri.cpp
+    src/uri.hpp
     src/utils/secretkey.cpp
     src/utils/secretkey.hpp
     src/webhookclient.cpp

@@ -8,8 +8,6 @@
     "boost-program-options",
     "boost-signals2",
     "boost-system",
-    "catch2",
-    "gtest",
     "jwt-cpp",
     "libsodium",
     "libtorrent",

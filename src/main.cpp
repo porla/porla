@@ -109,6 +109,11 @@ int main(int argc, char* argv[])
             return -1;
         }
 
+        porla::WebhookClient wh(io, porla::WebhookClientOptions{
+            .session  = session,
+            .webhooks = cfg->webhooks
+        });
+
         porla::JsonRpcHandler rpc({
             {"presets.list", porla::Methods::PresetsList(cfg->presets)},
             {"session.pause", porla::Methods::SessionPause(session)},
@@ -181,8 +186,6 @@ int main(int argc, char* argv[])
         }
 
         http.Use(porla::HttpNotFound());
-
-        porla::WebhookClient wh(io, session);
 
         io.run();
     }

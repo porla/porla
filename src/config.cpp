@@ -230,6 +230,20 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
             if (auto val = config_file_tbl["timer"]["torrent_updates"].value<int>())
                 cfg->timer_torrent_updates = *val;
+
+            if (auto const* webhooks_array = config_file_tbl["webhooks"].as_array())
+            {
+                for (auto const& wh : *webhooks_array)
+                {
+                    auto const wh_tbl = *wh.as_table();
+
+                    Webhook hook = {};
+                    hook.on = *wh_tbl["on"].value<std::string>();
+                    hook.url = *wh_tbl["url"].value<std::string>();
+
+                    cfg->webhooks.push_back(std::move(hook));
+                }
+            }
         }
         catch (const toml::parse_error& err)
         {
