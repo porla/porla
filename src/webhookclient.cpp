@@ -6,6 +6,8 @@
 #include <boost/log/trivial.hpp>
 #include <libjsonnet++.h>
 
+#include "json/ltinfohash.hpp"
+#include "json/lttorrentstatus.hpp"
 #include "session.hpp"
 #include "uri.hpp"
 
@@ -41,22 +43,56 @@ WebhookClient::WebhookClient(boost::asio::io_context& io, const WebhookClientOpt
     , m_session(opts.session)
     , m_webhooks(opts.webhooks)
 {
-    m_torrentAddedConnection = m_session.OnTorrentAdded([this](auto s) { OnTorrentAdded(s); });
+    m_torrentAddedConnection = m_session.OnTorrentAdded([this](auto && s) { OnTorrentAdded(s); });
+    m_torrentFinishedConnection = m_session.OnTorrentFinished([this](auto && s) { OnTorrentFinished(s); });
+    m_torrentPausedConnection = m_session.OnTorrentPaused([this](auto && s) { OnTorrentPaused(s); });
+    m_torrentRemovedConnection = m_session.OnTorrentRemoved([this](auto && s) { OnTorrentRemoved(s); });
+    m_torrentResumedConnection = m_session.OnTorrentResumed([this](auto && s) { OnTorrentResumed(s); });
 }
 
 WebhookClient::~WebhookClient()
 {
     m_torrentAddedConnection.disconnect();
+    m_torrentFinishedConnection.disconnect();
+    m_torrentPausedConnection.disconnect();
+    m_torrentRemovedConnection.disconnect();
+    m_torrentResumedConnection.disconnect();
 }
 
 void WebhookClient::OnTorrentAdded(const libtorrent::torrent_status& ts)
 {
     SendEvent("torrent_added", {
-        {"event", "torrent_added"},
+        {"torrent", ts}
+    });
+}
+
+void WebhookClient::OnTorrentFinished(const libtorrent::torrent_status &ts)
+{
+    SendEvent("torrent_finished", {
+        {"torrent", ts}
+    });
+}
+
+void WebhookClient::OnTorrentPaused(const libtorrent::torrent_status &ts)
+{
+    SendEvent("torrent_paused", {
+        {"torrent", ts}
+    });
+}
+
+void WebhookClient::OnTorrentRemoved(const libtorrent::info_hash_t &ih)
+{
+    SendEvent("torrent_removed", {
         {"torrent", {
-            {"name", ts.name},
-            {"total_wanted", ts.total_wanted}
+            {"info_hash", ih}
         }}
+    });
+}
+
+void WebhookClient::OnTorrentResumed(const libtorrent::torrent_status &ts)
+{
+    SendEvent("torrent_resumed", {
+        {"torrent", ts}
     });
 }
 
@@ -187,6 +223,8 @@ void WebhookClient::SendEvent(const std::string& eventName, const std::map<std::
     {
         jn.bindExtCodeVar(key, value.dump());
     }
+
+    jn.bindExtCodeVar("event_name", nlohmann::json(eventName).dump());
 
     for (auto const& wh : m_webhooks)
     {

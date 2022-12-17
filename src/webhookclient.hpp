@@ -42,6 +42,10 @@ namespace porla
         void OnAsyncWrite(boost::system::error_code ec, std::size_t size, std::shared_ptr<RequestState> state);
 
         void OnTorrentAdded(const libtorrent::torrent_status& ts);
+        void OnTorrentFinished(const libtorrent::torrent_status& ts);
+        void OnTorrentPaused(const libtorrent::torrent_status& ts);
+        void OnTorrentRemoved(const libtorrent::info_hash_t& ih);
+        void OnTorrentResumed(const libtorrent::torrent_status& ts);
 
         void SendEvent(const std::string& eventName, const std::map<std::string, nlohmann::json>& ext_vars);
         void SendRequest(std::shared_ptr<RequestState> state);
@@ -53,5 +57,9 @@ namespace porla
         std::vector<Config::Webhook> m_webhooks;
 
         boost::signals2::connection m_torrentAddedConnection;
+        boost::signals2::connection m_torrentFinishedConnection;
+        boost::signals2::connection m_torrentPausedConnection;
+        boost::signals2::connection m_torrentRemovedConnection;
+        boost::signals2::connection m_torrentResumedConnection;
     };
 }
