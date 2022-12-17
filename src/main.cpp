@@ -20,6 +20,7 @@
 #include "tools/generatesecretkey.hpp"
 #include "tools/versionjson.hpp"
 #include "utils/secretkey.hpp"
+#include "webhookclient.hpp"
 
 #include "methods/presetslist.hpp"
 #include "methods/sessionpause.hpp"
@@ -107,6 +108,11 @@ int main(int argc, char* argv[])
             BOOST_LOG_TRIVIAL(fatal) << "Failed to load torrents: " << ex.what();
             return -1;
         }
+
+        porla::WebhookClient wh(io, porla::WebhookClientOptions{
+            .session  = session,
+            .webhooks = cfg->webhooks
+        });
 
         porla::JsonRpcHandler rpc({
             {"presets.list", porla::Methods::PresetsList(cfg->presets)},

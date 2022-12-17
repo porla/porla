@@ -8,16 +8,18 @@ project(porla)
 set(CMAKE_CXX_STANDARD 20)
 
 find_package(Boost                      REQUIRED COMPONENTS log program_options system)
-#find_package(GTest               CONFIG REQUIRED)
 find_package(libzip              CONFIG REQUIRED)
 find_package(LibtorrentRasterbar CONFIG REQUIRED)
 find_package(nlohmann_json       CONFIG REQUIRED)
+find_package(ryml                CONFIG REQUIRED)
 find_package(tomlplusplus        CONFIG REQUIRED)
 find_package(unofficial-sodium   CONFIG REQUIRED)
 find_package(unofficial-sqlite3  CONFIG REQUIRED)
 find_package(uriparser           CONFIG REQUIRED)
 
 find_path(JWT_CPP_INCLUDE_DIRS "jwt-cpp/base.h")
+
+add_subdirectory(vendor/jsonnet)
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
@@ -30,6 +32,8 @@ add_custom_command(
     ${CMAKE_CURRENT_BINARY_DIR}/_webui.cpp
     COMMAND ${CMAKE_COMMAND} -P
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FileEmbed.cmake)
+
+add_executable(to_c_array vendor/jsonnet/stdlib/to_c_array.cpp)
 
 add_executable(
     ${PROJECT_NAME}
@@ -72,8 +76,12 @@ add_executable(
     src/systemhandler.hpp
     src/torrentsvt.cpp
     src/torrentsvt.hpp
+    src/uri.cpp
+    src/uri.hpp
     src/utils/secretkey.cpp
     src/utils/secretkey.hpp
+    src/webhookclient.cpp
+    src/webhookclient.hpp
 
     src/data/migrate.cpp
     src/data/migrate.hpp
@@ -160,6 +168,7 @@ target_link_libraries(
     Boost::boost
     Boost::log
     Boost::program_options
+    jsonnet
     libzip::zip
     LibtorrentRasterbar::torrent-rasterbar
     unofficial-sodium::sodium

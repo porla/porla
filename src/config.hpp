@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_set>
 
 #include <boost/program_options.hpp>
 #include <libtorrent/extensions.hpp>
@@ -30,6 +31,15 @@ namespace porla
             std::optional<int>                        upload_limit;
         };
 
+        struct Webhook
+        {
+            std::unordered_set<std::string>    on;
+            std::string                        url;
+            std::optional<std::vector<int>>    expect_status;
+            std::map<std::string, std::string> headers;
+            std::optional<std::string>         payload;
+        };
+
         std::optional<std::string>            config_file;
         sqlite3*                              db;
         std::optional<std::string>            db_file;
@@ -46,6 +56,7 @@ namespace porla
         std::optional<int>                    timer_dht_stats;
         std::optional<int>                    timer_session_stats;
         std::optional<int>                    timer_torrent_updates;
+        std::vector<Webhook>                  webhooks;
 
         static std::unique_ptr<Config> Load(const boost::program_options::variables_map& cmd);
 

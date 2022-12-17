@@ -26,3 +26,7 @@ base = "min_memory_usage"
 dht_stats = 5000
 session_stats = 5000
 torrent_updates = 1000
+
+[[webhooks]]
+on = "torrent_added"
+url = "https://google.com"
