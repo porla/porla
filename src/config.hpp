@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_set>
 
 #include <boost/program_options.hpp>
 #include <libtorrent/extensions.hpp>
@@ -32,7 +33,7 @@ namespace porla
 
         struct Webhook
         {
-            std::string                        on;
+            std::unordered_set<std::string>    on;
             std::string                        url;
             std::optional<std::vector<int>>    expect_status;
             std::map<std::string, std::string> headers;

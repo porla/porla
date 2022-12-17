@@ -4,7 +4,7 @@
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/log/trivial.hpp>
-#include <utility>
+#include <libjsonnet++.h>
 
 #include "session.hpp"
 #include "uri.hpp"
@@ -32,6 +32,7 @@ struct WebhookClient::RequestState
     boost::beast::ssl_stream<boost::beast::tcp_stream> m_ssl_stream;
     porla::Uri m_uri;
     porla::Config::Webhook m_webhook;
+    std::string m_payload;
 };
 
 WebhookClient::WebhookClient(boost::asio::io_context& io, const WebhookClientOptions& opts)
@@ -50,9 +51,13 @@ WebhookClient::~WebhookClient()
 
 void WebhookClient::OnTorrentAdded(const libtorrent::torrent_status& ts)
 {
-    // Build payload
-
-    SendEvent("torrent_added", "");
+    SendEvent("torrent_added", {
+        {"event", "torrent_added"},
+        {"torrent", {
+            {"name", ts.name},
+            {"total_wanted", ts.total_wanted}
+        }}
+    });
 }
 
 void WebhookClient::OnAsyncConnect(boost::system::error_code ec,
@@ -104,7 +109,7 @@ void WebhookClient::OnAsyncRead(boost::system::error_code ec, std::size_t size, 
         return;
     }
 
-    BOOST_LOG_TRIVIAL(info) << size;
+    // TODO: Check expected status codes
 }
 
 void WebhookClient::OnAsyncResolve(boost::system::error_code ec,
@@ -170,14 +175,33 @@ void WebhookClient::OnAsyncWrite(boost::system::error_code ec, std::size_t size,
     }
 }
 
-void WebhookClient::SendEvent(const std::string& eventName, std::string payload)
+void WebhookClient::SendEvent(const std::string& eventName, const std::map<std::string, nlohmann::json>& ext_vars)
 {
+    jsonnet::Jsonnet jn;
+    if (!jn.init())
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to initialize jsonnet: " << jn.lastError();
+    }
+
+    for (auto const& [key,value] : ext_vars)
+    {
+        jn.bindExtCodeVar(key, value.dump());
+    }
+
     for (auto const& wh : m_webhooks)
     {
-        if (wh.on != eventName) continue;
+        if (!wh.on.contains(eventName)) continue;
 
         auto state = std::make_shared<RequestState>(m_io);
         state->m_webhook = wh;
+
+        if (wh.payload.has_value())
+        {
+            if (!jn.evaluateSnippet("payload", wh.payload.value(), &state->m_payload))
+            {
+                BOOST_LOG_TRIVIAL(error) << "Failed to evaluate jsonnet snippet: " << jn.lastError();
+            }
+        }
 
         if (!porla::Uri::Parse(wh.url, state->m_uri))
         {
@@ -197,12 +221,24 @@ void WebhookClient::SendEvent(const std::string& eventName, std::string payload)
 
 void WebhookClient::SendRequest(std::shared_ptr<RequestState> state)
 {
-    auto req = std::make_shared<boost::beast::http::request<boost::beast::http::empty_body>>();
+    auto req = std::make_shared<boost::beast::http::request<boost::beast::http::string_body>>();
+    req->method(state->m_payload.empty() ? boost::beast::http::verb::get : boost::beast::http::verb::post);
+    req->target(state->m_uri.path);
     req->version(11);
-    req->method(boost::beast::http::verb::get);
-    req->target("/");
-    req->set("Host", state->m_uri.host);
+
+    req->set(boost::beast::http::field::content_type, "application/json");
+
+    for (auto const& [key,value] : state->m_webhook.headers)
+    {
+        req->set(key, value);
+    }
+
+    // Set these headers after user-specified headers. These cannot be overridden.
+
+    req->set(boost::beast::http::field::host, state->m_uri.host + ":" + std::to_string(state->m_uri.port));
     req->set(boost::beast::http::field::user_agent, "porla/1.0");
+    req->body() = state->m_payload;
+    req->prepare_payload();
 
     if (state->m_uri.scheme == "https")
     {

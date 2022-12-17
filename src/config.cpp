@@ -238,8 +238,48 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
                     auto const wh_tbl = *wh.as_table();
 
                     Webhook hook = {};
-                    hook.on = *wh_tbl["on"].value<std::string>();
+
+                    if (auto val = wh_tbl["on"].value<std::string>())
+                        hook.on.insert(*val);
+
+                    if (auto val = wh_tbl["on"].as_array())
+                    {
+                        for (auto const& event_name : *val)
+                        {
+                            if (auto event_name_str = event_name.value<std::string>())
+                                hook.on.insert(*event_name_str);
+                        }
+                    }
+
                     hook.url = *wh_tbl["url"].value<std::string>();
+
+                    if (auto headers_array = wh_tbl["headers"].as_array())
+                    {
+                        for (auto const& header_item : *headers_array)
+                        {
+                            auto const* header_tbl = header_item.as_table();
+
+                            if (!header_tbl)
+                            {
+                                BOOST_LOG_TRIVIAL(warning) << "Webhook header item is not a TOML table";
+                                continue;
+                            }
+
+                            if (header_tbl->size() != 1)
+                            {
+                                BOOST_LOG_TRIVIAL(warning) << "Webhook header item should only have a single value";
+                                continue;
+                            }
+
+                            hook.headers.insert({
+                                header_tbl->begin()->first.data(),
+                                *header_tbl->begin()->second.value<std::string>()
+                            });
+                        }
+                    }
+
+                    if (auto val = wh_tbl["payload"].value<std::string>())
+                        hook.payload = *val;
 
                     cfg->webhooks.push_back(std::move(hook));
                 }

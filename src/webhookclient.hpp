@@ -5,6 +5,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/signals2.hpp>
+#include <nlohmann/json.hpp>
 
 #include "config.hpp"
 
@@ -42,7 +43,7 @@ namespace porla
 
         void OnTorrentAdded(const libtorrent::torrent_status& ts);
 
-        void SendEvent(const std::string& eventName, std::string payload);
+        void SendEvent(const std::string& eventName, const std::map<std::string, nlohmann::json>& ext_vars);
         void SendRequest(std::shared_ptr<RequestState> state);
 
         boost::asio::io_context& m_io;
