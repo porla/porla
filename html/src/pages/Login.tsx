@@ -56,8 +56,16 @@ export default function Login() {
           }}
           onSubmit={async (values) => {
             setStatus({ level: "info", message: "Signing in" });
-            await login(values.username, values.password);
-            return navigate("/");
+
+            try {
+              await login(values.username, values.password);
+              return navigate("/");
+            }
+            catch (err) {
+              setStatus({ level: "error", message: "Invalid username or password" });
+            }
+
+            setTimeout(() => setStatus(undefined), 3000);
           }}
         >
           {({ isSubmitting }) => (
@@ -88,7 +96,11 @@ export default function Login() {
                 mt={5}
               >
                 <Flex alignItems={"center"} visibility={!!status ? "visible" : "hidden"}>
-                  <Spinner me={2} size={"sm"} />
+                  {
+                    status?.level === "info"
+                      ? <Spinner me={2} size={"sm"} />
+                      : <></>
+                  }
                   <Text fontSize={"sm"}>{status?.message}</Text>
                 </Flex>
 

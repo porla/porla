@@ -30,7 +30,11 @@ export default {
       throw new Error(res.statusText);
     }
 
-    const { token } = await res.json();
+    const { error, token } = await res.json();
+
+    if (error) {
+      throw new Error(error);
+    }
 
     return token;
   }
