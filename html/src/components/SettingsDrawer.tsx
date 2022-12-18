@@ -7,6 +7,7 @@ import { ISettingsDict, ISettingsList } from "../types";
 import { jsonrpc, useInvoker, useRPC } from "../services/jsonrpc";
 import GeneralSettingsTab from "./settings/GeneralSettingsTab";
 import ProxySettingsTab from "./settings/ProxySettingsTab";
+import QueueingSettingsTab from "./settings/QueueingSettingsTab";
 
 type SettingsDrawerProps = {
   isOpen: boolean;
@@ -14,6 +15,10 @@ type SettingsDrawerProps = {
 }
 
 const SettingsSchema = Yup.object().shape({
+  active_checking: Yup.number().required("Required").min(-1, "Cannot be less than -1"),
+  active_downloads: Yup.number().required("Required").min(-1, "Cannot be less than -1"),
+  active_limit: Yup.number().required("Required").min(-1, "Cannot be less than -1"),
+  active_seeds: Yup.number().required("Required").min(-1, "Cannot be less than -1"),
   listen_interfaces: Yup.array()
     .transform(function (value, originalValue) {
       if (this.isType(value) && value !== null) {
@@ -41,12 +46,13 @@ const SettingsSchema = Yup.object().shape({
 });
 
 type SettingsFormProps = {
+  onSubmitted: () => void;
   onSubmitting: (isSubmitting: boolean) => void;
   settings: ISettingsDict;
 }
 
 function SettingsForm(props: SettingsFormProps) {
-  const { onSubmitting, settings } = props;
+  const { onSubmitted, onSubmitting, settings } = props;
 
   const sessionSettingsUpdate = useInvoker<void>("session.settings.update");
 
@@ -80,6 +86,7 @@ function SettingsForm(props: SettingsFormProps) {
         await new Promise(r => setTimeout(r, 500));
 
         onSubmitting(false);
+        onSubmitted();
       }}
       validationSchema={SettingsSchema}
     >
@@ -90,6 +97,7 @@ function SettingsForm(props: SettingsFormProps) {
           <TabList>
             <Tab>General</Tab>
             <Tab>Proxy</Tab>
+            <Tab>Queueing</Tab>
           </TabList>
           <TabPanels>
             <TabPanel>
@@ -97,6 +105,9 @@ function SettingsForm(props: SettingsFormProps) {
             </TabPanel>
             <TabPanel>
               <ProxySettingsTab />
+            </TabPanel>
+            <TabPanel>
+              <QueueingSettingsTab />
             </TabPanel>
           </TabPanels>
         </Tabs>
@@ -106,8 +117,20 @@ function SettingsForm(props: SettingsFormProps) {
 }
 
 export default function SettingsDrawer(props: SettingsDrawerProps) {
-  const { data, error } = useRPC<ISettingsList>("session.settings.list", {
+  const { data, error, mutate } = useRPC<ISettingsList>("session.settings.list", {
     keys: [
+      "active_checking",
+      "active_downloads",
+      "active_limit",
+      "active_seeds",
+      "auto_manage_interval",
+      "auto_manage_prefer_seeds",
+      "auto_scrape_interval",
+      "auto_scrape_min_interval",
+      "dont_count_slow_torrents",
+      "inactive_down_rate",
+      "inactive_up_rate",
+      "incoming_starts_queued_torrents",
       "listen_interfaces",
       "proxy_type",
       "proxy_hostname",
@@ -138,7 +161,11 @@ export default function SettingsDrawer(props: SettingsDrawerProps) {
               ? <div>{error.toString()}</div>
               : !data
                 ? <Box><Spinner /></Box>
-                : <SettingsForm onSubmitting={setSubmitting} settings={data.settings} />
+                : <SettingsForm
+                  onSubmitted={() => mutate()}
+                  onSubmitting={setSubmitting}
+                  settings={data.settings}
+                />
           }
         </DrawerBody>
         <DrawerFooter>
