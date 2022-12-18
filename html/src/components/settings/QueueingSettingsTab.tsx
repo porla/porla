@@ -17,6 +17,8 @@ type IFormData = {
   inactive_down_rate: number;
   inactive_up_rate: number;
   incoming_starts_queued_torrents: boolean;
+  seed_time_ratio_limit: number;
+  share_ratio_limit: number;
 }
 
 export default function QueueingSettingsTab() {
@@ -223,6 +225,38 @@ export default function QueueingSettingsTab() {
               errors.incoming_starts_queued_torrents && touched.incoming_starts_queued_torrents
                 ? <FormErrorMessage>{errors.incoming_starts_queued_torrents}</FormErrorMessage>
                 : <FormHelperText>If a torrent has been paused by the auto managed feature in libtorrent, i.e. the torrent is paused and auto managed, this feature affects whether or not it is automatically started on an incoming connection. The main reason to queue torrents, is not to make them unavailable, but to save on the overhead of announcing to the trackers, the DHT and to avoid spreading one's unchoke slots too thin. If a peer managed to find us, even though we're no in the torrent anymore, this setting can make us start the torrent and serve it.</FormHelperText>
+            }
+          </FormControl>
+        )}
+      </Field>
+      <Field name="share_ratio_limit">
+        {(w: any) => (
+          <FormControl mb={3}>
+            <FormLabel>Share ratio limit</FormLabel>
+            <Input
+              {...w.field}
+              type={"number"}
+            />
+            {
+              errors.share_ratio_limit && touched.share_ratio_limit
+                ? <FormErrorMessage>{errors.share_ratio_limit}</FormErrorMessage>
+                : <FormHelperText>When a seeding torrent reaches either the share ratio (bytes up / bytes down) or the seed time ratio (seconds as seed / seconds as downloader) or the seed time limit (seconds as seed) it is considered done, and it will leave room for other torrents. These are specified as percentages. Torrents that are considered done will still be allowed to be seeded, they just won't have priority anymore..</FormHelperText>
+            }
+          </FormControl>
+        )}
+      </Field>
+      <Field name="seed_time_ratio_limit">
+        {(w: any) => (
+          <FormControl mb={3}>
+            <FormLabel>Seed time ratio limit</FormLabel>
+            <Input
+              {...w.field}
+              type={"number"}
+            />
+            {
+              errors.seed_time_ratio_limit && touched.seed_time_ratio_limit
+                ? <FormErrorMessage>{errors.seed_time_ratio_limit}</FormErrorMessage>
+                : <FormHelperText>See <em>Share ratio limit</em>.</FormHelperText>
             }
           </FormControl>
         )}
