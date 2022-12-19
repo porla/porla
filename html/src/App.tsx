@@ -106,8 +106,8 @@ function AuthApp() {
             />
             <Spacer />
             <Text fontSize={"xs"}>{data?.porla.version === "" ? "dev" : data?.porla.version}</Text>
-            <Text fontSize={"xs"}>{data?.porla.branch}</Text>
-            <Text fontSize={"xs"}>{data?.porla.commitish.substring(0,7)}</Text>
+            { data?.porla.branch    !== "-" && <Text fontSize={"xs"}>{data?.porla.branch}</Text> }
+            { data?.porla.commitish !== "-" && <Text fontSize={"xs"}>{data?.porla.commitish.substring(0,7)}</Text> }
           </HStack>
         </GridItem>
       </Grid>
