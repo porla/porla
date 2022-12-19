@@ -38,13 +38,14 @@ export default function TorrentsList(props: TorrentsListProps) {
       spacing={1}
     >
       <Grid
-        gridTemplateColumns={"32px calc(100% - 220px - 80px) 110px 110px 48px"}
+        gridTemplateColumns={"32px 24px calc(100% - 244px - 80px) 110px 110px 48px"}
         gridTemplateRows={"0fr"}
         templateAreas={`
           "progress main dl actions"
         `}
       >
         <GridItem></GridItem>
+        <GridItem alignSelf={"center"} ms={2} textAlign={"center"}><GridTitle title="#" /></GridItem>
         <GridItem ms={2}><GridTitle title="Name" /></GridItem>
         <GridItem me={2} textAlign={"end"}><GridTitle title="DL" /></GridItem>
         <GridItem me={2} textAlign={"end"}><GridTitle title="UL" /></GridItem>

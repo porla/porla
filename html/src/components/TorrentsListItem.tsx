@@ -1,8 +1,12 @@
 import { CircularProgress, CircularProgressLabel, Flex, Grid, GridItem, HStack, Icon, IconButton, Menu, MenuButton, Text, useColorMode } from "@chakra-ui/react";
 import { filesize } from "filesize";
 import { IconType } from "react-icons/lib";
+<<<<<<< HEAD
 import { MdFileCopy, MdFolderOpen, MdOutlineMoreVert } from "react-icons/md";
 import useNinja from "../contexts/ninja";
+=======
+import { MdCheck, MdError, MdFileCopy, MdFolderOpen, MdHourglassEmpty, MdOutlineMoreVert, MdOutlineReport, MdSchedule, MdUpload } from "react-icons/md";
+>>>>>>> 9438342 (Add queue position, some progress improvements)
 import { Torrent } from "../types"
 
 type TorrentsListItemProps = {
@@ -50,13 +54,14 @@ function stateColor(torrent: Torrent) {
   }
 
   switch (torrent.state) {
+    case 2: return "gray.600";
     case 3: return "blue.500";
     case 5: return "green.300";
   }
   return "default";
 }
 
-function stateString(torrent: Torrent) {
+function progressLabel(torrent: Torrent) {
   if (torrent.error) {
     return "error";
   }
@@ -68,28 +73,28 @@ function stateString(torrent: Torrent) {
       }
       return "checking_files";
     }
-    case 2: return "downloading_metadata";
+    case 2: return <Icon as={isAutoManaged(torrent.flags) && isPaused(torrent.flags) ? MdSchedule : MdFileCopy} mt={"1px"} w={3} h={3} />;
     case 3: {
       if (isPaused(torrent.flags)) {
         if (isAutoManaged(torrent.flags)) {
-          return "queued";
+          return <Icon as={MdSchedule} mt={"1px"} w={3} h={3} />;
         }
         return "paused";
       }
-      return "downloading";
+      break;
     }
-    case 4: return "finished";
+    case 4: return <Icon as={MdCheck} mt={"1px"} w={3} h={3} />;
     case 5: {
       if (isPaused(torrent.flags)) {
         if (isAutoManaged(torrent.flags)) {
           return "seeding_queued";
         }
-        return "finished";
+        return <Icon as={MdCheck} mt={"1px"} w={3} h={3} />;
       }
-      return "seeding";
+      return <Icon as={MdUpload} mt={"1px"} w={3} h={3} />;
     }
   }
-  return "unknown";
+  return Math.round(torrent.progress * 100);
 }
 
 function KeyValue(props: KeyValueProps) {
@@ -111,20 +116,45 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
 
   return (
     <Grid
-      gridTemplateColumns={"32px 1fr 110px 110px 48px"}
+      gridTemplateColumns={"32px 24px 1fr 110px 110px 48px"}
       gridTemplateRows={"min-content"}
       templateAreas={`
         "progress main dl actions"
       `}
     >
       <GridItem alignSelf={"center"}>
-        <CircularProgress
-          color={stateColor(props.torrent)}
-          size={"32px"}
-          value={props.torrent.progress * 100}
+        {
+          props.torrent.error
+            ? <Icon
+                as={MdOutlineReport}
+                color={"red.300"}
+                h={"32px"}
+                w={"32px"}
+              />
+            : <CircularProgress
+                color={stateColor(props.torrent)}
+                isIndeterminate={
+                  props.torrent.state === 2
+                  && isAutoManaged(props.torrent.flags)
+                  && !isPaused(props.torrent.flags)
+                }
+                size={"32px"}
+                trackColor={""}
+                value={props.torrent.progress * 100}
+              >
+                <CircularProgressLabel fontSize={"xs"}>{progressLabel(props.torrent)}</CircularProgressLabel>
+              </CircularProgress>
+        }
+      </GridItem>
+
+      <GridItem alignSelf={"center"} textAlign={"center"}>
+        <Text
+          color={"gray.500"}
+          fontSize={"xs"}
+          ms={2}
         >
-          <CircularProgressLabel>{Math.round(props.torrent.progress*100)}%</CircularProgressLabel>
-        </CircularProgress>
+          {props.torrent.queue_position < 0 ? "-" : props.torrent.queue_position + 1}
+        </Text>
       </GridItem>
 
       <GridItem m={2} overflow={"hidden"}>

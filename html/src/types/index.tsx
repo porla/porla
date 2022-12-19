@@ -19,6 +19,7 @@ export type Torrent = {
   info_hash: InfoHash;
   name: string;
   progress: number;
+  queue_position: number;
   save_path: string;
   size: number;
   state: number;
