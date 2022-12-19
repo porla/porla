@@ -1,4 +1,4 @@
-import { Alert, AlertDescription, AlertIcon, AlertTitle, Box, Button, Flex, Heading, HStack, IconButton } from "@chakra-ui/react";
+import { Alert, AlertDescription, AlertIcon, AlertTitle, Box, Button, Flex, Grid, GridItem, Heading, HStack, IconButton, Spacer } from "@chakra-ui/react";
 import { useState } from "react";
 import Pager from "../components/Pager";
 import RemoveTorrentModal from "../components/RemoveTorrentModal";
@@ -55,7 +55,7 @@ export default function Home() {
   }
 
   return (
-    <>
+    <Box height={"100%"}>
       <AddTorrentModal
         isOpen={showAdd}
         onClose={() => { setShowAdd(false); }}
@@ -107,49 +107,62 @@ export default function Home() {
       {
         data?.torrents.length > 0
           ? (
-            <>
-              <Flex
-                justifyContent={"space-between"}
-                m={3}
-              >
-                <HStack spacing={0}>
-                  <Heading as="h3" size={"md"}>Torrents</Heading>
-                  <IconButton
-                    aria-label={"Add torrent"}
-                    colorScheme={"purple"}
-                    icon={<MdAddBox />}
-                    size={"lg"}
-                    variant={"link"}
-                    onClick={() => setShowAdd(true)}
+            <Grid
+              height={"100%"}
+              templateAreas={`
+                "title"
+                "content"
+              `}
+              gridTemplateColumns={"1fr"}
+              gridTemplateRows={"min-content fit-content(100%)"}
+            >
+              <GridItem area={"title"}>
+                <HStack
+                  m={3}
+                >
+                  <HStack spacing={0}>
+                    <Heading as="h3" size={"md"}>Torrents</Heading>
+                    <IconButton
+                      aria-label={"Add torrent"}
+                      colorScheme={"purple"}
+                      icon={<MdAddBox />}
+                      size={"lg"}
+                      variant={"link"}
+                      onClick={() => setShowAdd(true)}
+                    />
+                  </HStack>
+                  <Spacer />
+                  <Pager
+                    page={page}
+                    pageSize={data?.page_size || 0}
+                    totalItems={data?.torrents_total || 0}
+                    setPage={(p) => {
+                      setPage(p);
+                    }}
                   />
                 </HStack>
-                <Pager
-                  page={page}
-                  pageSize={data?.page_size || 0}
-                  totalItems={data?.torrents_total || 0}
-                  setPage={(p) => {
-                    setPage(p);
+              </GridItem>
+
+              <GridItem area={"content"} overflow={"scroll"}>
+                <TorrentsTable
+                  isDeleting={() => false}
+                  onMove={t => setMoveTorrent(t)}
+                  onPause={async (t) => {
+                    await torrentsPause({
+                      info_hash: t.info_hash
+                    })
                   }}
+                  onRemove={(torrent) => setRemoveTorrent(torrent)}
+                  onResume={async (t) => {
+                    await torrentsResume({
+                      info_hash: t.info_hash
+                    })
+                  }}
+                  onShowProperties={t => setPropsTorrent(t)}
+                  torrents={data?.torrents || []}
                 />
-              </Flex>
-              <TorrentsTable
-                isDeleting={() => false}
-                onMove={t => setMoveTorrent(t)}
-                onPause={async (t) => {
-                  await torrentsPause({
-                    info_hash: t.info_hash
-                  })
-                }}
-                onRemove={(torrent) => setRemoveTorrent(torrent)}
-                onResume={async (t) => {
-                  await torrentsResume({
-                    info_hash: t.info_hash
-                  })
-                }}
-                onShowProperties={t => setPropsTorrent(t)}
-                torrents={data?.torrents || []}
-              />
-            </>
+              </GridItem>
+            </Grid>
           ) : (
             <Box p={10} textAlign={"center"}>
               <Box>
@@ -166,6 +179,6 @@ export default function Home() {
             </Box>
           )
       }
-    </>
+    </Box>
   )
 }
