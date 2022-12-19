@@ -12,8 +12,17 @@ export type Preset = {
 };
 
 export type Torrent = {
-  info_hash: InfoHash;
+  download_rate: number;
   download_limit: number;
+  error: any;
+  flags: number;
+  info_hash: InfoHash;
+  name: string;
+  progress: number;
+  save_path: string;
+  size: number;
+  state: number;
+  upload_rate: number;
 }
 
 export type TorrentProperties = {
@@ -26,7 +35,7 @@ export type TorrentProperties = {
 
 export type ITorrentsList = {
   page_size: number;
-  torrents: any;
+  torrents: Torrent[];
   torrents_total: number;
 };
 

@@ -9,6 +9,7 @@ import MoveTorrentModal from "../components/MoveTorrentModal";
 import { MdAddBox } from "react-icons/md";
 import { ITorrentsList, Torrent } from "../types";
 import TorrentPropertiesModal from "../components/TorrentPropertiesModal";
+import TorrentsList from "../components/TorrentsList";
 
 
 export default function Home() {
@@ -144,23 +145,7 @@ export default function Home() {
               </GridItem>
 
               <GridItem area={"content"} overflow={"scroll"}>
-                <TorrentsTable
-                  isDeleting={() => false}
-                  onMove={t => setMoveTorrent(t)}
-                  onPause={async (t) => {
-                    await torrentsPause({
-                      info_hash: t.info_hash
-                    })
-                  }}
-                  onRemove={(torrent) => setRemoveTorrent(torrent)}
-                  onResume={async (t) => {
-                    await torrentsResume({
-                      info_hash: t.info_hash
-                    })
-                  }}
-                  onShowProperties={t => setPropsTorrent(t)}
-                  torrents={data?.torrents || []}
-                />
+                <TorrentsList torrents={data.torrents} />
               </GridItem>
             </Grid>
           ) : (
