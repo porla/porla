@@ -1,6 +1,6 @@
-import { Box, Flex, HStack, IconButton, Image, Link, Spacer, Stack, Text, useColorMode } from '@chakra-ui/react';
+import { Box, Flex, Grid, GridItem, HStack, IconButton, Image, Link, Spacer, Stack, Text, useColorMode } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
-import { MdDarkMode, MdLightMode, MdSettings } from 'react-icons/md';
+import { MdDarkMode, MdLightMode, MdOutlineCamera, MdOutlineCameraAlt, MdSettings } from 'react-icons/md';
 import { SiDiscord } from 'react-icons/si';
 import { Navigate, Outlet } from 'react-router-dom';
 
@@ -9,6 +9,7 @@ import prefixPath from './base';
 import AppErrorModal from './components/AppErrorModal';
 import SettingsDrawer from './components/SettingsDrawer';
 import useAuth from './contexts/auth';
+import useNinja from './contexts/ninja';
 import { AuthError, useRPC } from './services/jsonrpc';
 
 type IVersionInfo = {
@@ -23,6 +24,7 @@ function AuthApp() {
   const { data, error } = useRPC<IVersionInfo>("sys.versions");
   const [ showSettings, setShowSettings ] = useState(false);
   const { colorMode, toggleColorMode } = useColorMode();
+  const { isNinja, toggleNinja } = useNinja();
 
   if (error && error instanceof AuthError) {
     return <Navigate to="/login" />
@@ -35,66 +37,93 @@ function AuthApp() {
   }
 
   return (
-    <Flex direction={"column"} height={"100%"} mx={"auto"}>
+    <>
       <SettingsDrawer
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
       />
 
-      <Flex
-        borderBottomColor={"whiteAlpha.400"}
-        borderBottomWidth={"1px"}
-        boxShadow={"sm"}
-        justifyContent={"space-between"}
-        mb={2}
-        p={3}
+      <Grid
+        height={"100vh"}
+        templateAreas={`
+          "header"
+          "main"
+          "footer"
+        `}
+        gridTemplateColumns={"1fr"}
+        gridTemplateRows={"0fr 1fr 0fr"}
       >
-        <Stack direction={"row"} alignItems={"center"} spacing={5}>
-          <Image src={Isotype} width={"32px"} />
-        </Stack>
+        <GridItem area={"header"}>
+          <Flex
+            borderBottomColor={"whiteAlpha.400"}
+            borderBottomWidth={"1px"}
+            boxShadow={"sm"}
+            justifyContent={"space-between"}
+            mb={2}
+            p={3}
+          >
+            <Stack direction={"row"} alignItems={"center"} spacing={5}>
+              <Image src={Isotype} width={"32px"} />
+            </Stack>
 
-        <IconButton
-          aria-label=''
-          icon={<MdSettings />}
-          onClick={() => setShowSettings(true)}
-          variant={"link"}
-        />
-      </Flex>
-      <Box flex={1}>
-        <Outlet />
-      </Box>
-      <HStack
-        justifyContent={"end"}
-        padding={1}
-        backgroundColor={colorMode === "dark" ? "whiteAlpha.50" : ""}
-        borderTopColor={colorMode === "dark" ? "whiteAlpha.200" : ""}
-        borderTopWidth={"1px"}
-        color={colorMode === "dark" ? "whiteAlpha.600" : ""}
-      >
-        <IconButton
-          aria-label={""}
-          icon={colorMode === "dark" ? <MdLightMode /> : <MdDarkMode />}
-          onClick={() => toggleColorMode()}
-          size={"xs"}
-          variant={"link"}
-        />
+            <IconButton
+              aria-label=''
+              icon={<MdSettings />}
+              onClick={() => setShowSettings(true)}
+              variant={"link"}
+            />
+          </Flex>
+        </GridItem>
 
-        <IconButton
-          aria-label={"Join Porla on Discord"}
-          as={Link}
-          href="https://discord.gg/FNVVRzqJAG"
-          icon={<SiDiscord />}
-          isExternal
-          size={"xs"}
-          title={"Join Porla on Discord"}
-          variant={"link"}
-        />
-        <Spacer />
-        <Text fontSize={"xs"}>{data?.porla.version === "" ? "dev" : data?.porla.version}</Text>
-        <Text fontSize={"xs"}>{data?.porla.branch}</Text>
-        <Text fontSize={"xs"}>{data?.porla.commitish.substring(0,7)}</Text>
-      </HStack>
-    </Flex>
+        <GridItem area={"main"}>
+          <Outlet />
+        </GridItem>
+
+        <GridItem area={"footer"}>
+          <HStack
+            justifyContent={"end"}
+            padding={1}
+            backgroundColor={colorMode === "dark" ? "whiteAlpha.50" : ""}
+            borderTopColor={colorMode === "dark" ? "whiteAlpha.200" : ""}
+            borderTopWidth={"1px"}
+            color={colorMode === "dark" ? "whiteAlpha.600" : ""}
+          >
+            <IconButton
+              aria-label={""}
+              icon={colorMode === "dark" ? <MdLightMode /> : <MdDarkMode />}
+              onClick={() => toggleColorMode()}
+              size={"xs"}
+              variant={"link"}
+            />
+
+            <IconButton
+              aria-label={"Join Porla on Discord"}
+              as={Link}
+              href="https://discord.gg/FNVVRzqJAG"
+              icon={<SiDiscord />}
+              isExternal
+              size={"xs"}
+              title={"Join Porla on Discord"}
+              variant={"link"}
+            />
+
+            <IconButton
+              aria-label={"Toggle Ninja mode"}
+              color={isNinja ? "red.400" : ""}
+              icon={<MdOutlineCameraAlt />}
+              onClick={() => toggleNinja()}
+              size={"xs"}
+              variant={"link"}
+            />
+
+            <Spacer />
+            <Text fontSize={"xs"}>{data?.porla.version === "" ? "dev" : data?.porla.version}</Text>
+            { data?.porla.branch    !== "-" && <Text fontSize={"xs"}>{data?.porla.branch}</Text> }
+            { data?.porla.commitish !== "-" && <Text fontSize={"xs"}>{data?.porla.commitish.substring(0,7)}</Text> }
+          </HStack>
+        </GridItem>
+      </Grid>
+    </>
   )
 }
 

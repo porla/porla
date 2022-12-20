@@ -110,7 +110,7 @@ export default function TorrentsTable(props: TorrentsTableProps) {
         { torrents.map((t: any) => (
           <Tr key={torrentKey(t)}>
             {/*<Td><Checkbox isChecked={isSelected(t)} onChange={a => setSelected(t, a.target.checked)} /></Td>*/}
-            <Td>
+            <Td whiteSpace={"nowrap"}>
               <HStack
                 spacing={2}
               >

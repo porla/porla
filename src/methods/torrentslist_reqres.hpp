@@ -19,17 +19,21 @@ namespace porla::Methods
     {
         struct Item
         {
+            std::int64_t all_time_download;
+            std::int64_t all_time_upload;
             int download_rate;
             libtorrent::error_code error;
             std::uint64_t flags;
             lt::info_hash_t info_hash;
             int list_peers;
             int list_seeds;
+            bool moving_storage;
             std::string name;
             int num_peers;
             int num_seeds;
             float progress;
             int queue_position;
+            double ratio;
             std::string save_path;
             std::int64_t size;
             int state;
