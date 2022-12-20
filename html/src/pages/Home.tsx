@@ -20,7 +20,7 @@ export default function Home() {
   const [ showAdd, setShowAdd ] = useState(false);
   const [ propsTorrent, setPropsTorrent ] = useState<Torrent | null>();
 
-  const { error, data } = useRPC<ITorrentsList>('torrents.list', {
+  const { error, data, mutate } = useRPC<ITorrentsList>('torrents.list', {
     page
   }, {
     refreshInterval: 1000
@@ -59,7 +59,10 @@ export default function Home() {
     <Box height={"100%"}>
       <AddTorrentModal
         isOpen={showAdd}
-        onClose={() => { setShowAdd(false); }}
+        onClose={async () => {
+          setShowAdd(false);
+          await mutate();
+        }}
       />
 
       <MoveTorrentModal
@@ -80,6 +83,8 @@ export default function Home() {
           });
 
           setMoveTorrent(null);
+
+          await mutate();
         }}
       />
 
@@ -89,6 +94,7 @@ export default function Home() {
           if (torrent === null) {
             return setRemoveTorrent(null);
           }
+
           setDeleting(torrent);
 
           await torrentsRemove({
@@ -97,6 +103,7 @@ export default function Home() {
           });
 
           setRemoveTorrent(null);
+          await mutate();
         }}
       />
 
@@ -145,7 +152,25 @@ export default function Home() {
               </GridItem>
 
               <GridItem area={"content"} overflow={"scroll"}>
-                <TorrentsList torrents={data.torrents} />
+                <TorrentsList
+                  torrents={data.torrents}
+                  isDeleting={() => false}
+                  onMove={t => setMoveTorrent(t)}
+                  onPause={async (t) => {
+                    await torrentsPause({
+                      info_hash: t.info_hash
+                    });
+                    await mutate();
+                  }}
+                  onRemove={(torrent) => setRemoveTorrent(torrent)}
+                  onResume={async (t) => {
+                    await torrentsResume({
+                      info_hash: t.info_hash
+                    });
+                    await mutate();
+                  }}
+                  onShowProperties={t => setPropsTorrent(t)}
+                />
               </GridItem>
             </Grid>
           ) : (

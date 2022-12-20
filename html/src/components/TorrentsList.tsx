@@ -1,8 +1,14 @@
-import { Box, Grid, GridItem, StackDivider, Text, VStack } from "@chakra-ui/react";
+import { Grid, GridItem, StackDivider, Text, VStack } from "@chakra-ui/react";
 import { Torrent } from "../types"
 import TorrentsListItem from "./TorrentsListItem";
 
 type TorrentsListProps = {
+  isDeleting: (torrent: Torrent) => boolean;
+  onMove: (torrent: Torrent) => void;
+  onPause: (torrent: Torrent) => void;
+  onRemove: (torrent: Torrent) => void;
+  onResume: (torrent: Torrent) => void;
+  onShowProperties: (torrent: Torrent) => void;
   torrents: Torrent[];
 }
 
@@ -38,20 +44,29 @@ export default function TorrentsList(props: TorrentsListProps) {
       spacing={1}
     >
       <Grid
-        gridTemplateColumns={"32px 24px calc(100% - 244px - 80px) 110px 110px 48px"}
+        gridTemplateColumns={"32px 24px 1fr 110px 110px 100px 48px"}
         gridTemplateRows={"0fr"}
-        templateAreas={`
-          "progress main dl actions"
-        `}
       >
         <GridItem></GridItem>
         <GridItem alignSelf={"center"} ms={2} textAlign={"center"}><GridTitle title="#" /></GridItem>
         <GridItem ms={2}><GridTitle title="Name" /></GridItem>
+        <GridItem me={2} textAlign={"end"}><GridTitle title="Ratio" /></GridItem>
         <GridItem me={2} textAlign={"end"}><GridTitle title="DL" /></GridItem>
         <GridItem me={2} textAlign={"end"}><GridTitle title="UL" /></GridItem>
         <GridItem></GridItem>
       </Grid>
-      { props.torrents.map((t, idx) => <TorrentsListItem key={torrentKey(t)} index={idx} torrent={t} />)}
+      { props.torrents.map((t, idx) => (
+        <TorrentsListItem
+          key={torrentKey(t)}
+          index={idx}
+          torrent={t}
+          onMove={props.onMove}
+          isDeleting={props.isDeleting}
+          onPause={props.onPause}
+          onRemove={props.onRemove}
+          onResume={props.onResume}
+          onShowProperties={props.onShowProperties} />
+      ))}
     </VStack>
   );
 }

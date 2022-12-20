@@ -1,6 +1,7 @@
 #include "torrentslist.hpp"
 
 #include "../session.hpp"
+#include "../utils/ratio.hpp"
 
 using porla::Methods::TorrentsList;
 
@@ -62,23 +63,27 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             size = ti->total_size();
 
         torrents.push_back(TorrentsListRes::Item{
-            .download_rate  = ts.download_rate,
-            .error          = ts.errc,
-            .flags          = static_cast<std::uint64_t>(ts.flags),
-            .info_hash      = ts.info_hashes,
-            .list_peers     = ts.list_peers,
-            .list_seeds     = ts.list_seeds,
-            .name           = ts.name,
-            .num_peers      = ts.num_peers,
-            .num_seeds      = ts.num_seeds,
-            .progress       = ts.progress,
-            .queue_position = static_cast<int>(ts.queue_position),
-            .save_path      = ts.save_path,
-            .size           = size,
-            .state          = ts.state,
-            .total          = ts.total,
-            .total_done     = ts.total_done,
-            .upload_rate    = ts.upload_rate,
+            .all_time_download = ts.all_time_download,
+            .all_time_upload   = ts.all_time_upload,
+            .download_rate     = ts.download_rate,
+            .error             = ts.errc,
+            .flags             = static_cast<std::uint64_t>(ts.flags),
+            .info_hash         = ts.info_hashes,
+            .list_peers        = ts.list_peers,
+            .list_seeds        = ts.list_seeds,
+            .moving_storage    = ts.moving_storage,
+            .name              = ts.name,
+            .num_peers         = ts.num_peers,
+            .num_seeds         = ts.num_seeds,
+            .progress          = ts.progress,
+            .queue_position    = static_cast<int>(ts.queue_position),
+            .ratio             = porla::Utils::Ratio(ts),
+            .save_path         = ts.save_path,
+            .size              = size,
+            .state             = ts.state,
+            .total             = ts.total,
+            .total_done        = ts.total_done,
+            .upload_rate       = ts.upload_rate,
         });
     }
 

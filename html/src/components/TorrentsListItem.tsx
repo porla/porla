@@ -1,16 +1,19 @@
-import { CircularProgress, CircularProgressLabel, Flex, Grid, GridItem, HStack, Icon, IconButton, Menu, MenuButton, Text, useColorMode } from "@chakra-ui/react";
+import { Box, CircularProgress, CircularProgressLabel, Flex, Grid, GridItem, HStack, Icon, IconButton, Menu, MenuButton, MenuDivider, MenuGroup, MenuItem, MenuList, Text, useColorMode } from "@chakra-ui/react";
 import { filesize } from "filesize";
 import { IconType } from "react-icons/lib";
-<<<<<<< HEAD
-import { MdFileCopy, MdFolderOpen, MdOutlineMoreVert } from "react-icons/md";
-import useNinja from "../contexts/ninja";
-=======
-import { MdCheck, MdError, MdFileCopy, MdFolderOpen, MdHourglassEmpty, MdOutlineMoreVert, MdOutlineReport, MdSchedule, MdUpload } from "react-icons/md";
->>>>>>> 9438342 (Add queue position, some progress improvements)
+import { MdCheck, MdDelete, MdFileCopy, MdFolder, MdFolderOpen, MdOutlineMoreVert, MdOutlineReport, MdPause, MdPlayArrow, MdSchedule, MdUpload, MdViewList } from "react-icons/md";
 import { Torrent } from "../types"
+
+import useNinja from "../contexts/ninja";
 
 type TorrentsListItemProps = {
   index: number;
+  isDeleting: (torrent: Torrent) => boolean;
+  onMove: (torrent: Torrent) => void;
+  onPause: (torrent: Torrent) => void;
+  onRemove: (torrent: Torrent) => void;
+  onResume: (torrent: Torrent) => void;
+  onShowProperties: (torrent: Torrent) => void;
   torrent: Torrent;
 }
 
@@ -116,11 +119,8 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
 
   return (
     <Grid
-      gridTemplateColumns={"32px 24px 1fr 110px 110px 48px"}
+      gridTemplateColumns={"32px 24px 1fr 110px 110px 100px 48px"}
       gridTemplateRows={"min-content"}
-      templateAreas={`
-        "progress main dl actions"
-      `}
     >
       <GridItem alignSelf={"center"}>
         {
@@ -183,6 +183,12 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
 
       <GridItem alignSelf={"center"} textAlign={"end"}>
         <Text fontSize={"sm"} mx={2}>
+          {props.torrent.ratio.toFixed(2)}
+        </Text>
+      </GridItem>
+
+      <GridItem alignSelf={"center"} textAlign={"end"}>
+        <Text fontSize={"sm"} mx={2}>
           {props.torrent.download_rate > 1024
             ? <>{filesize(props.torrent.download_rate).toString()}/s</>
             : <Text color={"gray.500"}>-</Text>
@@ -199,14 +205,54 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
         </Text>
       </GridItem>
 
-      <GridItem alignSelf={"center"} textAlign={"end"}>
-        <Menu>
-          <MenuButton
-            as={IconButton}
-            icon={<MdOutlineMoreVert />}
-            size={"sm"}
-          />
-        </Menu>
+      <GridItem alignSelf={"center"}>
+        <Flex justifyContent={"end"}>
+          <Menu>
+            <MenuButton
+              as={IconButton}
+              icon={<MdOutlineMoreVert />}
+              size={"sm"}
+            />
+            <MenuList>
+              <MenuGroup title="Actions">
+                {
+                  isPaused(props.torrent.flags)
+                    ? <MenuItem
+                        icon={<MdPlayArrow />}
+                        onClick={() => props.onResume(props.torrent)}
+                      >
+                        Resume
+                      </MenuItem>
+                    : <MenuItem
+                        icon={<MdPause />}
+                        onClick={() => props.onPause(props.torrent)}
+                      >
+                        Pause
+                      </MenuItem>
+                }
+                <MenuItem
+                  icon={<MdFolder />}
+                  onClick={() => props.onMove(props.torrent)}
+                >
+                  Move
+                </MenuItem>
+                <MenuItem
+                  icon={<MdDelete />}
+                  onClick={() => props.onRemove(props.torrent)}
+                >
+                  Remove
+                </MenuItem>
+              </MenuGroup>
+              <MenuDivider />
+              <MenuItem
+                icon={<MdViewList />}
+                onClick={() => props.onShowProperties(props.torrent)}
+              >
+                Properties
+              </MenuItem>
+            </MenuList>
+          </Menu>
+        </Flex>
       </GridItem>
     </Grid>
   )

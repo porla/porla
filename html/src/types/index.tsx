@@ -12,15 +12,19 @@ export type Preset = {
 };
 
 export type Torrent = {
+  all_time_download: number;
+  all_time_upload: number;
   download_rate: number;
   download_limit: number;
   error: any;
   flags: number;
   info_hash: InfoHash;
+  moving_storage: boolean;
   name: string;
   progress: number;
   queue_position: number;
   save_path: string;
+  ratio: number;
   size: number;
   state: number;
   upload_rate: number;
