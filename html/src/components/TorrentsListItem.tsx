@@ -91,8 +91,8 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
 
   return (
     <Grid
-      gridTemplateColumns={"32px calc(100% - 220px - 80px) 110px 110px 48px"}
-      gridTemplateRows={"0fr"}
+      gridTemplateColumns={"32px 1fr 110px 110px 48px"}
+      gridTemplateRows={"min-content"}
       templateAreas={`
         "progress main dl actions"
       `}
@@ -107,7 +107,7 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
         </CircularProgress>
       </GridItem>
 
-      <GridItem m={2}>
+      <GridItem m={2} overflow={"hidden"}>
         <Text
           overflow={"hidden"}
           overflowWrap={"anywhere"}
