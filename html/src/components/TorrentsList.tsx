@@ -50,7 +50,7 @@ export default function TorrentsList(props: TorrentsListProps) {
         <GridItem me={2} textAlign={"end"}><GridTitle title="UL" /></GridItem>
         <GridItem></GridItem>
       </Grid>
-      { props.torrents.map(t => <TorrentsListItem key={torrentKey(t)} torrent={t} />)}
+      { props.torrents.map((t, idx) => <TorrentsListItem key={torrentKey(t)} index={idx} torrent={t} />)}
     </VStack>
   );
 }

@@ -1,6 +1,6 @@
 import { Box, Flex, Grid, GridItem, HStack, IconButton, Image, Link, Spacer, Stack, Text, useColorMode } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
-import { MdDarkMode, MdLightMode, MdSettings } from 'react-icons/md';
+import { MdDarkMode, MdLightMode, MdOutlineCamera, MdOutlineCameraAlt, MdSettings } from 'react-icons/md';
 import { SiDiscord } from 'react-icons/si';
 import { Navigate, Outlet } from 'react-router-dom';
 
@@ -9,6 +9,7 @@ import prefixPath from './base';
 import AppErrorModal from './components/AppErrorModal';
 import SettingsDrawer from './components/SettingsDrawer';
 import useAuth from './contexts/auth';
+import useNinja from './contexts/ninja';
 import { AuthError, useRPC } from './services/jsonrpc';
 
 type IVersionInfo = {
@@ -23,6 +24,7 @@ function AuthApp() {
   const { data, error } = useRPC<IVersionInfo>("sys.versions");
   const [ showSettings, setShowSettings ] = useState(false);
   const { colorMode, toggleColorMode } = useColorMode();
+  const { isNinja, toggleNinja } = useNinja();
 
   if (error && error instanceof AuthError) {
     return <Navigate to="/login" />
@@ -104,6 +106,16 @@ function AuthApp() {
               title={"Join Porla on Discord"}
               variant={"link"}
             />
+
+            <IconButton
+              aria-label={"Toggle Ninja mode"}
+              color={isNinja ? "red.400" : ""}
+              icon={<MdOutlineCameraAlt />}
+              onClick={() => toggleNinja()}
+              size={"xs"}
+              variant={"link"}
+            />
+
             <Spacer />
             <Text fontSize={"xs"}>{data?.porla.version === "" ? "dev" : data?.porla.version}</Text>
             { data?.porla.branch    !== "-" && <Text fontSize={"xs"}>{data?.porla.branch}</Text> }

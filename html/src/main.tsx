@@ -9,6 +9,7 @@ import Home from './pages/Home';
 import Setup from './pages/Setup';
 import { AuthProvider } from './contexts/auth';
 import Login from './pages/Login';
+import { NinjaProvider } from './contexts/ninja';
 
 const basename = (window as any).porla.base_path;
 
@@ -17,13 +18,15 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <ChakraProvider theme={theme}>
         <BrowserRouter basename={basename}>
           <AuthProvider>
-            <Routes>
-              <Route path="/" element={<App />}>
-                <Route index element={<Home />} />
-              </Route>
-              <Route path="/login" element={<Login />} />
-              <Route path="/setup" element={<Setup />} />
-            </Routes>
+            <NinjaProvider>
+              <Routes>
+                <Route path="/" element={<App />}>
+                  <Route index element={<Home />} />
+                </Route>
+                <Route path="/login" element={<Login />} />
+                <Route path="/setup" element={<Setup />} />
+              </Routes>
+            </NinjaProvider>
           </AuthProvider>
         </BrowserRouter>
     </ChakraProvider>

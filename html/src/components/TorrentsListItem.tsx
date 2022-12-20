@@ -2,9 +2,11 @@ import { CircularProgress, CircularProgressLabel, Flex, Grid, GridItem, HStack, 
 import { filesize } from "filesize";
 import { IconType } from "react-icons/lib";
 import { MdFileCopy, MdFolderOpen, MdOutlineMoreVert } from "react-icons/md";
+import useNinja from "../contexts/ninja";
 import { Torrent } from "../types"
 
 type TorrentsListItemProps = {
+  index: number;
   torrent: Torrent;
 }
 
@@ -23,6 +25,23 @@ function isAutoManaged(flags: number) {
 
 function isPaused(flags: number) {
   return (flags & (1<<4)) === 1<<4;
+}
+
+function randomLinuxTorrent(index: number) {
+  const pool = [
+    "archlinux-2022.10.01-x86_64.iso",
+    "archlinux-2022.11.01-x86_64.iso",
+    "archlinux-2022.12.01-x86_64.iso",
+    "debian-11.6.0-amd64-netinst.iso",
+    "debian-edu-11.6.0-amd64-netinst.iso",
+    "debian-mac-11.6.0-amd64-netinst.iso",
+    "ubuntu-20.04.5-desktop-amd64.iso",
+    "ubuntu-20.04.5-live-server-amd64.iso",
+    "ubuntu-22.04.1-desktop-amd64.iso",
+    "ubuntu-22.04.1-live-server-amd64.iso"
+  ];
+
+  return pool[index % pool.length];
 }
 
 function stateColor(torrent: Torrent) {
@@ -87,7 +106,8 @@ function KeyValue(props: KeyValueProps) {
 }
 
 export default function TorrentsListItem(props: TorrentsListItemProps) {
-  const { colorMode, toggleColorMode } = useColorMode();
+  const { colorMode } = useColorMode();
+  const { isNinja } = useNinja();
 
   return (
     <Grid
@@ -115,7 +135,7 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
           whiteSpace={"nowrap"}
           wordBreak={"break-all"}
         >
-          {props.torrent.name}
+          {isNinja ? randomLinuxTorrent(props.index) : props.torrent.name}
         </Text>
         <HStack
         >
@@ -123,7 +143,7 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
             color={colorMode === "dark" ? "whiteAlpha.600" : "blackAlpha.600"}
             fontSize={"sm"}
           >
-            <KeyValue icon={MdFolderOpen} value={props.torrent.save_path} />
+            <KeyValue icon={MdFolderOpen} value={isNinja ? "/legit/linux/isos" : props.torrent.save_path} />
             {props.torrent.size > 0 && (
               <KeyValue icon={MdFileCopy} value={filesize(props.torrent.size).toString()} />
             )}
