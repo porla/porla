@@ -15,7 +15,7 @@ const readFile = (blob: Blob): Promise<string> => {
       if (!data) return reject();
       resolve(data);
     };
-    reader.onerror = (ev) => reject();
+    reader.onerror = () => reject();
     reader.readAsDataURL(blob);
   })
 }
@@ -41,14 +41,13 @@ const AddTorrentSchema = Yup.object().shape({
 type AddTorrentModalProps = {
   isOpen: boolean;
   onClose: (hash?: InfoHash) => void;
+  presets: PresetsList;
 }
 
 export default function AddTorrentModal(props: AddTorrentModalProps) {
-  const {
-    data: presets
-  } = useSWR<PresetsList>("presets.list");
+  const { presets } = props;
 
-  const torrentsAdd = useInvoker<InfoHash>("torrents.add")
+  const torrentsAdd = useInvoker<InfoHash>("torrents.add");
 
   return (
     <Modal
@@ -62,7 +61,10 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
           initialValues={{
             type: "torrent",
             magnet_uri: "",
-            save_path: "",
+            preset: "",
+            save_path: "default" in presets
+              ? presets.default.save_path
+              : "",
             ti: ""
           }}
           onSubmit={async (values) => {
@@ -85,7 +87,7 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
           }}
           validationSchema={AddTorrentSchema}
         >
-          {({ errors, isValid, setFieldValue, touched, values }) => (
+          {({ errors, initialValues, isValid, setFieldValue, touched, values }) => (
             <Form>
               <ModalHeader>Add {values.type === "torrent" ? "torrent" : "magnet link"}</ModalHeader>
               <ModalCloseButton />
@@ -102,7 +104,7 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
                   <TabPanels>
                     <TabPanel px={0}>
                       <Field name="ti">
-                        {(w: any) => (
+                        {() => (
                           <FormControl isInvalid={touched.ti && !!errors.ti}>
                             <FormLabel>File</FormLabel>
                             <Input
@@ -143,17 +145,27 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
                     </TabPanel>
                   </TabPanels>
                 </Tabs>
-                { presets && Object.keys(presets).length > 0 && (
+                { presets && Object.keys(presets).length > 0 && !(Object.keys(presets).length === 1 && presets.default) && (
                   <Field name="preset">
-                    {(w: any) => (
-                      <FormControl>
+                    {() => (
+                      <FormControl mb={3}>
                         <FormLabel>Preset</FormLabel>
                         <Select
+                          onChange={e => {
+                            setFieldValue("preset", e.target.value);
+
+                            // When changing preset, only update the values that are still
+                            // their original value.
+                            if (!touched.save_path) {
+                              setFieldValue("save_path", presets[e.target.value].save_path);
+                            }
+                          }}
                         >
                           { Object.keys(presets).map(p => (
                             <option key={p}>{p}</option>
                           ))}
                         </Select>
+                        <FormHelperText>Select a preset to apply to the torrent.</FormHelperText>
                       </FormControl>
                     )}
                   </Field>
