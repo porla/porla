@@ -72,6 +72,10 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
               save_path: values.save_path,
             };
 
+            if (values.preset !== "") {
+              params.preset = values.preset;
+            }
+
             switch (values.type) {
               case "magnet_uri":
                 params.magnet_uri = values.magnet_uri;
