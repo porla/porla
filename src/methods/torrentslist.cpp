@@ -28,8 +28,24 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
         {{"num_seeds", true},       [](auto const& lhs, auto const& rhs) { return lhs.num_seeds < rhs.num_seeds; }},
         {{"progress", false},       [](auto const& lhs, auto const& rhs) { return lhs.progress >= rhs.progress; }},
         {{"progress", true},        [](auto const& lhs, auto const& rhs) { return lhs.progress < rhs.progress; }},
-        {{"queue_position", false}, [](auto const& lhs, auto const& rhs) { return lhs.queue_position >= rhs.queue_position; }},
-        {{"queue_position", true},  [](auto const& lhs, auto const& rhs) { return lhs.queue_position < rhs.queue_position; }},
+        {
+            {"queue_position", false},
+            [](auto const& lhs, auto const& rhs)
+            {
+                return lhs.queue_position >= 0
+                    && rhs.queue_position >= 0
+                    && lhs.queue_position >= rhs.queue_position;
+            }
+        },
+        {
+            {"queue_position", true},
+            [](auto const& lhs, auto const& rhs)
+            {
+                return lhs.queue_position >= 0
+                       && rhs.queue_position >= 0
+                       && lhs.queue_position < rhs.queue_position;
+            }
+        },
         {{"save_path", false},      [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) > 0; }},
         {{"save_path", true},       [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) < 0; }},
         {{"size", false},           [](auto const& lhs, auto const& rhs) { return lhs.size >= rhs.size; }},
