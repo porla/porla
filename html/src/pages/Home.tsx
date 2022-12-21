@@ -7,7 +7,7 @@ import { useInvoker, useRPC } from "../services/jsonrpc";
 import AddTorrentModal from "../components/AddTorrentModal";
 import MoveTorrentModal from "../components/MoveTorrentModal";
 import { MdAddBox } from "react-icons/md";
-import { ITorrentsList, Torrent } from "../types";
+import { ITorrentsList, PresetsList, Torrent } from "../types";
 import TorrentPropertiesModal from "../components/TorrentPropertiesModal";
 import TorrentsList from "../components/TorrentsList";
 
@@ -25,6 +25,10 @@ export default function Home() {
   }, {
     refreshInterval: 1000
   });
+
+  const {
+    data: presets
+  } = useRPC<PresetsList>("presets.list");
 
   const torrentsMove = useInvoker<void>("torrents.move");
   const torrentsPause = useInvoker<void>("torrents.pause");
@@ -49,7 +53,7 @@ export default function Home() {
     return `${torrent.info_hash[0]},${torrent.info_hash[1]}`;
   }
 
-  if (!data) {
+  if (!data || !presets) {
     return (
       <Box p={10} textAlign={"center"}>Loading...</Box>
     )
@@ -63,6 +67,7 @@ export default function Home() {
           setShowAdd(false);
           await mutate();
         }}
+        presets={presets}
       />
 
       <MoveTorrentModal

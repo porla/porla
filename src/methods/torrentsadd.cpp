@@ -47,8 +47,10 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
         {
             BOOST_LOG_TRIVIAL(warning) << "Specified preset '" << preset_name << "' not found.";
         }
-        else
+        // Only apply presets other than default here, since default is applied above..
+        else if (preset_name != "default")
         {
+            BOOST_LOG_TRIVIAL(debug) << "Applying preset " << preset_name;
             ApplyPreset(p, preset->second);
         }
     }
