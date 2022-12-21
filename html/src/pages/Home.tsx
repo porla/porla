@@ -14,7 +14,7 @@ import TorrentsList from "../components/TorrentsList";
 
 export default function Home() {
   const [ page, setPage ] = useState(0);
-  const [ moveTorrent, setMoveTorrent ] = useState<{} | null>();
+  const [ moveTorrent, setMoveTorrent ] = useState<Torrent>();
   const [ removeTorrent, setRemoveTorrent ] = useState<{} | null>();
   const [ isDeleting, setIsDeleting ] = useState<Array<string>>([]);
   const [ showAdd, setShowAdd ] = useState(false);
@@ -69,7 +69,7 @@ export default function Home() {
         torrent={moveTorrent}
         onMove={async (torrent, path) => {
           if (torrent === null) {
-            return setMoveTorrent(null);
+            return setMoveTorrent(undefined);
           }
 
           if (!path || path === null || path === "") {
@@ -82,7 +82,7 @@ export default function Home() {
             path
           });
 
-          setMoveTorrent(null);
+          setMoveTorrent(undefined);
 
           await mutate();
         }}

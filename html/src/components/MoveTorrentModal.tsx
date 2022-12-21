@@ -1,8 +1,9 @@
-import { Button, FormControl, FormHelperText, FormLabel, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay } from "@chakra-ui/react";
+import { Box, Button, FormControl, FormHelperText, FormLabel, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
+import { Torrent } from "../types";
 
 type IMoveTorrentModalProps = {
-  torrent: any;
+  torrent?: Torrent;
   onMove: (torrent: any, save_path?: string) => void;
 }
 
