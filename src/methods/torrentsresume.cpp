@@ -21,7 +21,7 @@ void TorrentsResume::Invoke(const TorrentsResumeReq& req, WriteCb<TorrentsResume
         return cb.Error(-1, "Torrent not found");
     }
 
-    status->second.handle.resume();
+    status->second.resume();
 
     cb.Ok(TorrentsResumeRes{});
 }

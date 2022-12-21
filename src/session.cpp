@@ -230,9 +230,10 @@ Session::~Session()
 
         for (int j = 0; j < chunk_items; j++)
         {
-            auto const& ts = current->second;
+            auto const& th = current->second;
+            auto const& ts = th.status();
 
-            if (!ts.handle.is_valid()
+            if (!th.is_valid()
                 || !ts.has_metadata
                 || !ts.need_save_resume)
             {
@@ -240,7 +241,7 @@ Session::~Session()
                 continue;
             }
 
-            ts.handle.save_resume_data(
+            th.save_resume_data(
                 lt::torrent_handle::flush_disk_cache
                 | lt::torrent_handle::save_info_dict
                 | lt::torrent_handle::only_if_modified);
@@ -311,7 +312,7 @@ void Session::Load()
             current++;
 
             lt::torrent_handle th = m_session->add_torrent(params);
-            m_torrents.insert({ th.info_hashes(), th.status() });
+            m_torrents.insert({ th.info_hashes(), th });
 
             if (current % 1000 == 0 && current != count)
             {
@@ -350,7 +351,7 @@ lt::info_hash_t Session::AddTorrent(lt::add_torrent_params const& p)
         | lt::torrent_handle::save_info_dict
         | lt::torrent_handle::only_if_modified);
 
-    m_torrents.insert({ ts.info_hashes, ts });
+    m_torrents.insert({ ts.info_hashes, th });
     m_torrentAdded(ts);
 
     return ts.info_hashes;
@@ -396,9 +397,9 @@ int Session::Query(const std::string_view& query, const std::function<int(sqlite
 
 void Session::Remove(const lt::info_hash_t& hash, bool remove_data)
 {
-    lt::torrent_status status = m_torrents.at(hash);
+    lt::torrent_handle th = m_torrents.at(hash);
 
-    m_session->remove_torrent(status.handle, remove_data ? lt::session::delete_files : lt::remove_flags_t{});
+    m_session->remove_torrent(th, remove_data ? lt::session::delete_files : lt::remove_flags_t{});
 }
 
 void Session::Resume()
@@ -411,7 +412,7 @@ lt::settings_pack Session::Settings()
     return m_session->get_settings();
 }
 
-const std::map<lt::info_hash_t, lt::torrent_status>& Session::Torrents()
+const std::map<lt::info_hash_t, lt::torrent_handle>& Session::Torrents()
 {
     return m_torrents;
 }
@@ -449,7 +450,7 @@ void Session::ReadAlerts()
         case lt::save_resume_data_alert::alert_type:
         {
             auto srda = lt::alert_cast<lt::save_resume_data_alert>(alert);
-            auto const& status = m_torrents.at(srda->handle.info_hashes());
+            auto const& status = srda->handle.status();
 
             AddTorrentParams::Update(m_db, status.info_hashes, AddTorrentParams{
                 .name = status.name,
@@ -482,11 +483,6 @@ void Session::ReadAlerts()
         {
             auto sua = lt::alert_cast<lt::state_update_alert>(alert);
 
-            for (auto const& s : sua->status)
-            {
-                m_torrents.at(s.info_hashes) = s;
-            }
-
             m_stateUpdate(sua->status);
 
             break;
@@ -501,8 +497,6 @@ void Session::ReadAlerts()
         {
             auto tfa = lt::alert_cast<lt::torrent_finished_alert>(alert);
             auto const& status = tfa->handle.status();
-
-            m_torrents.at(status.info_hashes) = status;
 
             BOOST_LOG_TRIVIAL(info) << "Torrent " << status.name << " finished";
 
@@ -521,7 +515,6 @@ void Session::ReadAlerts()
 
             BOOST_LOG_TRIVIAL(debug) << "Torrent " << status.name << " paused";
 
-            m_torrents.at(status.info_hashes) = status;
             m_torrentPaused(status);
 
             break;
@@ -546,7 +539,6 @@ void Session::ReadAlerts()
 
             BOOST_LOG_TRIVIAL(debug) << "Torrent " << status.name << " resumed";
 
-            m_torrents.at(status.info_hashes) = status;
             m_torrentResumed(status);
 
             break;

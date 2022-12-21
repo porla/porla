@@ -21,12 +21,12 @@ void TorrentsTrackersList::Invoke(const TorrentsTrackersListReq& req, WriteCb<To
         return cb.Error(-1, "Torrent not found");
     }
 
-    if (!torrent->second.handle.is_valid())
+    if (!torrent->second.is_valid())
     {
         return cb.Error(-2, "Torrent not valid");
     }
 
     cb.Ok(TorrentsTrackersListRes{
-        .trackers = torrent->second.handle.trackers()
+        .trackers = torrent->second.trackers()
     });
 }

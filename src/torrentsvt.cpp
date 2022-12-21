@@ -1,6 +1,7 @@
 #include "torrentsvt.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <libtorrent/torrent_status.hpp>
 #include <sqlite3ext.h>
 
 using porla::TorrentsVTable;
@@ -220,13 +221,13 @@ struct TorrentVTable
 {
     sqlite3_vtab base;
     sqlite3* db;
-    std::map<lt::info_hash_t, lt::torrent_status>* torrents;
+    std::map<lt::info_hash_t, lt::torrent_handle>* torrents;
 };
 
 struct TorrentVTableCursor
 {
     sqlite3_vtab_cursor base{};
-    std::map<lt::info_hash_t, lt::torrent_status>::iterator current;
+    std::map<lt::info_hash_t, lt::torrent_handle>::iterator current;
 };
 
 static int vt_destructor(sqlite3_vtab *pVtab)
@@ -239,7 +240,7 @@ static int vt_create(sqlite3 *db, void* aux, int argc, const char* const* argv, 
 {
     auto vtab = new TorrentVTable();
     vtab->db = db;
-    vtab->torrents = static_cast<std::map<lt::info_hash_t, lt::torrent_status>*>(aux);
+    vtab->torrents = static_cast<std::map<lt::info_hash_t, lt::torrent_handle>*>(aux);
 
     std::stringstream spec;
     spec << "CREATE TABLE torrents (\n";
@@ -318,10 +319,10 @@ static int vt_next(sqlite3_vtab_cursor *cur)
 static int vt_column(sqlite3_vtab_cursor *cur, sqlite3_context *ctx, int i)
 {
     auto cursor = reinterpret_cast<TorrentVTableCursor*>(cur);
-    auto const& status = cursor->current->second;
+    auto const& th = cursor->current->second;
 
     auto const& [_, resolver] = Tbl.at(i);
-    resolver(status, ctx);
+    resolver(th.status(), ctx); // TODO: Check torrent status flags
 
     return SQLITE_OK;
 }
@@ -378,7 +379,7 @@ static sqlite3_module PorlaSqliteModule =
     nullptr         /* xRollbackto   - function overloading */
 };
 
-int TorrentsVTable::Install(sqlite3* db, std::map<lt::info_hash_t, lt::torrent_status>& torrents)
+int TorrentsVTable::Install(sqlite3* db, std::map<lt::info_hash_t, lt::torrent_handle>& torrents)
 {
     int res = sqlite3_create_module(db, "porla", &PorlaSqliteModule, &torrents);
 

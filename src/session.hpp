@@ -49,7 +49,7 @@ namespace porla
         virtual void Remove(const lt::info_hash_t& hash, bool remove_data) = 0;
         virtual void Resume() = 0;
         virtual libtorrent::settings_pack Settings() = 0;
-        virtual const std::map<lt::info_hash_t, lt::torrent_status>& Torrents() = 0;
+        virtual const std::map<lt::info_hash_t, lt::torrent_handle>& Torrents() = 0;
     };
 
     class Session : public ISession
@@ -108,7 +108,7 @@ namespace porla
         void Remove(const lt::info_hash_t& hash, bool remove_data) override;
         void Resume() override;
         libtorrent::settings_pack Settings() override;
-        const std::map<lt::info_hash_t, lt::torrent_status>& Torrents() override;
+        const std::map<lt::info_hash_t, lt::torrent_handle>& Torrents() override;
 
     private:
         class Timer;
@@ -133,6 +133,6 @@ namespace porla
         sqlite3* m_tdb;
 
         std::unique_ptr<libtorrent::session> m_session;
-        std::map<libtorrent::info_hash_t, libtorrent::torrent_status> m_torrents;
+        std::map<libtorrent::info_hash_t, libtorrent::torrent_handle> m_torrents;
     };
 }

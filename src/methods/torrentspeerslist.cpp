@@ -20,7 +20,7 @@ void TorrentsPeersList::Invoke(const TorrentsPeersListReq& req, WriteCb<Torrents
     }
 
     std::vector<lt::peer_info> peers;
-    status->second.handle.get_peer_info(peers);
+    status->second.get_peer_info(peers);
 
     cb.Ok(TorrentsPeersListRes{
         .peers = peers

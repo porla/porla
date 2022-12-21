@@ -21,7 +21,7 @@ void TorrentsPropertiesSet::Invoke(const TorrentsPropertiesSetReq& req, WriteCb<
         return cb.Error(-1, "Torrent not found");
     }
 
-    auto& handle = torrent->second.handle;
+    auto& handle = torrent->second;
 
     if (auto val = req.download_limit)
         handle.set_download_limit(*val);
