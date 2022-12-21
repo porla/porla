@@ -1,7 +1,7 @@
 import { Box, CircularProgress, CircularProgressLabel, Flex, Grid, GridItem, HStack, Icon, IconButton, Menu, MenuButton, MenuDivider, MenuGroup, MenuItem, MenuList, Text, useColorMode } from "@chakra-ui/react";
 import { filesize } from "filesize";
 import { IconType } from "react-icons/lib";
-import { MdCheck, MdDelete, MdFileCopy, MdFolder, MdFolderOpen, MdOutlineMoreVert, MdOutlineReport, MdPause, MdPlayArrow, MdSchedule, MdUpload, MdViewList } from "react-icons/md";
+import { MdCheck, MdDelete, MdDriveFileMove, MdDriveFolderUpload, MdFileCopy, MdFolder, MdFolderOpen, MdFolderShared, MdOutlineMoreVert, MdOutlineReport, MdPause, MdPlayArrow, MdSchedule, MdUpload, MdViewList } from "react-icons/md";
 import { Torrent } from "../types"
 
 import useNinja from "../contexts/ninja";
@@ -56,6 +56,10 @@ function stateColor(torrent: Torrent) {
     return "red";
   }
 
+  if (torrent.moving_storage) {
+    return "yellow.400";
+  }
+
   switch (torrent.state) {
     case 2: return "gray.600";
     case 3: return "blue.500";
@@ -65,8 +69,15 @@ function stateColor(torrent: Torrent) {
 }
 
 function progressLabel(torrent: Torrent) {
+  const w = 4;
+  const h = 4;
+
   if (torrent.error) {
     return "error";
+  }
+
+  if (torrent.moving_storage) {
+    return <Icon as={MdDriveFileMove} mt={"3px"} w={w} h={h} />;
   }
 
   switch (torrent.state) {
@@ -94,7 +105,7 @@ function progressLabel(torrent: Torrent) {
         }
         return <Icon as={MdCheck} mt={"1px"} w={3} h={3} />;
       }
-      return <Icon as={MdUpload} mt={"1px"} w={3} h={3} />;
+      return <Icon as={MdUpload} mt={"3px"} w={4} h={4} />;
     }
   }
   return Math.round(torrent.progress * 100);
@@ -134,9 +145,9 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
             : <CircularProgress
                 color={stateColor(props.torrent)}
                 isIndeterminate={
-                  props.torrent.state === 2
-                  && isAutoManaged(props.torrent.flags)
-                  && !isPaused(props.torrent.flags)
+                  (props.torrent.state === 2
+                    && isAutoManaged(props.torrent.flags)
+                    && !isPaused(props.torrent.flags)) || props.torrent.moving_storage
                 }
                 size={"32px"}
                 trackColor={""}
@@ -172,6 +183,7 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
           <HStack
             color={colorMode === "dark" ? "whiteAlpha.600" : "blackAlpha.600"}
             fontSize={"sm"}
+            spacing={3}
           >
             <KeyValue icon={MdFolderOpen} value={isNinja ? "/legit/linux/isos" : props.torrent.save_path} />
             {props.torrent.size > 0 && (
