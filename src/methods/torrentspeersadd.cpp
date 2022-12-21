@@ -31,7 +31,7 @@ void TorrentsPeersAdd::Invoke(const TorrentsPeersAddReq& req, WriteCb<TorrentsPe
                 continue;
             }
 
-            status->second.handle.connect_peer(
+            status->second.connect_peer(
                 boost::asio::ip::tcp::endpoint{addr,port});
         }
     }

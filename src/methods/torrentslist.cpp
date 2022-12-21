@@ -55,9 +55,11 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
     std::vector<TorrentsListRes::Item> torrents;
     torrents.reserve(m_session.Torrents().size());
 
-    for (auto const& [_, ts] : m_session.Torrents())
+    for (auto const& [_, handle] : m_session.Torrents())
     {
         std::int64_t size = -1;
+
+        auto const& ts = handle.status();
 
         if (auto ti = ts.torrent_file.lock())
             size = ti->total_size();

@@ -14,14 +14,14 @@ TorrentsPause::TorrentsPause(porla::ISession &session)
 void TorrentsPause::Invoke(const TorrentsPauseReq& req, WriteCb<TorrentsPauseRes> cb)
 {
     auto const& torrents = m_session.Torrents();
-    auto status = torrents.find(req.info_hash);
+    auto handle = torrents.find(req.info_hash);
 
-    if (status == torrents.end())
+    if (handle == torrents.end())
     {
         return cb.Error(-1, "Torrent not found");
     }
 
-    status->second.handle.pause();
+    handle->second.pause();
 
     cb.Ok(TorrentsPauseRes{});
 }

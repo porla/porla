@@ -15,7 +15,7 @@ void TorrentsPropertiesGet::Invoke(const TorrentsPropertiesGetReq& req, WriteCb<
 {
     auto const& torrents = m_session.Torrents();
     auto const& torrent = torrents.find(req.info_hash);
-    auto const& handle = torrent->second.handle;
+    auto const& handle = torrent->second;
 
     cb.Ok(TorrentsPropertiesGetRes{
         .download_limit  = handle.download_limit(),

@@ -14,9 +14,9 @@ TorrentsMove::TorrentsMove(porla::ISession &session)
 void TorrentsMove::Invoke(const TorrentsMoveReq &req, WriteCb<TorrentsMoveRes> cb)
 {
     auto const& torrents = m_session.Torrents();
-    auto const& status = torrents.find(req.info_hash);
+    auto const& handle = torrents.find(req.info_hash);
 
-    if (status == torrents.end())
+    if (handle == torrents.end())
     {
         return cb.Error(-1, "Torrent not found");
     }
@@ -30,7 +30,7 @@ void TorrentsMove::Invoke(const TorrentsMoveReq &req, WriteCb<TorrentsMoveRes> c
         if (req.flags.value() == "fail_if_exist")        flags = lt::move_flags_t::fail_if_exist;
     }
 
-    status->second.handle.move_storage(req.path, flags);
+    handle->second.move_storage(req.path, flags);
 
     return cb.Ok(TorrentsMoveRes{});
 }
