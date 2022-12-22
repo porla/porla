@@ -490,7 +490,16 @@ void Session::ReadAlerts()
         case lt::storage_moved_alert::alert_type:
         {
             auto const sma = lt::alert_cast<lt::storage_moved_alert>(alert);
+
             BOOST_LOG_TRIVIAL(info) << "Torrent " << sma->torrent_name() << " moved to " << sma->storage_path();
+
+            if (sma->handle.need_save_resume_data())
+            {
+                sma->handle.save_resume_data(lt::torrent_handle::flush_disk_cache
+                                             | lt::torrent_handle::save_info_dict
+                                             | lt::torrent_handle::only_if_modified);
+            }
+
             break;
         }
         case lt::torrent_finished_alert::alert_type:
@@ -504,6 +513,13 @@ void Session::ReadAlerts()
             {
                 // Only emit this event if we have downloaded any data this session.
                 m_torrentFinished(status);
+            }
+
+            if (status.need_save_resume)
+            {
+                status.handle.save_resume_data(lt::torrent_handle::flush_disk_cache
+                                               | lt::torrent_handle::save_info_dict
+                                               | lt::torrent_handle::only_if_modified);
             }
 
             break;
