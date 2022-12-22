@@ -127,6 +127,8 @@ add_executable(
     src/methods/torrentsfileslist.hpp
     src/methods/torrentslist.cpp
     src/methods/torrentslist.hpp
+    src/methods/torrentsmetadatalist.cpp
+    src/methods/torrentsmetadatalist.hpp
     src/methods/torrentsmove.cpp
     src/methods/torrentsmove.hpp
     src/methods/torrentspause.cpp

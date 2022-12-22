@@ -20,7 +20,30 @@ static std::string ToString(const T &hash)
 
 std::map<std::string, json> TorrentsMetadata::GetAll(sqlite3* db, const lt::info_hash_t& hash)
 {
-    return {};
+    auto stmt = Statement::Prepare(
+        db,
+        "SELECT key, value FROM torrentsmetadata\n"
+        "WHERE (info_hash_v1 = $1 AND info_hash_v2 IS NULL)\n"
+        "   OR (info_hash_v1 IS NULL AND info_hash_v2 = $2)\n"
+        "   OR (info_hash_v1 = $1 AND info_hash_v2 = $2);");
+
+    std::map<std::string, json> metadata;
+
+    stmt
+        .Bind(1, hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
+        .Bind(2, hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
+        .Step(
+            [&metadata](const Statement::IRow& row)
+            {
+                metadata.insert({
+                    row.GetStdString(0),
+                    json::parse(row.GetStdString(1))
+                });
+
+                return SQLITE_OK;
+            });
+
+    return metadata;
 }
 
 void TorrentsMetadata::RemoveAll(sqlite3* db, const libtorrent::info_hash_t& hash)
