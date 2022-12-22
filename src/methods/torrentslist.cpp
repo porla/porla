@@ -36,18 +36,16 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             {"queue_position", false},
             [](auto const& lhs, auto const& rhs)
             {
-                return lhs.queue_position >= 0
-                    && rhs.queue_position >= 0
-                    && lhs.queue_position >= rhs.queue_position;
+                if (rhs.queue_position < 0) return true;
+                return lhs.queue_position >= rhs.queue_position;
             }
         },
         {
             {"queue_position", true},
             [](auto const& lhs, auto const& rhs)
             {
-                return lhs.queue_position >= 0
-                       && rhs.queue_position >= 0
-                       && lhs.queue_position < rhs.queue_position;
+                if (rhs.queue_position < 0) return true;
+                return lhs.queue_position < rhs.queue_position;
             }
         },
         {{"save_path", false},      [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) > 0; }},
