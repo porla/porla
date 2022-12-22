@@ -12,6 +12,7 @@ namespace porla::Methods
         std::optional<std::string> magnet_uri;
         std::optional<int> max_connections;
         std::optional<int> max_uploads;
+        std::optional<std::map<std::string, nlohmann::json>> metadata;
         std::optional<std::string> name;
         std::optional<std::string> preset;
         std::optional<std::string> save_path;
