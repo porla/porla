@@ -36,6 +36,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             {"queue_position", false},
             [](auto const& lhs, auto const& rhs)
             {
+                if (lhs.queue_position < 0) return false;
                 if (rhs.queue_position < 0) return true;
                 return lhs.queue_position >= rhs.queue_position;
             }
@@ -44,6 +45,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             {"queue_position", true},
             [](auto const& lhs, auto const& rhs)
             {
+                if (lhs.queue_position < 0) return false;
                 if (rhs.queue_position < 0) return true;
                 return lhs.queue_position < rhs.queue_position;
             }
