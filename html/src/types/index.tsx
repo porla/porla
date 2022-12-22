@@ -14,6 +14,7 @@ export type Preset = {
 export type Torrent = {
   all_time_download: number;
   all_time_upload: number;
+  category: string | null;
   download_rate: number;
   download_limit: number;
   error: any;
@@ -27,6 +28,7 @@ export type Torrent = {
   ratio: number;
   size: number;
   state: number;
+  tags: string[];
   upload_rate: number;
 }
 

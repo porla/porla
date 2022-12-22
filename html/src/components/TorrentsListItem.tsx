@@ -1,7 +1,7 @@
 import { Box, CircularProgress, CircularProgressLabel, Flex, Grid, GridItem, HStack, Icon, IconButton, Menu, MenuButton, MenuDivider, MenuGroup, MenuItem, MenuList, Text, useColorMode } from "@chakra-ui/react";
 import { filesize } from "filesize";
 import { IconType } from "react-icons/lib";
-import { MdCheck, MdDelete, MdDriveFileMove, MdDriveFolderUpload, MdFileCopy, MdFolder, MdFolderOpen, MdFolderShared, MdOutlineMoreVert, MdOutlineReport, MdPause, MdPlayArrow, MdSchedule, MdUpload, MdViewList } from "react-icons/md";
+import { MdCheck, MdDelete, MdDriveFileMove, MdDriveFolderUpload, MdFileCopy, MdFolder, MdFolderOpen, MdFolderShared, MdLabel, MdOutlineMoreVert, MdOutlineReport, MdPause, MdPlayArrow, MdSchedule, MdTag, MdUpload, MdViewList } from "react-icons/md";
 import { Torrent } from "../types"
 
 import useNinja from "../contexts/ninja";
@@ -189,6 +189,8 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
             {props.torrent.size > 0 && (
               <KeyValue icon={MdFileCopy} value={filesize(props.torrent.size).toString()} />
             )}
+            { props.torrent.category && <KeyValue icon={MdLabel} value={props.torrent.category} />}
+            { props.torrent.tags.length > 0 && <KeyValue icon={MdTag} value={props.torrent.tags.join(", ")} />}
           </HStack>
         </HStack>
       </GridItem>
