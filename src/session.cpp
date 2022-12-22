@@ -11,12 +11,14 @@
 #include <utility>
 
 #include "data/models/addtorrentparams.hpp"
+#include "data/models/torrentsmetadata.hpp"
 #include "torrentsvt.hpp"
 
 namespace fs = std::filesystem;
 namespace lt = libtorrent;
 
 using porla::Data::Models::AddTorrentParams;
+using porla::Data::Models::TorrentsMetadata;
 using porla::Session;
 
 template<typename T>
@@ -540,6 +542,7 @@ void Session::ReadAlerts()
             auto tra = lt::alert_cast<lt::torrent_removed_alert>(alert);
 
             AddTorrentParams::Remove(m_db, tra->info_hashes);
+            TorrentsMetadata::RemoveAll(m_db, tra->info_hashes);
 
             m_torrents.erase(tra->info_hashes);
             m_torrentRemoved(tra->info_hashes);

@@ -95,10 +95,14 @@ add_executable(
     src/data/migrations/0003_users.hpp
     src/data/migrations/0004_removesessionparams.cpp
     src/data/migrations/0004_removesessionparams.hpp
+    src/data/migrations/0005_metadata.cpp
+    src/data/migrations/0005_metadata.hpp
     src/data/models/addtorrentparams.cpp
     src/data/models/addtorrentparams.hpp
     src/data/models/sessionsettings.cpp
     src/data/models/sessionsettings.hpp
+    src/data/models/torrentsmetadata.cpp
+    src/data/models/torrentsmetadata.hpp
     src/data/models/users.cpp
     src/data/models/users.hpp
     src/data/statement.cpp
