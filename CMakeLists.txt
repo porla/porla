@@ -78,6 +78,8 @@ add_executable(
     src/torrentsvt.hpp
     src/uri.cpp
     src/uri.hpp
+    src/utils/eta.cpp
+    src/utils/eta.hpp
     src/utils/ratio.cpp
     src/utils/ratio.hpp
     src/utils/secretkey.cpp

@@ -2,6 +2,7 @@
 
 #include "../data/models/torrentsmetadata.hpp"
 #include "../session.hpp"
+#include "../utils/eta.hpp"
 #include "../utils/ratio.hpp"
 
 using porla::Data::Models::TorrentsMetadata;
@@ -158,6 +159,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             .category          = category,
             .download_rate     = ts.download_rate,
             .error             = ts.errc,
+            .eta               = porla::Utils::ETA(ts).count(),
             .flags             = static_cast<std::uint64_t>(ts.flags),
             .info_hash         = ts.info_hashes,
             .list_peers        = ts.list_peers,

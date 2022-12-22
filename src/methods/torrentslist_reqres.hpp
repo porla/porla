@@ -32,6 +32,7 @@ namespace porla::Methods
             json category; // TODO: Make this data type better. It is not representing a string, or null.
             int download_rate;
             libtorrent::error_code error;
+            std::int64_t eta;
             std::uint64_t flags;
             lt::info_hash_t info_hash;
             int list_peers;

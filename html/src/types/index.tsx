@@ -18,6 +18,7 @@ export type Torrent = {
   download_rate: number;
   download_limit: number;
   error: any;
+  eta: number;
   flags: number;
   info_hash: InfoHash;
   moving_storage: boolean;
