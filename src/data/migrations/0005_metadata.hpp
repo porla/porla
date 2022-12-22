@@ -4,7 +4,7 @@
 
 namespace porla::Data::Migrations
 {
-    struct Webhooks
+    struct TorrentsMetadata
     {
         static int Migrate(sqlite3* db);
     };

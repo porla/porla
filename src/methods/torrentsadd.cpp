@@ -4,11 +4,13 @@
 #include <libtorrent/add_torrent_params.hpp>
 #include <libtorrent/magnet_uri.hpp>
 
+#include "../data/models/torrentsmetadata.hpp"
 #include "../session.hpp"
 #include "../utils/base64.hpp"
 
 namespace lt = libtorrent;
 
+using porla::Data::Models::TorrentsMetadata;
 using porla::Methods::TorrentsAdd;
 using porla::Methods::TorrentsAddReq;
 
@@ -22,8 +24,9 @@ static void ApplyPreset(lt::add_torrent_params& p, const porla::Config::Preset& 
     if (preset.upload_limit.has_value())    p.upload_limit    = preset.upload_limit.value();
 }
 
-TorrentsAdd::TorrentsAdd(ISession& session, const std::map<std::string, Config::Preset>& presets)
-    : m_session(session)
+TorrentsAdd::TorrentsAdd(sqlite3* db, ISession& session, const std::map<std::string, Config::Preset>& presets)
+    : m_db(db)
+    , m_session(session)
     , m_presets(presets)
 {
 }
@@ -126,6 +129,15 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
     if (hash == lt::info_hash_t())
     {
         return cb.Error(-4, "Failed to add torrent");
+    }
+
+    // Set metadata if we successfully added the torrent
+    if (auto metadata = req.metadata)
+    {
+        for (auto const& [key, value] : metadata.value())
+        {
+            TorrentsMetadata::Set(m_db, hash, key, value);
+        }
     }
 
     cb.Ok(TorrentsAddRes{
