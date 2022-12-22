@@ -21,6 +21,7 @@ namespace porla::Methods
         TorrentsListRes::Item,
         all_time_download,
         all_time_upload,
+        category,
         download_rate,
         error,
         flags,
@@ -38,6 +39,7 @@ namespace porla::Methods
         save_path,
         size,
         state,
+        tags,
         total,
         total_done,
         upload_rate)

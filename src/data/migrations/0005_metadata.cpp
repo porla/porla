@@ -17,8 +17,7 @@ int TorrentsMetadata::Migrate(sqlite3* db)
             "key TEXT NOT NULL,"
             "value TEXT NOT NULL,"
             "CHECK (info_hash_v1 IS NOT NULL OR info_hash_v2 IS NOT NULL),"
-            "UNIQUE (info_hash_v1),"
-            "UNIQUE (info_hash_v2)"
+            "UNIQUE (info_hash_v1, info_hash_v2, key)"
         ");",
         nullptr,
         nullptr,

@@ -22,6 +22,7 @@ namespace porla::Methods
         {
             std::int64_t all_time_download;
             std::int64_t all_time_upload;
+            json category; // TODO: Make this data type better. It is not representing a string, or null.
             int download_rate;
             libtorrent::error_code error;
             std::uint64_t flags;
@@ -39,6 +40,7 @@ namespace porla::Methods
             std::string save_path;
             std::int64_t size;
             int state;
+            std::vector<std::string> tags;
             std::int64_t total;
             std::int64_t total_done;
             int upload_rate;
