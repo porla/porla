@@ -11,11 +11,17 @@ namespace porla::Methods
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsListReq,
+        filters,
         include_metadata,
         order_by,
         order_by_dir,
         page,
-        page_size)
+        page_size);
+
+    NLOHMANN_JSONIFY_ALL_THINGS(
+        TorrentsListReqFilter,
+        field,
+        args);
 
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsListRes::Item,
@@ -42,12 +48,12 @@ namespace porla::Methods
         tags,
         total,
         total_done,
-        upload_rate)
+        upload_rate);
 
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsListRes,
         page,
         page_size,
         torrents,
-        torrents_total)
+        torrents_total);
 }

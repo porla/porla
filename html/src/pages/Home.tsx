@@ -1,4 +1,4 @@
-import { Alert, AlertDescription, AlertIcon, AlertTitle, Box, Button, Flex, Grid, GridItem, Heading, HStack, IconButton, Spacer } from "@chakra-ui/react";
+import { Alert, AlertDescription, AlertIcon, AlertTitle, Box, Button, Flex, Grid, GridItem, Heading, HStack, Icon, IconButton, Spacer } from "@chakra-ui/react";
 import { useState } from "react";
 import Pager from "../components/Pager";
 import RemoveTorrentModal from "../components/RemoveTorrentModal";
@@ -6,10 +6,12 @@ import TorrentsTable from "../components/TorrentsTable";
 import { useInvoker, useRPC } from "../services/jsonrpc";
 import AddTorrentModal from "../components/AddTorrentModal";
 import MoveTorrentModal from "../components/MoveTorrentModal";
-import { MdAddBox } from "react-icons/md";
+import { MdAddBox, MdClear } from "react-icons/md";
 import { ITorrentsList, PresetsList, Torrent } from "../types";
 import TorrentPropertiesModal from "../components/TorrentPropertiesModal";
 import TorrentsList from "../components/TorrentsList";
+import useTorrentsFilter from "../contexts/TorrentsFilterContext";
+import FilterItem from "../components/FilterItem";
 
 
 export default function Home() {
@@ -19,9 +21,13 @@ export default function Home() {
   const [ isDeleting, setIsDeleting ] = useState<Array<string>>([]);
   const [ showAdd, setShowAdd ] = useState(false);
   const [ propsTorrent, setPropsTorrent ] = useState<Torrent | null>();
+  const { clearFilters, filters } = useTorrentsFilter();
 
-  const { error, data, mutate } = useRPC<ITorrentsList>('torrents.list', {
-    page
+  const { error, data, mutate } = useRPC<ITorrentsList>('torrents.list', () => {
+    return {
+      filters,
+      page
+    }
   }, {
     refreshInterval: 1000
   });
@@ -143,6 +149,9 @@ export default function Home() {
                       variant={"link"}
                       onClick={() => setShowAdd(true)}
                     />
+                    <HStack>
+                      {filters && filters.map((f: any) => <FilterItem filter={f} />)}
+                    </HStack>
                   </HStack>
                   <Spacer />
                   <Pager

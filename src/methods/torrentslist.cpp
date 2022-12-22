@@ -121,6 +121,37 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
         if (auto ti = ts.torrent_file.lock())
             size = ti->total_size();
 
+        // Filter torrents here.
+        bool filter_includes_torrent = true;
+
+        if (auto filters = req.filters)
+        {
+            for (auto const& filter : filters.value())
+            {
+                if (filter.field == "category"
+                    && filter.args.is_string())
+                {
+                    auto const& category_value = filter.args.get<std::string>();
+                    filter_includes_torrent = category == filter.args;
+                }
+                else if (filter.field == "tags"
+                    && filter.args.is_string())
+                {
+                    auto const& tag_value = filter.args.get<std::string>();
+
+                    filter_includes_torrent = std::find(
+                        tags.begin(),
+                        tags.end(),
+                        tag_value) != tags.end();
+                }
+            }
+        }
+
+        if (!filter_includes_torrent)
+        {
+            continue;
+        }
+
         torrents.push_back(TorrentsListRes::Item{
             .all_time_download = ts.all_time_download,
             .all_time_upload   = ts.all_time_upload,

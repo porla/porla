@@ -54,5 +54,5 @@ export function useInvoker<T>(method: string) {
 export function useRPC<T>(method: string, params?: any, config?: any) {
   const { token } = useAuth();
   if (!token) throw new Error("Invalid token");
-  return useSWR([method, params], fetcher<T>(token), config);
+  return useSWR(() => [method, typeof params === "function" ? params() : params], fetcher<T>(token), config);
 }
