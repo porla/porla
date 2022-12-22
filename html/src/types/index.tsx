@@ -256,3 +256,8 @@ export type ISettingsDict = {
 export type ISettingsList = {
   settings: ISettingsDict;
 }
+
+export type Filter = {
+  field: string;
+  args: string | number;
+}

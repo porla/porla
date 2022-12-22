@@ -1,10 +1,11 @@
-import { Box, CircularProgress, CircularProgressLabel, Flex, Grid, GridItem, HStack, Icon, IconButton, Menu, MenuButton, MenuDivider, MenuGroup, MenuItem, MenuList, Text, useColorMode } from "@chakra-ui/react";
+import { Box, CircularProgress, CircularProgressLabel, Flex, Grid, GridItem, HStack, Icon, IconButton, Link, Menu, MenuButton, MenuDivider, MenuGroup, MenuItem, MenuList, Text, textDecoration, useColorMode } from "@chakra-ui/react";
 import { filesize } from "filesize";
 import { IconType } from "react-icons/lib";
-import { MdCheck, MdDelete, MdDriveFileMove, MdDriveFolderUpload, MdFileCopy, MdFolder, MdFolderOpen, MdFolderShared, MdLabel, MdOutlineMoreVert, MdOutlineReport, MdPause, MdPlayArrow, MdSchedule, MdTag, MdUpload, MdViewList } from "react-icons/md";
+import { MdCheck, MdDelete, MdDriveFileMove, MdFileCopy, MdFolder, MdFolderOpen, MdLabel, MdOutlineMoreVert, MdOutlineReport, MdPause, MdPlayArrow, MdSchedule, MdTag, MdUpload, MdViewList } from "react-icons/md";
 import { Torrent } from "../types"
 
 import useNinja from "../contexts/ninja";
+import useTorrentsFilter from "../contexts/TorrentsFilterContext";
 
 type TorrentsListItemProps = {
   index: number;
@@ -119,7 +120,7 @@ function KeyValue(props: KeyValueProps) {
       <Icon
         as={props.icon}
       />
-      <Text ms={1}>{props.value}</Text>
+      <Box ms={1}>{props.value}</Box>
     </Flex>
   )
 }
@@ -127,6 +128,7 @@ function KeyValue(props: KeyValueProps) {
 export default function TorrentsListItem(props: TorrentsListItemProps) {
   const { colorMode } = useColorMode();
   const { isNinja } = useNinja();
+  const { addFilter } = useTorrentsFilter();
 
   return (
     <Grid
@@ -185,12 +187,42 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
             fontSize={"sm"}
             spacing={3}
           >
-            <KeyValue icon={MdFolderOpen} value={isNinja ? "/legit/linux/isos" : props.torrent.save_path} />
+            <KeyValue key={"savepath"} icon={MdFolderOpen} value={isNinja ? "/legit/linux/isos" : props.torrent.save_path} />
             {props.torrent.size > 0 && (
-              <KeyValue icon={MdFileCopy} value={filesize(props.torrent.size).toString()} />
+              <KeyValue key={"size"} icon={MdFileCopy} value={filesize(props.torrent.size).toString()} />
             )}
-            { props.torrent.category && <KeyValue icon={MdLabel} value={props.torrent.category} />}
-            { props.torrent.tags.length > 0 && <KeyValue icon={MdTag} value={props.torrent.tags.join(", ")} />}
+            { props.torrent.category
+              && <KeyValue icon={MdLabel} value={
+                <Link
+                  _hover={{
+                    color: "white",
+                    textDecoration: "underline"
+                  }}
+                  onClick={() => addFilter({ field: "category", args: props.torrent.category! })}
+                >
+                  {props.torrent.category}
+                </Link>
+              } />}
+            {
+              props.torrent.tags.length > 0
+                && <KeyValue key={"tags"} icon={MdTag} value={
+                    <Flex alignItems={"center"}>
+                      {props.torrent.tags.map(t => (
+                        <Link
+                          _hover={{
+                            color: "white",
+                            textDecoration: "underline"
+                          }}
+                          key={t}
+                          me={1}
+                          onClick={() => addFilter({ field: "tags", args: t})}
+                        >
+                          {t}
+                        </Link>
+                      ))}
+                    </Flex>
+                  } />
+            }
           </HStack>
         </HStack>
       </GridItem>
