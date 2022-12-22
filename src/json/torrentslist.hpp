@@ -11,6 +11,7 @@ namespace porla::Methods
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsListReq,
+        include_metadata,
         order_by,
         order_by_dir,
         page,
@@ -26,6 +27,7 @@ namespace porla::Methods
         info_hash,
         list_peers,
         list_seeds,
+        metadata,
         moving_storage,
         name,
         num_peers,

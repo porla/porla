@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
             {"sys.versions", porla::Methods::SysVersions()},
             {"torrents.add", porla::Methods::TorrentsAdd(cfg->db, session, cfg->presets)},
             {"torrents.files.list", porla::Methods::TorrentsFilesList(session)},
-            {"torrents.list", porla::Methods::TorrentsList(session)},
+            {"torrents.list", porla::Methods::TorrentsList(cfg->db, session)},
             {"torrents.metadata.list", porla::Methods::TorrentsMetadataList(cfg->db, session)},
             {"torrents.move", porla::Methods::TorrentsMove(session)},
             {"torrents.pause", porla::Methods::TorrentsPause(session)},

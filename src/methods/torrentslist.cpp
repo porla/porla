@@ -1,12 +1,15 @@
 #include "torrentslist.hpp"
 
+#include "../data/models/torrentsmetadata.hpp"
 #include "../session.hpp"
 #include "../utils/ratio.hpp"
 
+using porla::Data::Models::TorrentsMetadata;
 using porla::Methods::TorrentsList;
 
-TorrentsList::TorrentsList(porla::ISession& session)
-    : m_session(session)
+TorrentsList::TorrentsList(sqlite3* db, porla::ISession& session)
+    : m_db(db)
+    , m_session(session)
 {
 }
 
@@ -73,7 +76,31 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
     for (auto const& [_, handle] : m_session.Torrents())
     {
-        std::int64_t size = -1;
+        std::optional<json> metadata = std::nullopt;
+        std::int64_t size            = -1;
+
+        if (req.include_metadata.has_value())
+        {
+            auto const metadata_keys = req.include_metadata.value();
+            auto const stored_metadata = TorrentsMetadata::GetAll(m_db, handle.info_hashes());
+
+            // Include metadata for all the keys specified. If ["*"], include everything.
+
+            if (metadata_keys.size() == 1 && metadata_keys.at(0) == "*")
+            {
+                metadata = stored_metadata;
+            }
+            else
+            {
+                metadata = json::object({});
+
+                for (auto const& key : metadata_keys)
+                {
+                    if (!stored_metadata.contains(key)) continue;
+                    metadata.value()[key] = stored_metadata.at(key);
+                }
+            }
+        }
 
         auto const& ts = handle.status();
 
@@ -89,6 +116,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             .info_hash         = ts.info_hashes,
             .list_peers        = ts.list_peers,
             .list_seeds        = ts.list_seeds,
+            .metadata          = metadata,
             .moving_storage    = ts.moving_storage,
             .name              = ts.name,
             .num_peers         = ts.num_peers,

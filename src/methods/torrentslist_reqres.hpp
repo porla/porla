@@ -9,6 +9,7 @@ namespace porla::Methods
 {
     struct TorrentsListReq
     {
+        std::optional<std::vector<std::string>> include_metadata;
         std::optional<int> page;
         std::optional<int> page_size;
         std::optional<std::string> order_by;
@@ -27,6 +28,7 @@ namespace porla::Methods
             lt::info_hash_t info_hash;
             int list_peers;
             int list_seeds;
+            std::optional<json> metadata;
             bool moving_storage;
             std::string name;
             int num_peers;
