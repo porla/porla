@@ -69,6 +69,24 @@ function stateColor(torrent: Torrent) {
   return "default";
 }
 
+function eta(seconds: number) {
+  let m = Math.floor(seconds / 60);
+  let s = seconds % 60;
+  let h = Math.floor(m / 60);
+  m = m % 60;
+  h = h % 24;
+
+  if (h > 0) {
+    return `${h}h ${m}m`;
+  }
+
+  if (m > 0) {
+    return `${m}m ${s}s`;
+  }
+
+  return `${s}s`;
+}
+
 function progressLabel(torrent: Torrent) {
   const w = 4;
   const h = 4;
@@ -132,7 +150,7 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
 
   return (
     <Grid
-      gridTemplateColumns={"32px 24px 1fr 110px 110px 100px 48px"}
+      gridTemplateColumns={"32px 24px 1fr 100px 110px 110px 100px 48px"}
       gridTemplateRows={"min-content"}
     >
       <GridItem alignSelf={"center"}>
@@ -228,25 +246,46 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
       </GridItem>
 
       <GridItem alignSelf={"center"} textAlign={"end"}>
-        <Text fontSize={"sm"} mx={2}>
+        <Text
+          color={props.torrent.eta > 0 ? "" : "gray.500"}
+          fontSize={"sm"}
+          mx={2}
+        >
+          {props.torrent.eta > 0 ? eta(props.torrent.eta) : "-"}
+        </Text>
+      </GridItem>
+
+      <GridItem alignSelf={"center"} textAlign={"end"}>
+        <Text
+          fontSize={"sm"}
+          mx={2}
+        >
           {props.torrent.ratio.toFixed(2)}
         </Text>
       </GridItem>
 
       <GridItem alignSelf={"center"} textAlign={"end"}>
-        <Text fontSize={"sm"} mx={2}>
+        <Text
+          color={props.torrent.download_rate > 1024 ? "" : "gray.500"}
+          fontSize={"sm"}
+          mx={2}
+        >
           {props.torrent.download_rate > 1024
             ? <>{filesize(props.torrent.download_rate).toString()}/s</>
-            : <Text color={"gray.500"}>-</Text>
+            : <>-</>
           }
         </Text>
       </GridItem>
 
       <GridItem alignSelf={"center"} textAlign={"end"}>
-        <Text fontSize={"sm"} mx={2}>
+        <Text
+          color={props.torrent.upload_rate > 1024 ? "" : "gray.500"}
+          fontSize={"sm"}
+          mx={2}
+        >
           {props.torrent.upload_rate > 1024
             ? <>{filesize(props.torrent.upload_rate).toString()}/s</>
-            : <Text color={"gray.500"}>-</Text>
+            : <>-</>
           }
         </Text>
       </GridItem>

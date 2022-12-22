@@ -30,6 +30,7 @@ namespace porla::Methods
         category,
         download_rate,
         error,
+        eta,
         flags,
         info_hash,
         list_peers,
