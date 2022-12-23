@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <libtorrent/info_hash.hpp>
 
 namespace porla::Actions
