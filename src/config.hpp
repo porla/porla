@@ -21,11 +21,17 @@ namespace porla
     class Config
     {
     public:
+        struct PresetAction
+        {
+            std::string              action_name;
+            std::vector<std::string> arguments;
+        };
         struct Preset
         {
             std::optional<int>                        download_limit;
             std::optional<int>                        max_connections;
             std::optional<int>                        max_uploads;
+            std::vector<PresetAction>                 on_finished;
             std::optional<std::string>                save_path;
             std::optional<libtorrent::storage_mode_t> storage_mode;
             std::optional<int>                        upload_limit;

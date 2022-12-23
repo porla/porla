@@ -3,6 +3,11 @@
 #include <boost/log/trivial.hpp>
 #include <sodium.h>
 
+#include "actions/executor.hpp"
+#include "actions/log.hpp"
+#include "actions/move.hpp"
+#include "actions/sleep.hpp"
+
 #include "authinithandler.hpp"
 #include "authloginhandler.hpp"
 #include "cmdargs.hpp"
@@ -109,6 +114,18 @@ int main(int argc, char* argv[])
             BOOST_LOG_TRIVIAL(fatal) << "Failed to load torrents: " << ex.what();
             return -1;
         }
+
+        porla::Actions::Executor actions_executor{porla::Actions::ExecutorOptions{
+            .db      = cfg->db,
+            .io      = io,
+            .presets = cfg->presets,
+            .session = session,
+            .actions = {
+                {"log", std::make_shared<porla::Actions::Log>(session)},
+                {"move", std::make_shared<porla::Actions::Move>(session)},
+                {"sleep", std::make_shared<porla::Actions::Sleep>(io)}
+            }
+        }};
 
         porla::WebhookClient wh(io, porla::WebhookClientOptions{
             .session  = session,

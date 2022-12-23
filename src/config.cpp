@@ -175,6 +175,35 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
                     if (auto val = value_tbl["upload_limit"].value<int>())
                         p.upload_limit = *val;
 
+                    // Set up actions
+                    if (const auto val = value_tbl["on_finished"].as_array())
+                    {
+                        for (const auto& actions_item : *val)
+                        {
+                            if (!actions_item.is_array()) continue;
+
+                            const auto actions_array = actions_item.as_array();
+
+                            // require at least one item in the array (the name of the action)
+                            if (actions_array->empty()) continue;
+                            if (!actions_array->at(0).is_string()) continue;
+
+                            std::string action_name = *actions_array->at(0).value<std::string>();
+                            std::vector<std::string> args;
+
+                            for (int i = 1; i < actions_array->size(); i++)
+                            {
+                                if (!actions_array->at(i).is_string()) continue;
+                                args.emplace_back(*actions_array->at(i).value<std::string>());
+                            }
+
+                            p.on_finished.emplace_back(PresetAction{
+                                .action_name = action_name,
+                                .arguments   = args
+                            });
+                        }
+                    }
+
                     cfg->presets.insert({ key.data(), std::move(p) });
                 }
             }
@@ -345,6 +374,11 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
     // Apply static libtorrent settings here. These are always set after all other settings from
     // the config are applied, and cannot be overwritten by it.
+    cfg->session_settings.set_int(
+        lt::settings_pack::alert_mask,
+        lt::alert::status_notification
+        | lt::alert::storage_notification);
+
     cfg->session_settings.set_str(lt::settings_pack::peer_fingerprint, lt::generate_fingerprint("PO", 0, 1));
     cfg->session_settings.set_str(lt::settings_pack::user_agent, "porla/1.0");
 
