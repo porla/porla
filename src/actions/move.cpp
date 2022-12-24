@@ -23,7 +23,7 @@ Move::~Move()
     m_storageMovedConnection.disconnect();
 }
 
-void Move::Invoke(const libtorrent::info_hash_t& hash, const std::vector<std::string>& args, const std::shared_ptr<ActionCallback>& callback)
+void Move::Invoke(const libtorrent::info_hash_t& hash, const toml::array& args, const std::shared_ptr<ActionCallback>& callback)
 {
     auto const& torrents = m_session.Torrents();
     auto const& handle = torrents.find(hash);
@@ -34,7 +34,12 @@ void Move::Invoke(const libtorrent::info_hash_t& hash, const std::vector<std::st
         return;
     }
 
-    handle->second.move_storage(args[0]);
+    if (args.empty() || !args[0].is_string())
+    {
+        return;
+    }
+
+    handle->second.move_storage(*args[0].value<std::string>());
 
     auto ctx = std::make_unique<MoveContext>();
     ctx->callback = callback;

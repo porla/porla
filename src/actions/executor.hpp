@@ -36,7 +36,13 @@ namespace porla::Actions
         ~Executor();
 
     private:
+
+        void OnTorrentAdded(const libtorrent::torrent_status& ts);
         void OnTorrentFinished(const libtorrent::torrent_status& ts);
+
+        void Run(
+            const libtorrent::torrent_status& ts,
+            const std::function<std::vector<Config::PresetAction>(const Config::Preset&)>& selector);
 
         sqlite3* m_db;
         boost::asio::io_context& m_io;
@@ -46,5 +52,6 @@ namespace porla::Actions
         std::map<std::string, Config::Preset> m_presets;
 
         boost::signals2::connection m_torrent_added_connection;
+        boost::signals2::connection m_torrent_finished_connection;
     };
 }

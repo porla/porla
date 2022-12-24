@@ -11,9 +11,9 @@ Log::Log(ISession &session)
 {
 }
 
-void Log::Invoke(const libtorrent::info_hash_t& hash, const std::vector<std::string>& args, const std::shared_ptr<ActionCallback>& callback)
+void Log::Invoke(const libtorrent::info_hash_t& hash, const toml::array& args, const std::shared_ptr<ActionCallback>& callback)
 {
     if (args.empty()) return;
-    BOOST_LOG_TRIVIAL(info) << args[0];
+    BOOST_LOG_TRIVIAL(info) << *args[0].as_string();
     callback->Invoke(true);
 }

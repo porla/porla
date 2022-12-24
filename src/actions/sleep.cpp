@@ -12,14 +12,18 @@ Sleep::Sleep(boost::asio::io_context& io)
 {
 }
 
-void Sleep::Invoke(const libtorrent::info_hash_t& hash, const std::vector<std::string>& args, const std::shared_ptr<ActionCallback>& callback)
+void Sleep::Invoke(const libtorrent::info_hash_t& hash, const toml::array& args, const std::shared_ptr<ActionCallback>& callback)
 {
-    if (args.empty()) return;
+    if (args.empty() || !args.at(0).is_number())
+    {
+        return;
+    }
 
+    auto milliseconds = *args.at(0).value<int>();
     auto timer = std::make_shared<boost::asio::deadline_timer>(m_io);
 
     boost::system::error_code ec;
-    timer->expires_from_now(boost::posix_time::seconds(3));
+    timer->expires_from_now(boost::posix_time::milliseconds(milliseconds));
 
     if (ec)
     {

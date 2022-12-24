@@ -14,7 +14,7 @@ namespace porla::Actions
     public:
         explicit Log(ISession& session);
 
-        void Invoke(const libtorrent::info_hash_t& hash, const std::vector<std::string>& args, const std::shared_ptr<ActionCallback>& callback) override;
+        void Invoke(const libtorrent::info_hash_t& hash, const toml::array& args, const std::shared_ptr<ActionCallback>& callback) override;
 
     private:
         ISession& m_session;

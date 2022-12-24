@@ -21,7 +21,7 @@ namespace porla::Actions
         explicit Move(ISession& session);
         ~Move() override;
 
-        void Invoke(const libtorrent::info_hash_t& hash, const std::vector<std::string>& args, const std::shared_ptr<ActionCallback>& callback) override;
+        void Invoke(const libtorrent::info_hash_t& hash, const toml::array& args, const std::shared_ptr<ActionCallback>& callback) override;
 
     private:
         void OnStorageMoved(const libtorrent::torrent_handle& th);

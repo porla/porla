@@ -23,6 +23,7 @@ namespace po = boost::program_options;
 using porla::Config;
 
 static void ApplySettings(const toml::table& tbl, lt::settings_pack& settings);
+static void ApplyPresetActions(std::vector<Config::PresetAction>& config_actions, const toml::array& actions_array);
 
 std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map& cmd)
 {
@@ -176,33 +177,11 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
                         p.upload_limit = *val;
 
                     // Set up actions
-                    if (const auto val = value_tbl["on_finished"].as_array())
-                    {
-                        for (const auto& actions_item : *val)
-                        {
-                            if (!actions_item.is_array()) continue;
+                    if (auto val = value_tbl["on_torrent_added"].as_array())
+                        ApplyPresetActions(p.on_torrent_added, *val);
 
-                            const auto actions_array = actions_item.as_array();
-
-                            // require at least one item in the array (the name of the action)
-                            if (actions_array->empty()) continue;
-                            if (!actions_array->at(0).is_string()) continue;
-
-                            std::string action_name = *actions_array->at(0).value<std::string>();
-                            std::vector<std::string> args;
-
-                            for (int i = 1; i < actions_array->size(); i++)
-                            {
-                                if (!actions_array->at(i).is_string()) continue;
-                                args.emplace_back(*actions_array->at(i).value<std::string>());
-                            }
-
-                            p.on_finished.emplace_back(PresetAction{
-                                .action_name = action_name,
-                                .arguments   = args
-                            });
-                        }
-                    }
+                    if (auto val = value_tbl["on_torrent_finished"].as_array())
+                        ApplyPresetActions(p.on_torrent_finished, *val);
 
                     cfg->presets.insert({ key.data(), std::move(p) });
                 }
@@ -408,6 +387,33 @@ Config::~Config()
     if (sqlite3_close(db) != SQLITE_OK)
     {
         BOOST_LOG_TRIVIAL(error) << "Failed to close SQLite connection: " << sqlite3_errmsg(db);
+    }
+}
+
+static void ApplyPresetActions(std::vector<Config::PresetAction>& config_actions, const toml::array& actions_array)
+{
+    for (const auto& actions_item : actions_array)
+    {
+        if (!actions_item.is_array()) continue;
+
+        const auto action_parameters = actions_item.as_array();
+
+        // require at least one item in the array (the name of the action)
+        if (action_parameters->empty()) continue;
+        if (!action_parameters->at(0).is_string()) continue;
+
+        std::string action_name = *action_parameters->at(0).value<std::string>();
+        toml::array action_args;
+
+        for (int i = 1; i < action_parameters->size(); i++)
+        {
+            action_args.push_back(action_parameters->at(i));
+        }
+
+        config_actions.emplace_back(Config::PresetAction{
+            .action_name = action_name,
+            .arguments   = action_args
+        });
     }
 }
 

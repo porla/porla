@@ -16,7 +16,7 @@ namespace porla::Actions
     public:
         explicit Sleep(boost::asio::io_context& io);
 
-        void Invoke(const libtorrent::info_hash_t& hash, const std::vector<std::string>& args, const std::shared_ptr<ActionCallback>& callback) override;
+        void Invoke(const libtorrent::info_hash_t& hash, const toml::array& args, const std::shared_ptr<ActionCallback>& callback) override;
 
     private:
         boost::asio::io_context& m_io;

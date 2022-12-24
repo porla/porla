@@ -16,8 +16,8 @@ using porla::Data::Models::TorrentsMetadata;
 
 struct ActionState
 {
-    std::shared_ptr<Action>  action;
-    std::vector<std::string> arguments;
+    std::shared_ptr<Action> action;
+    toml::array             arguments;
 };
 
 struct LoopingActionCallback : public ActionCallback, public std::enable_shared_from_this<LoopingActionCallback>
@@ -63,15 +63,29 @@ Executor::Executor(const ExecutorOptions& options)
     , m_actions(options.actions)
     , m_presets(options.presets)
 {
-    m_torrent_added_connection = m_session.OnTorrentFinished([this](auto && s) { OnTorrentFinished(s); });
+    m_torrent_added_connection = m_session.OnTorrentAdded([this](auto && s) { OnTorrentAdded(s); });
+    m_torrent_finished_connection = m_session.OnTorrentFinished([this](auto && s) { OnTorrentFinished(s); });
 }
 
 Executor::~Executor()
 {
     m_torrent_added_connection.disconnect();
+    m_torrent_finished_connection.disconnect();
+}
+
+void Executor::OnTorrentAdded(const libtorrent::torrent_status& ts)
+{
+    Run(ts, [](const auto& preset) { return preset.on_torrent_added; });
 }
 
 void Executor::OnTorrentFinished(const libtorrent::torrent_status& ts)
+{
+    Run(ts, [](const auto& preset) { return preset.on_torrent_finished; });
+}
+
+void Executor::Run(
+    const libtorrent::torrent_status& ts,
+    const std::function<std::vector<Config::PresetAction>(const Config::Preset&)>& selector)
 {
     // Get the preset for this torrent. If it has none, use the default
     // if it exists.
@@ -90,7 +104,7 @@ void Executor::OnTorrentFinished(const libtorrent::torrent_status& ts)
     // Run all actions in the preset
     std::vector<ActionState> action_states;
 
-    for (const auto& preset_action : preset->second.on_finished)
+    for (const auto& preset_action : selector(preset->second))
     {
         auto action = m_actions.find(preset_action.action_name);
 
