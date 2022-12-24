@@ -28,6 +28,7 @@ void Sleep::Invoke(const libtorrent::info_hash_t& hash, const toml::array& args,
     if (ec)
     {
         BOOST_LOG_TRIVIAL(error) << "(sleep) Failed to set timer expiry: " << ec.message();
+        return;
     }
 
     timer->async_wait(
