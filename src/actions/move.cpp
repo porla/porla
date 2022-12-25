@@ -39,7 +39,11 @@ void Move::Invoke(const libtorrent::info_hash_t& hash, const toml::array& args, 
         return;
     }
 
-    handle->second.move_storage(*args[0].value<std::string>());
+    const std::string target_path = *args[0].value<std::string>();
+
+    BOOST_LOG_TRIVIAL(debug) << "Moving torrent " << handle->second.status().name << " to " << target_path;
+
+    handle->second.move_storage(target_path);
 
     auto ctx = std::make_unique<MoveContext>();
     ctx->callback = callback;

@@ -23,5 +23,7 @@ void ForceReannounce::Invoke(const libtorrent::info_hash_t& hash, const toml::ar
         return;
     }
 
+    BOOST_LOG_TRIVIAL(debug) << "Forcing reannounce for " << torrent->second.status().name;
+
     torrent->second.force_reannounce();
 }
