@@ -11,6 +11,7 @@
 #include <libtorrent/settings_pack.hpp>
 #include <libtorrent/storage_defs.hpp>
 #include <sqlite3.h>
+#include <toml++/toml.h>
 
 typedef std::function<std::shared_ptr<libtorrent::torrent_plugin>(libtorrent:: torrent_handle const&, libtorrent::client_data_t)> lt_plugin;
 
@@ -21,11 +22,19 @@ namespace porla
     class Config
     {
     public:
+        struct PresetAction
+        {
+            std::string action_name;
+            toml::array arguments;
+        };
+
         struct Preset
         {
             std::optional<int>                        download_limit;
             std::optional<int>                        max_connections;
             std::optional<int>                        max_uploads;
+            std::vector<PresetAction>                 on_torrent_added;
+            std::vector<PresetAction>                 on_torrent_finished;
             std::optional<std::string>                save_path;
             std::optional<libtorrent::storage_mode_t> storage_mode;
             std::optional<int>                        upload_limit;

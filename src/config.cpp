@@ -23,6 +23,7 @@ namespace po = boost::program_options;
 using porla::Config;
 
 static void ApplySettings(const toml::table& tbl, lt::settings_pack& settings);
+static void ApplyPresetActions(std::vector<Config::PresetAction>& config_actions, const toml::array& actions_array);
 
 std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map& cmd)
 {
@@ -174,6 +175,13 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
                     if (auto val = value_tbl["upload_limit"].value<int>())
                         p.upload_limit = *val;
+
+                    // Set up actions
+                    if (auto val = value_tbl["on_torrent_added"].as_array())
+                        ApplyPresetActions(p.on_torrent_added, *val);
+
+                    if (auto val = value_tbl["on_torrent_finished"].as_array())
+                        ApplyPresetActions(p.on_torrent_finished, *val);
 
                     cfg->presets.insert({ key.data(), std::move(p) });
                 }
@@ -345,6 +353,11 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
     // Apply static libtorrent settings here. These are always set after all other settings from
     // the config are applied, and cannot be overwritten by it.
+    cfg->session_settings.set_int(
+        lt::settings_pack::alert_mask,
+        lt::alert::status_notification
+        | lt::alert::storage_notification);
+
     cfg->session_settings.set_str(lt::settings_pack::peer_fingerprint, lt::generate_fingerprint("PO", 0, 1));
     cfg->session_settings.set_str(lt::settings_pack::user_agent, "porla/1.0");
 
@@ -374,6 +387,33 @@ Config::~Config()
     if (sqlite3_close(db) != SQLITE_OK)
     {
         BOOST_LOG_TRIVIAL(error) << "Failed to close SQLite connection: " << sqlite3_errmsg(db);
+    }
+}
+
+static void ApplyPresetActions(std::vector<Config::PresetAction>& config_actions, const toml::array& actions_array)
+{
+    for (const auto& actions_item : actions_array)
+    {
+        if (!actions_item.is_array()) continue;
+
+        const auto action_parameters = actions_item.as_array();
+
+        // require at least one item in the array (the name of the action)
+        if (action_parameters->empty()) continue;
+        if (!action_parameters->at(0).is_string()) continue;
+
+        std::string action_name = *action_parameters->at(0).value<std::string>();
+        toml::array action_args;
+
+        for (int i = 1; i < action_parameters->size(); i++)
+        {
+            action_args.push_back(action_parameters->at(i));
+        }
+
+        config_actions.emplace_back(Config::PresetAction{
+            .action_name = action_name,
+            .arguments   = action_args
+        });
     }
 }
 

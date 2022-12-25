@@ -31,11 +31,14 @@ namespace porla
     public:
         typedef boost::signals2::signal<void(const libtorrent::info_hash_t&)> InfoHashSignal;
         typedef boost::signals2::signal<void(const std::map<std::string, int64_t>&)> SessionStatsSignal;
+        typedef boost::signals2::signal<void(const libtorrent::torrent_handle&)> TorrentHandleSignal;
         typedef boost::signals2::signal<void(const libtorrent::torrent_status&)> TorrentStatusSignal;
         typedef boost::signals2::signal<void(const std::vector<libtorrent::torrent_status>&)> TorrentStatusListSignal;
 
         virtual boost::signals2::connection OnSessionStats(const SessionStatsSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnStateUpdate(const TorrentStatusListSignal::slot_type& subscriber) = 0;
+        virtual boost::signals2::connection OnStorageMoved(const TorrentHandleSignal::slot_type& subscriber) = 0;
+        virtual boost::signals2::connection OnStorageMovedFailed(const TorrentHandleSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnTorrentAdded(const TorrentStatusSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnTorrentFinished(const TorrentStatusSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnTorrentPaused(const TorrentStatusSignal::slot_type& subscriber) = 0;
@@ -72,6 +75,16 @@ namespace porla
         boost::signals2::connection OnStateUpdate(const TorrentStatusListSignal::slot_type& subscriber) override
         {
             return m_stateUpdate.connect(subscriber);
+        }
+
+        boost::signals2::connection OnStorageMoved(const TorrentHandleSignal::slot_type& subscriber) override
+        {
+            return m_storageMoved.connect(subscriber);
+        }
+
+        boost::signals2::connection OnStorageMovedFailed(const TorrentHandleSignal::slot_type& subscriber) override
+        {
+            return m_storageMovedFailed.connect(subscriber);
         }
 
         boost::signals2::connection OnTorrentAdded(const TorrentStatusSignal::slot_type& subscriber) override
@@ -123,6 +136,8 @@ namespace porla
 
         SessionStatsSignal m_sessionStats;
         TorrentStatusListSignal m_stateUpdate;
+        TorrentHandleSignal m_storageMoved;
+        TorrentHandleSignal m_storageMovedFailed;
         TorrentStatusSignal m_torrentAdded;
         TorrentStatusSignal m_torrentFinished;
         TorrentStatusSignal m_torrentPaused;

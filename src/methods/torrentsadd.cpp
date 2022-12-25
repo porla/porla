@@ -140,6 +140,10 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
         }
     }
 
+    // Set static metadata, preset etc
+    if (auto val = req.preset)
+        TorrentsMetadata::Set(m_db, hash, "preset", json(req.preset.value()));
+
     cb.Ok(TorrentsAddRes{
         .info_hash = hash
     });

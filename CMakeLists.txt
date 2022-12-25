@@ -87,6 +87,17 @@ add_executable(
     src/webhookclient.cpp
     src/webhookclient.hpp
 
+    src/actions/executor.cpp
+    src/actions/executor.hpp
+    src/actions/forcereannounce.cpp
+    src/actions/forcereannounce.hpp
+    src/actions/log.cpp
+    src/actions/log.hpp
+    src/actions/move.cpp
+    src/actions/move.hpp
+    src/actions/sleep.cpp
+    src/actions/sleep.hpp
+
     src/data/migrate.cpp
     src/data/migrate.hpp
     src/data/migrations/0001_initialsetup.cpp

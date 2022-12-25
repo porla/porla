@@ -502,6 +502,8 @@ void Session::ReadAlerts()
                                              | lt::torrent_handle::only_if_modified);
             }
 
+            m_storageMoved(sma->handle);
+
             break;
         }
         case lt::torrent_finished_alert::alert_type:
