@@ -89,6 +89,8 @@ add_executable(
 
     src/actions/executor.cpp
     src/actions/executor.hpp
+    src/actions/forcereannounce.cpp
+    src/actions/forcereannounce.hpp
     src/actions/log.cpp
     src/actions/log.hpp
     src/actions/move.cpp

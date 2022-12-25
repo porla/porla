@@ -4,6 +4,7 @@
 #include <sodium.h>
 
 #include "actions/executor.hpp"
+#include "actions/forcereannounce.hpp"
 #include "actions/log.hpp"
 #include "actions/move.hpp"
 #include "actions/sleep.hpp"
@@ -121,9 +122,10 @@ int main(int argc, char* argv[])
             .presets = cfg->presets,
             .session = session,
             .actions = {
-                {"log", std::make_shared<porla::Actions::Log>(session)},
-                {"move", std::make_shared<porla::Actions::Move>(session)},
-                {"sleep", std::make_shared<porla::Actions::Sleep>(io)}
+                {"log",                 std::make_shared<porla::Actions::Log>(session)},
+                {"sleep",               std::make_shared<porla::Actions::Sleep>(io)},
+                {"torrents.reannounce", std::make_shared<porla::Actions::ForceReannounce>(session)},
+                {"torrents.move",       std::make_shared<porla::Actions::Move>(session)},
             }
         }};
 
