@@ -397,6 +397,60 @@ int Session::Query(const std::string_view& query, const std::function<int(sqlite
     return SQLITE_OK;
 }
 
+void Session::Recheck(const lt::info_hash_t &hash)
+{
+    const auto& handle = m_torrents.at(hash);
+
+    // If the torrent is paused, it must be resumed in order to be rechecked.
+    // It should also not be auto managed, so remove it from that as well.
+    // When the session posts a torrent_check alert, restore its flags.
+
+    bool was_auto_managed = false;
+    bool was_paused = false;
+    int alert_type = lt::torrent_checked_alert::alert_type;
+
+    if ((handle.flags() & lt::torrent_flags::auto_managed) == lt::torrent_flags::auto_managed)
+    {
+        handle.unset_flags(lt::torrent_flags::auto_managed);
+        was_auto_managed = true;
+    }
+
+    if ((handle.flags() & lt::torrent_flags::paused) == lt::torrent_flags::paused)
+    {
+        handle.resume();
+        was_paused = true;
+    }
+
+    if (!m_oneshot_torrent_callbacks.contains({ alert_type, hash }))
+    {
+        m_oneshot_torrent_callbacks.insert({{ alert_type, hash }, {}});
+    }
+
+    m_oneshot_torrent_callbacks.at({ alert_type, hash }).emplace_back(
+        [&, hash, was_auto_managed, was_paused]()
+        {
+            if (!m_torrents.contains(hash))
+            {
+                return;
+            }
+
+            // TODO: Unsure about the order here. If there are reports that force-checking a torrent
+            //       leads to any issues with resume/pause, the order of these statements might matter.
+
+            if (was_auto_managed)
+            {
+                m_torrents.at(hash).set_flags(lt::torrent_flags::auto_managed);
+            }
+
+            if (was_paused)
+            {
+                m_torrents.at(hash).pause();
+            }
+        });
+
+    handle.force_recheck();
+}
+
 void Session::Remove(const lt::info_hash_t& hash, bool remove_data)
 {
     lt::torrent_handle th = m_torrents.at(hash);
@@ -506,16 +560,33 @@ void Session::ReadAlerts()
 
             break;
         }
+        case lt::torrent_checked_alert::alert_type:
+        {
+            const auto tca = lt::alert_cast<lt::torrent_checked_alert>(alert);
+            BOOST_LOG_TRIVIAL(info) << "Torrent " << tca->torrent_name() << " finished checking";
+
+            if (m_oneshot_torrent_callbacks.contains({ alert->type(), tca->handle.info_hashes()}))
+            {
+                for (auto && cb : m_oneshot_torrent_callbacks.at({ alert->type(), tca->handle.info_hashes() }))
+                {
+                    cb();
+                }
+
+                m_oneshot_torrent_callbacks.erase({ alert->type(), tca->handle.info_hashes() });
+            }
+
+            break;
+        }
         case lt::torrent_finished_alert::alert_type:
         {
             auto tfa = lt::alert_cast<lt::torrent_finished_alert>(alert);
             auto const& status = tfa->handle.status();
 
-            BOOST_LOG_TRIVIAL(info) << "Torrent " << status.name << " finished";
 
             if (status.total_download > 0)
             {
                 // Only emit this event if we have downloaded any data this session.
+                BOOST_LOG_TRIVIAL(info) << "Torrent " << status.name << " finished";
                 m_torrentFinished(status);
             }
 

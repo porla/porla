@@ -1,7 +1,7 @@
 import { Box, CircularProgress, CircularProgressLabel, Flex, Grid, GridItem, HStack, Icon, IconButton, Link, Menu, MenuButton, MenuDivider, MenuGroup, MenuItem, MenuList, Text, textDecoration, useColorMode } from "@chakra-ui/react";
 import { filesize } from "filesize";
 import { IconType } from "react-icons/lib";
-import { MdCheck, MdDelete, MdDriveFileMove, MdFileCopy, MdFolder, MdFolderOpen, MdLabel, MdOutlineMoreVert, MdOutlineReport, MdPause, MdPlayArrow, MdSchedule, MdTag, MdUpload, MdViewList } from "react-icons/md";
+import { MdCheck, MdDelete, MdDriveFileMove, MdFileCopy, MdFolder, MdFolderOpen, MdLabel, MdOutlineMoreVert, MdOutlineReport, MdPause, MdPlayArrow, MdSchedule, MdSearch, MdTag, MdUpload, MdViewList } from "react-icons/md";
 import { Torrent } from "../types"
 
 import useNinja from "../contexts/ninja";
@@ -12,6 +12,7 @@ type TorrentsListItemProps = {
   isDeleting: (torrent: Torrent) => boolean;
   onMove: (torrent: Torrent) => void;
   onPause: (torrent: Torrent) => void;
+  onRecheck: (torrent: Torrent) => void;
   onRemove: (torrent: Torrent) => void;
   onResume: (torrent: Torrent) => void;
   onShowProperties: (torrent: Torrent) => void;
@@ -62,6 +63,7 @@ function stateColor(torrent: Torrent) {
   }
 
   switch (torrent.state) {
+    case 1: return "gray.500";
     case 2: return "gray.600";
     case 3: return "blue.500";
     case 5: return "green.300";
@@ -104,7 +106,7 @@ function progressLabel(torrent: Torrent) {
       if (isPaused(torrent.flags)) {
         return "checking_files_queued";
       }
-      return "checking_files";
+      break;
     }
     case 2: return <Icon as={isAutoManaged(torrent.flags) && isPaused(torrent.flags) ? MdSchedule : MdFileCopy} mt={"1px"} w={3} h={3} />;
     case 3: {
@@ -314,33 +316,40 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
               size={"sm"}
             />
             <MenuList>
+              {
+                isPaused(props.torrent.flags)
+                  ? <MenuItem
+                      icon={<MdPlayArrow />}
+                      onClick={() => props.onResume(props.torrent)}
+                    >
+                      Resume
+                    </MenuItem>
+                  : <MenuItem
+                      icon={<MdPause />}
+                      onClick={() => props.onPause(props.torrent)}
+                    >
+                      Pause
+                    </MenuItem>
+              }
+              <MenuDivider />
               <MenuGroup title="Actions">
-                {
-                  isPaused(props.torrent.flags)
-                    ? <MenuItem
-                        icon={<MdPlayArrow />}
-                        onClick={() => props.onResume(props.torrent)}
-                      >
-                        Resume
-                      </MenuItem>
-                    : <MenuItem
-                        icon={<MdPause />}
-                        onClick={() => props.onPause(props.torrent)}
-                      >
-                        Pause
-                      </MenuItem>
-                }
+                <MenuItem
+                  icon={<MdSearch />}
+                  onClick={() => props.onRecheck(props.torrent)}
+                >
+                  Check files
+                </MenuItem>
                 <MenuItem
                   icon={<MdFolder />}
                   onClick={() => props.onMove(props.torrent)}
                 >
-                  Move
+                  Move contents
                 </MenuItem>
                 <MenuItem
                   icon={<MdDelete />}
                   onClick={() => props.onRemove(props.torrent)}
                 >
-                  Remove
+                  Remove torrent
                 </MenuItem>
               </MenuGroup>
               <MenuDivider />

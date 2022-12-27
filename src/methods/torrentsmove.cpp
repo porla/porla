@@ -21,7 +21,7 @@ void TorrentsMove::Invoke(const TorrentsMoveReq &req, WriteCb<TorrentsMoveRes> c
         return cb.Error(-1, "Torrent not found");
     }
 
-    lt::move_flags_t flags = lt::move_flags_t::always_replace_files;
+    lt::move_flags_t flags = lt::move_flags_t::dont_replace;
 
     if (req.flags.has_value())
     {
