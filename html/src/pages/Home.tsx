@@ -38,6 +38,7 @@ export default function Home() {
 
   const torrentsMove = useInvoker<void>("torrents.move");
   const torrentsPause = useInvoker<void>("torrents.pause");
+  const torrentsRecheck = useInvoker<void>("torrents.recheck");
   const torrentsRemove = useInvoker<void>("torrents.remove");
   const torrentsResume = useInvoker<void>("torrents.resume");
 
@@ -174,6 +175,10 @@ export default function Home() {
                     await torrentsPause({
                       info_hash: t.info_hash
                     });
+                    await mutate();
+                  }}
+                  onRecheck={async (t) => {
+                    await torrentsRecheck({ info_hash: t.info_hash });
                     await mutate();
                   }}
                   onRemove={(torrent) => setRemoveTorrent(torrent)}

@@ -6,6 +6,7 @@ type TorrentsListProps = {
   isDeleting: (torrent: Torrent) => boolean;
   onMove: (torrent: Torrent) => void;
   onPause: (torrent: Torrent) => void;
+  onRecheck: (torrent: Torrent) => void;
   onRemove: (torrent: Torrent) => void;
   onResume: (torrent: Torrent) => void;
   onShowProperties: (torrent: Torrent) => void;
@@ -64,6 +65,7 @@ export default function TorrentsList(props: TorrentsListProps) {
           onMove={props.onMove}
           isDeleting={props.isDeleting}
           onPause={props.onPause}
+          onRecheck={props.onRecheck}
           onRemove={props.onRemove}
           onResume={props.onResume}
           onShowProperties={props.onShowProperties} />

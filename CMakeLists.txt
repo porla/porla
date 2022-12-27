@@ -154,6 +154,8 @@ add_executable(
     src/methods/torrentspropertiesget.hpp
     src/methods/torrentsquery.cpp
     src/methods/torrentsquery.hpp
+    src/methods/torrentsrecheck.cpp
+    src/methods/torrentsrecheck.hpp
     src/methods/torrentsremove.cpp
     src/methods/torrentsremove.hpp
     src/methods/torrentsresume.cpp
