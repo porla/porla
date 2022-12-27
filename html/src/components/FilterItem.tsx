@@ -1,5 +1,5 @@
 import { Tag, TagCloseButton, TagLabel, TagLeftIcon } from "@chakra-ui/react";
-import { MdFilter, MdLabel, MdTag } from "react-icons/md";
+import { MdFilter, MdFolderOpen, MdLabel, MdTag } from "react-icons/md";
 import useTorrentsFilter from "../contexts/TorrentsFilterContext";
 import { Filter } from "../types";
 
@@ -9,8 +9,9 @@ type FilterItemProps = {
 
 function FilterFieldIcon(field: string) {
   switch (field) {
-    case "category": return MdLabel;
-    case "tags":     return MdTag;
+    case "category":  return MdLabel;
+    case "save_path": return MdFolderOpen;
+    case "tags":      return MdTag;
   }
   return MdFilter;
 }

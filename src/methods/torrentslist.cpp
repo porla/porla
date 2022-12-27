@@ -135,6 +135,11 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
                     auto const& category_value = filter.args.get<std::string>();
                     filter_includes_torrent = category == filter.args;
                 }
+                else if (filter.field == "save_path"
+                    && filter.args.is_string())
+                {
+                    filter_includes_torrent = ts.save_path == filter.args;
+                }
                 else if (filter.field == "tags"
                     && filter.args.is_string())
                 {

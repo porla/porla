@@ -205,7 +205,22 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
             fontSize={"sm"}
             spacing={3}
           >
-            <KeyValue key={"savepath"} icon={MdFolderOpen} value={isNinja ? "/legit/linux/isos" : props.torrent.save_path} />
+            <KeyValue
+              key={"savepath"}
+              icon={MdFolderOpen}
+              value={isNinja
+                ? "/legit/linux/isos"
+                : <Link
+                    _hover={{
+                      color: "white",
+                      textDecoration: "underline"
+                    }}
+                    onClick={() => addFilter({ field: "save_path", args: props.torrent.save_path })}
+                  >
+                    {props.torrent.save_path}
+                  </Link>}
+            />
+
             {props.torrent.size > 0 && (
               <KeyValue key={"size"} icon={MdFileCopy} value={filesize(props.torrent.size).toString()} />
             )}
