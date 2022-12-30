@@ -50,6 +50,13 @@
 #include "methods/torrentspropertiesset.hpp"
 #include "methods/torrentstrackerslist.hpp"
 
+#include "workflows/actionfactory.hpp"
+#include "workflows/executor.hpp"
+#include "workflows/workflow.hpp"
+#include "workflows/actions/log.hpp"
+#include "workflows/actions/sleep.hpp"
+#include "workflows/actions/push/ntfy.hpp"
+
 int main(int argc, char* argv[])
 {
     static std::map<std::string, std::function<int(int, char**, std::unique_ptr<porla::Config>)>> subcommands =
@@ -117,7 +124,7 @@ int main(int argc, char* argv[])
             return -1;
         }
 
-        porla::Actions::Executor actions_executor{porla::Actions::ExecutorOptions{
+        /*porla::Actions::Executor actions_executor{porla::Actions::ExecutorOptions{
             .db      = cfg->db,
             .io      = io,
             .presets = cfg->presets,
@@ -128,6 +135,19 @@ int main(int argc, char* argv[])
                 {"torrents.reannounce", std::make_shared<porla::Actions::ForceReannounce>(session)},
                 {"torrents.move",       std::make_shared<porla::Actions::Move>(session)},
             }
+        }};*/
+
+        porla::Workflows::Executor workflow_executor{porla::Workflows::ExecutorOptions{
+            .session   = session,
+            .workflows = {
+                porla::Workflows::IWorkflow::LoadFromFile("/Users/viktor/code/porla/porla-wrk/cmake-build-debug/workflows/test.yaml")
+            },
+            .action_factory = std::make_shared<porla::Workflows::ActionFactory>(
+                std::map<std::string, std::function<std::shared_ptr<porla::Workflows::Action>()>>{
+                    {"log",          []()    { return std::make_shared<porla::Workflows::Actions::Log>(); }},
+                    {"push/ntfy-sh", [&io]() { return std::make_shared<porla::Workflows::Actions::Push::Ntfy>(io); }},
+                    {"sleep",        [&io]() { return std::make_shared<porla::Workflows::Actions::Sleep>(io); }}
+                })
         }};
 
         porla::WebhookClient wh(io, porla::WebhookClientOptions{
