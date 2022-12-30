@@ -110,6 +110,7 @@ add_library(
 
     src/workflows/actionfactory.cpp
     src/workflows/executor.cpp
+    src/workflows/textrenderer.cpp
     src/workflows/torrentcontextprovider.cpp
     src/workflows/workflow.cpp
     src/workflows/actions/log.cpp
@@ -158,6 +159,7 @@ target_link_libraries(
 add_executable(
     ${PROJECT_NAME}_tests
     tests/main.cpp
+    tests/workflows/textrenderer.cpp
 )
 
 target_link_libraries(
