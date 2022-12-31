@@ -19,10 +19,19 @@ std::string TextRenderer::Render(const std::string &text)
 
     while (std::regex_search(current, string_match, re))
     {
-        current = current.replace(
-            string_match.position(),
-            string_match.size(),
-            "whatever man");
+        const std::string lookup_value = string_match[1];
+        const std::string context_name = lookup_value.substr(
+            0,
+            lookup_value.find_first_of('.'));
+
+        const auto resolved_value = m_contexts.at(context_name)->ResolveSegments({""});
+
+        if (resolved_value == nullptr)
+        {
+
+        }
+
+        break;
     }
 
     return current;

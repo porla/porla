@@ -62,6 +62,7 @@ add_library(
     src/utils/eta.cpp
     src/utils/ratio.cpp
     src/utils/secretkey.cpp
+    src/utils/string.cpp
     src/webhookclient.cpp
 
     src/actions/executor.cpp
@@ -159,6 +160,7 @@ target_link_libraries(
 add_executable(
     ${PROJECT_NAME}_tests
     tests/main.cpp
+    tests/utils/string.cpp
     tests/workflows/textrenderer.cpp
 )
 

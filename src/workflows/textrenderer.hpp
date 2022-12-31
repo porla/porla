@@ -12,8 +12,7 @@ namespace porla::Workflows
     {
     public:
         explicit TextRenderer(const std::map<std::string, std::shared_ptr<ContextProvider>>& contexts);
-
-        [[maybe_unused]] std::string Render(const std::string& text);
+        [[nodiscard]] std::string Render(const std::string& text);
 
     private:
         std::map<std::string, std::shared_ptr<ContextProvider>> m_contexts;
