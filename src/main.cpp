@@ -140,7 +140,7 @@ int main(int argc, char* argv[])
         porla::Workflows::Executor workflow_executor{porla::Workflows::ExecutorOptions{
             .session   = session,
             .workflows = {
-                porla::Workflows::IWorkflow::LoadFromFile("/Users/viktor/code/porla/porla-wrk/cmake-build-debug/workflows/test.yaml")
+                porla::Workflows::Workflow::LoadFromFile("/Users/viktor/code/porla/porla-wrk/cmake-build-debug/workflows/test.yaml")
             },
             .action_factory = std::make_shared<porla::Workflows::ActionFactory>(
                 std::map<std::string, std::function<std::shared_ptr<porla::Workflows::Action>()>>{

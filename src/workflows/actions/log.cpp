@@ -8,10 +8,15 @@ Log::Log() = default;
 
 void Log::Invoke(const ActionParams& params, std::shared_ptr<ActionCallback> callback)
 {
+    nlohmann::json output;
+
     if (params.Input().contains("message"))
     {
-        BOOST_LOG_TRIVIAL(info) << params.RenderValues(params.Input()["message"]);
+        const auto rendered_message = params.RenderValues(params.Input()["message"]);
+        BOOST_LOG_TRIVIAL(info) << rendered_message;
+
+        output["rendered_message"] = rendered_message;
     }
 
-    callback->Complete({});
+    callback->Complete(output);
 }

@@ -159,9 +159,14 @@ target_link_libraries(
 
 add_executable(
     ${PROJECT_NAME}_tests
+    tests/inmemorysession.cpp
     tests/main.cpp
     tests/utils/string.cpp
+    tests/workflows/actions/log.cpp
+    tests/workflows/actions/sleep.cpp
+    tests/workflows/executor.cpp
     tests/workflows/textrenderer.cpp
+    tests/workflows/workflow.cpp
 )
 
 target_link_libraries(

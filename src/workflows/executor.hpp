@@ -15,12 +15,12 @@ namespace porla::Workflows
 {
     class ActionFactory;
     class ContextProvider;
-    class IWorkflow;
+    class Workflow;
 
     struct ExecutorOptions
     {
         porla::ISession& session;
-        std::vector<std::shared_ptr<IWorkflow>> workflows;
+        std::vector<std::shared_ptr<Workflow>> workflows;
         std::shared_ptr<ActionFactory> action_factory;
     };
 
@@ -43,6 +43,6 @@ namespace porla::Workflows
         std::shared_ptr<ActionFactory> m_action_factory;
         std::unique_ptr<State> m_state;
         porla::ISession& m_session;
-        std::vector<std::shared_ptr<IWorkflow>> m_workflows;
+        std::vector<std::shared_ptr<Workflow>> m_workflows;
     };
 }

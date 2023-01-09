@@ -11,10 +11,8 @@ class MockContextProvider : public ContextProvider
 public:
     nlohmann::json ResolveSegments(const std::vector<std::string>& segments) override
     {
-        if (segments.size() == 1 && segments.at(0) == "foo")
-        {
-            return "bar";
-        }
+        if (segments.at(0) == "foo") return "bar";
+        if (segments.at(0) == "num") return 1337;
 
         return nullptr;
     }
@@ -44,4 +42,10 @@ TEST_F(TextRendererTests, Render_WithSingleMockContextLookup_ReturnsRenderedValu
 {
     const auto rendered_value = renderer->Render("This is ${{ mock.foo }}");
     EXPECT_EQ(rendered_value, "This is bar");
+}
+
+TEST_F(TextRendererTests, Render_WithMultipleContextLookups_ReturnsCorrectValue)
+{
+    const auto rendered_value = renderer->Render("This is ${{ mock.foo }}: ${{ mock.num }} :)");
+    EXPECT_EQ(rendered_value, "This is bar: 1337 :)");
 }

@@ -12,26 +12,64 @@
 #include "actionfactory.hpp"
 #include "contextprovider.hpp"
 #include "step.hpp"
+#include "textrenderer.hpp"
 
 using porla::Workflows::Action;
 using porla::Workflows::ActionCallback;
 using porla::Workflows::ActionFactory;
 using porla::Workflows::ContextProvider;
-using porla::Workflows::IWorkflow;
 using porla::Workflows::Step;
+using porla::Workflows::TextRenderer;
+using porla::Workflows::Workflow;
+using porla::Workflows::WorkflowOptions;
 
 struct StepInstance
 {
     std::shared_ptr<Action> action;
     Step                    step;
-    nlohmann::json          output;
+};
+
+class StepContextProvider : public ContextProvider
+{
+public:
+    void AddOutput(const nlohmann::json& j)
+    {
+        m_outputs.push_back(j);
+    }
+
+    nlohmann::json ResolveSegments(const std::vector<std::string>& segments) override
+    {
+        if (segments.size() >= 2)
+        {
+            const auto& key = segments.at(0);
+            const auto& field = segments.at(1);
+
+            if (std::all_of(key.begin(), key.end(), isdigit))
+            {
+                int index = std::stoi(segments.at(0));
+                const auto& output_at_index = m_outputs.at(index);
+
+                if (output_at_index.contains(field))
+                {
+                    return output_at_index[field];
+                }
+
+                return nullptr;
+            }
+        }
+
+        return nullptr;
+    }
+
+    std::vector<nlohmann::json> m_outputs;
 };
 
 class SimpleActionParams : public porla::Workflows::ActionParams
 {
 public:
-    explicit SimpleActionParams(nlohmann::json input)
+    explicit SimpleActionParams(nlohmann::json input, const std::function<std::string(std::string)>& renderer)
         : m_input(std::move(input))
+        , m_renderer(renderer)
     {
     }
 
@@ -42,25 +80,12 @@ public:
 
     [[nodiscard]] std::string RenderValues(const std::string& text) const override
     {
-        std::regex re(R"(\$\{\{\s([a-zA-Z\.]+[^\.])\s\}\})");
-        std::smatch string_match;
-        std::string current = text;
-
-        while (std::regex_search(current, string_match, re))
-        {
-            BOOST_LOG_TRIVIAL(info) << string_match[1];
-
-            current = current.replace(
-                string_match.position(),
-                string_match.size(),
-                "whatever man");
-        }
-
-        return text;
+        return m_renderer(text);
     }
 
 private:
     nlohmann::json m_input;
+    std::function<std::string(std::string)> m_renderer;
 };
 
 class LoopingWorkflowRunner : public ActionCallback, public std::enable_shared_from_this<LoopingWorkflowRunner>
@@ -70,18 +95,20 @@ public:
         const std::map<std::string, std::shared_ptr<ContextProvider>>& contexts,
         const std::vector<StepInstance>& step_instances)
         : m_contexts(contexts)
+        , m_step_context_provider(std::make_shared<StepContextProvider>())
         , m_step_instances(step_instances)
         , m_current_index(0)
     {
+        m_contexts.insert({"steps", m_step_context_provider});
     }
 
     void Complete(const nlohmann::json& j) override
     {
         // This is the instance that completed. Set its output.
         auto& instance = m_step_instances.at(m_current_index);
-        instance.output = j;
 
         m_current_index++;
+        m_step_context_provider->AddOutput(j);
 
         if (m_current_index >= m_step_instances.size())
         {
@@ -95,68 +122,63 @@ public:
     {
         const auto& instance = m_step_instances.at(m_current_index);
 
-        SimpleActionParams sap{instance.step.with};
+        SimpleActionParams sap{
+            instance.step.with,
+            [_this = shared_from_this()](const std::string& text)
+            {
+                TextRenderer tr(_this->m_contexts);
+                return tr.Render(text);
+            }};
 
         instance.action->Invoke(sap, shared_from_this());
     }
 
 private:
     std::map<std::string, std::shared_ptr<ContextProvider>> m_contexts;
+    std::shared_ptr<StepContextProvider> m_step_context_provider;
     std::vector<StepInstance> m_step_instances;
     int m_current_index;
 };
 
-struct YamlWorkflowOptions
+Workflow::Workflow(const WorkflowOptions &opts)
+    : m_on(opts.on)
+    , m_steps(opts.steps)
 {
-    std::unordered_set<std::string>     on;
-    std::vector<porla::Workflows::Step> steps;
-};
+}
 
-class YamlWorkflow : public IWorkflow
+Workflow::~Workflow() = default;
+
+void Workflow::Execute(
+    const ActionFactory &action_factory,
+    const std::map<std::string, std::shared_ptr<ContextProvider>> &contexts)
 {
-public:
-    explicit YamlWorkflow(const YamlWorkflowOptions& options)
-        : m_on(options.on)
-        , m_steps(options.steps)
-    {
-    }
+    std::vector<StepInstance> step_instances;
 
-    void Execute(
-        const ActionFactory& action_factory,
-        const std::map<std::string, std::shared_ptr<ContextProvider>>& contexts) override
+    for (const auto& step : m_steps)
     {
-        std::vector<StepInstance> step_instances;
+        auto action = action_factory.Construct(step.uses);
 
-        for (const auto& step : m_steps)
+        if (action == nullptr)
         {
-            auto action = action_factory.Construct(step.uses);
-
-            if (action == nullptr)
-            {
-                BOOST_LOG_TRIVIAL(error) << "Invalid action name: " << step.uses;
-                return;
-            }
-
-            step_instances.emplace_back(StepInstance{
-                .action = action,
-                .step   = step
-            });
+            BOOST_LOG_TRIVIAL(error) << "Invalid action name: " << step.uses;
+            return;
         }
 
-        std::make_shared<LoopingWorkflowRunner>(contexts, step_instances)->Run();
+        step_instances.emplace_back(StepInstance{
+            .action = action,
+            .step   = step
+        });
     }
 
-    std::unordered_set<std::string> On() override
-    {
-        return m_on;
-    }
+    std::make_shared<LoopingWorkflowRunner>(contexts, step_instances)->Run();
+}
 
-private:
-    std::unordered_set<std::string> m_on;
-    std::vector<porla::Workflows::Step> m_steps;
-};
+std::unordered_set<std::string> Workflow::On()
+{
+    return m_on;
+}
 
-std::shared_ptr<IWorkflow> IWorkflow::LoadFromFile(const std::filesystem::path& workflow_file)
+std::shared_ptr<Workflow> Workflow::LoadFromFile(const std::filesystem::path& workflow_file)
 {
     std::ifstream workflow_input_file(workflow_file, std::ios::binary);
 
@@ -172,7 +194,12 @@ std::shared_ptr<IWorkflow> IWorkflow::LoadFromFile(const std::filesystem::path& 
 
     workflow_input_file.read(workflow_file_buffer.data(), workflow_file_size);
 
-    ryml::Tree wf = ryml::parse_in_arena(ryml::to_csubstr(workflow_file_buffer.data()));
+    return LoadFromYaml(workflow_file_buffer.data());
+}
+
+std::shared_ptr<Workflow> Workflow::LoadFromYaml(const std::string& yaml)
+{
+    ryml::Tree wf = ryml::parse_in_arena(ryml::to_csubstr(yaml.c_str()));
 
     auto on_val = wf["on"].val();
     std::string on(on_val.data(), on_val.size());
@@ -189,21 +216,24 @@ std::shared_ptr<IWorkflow> IWorkflow::LoadFromFile(const std::filesystem::path& 
 
             std::map<std::string, nlohmann::json> with;
 
-            for (const ryml::NodeRef& with_item : step["with"].children())
+            if (step.has_child("with"))
             {
-                const auto key = with_item.key();
-                const auto val = with_item.val();
-
-                std::string key_str(key.data(), key.size());
-                std::string val_str(val.data(), val.size());
-
-                if (val.is_integer())
+                for (const ryml::NodeRef &with_item: step["with"].children())
                 {
-                    with.insert({ key_str, std::stoi(val_str) });
-                }
-                else
-                {
-                    with.insert({ key_str, val_str });
+                    const auto key = with_item.key();
+                    const auto val = with_item.val();
+
+                    std::string key_str(key.data(), key.size());
+                    std::string val_str(val.data(), val.size());
+
+                    if (val.is_integer())
+                    {
+                        with.insert({key_str, std::stoi(val_str)});
+                    }
+                    else
+                    {
+                        with.insert({key_str, val_str});
+                    }
                 }
             }
 
@@ -214,7 +244,7 @@ std::shared_ptr<IWorkflow> IWorkflow::LoadFromFile(const std::filesystem::path& 
         }
     }
 
-    return std::make_shared<YamlWorkflow>(YamlWorkflowOptions{
+    return std::make_shared<Workflow>(WorkflowOptions{
         .on    = {on},
         .steps = workflow_steps
     });
