@@ -1,15 +1,3 @@
-
-# Custom command that will only build stdlib when it changes.
-add_custom_command(
-    OUTPUT ${PROJECT_SOURCE_DIR}/vendor/jsonnet/core/std.jsonnet.h
-    COMMAND ${PROJECT_BINARY_DIR}/to_c_array
-        ${PROJECT_SOURCE_DIR}/vendor/jsonnet/stdlib/std.jsonnet
-        ${PROJECT_SOURCE_DIR}/vendor/jsonnet/core/std.jsonnet.h
-    DEPENDS to_c_array stdlib/std.jsonnet)
-
-# Standard library build target that libjsonnet can depend on.
-add_custom_target(stdlib ALL DEPENDS ${PROJECT_SOURCE_DIR}/vendor/jsonnet/core/std.jsonnet.h)
-
 add_library(
     jsonnet
     STATIC
@@ -60,9 +48,4 @@ target_link_libraries(
     jsonnet
     nlohmann_json::nlohmann_json
     ryml::ryml
-)
-
-add_dependencies(
-    jsonnet
-    stdlib
 )

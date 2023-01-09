@@ -34,8 +34,6 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -P
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FileEmbed.cmake)
 
-add_executable(to_c_array vendor/jsonnet/stdlib/to_c_array.cpp)
-
 add_library(
     ${PROJECT_NAME}_core
     STATIC
