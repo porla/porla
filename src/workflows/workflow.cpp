@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <boost/log/trivial.hpp>
+#include <libjsonnet++.h>
 #include <ryml/ryml.hpp>
 
 #include "action.hpp"
@@ -37,31 +38,12 @@ public:
         m_outputs.push_back(j);
     }
 
-    nlohmann::json ResolveSegments(const std::vector<std::string>& segments) override
+    nlohmann::json Value() override
     {
-        if (segments.size() >= 2)
-        {
-            const auto& key = segments.at(0);
-            const auto& field = segments.at(1);
-
-            if (std::all_of(key.begin(), key.end(), isdigit))
-            {
-                int index = std::stoi(segments.at(0));
-                const auto& output_at_index = m_outputs.at(index);
-
-                if (output_at_index.contains(field))
-                {
-                    return output_at_index[field];
-                }
-
-                return nullptr;
-            }
-        }
-
-        return nullptr;
+        return m_outputs;
     }
 
-    std::vector<nlohmann::json> m_outputs;
+    nlohmann::json m_outputs;
 };
 
 class SimpleActionParams : public porla::Workflows::ActionParams
@@ -126,8 +108,8 @@ public:
             instance.step.with,
             [_this = shared_from_this()](const std::string& text)
             {
-                TextRenderer tr(_this->m_contexts);
-                return tr.Render(text);
+                TextRenderer renderer{_this->m_contexts};
+                return renderer.Render(text);
             }};
 
         instance.action->Invoke(sap, shared_from_this());

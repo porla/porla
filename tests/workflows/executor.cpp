@@ -9,11 +9,15 @@
 #include "../../src/workflows/executor.hpp"
 #include "../../src/workflows/workflow.hpp"
 
+#include "../../src/workflows/actions/log.hpp"
+
 using porla::Workflows::ActionCallback;
 using porla::Workflows::ActionFactory;
 using porla::Workflows::ActionParams;
 using porla::Workflows::Executor;
 using porla::Workflows::Workflow;
+
+using porla::Workflows::Actions::Log;
 
 struct MockAction : public porla::Workflows::Action
 {
@@ -31,7 +35,9 @@ protected:
 on: torrent_added
 
 steps:
-  - uses: mock
+  - uses: log
+    with:
+      message: Hello ${{ torrent.name }}
   - uses: mock
 )");
 
@@ -44,6 +50,7 @@ steps:
             },
             .action_factory = std::make_shared<porla::Workflows::ActionFactory>(
                 std::map<std::string, std::function<std::shared_ptr<porla::Workflows::Action>()>>{
+                    {"log", []() { return std::make_shared<Log>(); }},
                     {"mock", [this]() { return mock_action; }}
                 })
         });
@@ -58,13 +65,17 @@ steps:
 TEST_F(ExecutorTests, OnTriggerExecutesCompleteWorkflow)
 {
     EXPECT_CALL(*mock_action, Invoke)
-        .Times(2)
-        .WillRepeatedly(
+        .Times(1)
+        .WillOnce(
             [](const ActionParams& params, const std::shared_ptr<ActionCallback>& callback)
             {
+                EXPECT_EQ(params.RenderValues("${{ steps[0].rendered_message }}"), "Hello test-torrent");
                 callback->Complete({});
             });
 
-    session->m_torrentAdded(lt::torrent_status{});
+    lt::torrent_status ts;
+    ts.name = "test-torrent";
+
+    session->m_torrentAdded(ts);
     io.run();
 }

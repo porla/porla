@@ -3,6 +3,8 @@
 #include <regex>
 #include <sstream>
 
+#include <libjsonnet++.h>
+
 #include "contextprovider.hpp"
 #include "../utils/string.hpp"
 
@@ -16,34 +18,45 @@ TextRenderer::TextRenderer(const std::map<std::string, std::shared_ptr<ContextPr
 
 std::string TextRenderer::Render(const std::string &text)
 {
-    std::regex re(R"(\$\{\{\s([a-zA-Z0-9_\.]+[^\.])\s\}\})");
+    std::regex re(R"(\$\{\{\s(.+?)\s\}\})");
     std::smatch string_match;
     std::string current = text;
     std::stringstream output;
 
     while (std::regex_search(current, string_match, re))
     {
-        const std::string lookup_value = string_match[1];
-
-        const std::string context_name = lookup_value.substr(
-            0,
-            lookup_value.find_first_of('.'));
-
-        const std::string raw_segments = lookup_value.substr(
-            lookup_value.find_first_of('.') + 1);
-
-        const auto segments = String::Split(raw_segments, ".");
-        const auto resolved_value = m_contexts.at(context_name)->ResolveSegments(segments);
+        const auto lookup_value = string_match[1];
 
         output << string_match.prefix();
 
-        if (resolved_value.is_string())
+        jsonnet::Jsonnet jn;
+        jn.init();
+
+        std::stringstream wrapped_jsonnet;
+
+        for (const auto& [key,val] : m_contexts)
         {
-            output << resolved_value.get<std::string>();
+            jn.bindExtCodeVar(key, val->Value().dump());
+            wrapped_jsonnet << "local " << key << " = std.extVar(\"" << key << "\");\n";
+        }
+
+        wrapped_jsonnet << lookup_value;
+
+        std::string jsonnet_output;
+        if (!jn.evaluateSnippet("workflow-snippet", wrapped_jsonnet.str(), &jsonnet_output))
+        {
+            printf("%s\n", jn.lastError().c_str());
+        }
+
+        const auto jsonnet_parsed_output = nlohmann::json::parse(jsonnet_output);
+
+        if (jsonnet_parsed_output.is_string())
+        {
+            output << jsonnet_parsed_output.get<std::string>();
         }
         else
         {
-            output << resolved_value;
+            output << jsonnet_parsed_output;
         }
 
         current = string_match.suffix();

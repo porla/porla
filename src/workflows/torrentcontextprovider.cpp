@@ -9,12 +9,9 @@ TorrentContextProvider::TorrentContextProvider(const libtorrent::torrent_status 
 {
 }
 
-nlohmann::json TorrentContextProvider::ResolveSegments(const std::vector<std::string> &segments)
+nlohmann::json TorrentContextProvider::Value()
 {
-    if (segments.size() == 1 && segments.at(0) == "name")
-    {
-        return m_ts->name;
-    }
-
-    return {};
+    return {
+        {"name", m_ts->name}
+    };
 }

@@ -9,12 +9,12 @@ using porla::Workflows::TextRenderer;
 class MockContextProvider : public ContextProvider
 {
 public:
-    nlohmann::json ResolveSegments(const std::vector<std::string>& segments) override
+    nlohmann::json Value() override
     {
-        if (segments.at(0) == "foo") return "bar";
-        if (segments.at(0) == "num") return 1337;
-
-        return nullptr;
+        return {
+            {"foo", "bar"},
+            {"num", 1337 }
+        };
     }
 };
 

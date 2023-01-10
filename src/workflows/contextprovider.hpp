@@ -10,6 +10,6 @@ namespace porla::Workflows
     class ContextProvider
     {
     public:
-        virtual nlohmann::json ResolveSegments(const std::vector<std::string>& segments) = 0;
+        virtual nlohmann::json Value() = 0;
     };
 }

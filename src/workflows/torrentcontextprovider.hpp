@@ -13,7 +13,7 @@ namespace porla::Workflows
     public:
         explicit TorrentContextProvider(const libtorrent::torrent_status& ts);
 
-        nlohmann::json ResolveSegments(const std::vector<std::string>& segments) override;
+        nlohmann::json Value() override;
 
     private:
         std::unique_ptr<libtorrent::torrent_status> m_ts;
