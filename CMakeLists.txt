@@ -111,6 +111,7 @@ add_library(
     src/workflows/actions/sleep.cpp
     src/workflows/actions/push/ntfy.cpp
     src/workflows/actions/torrents/move.cpp
+    src/workflows/actions/torrents/reannounce.cpp
 )
 
 target_compile_definitions(
