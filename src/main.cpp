@@ -3,12 +3,6 @@
 #include <boost/log/trivial.hpp>
 #include <sodium.h>
 
-#include "actions/executor.hpp"
-#include "actions/forcereannounce.hpp"
-#include "actions/log.hpp"
-#include "actions/move.hpp"
-#include "actions/sleep.hpp"
-
 #include "authinithandler.hpp"
 #include "authloginhandler.hpp"
 #include "cmdargs.hpp"
@@ -56,6 +50,7 @@
 #include "workflows/actions/log.hpp"
 #include "workflows/actions/sleep.hpp"
 #include "workflows/actions/push/ntfy.hpp"
+#include "workflows/actions/torrents/move.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -137,16 +132,26 @@ int main(int argc, char* argv[])
             }
         }};*/
 
+
+        std::vector<std::shared_ptr<porla::Workflows::Workflow>> workflows;
+
+        BOOST_LOG_TRIVIAL(info) << "Loading " << cfg->workflow_files.size() << " workflow file(s)";
+
+        for (const auto& workflow_file : cfg->workflow_files)
+        {
+            BOOST_LOG_TRIVIAL(debug) << "Loading workflow from file " << workflow_file;
+            workflows.push_back(porla::Workflows::Workflow::LoadFromFile(workflow_file));
+        }
+
         porla::Workflows::Executor workflow_executor{porla::Workflows::ExecutorOptions{
-            .session   = session,
-            .workflows = {
-                porla::Workflows::Workflow::LoadFromFile("/Users/viktor/code/porla/porla-wrk/cmake-build-debug/workflows/test.yaml")
-            },
+            .session        = session,
+            .workflows      = workflows,
             .action_factory = std::make_shared<porla::Workflows::ActionFactory>(
                 std::map<std::string, std::function<std::shared_ptr<porla::Workflows::Action>()>>{
-                    {"log",          []()    { return std::make_shared<porla::Workflows::Actions::Log>(); }},
-                    {"push/ntfy-sh", [&io]() { return std::make_shared<porla::Workflows::Actions::Push::Ntfy>(io); }},
-                    {"sleep",        [&io]() { return std::make_shared<porla::Workflows::Actions::Sleep>(io); }}
+                    {"log",           []()         { return std::make_shared<porla::Workflows::Actions::Log>(); }},
+                    {"push/ntfy-sh",  [&io]()      { return std::make_shared<porla::Workflows::Actions::Push::Ntfy>(io); }},
+                    {"sleep",         [&io]()      { return std::make_shared<porla::Workflows::Actions::Sleep>(io); }},
+                    {"torrents/move", [&session]() { return std::make_shared<porla::Workflows::Actions::Torrents::Move>(session); }}
                 })
         }};
 

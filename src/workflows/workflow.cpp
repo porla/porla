@@ -49,7 +49,7 @@ public:
 class SimpleActionParams : public porla::Workflows::ActionParams
 {
 public:
-    explicit SimpleActionParams(nlohmann::json input, const std::function<std::string(std::string)>& renderer)
+    explicit SimpleActionParams(nlohmann::json input, const std::function<nlohmann::json(std::string, bool)>& renderer)
         : m_input(std::move(input))
         , m_renderer(renderer)
     {
@@ -60,14 +60,14 @@ public:
         return m_input;
     }
 
-    [[nodiscard]] std::string RenderValues(const std::string& text) const override
+    [[nodiscard]] nlohmann::json Render(const std::string& text, bool raw_expression) const override
     {
-        return m_renderer(text);
+        return m_renderer(text, raw_expression);
     }
 
 private:
     nlohmann::json m_input;
-    std::function<std::string(std::string)> m_renderer;
+    std::function<nlohmann::json(std::string, bool)> m_renderer;
 };
 
 class LoopingWorkflowRunner : public ActionCallback, public std::enable_shared_from_this<LoopingWorkflowRunner>
@@ -106,13 +106,20 @@ public:
 
         SimpleActionParams sap{
             instance.step.with,
-            [_this = shared_from_this()](const std::string& text)
+            [_this = shared_from_this()](const std::string& text, bool raw_expression)
             {
                 TextRenderer renderer{_this->m_contexts};
-                return renderer.Render(text);
+                return renderer.Render(text, raw_expression);
             }};
 
-        instance.action->Invoke(sap, shared_from_this());
+        try
+        {
+            instance.action->Invoke(sap, shared_from_this());
+        }
+        catch (const std::exception& ex)
+        {
+            BOOST_LOG_TRIVIAL(error) << "Error when invoking action " << instance.step.uses << ": " << ex.what();
+        }
     }
 
 private:

@@ -49,3 +49,22 @@ TEST_F(TextRendererTests, Render_WithMultipleContextLookups_ReturnsCorrectValue)
     const auto rendered_value = renderer->Render("This is ${{ mock.foo }}: ${{ mock.num }} :)");
     EXPECT_EQ(rendered_value, "This is bar: 1337 :)");
 }
+
+TEST_F(TextRendererTests, Render_WithSingleFragment_ReturnsRawValue)
+{
+    const auto rendered_value = renderer->Render("${{ mock.num }}");
+    EXPECT_EQ(rendered_value, 1337);
+}
+
+TEST_F(TextRendererTests, Render_WithSingleRawFragment_ReturnsRawValue)
+{
+    const auto rendered_value = renderer->Render("mock.num", true);
+    EXPECT_EQ(rendered_value, 1337);
+}
+
+TEST_F(TextRendererTests, Render_WithSingleFragmentAsObject_ReturnsRawValue)
+{
+    using namespace nlohmann::literals;
+    const auto rendered_value = renderer->Render("${{ mock }}");
+    EXPECT_EQ(rendered_value, R"({"foo": "bar", "num": 1337 })"_json);
+}

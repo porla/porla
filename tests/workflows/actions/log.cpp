@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <utility>
+
 #include "../../../src/workflows/action.hpp"
 #include "../../../src/workflows/actions/log.hpp"
 
@@ -25,8 +27,8 @@ private:
 
 struct MockActionParams : public ActionParams
 {
-    explicit MockActionParams(const nlohmann::json& input)
-        : m_input(input)
+    explicit MockActionParams(nlohmann::json input)
+        : m_input(std::move(input))
     {
     }
 
@@ -35,7 +37,7 @@ struct MockActionParams : public ActionParams
         return m_input;
     }
 
-    [[nodiscard]] std::string RenderValues(const std::string& text) const override
+    [[nodiscard]] nlohmann::json Render(const std::string& text, bool raw) const override
     {
         return text;
     }

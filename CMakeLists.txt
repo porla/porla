@@ -63,12 +63,6 @@ add_library(
     src/utils/string.cpp
     src/webhookclient.cpp
 
-    src/actions/executor.cpp
-    src/actions/forcereannounce.cpp
-    src/actions/log.cpp
-    src/actions/move.cpp
-    src/actions/sleep.cpp
-
     src/data/migrate.cpp
     src/data/migrations/0001_initialsetup.cpp
     src/data/migrations/0002_addsessionsettings.cpp
@@ -112,9 +106,11 @@ add_library(
     src/workflows/textrenderer.cpp
     src/workflows/torrentcontextprovider.cpp
     src/workflows/workflow.cpp
+
     src/workflows/actions/log.cpp
     src/workflows/actions/sleep.cpp
     src/workflows/actions/push/ntfy.cpp
+    src/workflows/actions/torrents/move.cpp
 )
 
 target_compile_definitions(

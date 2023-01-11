@@ -12,9 +12,8 @@ void Log::Invoke(const ActionParams& params, std::shared_ptr<ActionCallback> cal
 
     if (params.Input().contains("message"))
     {
-        const auto rendered_message = params.RenderValues(params.Input()["message"]);
+        const auto rendered_message = params.Render(params.Input()["message"]);
         BOOST_LOG_TRIVIAL(info) << rendered_message;
-
         output["rendered_message"] = rendered_message;
     }
 

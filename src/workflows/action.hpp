@@ -12,8 +12,8 @@ namespace porla::Workflows
 
     struct ActionParams
     {
-        virtual nlohmann::json Input() const = 0;
-        virtual std::string RenderValues(const std::string& text) const = 0;
+        [[nodiscard]] virtual nlohmann::json Input() const = 0;
+        [[nodiscard]] virtual nlohmann::json Render(const std::string& text, bool raw_expression = false) const = 0;
     };
 
     class Action

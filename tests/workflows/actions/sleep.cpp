@@ -35,7 +35,7 @@ struct MockActionParams : public ActionParams
         return m_input;
     }
 
-    [[nodiscard]] std::string RenderValues(const std::string& text) const override
+    [[nodiscard]] nlohmann::json Render(const std::string& text, bool raw) const override
     {
         return text;
     }

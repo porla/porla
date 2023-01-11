@@ -69,7 +69,7 @@ TEST_F(ExecutorTests, OnTriggerExecutesCompleteWorkflow)
         .WillOnce(
             [](const ActionParams& params, const std::shared_ptr<ActionCallback>& callback)
             {
-                EXPECT_EQ(params.RenderValues("${{ steps[0].rendered_message }}"), "Hello test-torrent");
+                EXPECT_EQ(params.Render("steps[0].rendered_message", true), "Hello test-torrent");
                 callback->Complete({});
             });
 

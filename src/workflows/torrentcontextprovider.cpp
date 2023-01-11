@@ -2,6 +2,8 @@
 
 #include <libtorrent/torrent_status.hpp>
 
+#include "../json/lttorrentstatus.hpp"
+
 using porla::Workflows::TorrentContextProvider;
 
 TorrentContextProvider::TorrentContextProvider(const libtorrent::torrent_status &ts)
@@ -11,7 +13,5 @@ TorrentContextProvider::TorrentContextProvider(const libtorrent::torrent_status 
 
 nlohmann::json TorrentContextProvider::Value()
 {
-    return {
-        {"name", m_ts->name}
-    };
+    return *m_ts;
 }

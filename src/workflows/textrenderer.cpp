@@ -16,53 +16,84 @@ TextRenderer::TextRenderer(const std::map<std::string, std::shared_ptr<ContextPr
 {
 }
 
-std::string TextRenderer::Render(const std::string &text)
+nlohmann::json TextRenderer::Render(const std::string& text, bool raw_expression)
 {
+    if (raw_expression)
+    {
+        return RenderSingleExpression(text);
+    }
+
     std::regex re(R"(\$\{\{\s(.+?)\s\}\})");
     std::smatch string_match;
     std::string current = text;
-    std::stringstream output;
+    std::vector<nlohmann::json> fragments;
 
     while (std::regex_search(current, string_match, re))
     {
         const auto lookup_value = string_match[1];
 
-        output << string_match.prefix();
-
-        jsonnet::Jsonnet jn;
-        jn.init();
-
-        std::stringstream wrapped_jsonnet;
-
-        for (const auto& [key,val] : m_contexts)
+        if (string_match.prefix().length() > 0)
         {
-            jn.bindExtCodeVar(key, val->Value().dump());
-            wrapped_jsonnet << "local " << key << " = std.extVar(\"" << key << "\");\n";
+            fragments.emplace_back(string_match.prefix());
         }
 
-        wrapped_jsonnet << lookup_value;
-
-        std::string jsonnet_output;
-        if (!jn.evaluateSnippet("workflow-snippet", wrapped_jsonnet.str(), &jsonnet_output))
-        {
-            printf("%s\n", jn.lastError().c_str());
-        }
-
-        const auto jsonnet_parsed_output = nlohmann::json::parse(jsonnet_output);
-
-        if (jsonnet_parsed_output.is_string())
-        {
-            output << jsonnet_parsed_output.get<std::string>();
-        }
-        else
-        {
-            output << jsonnet_parsed_output;
-        }
+        fragments.emplace_back(RenderSingleExpression(lookup_value));
 
         current = string_match.suffix();
     }
 
-    output << current;
+    if (!current.empty())
+    {
+        fragments.emplace_back(current);
+    }
 
-    return output.str();
+    if (fragments.size() == 1)
+    {
+        return fragments.at(0);
+    }
+    else if (fragments.size() > 1)
+    {
+        std::stringstream combined_output;
+
+        for (const auto& fragment : fragments)
+        {
+            if (fragment.is_string())
+            {
+                combined_output << fragment.get<std::string>();
+            }
+            else
+            {
+                combined_output << fragment;
+            }
+        }
+
+        return combined_output.str();
+    }
+
+    return {};
+}
+
+nlohmann::json TextRenderer::RenderSingleExpression(const std::string &expression)
+{
+    jsonnet::Jsonnet jn;
+    jn.init();
+
+    std::stringstream wrapped_jsonnet;
+
+    for (const auto& [key,val] : m_contexts)
+    {
+        jn.bindExtCodeVar(key, val->Value().dump());
+        wrapped_jsonnet << "local " << key << " = std.extVar(\"" << key << "\");\n";
+    }
+
+    wrapped_jsonnet << expression;
+
+    std::string jsonnet_output;
+    if (!jn.evaluateSnippet("workflow-snippet", wrapped_jsonnet.str(), &jsonnet_output))
+    {
+        printf("%s\n", jn.lastError().c_str());
+        return nullptr;
+    }
+
+    return nlohmann::json::parse(jsonnet_output);
 }
