@@ -53,7 +53,7 @@ void Executor::TriggerWorkflows(
 {
     for (const auto& workflow : m_workflows)
     {
-        if (!workflow->On().contains(event_name))
+        if (!workflow->ShouldExecute(event_name, contexts))
         {
             continue;
         }

@@ -132,10 +132,34 @@ private:
 Workflow::Workflow(const WorkflowOptions &opts)
     : m_on(opts.on)
     , m_steps(opts.steps)
+    , m_condition(opts.condition)
 {
 }
 
 Workflow::~Workflow() = default;
+
+bool Workflow::ShouldExecute(
+    const std::string &event_name,
+    const std::map<std::string, std::shared_ptr<ContextProvider>>& contexts)
+{
+    if (!m_on.contains(event_name))
+    {
+        return false;
+    }
+
+    if (!m_condition.empty())
+    {
+        porla::Workflows::TextRenderer renderer{contexts};
+        const auto output = renderer.Render(m_condition, true);
+
+        if (output == false || output == nullptr || output == 0)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 void Workflow::Execute(
     const ActionFactory &action_factory,
@@ -160,11 +184,6 @@ void Workflow::Execute(
     }
 
     std::make_shared<LoopingWorkflowRunner>(contexts, step_instances)->Run();
-}
-
-std::unordered_set<std::string> Workflow::On()
-{
-    return m_on;
 }
 
 std::shared_ptr<Workflow> Workflow::LoadFromFile(const std::filesystem::path& workflow_file)
@@ -192,6 +211,14 @@ std::shared_ptr<Workflow> Workflow::LoadFromYaml(const std::string& yaml)
 
     auto on_val = wf["on"].val();
     std::string on(on_val.data(), on_val.size());
+
+    std::string condition;
+
+    if (wf.rootref().has_child("if"))
+    {
+        const auto if_val = wf["if"].val();
+        condition = std::string(if_val.data(), if_val.size());
+    }
 
     const auto steps = wf["steps"];
 
@@ -234,7 +261,8 @@ std::shared_ptr<Workflow> Workflow::LoadFromYaml(const std::string& yaml)
     }
 
     return std::make_shared<Workflow>(WorkflowOptions{
-        .on    = {on},
-        .steps = workflow_steps
+        .condition = condition,
+        .on        = {on},
+        .steps     = workflow_steps
     });
 }

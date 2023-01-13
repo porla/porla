@@ -15,8 +15,9 @@ namespace porla::Workflows
 
     struct WorkflowOptions
     {
+        std::string                     condition;
         std::unordered_set<std::string> on;
-        std::vector<Step> steps;
+        std::vector<Step>               steps;
     };
 
     class Workflow
@@ -28,14 +29,17 @@ namespace porla::Workflows
         explicit Workflow(const WorkflowOptions& opts);
         ~Workflow();
 
+        bool ShouldExecute(
+            const std::string& event_name,
+            const std::map<std::string, std::shared_ptr<ContextProvider>>& contexts);
+
         void Execute(
             const ActionFactory& action_factory,
             const std::map<std::string, std::shared_ptr<ContextProvider>>& contexts);
 
-        std::unordered_set<std::string> On();
-
     private:
         std::unordered_set<std::string> m_on;
+        std::string m_condition;
         std::vector<Step> m_steps;
     };
 }
