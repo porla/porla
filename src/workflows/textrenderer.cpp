@@ -3,7 +3,7 @@
 #include <regex>
 #include <sstream>
 
-#include <libjsonnet++.h>
+#include <duktape.h>
 
 #include "contextprovider.hpp"
 #include "../utils/string.hpp"
@@ -75,25 +75,35 @@ nlohmann::json TextRenderer::Render(const std::string& text, bool raw_expression
 
 nlohmann::json TextRenderer::RenderSingleExpression(const std::string &expression)
 {
-    jsonnet::Jsonnet jn;
-    jn.init();
+    duk_context* ctx = duk_create_heap_default();
+    duk_push_global_object(ctx);
 
-    std::stringstream wrapped_jsonnet;
-
-    for (const auto& [key,val] : m_contexts)
+    for (const auto& [key, value] : m_contexts)
     {
-        jn.bindExtCodeVar(key, val->Value().dump());
-        wrapped_jsonnet << "local " << key << " = std.extVar(\"" << key << "\");\n";
+        // Push and decode JSON.
+        duk_push_string(ctx, value->Value().dump().c_str());
+        duk_json_decode(ctx, -1);
+
+        // Set property on global object
+        duk_put_prop_string(ctx, -2, key.c_str());
     }
 
-    wrapped_jsonnet << expression;
+    // Pop global object
+    duk_pop(ctx);
 
-    std::string jsonnet_output;
-    if (!jn.evaluateSnippet("workflow-snippet", wrapped_jsonnet.str(), &jsonnet_output))
-    {
-        printf("%s\n", jn.lastError().c_str());
-        return nullptr;
-    }
+    // Evaluate expression
+    duk_peval_string(ctx, expression.c_str());
 
-    return nlohmann::json::parse(jsonnet_output);
+    // TODO: check result etc. Can't encode functions
+
+    // Encode as JSON
+    duk_json_encode(ctx, -1);
+
+    // Get result
+    const char* encoded_output = duk_get_string(ctx, -1);
+    nlohmann::json output = nlohmann::json::parse(encoded_output);
+
+    duk_destroy_heap(ctx);
+
+    return output;
 }

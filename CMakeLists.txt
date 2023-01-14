@@ -6,8 +6,10 @@ set(CMAKE_TOOLCHAIN_FILE   ${CMAKE_CURRENT_SOURCE_DIR}/vendor/vcpkg/scripts/buil
 project(porla)
 
 set(CMAKE_CXX_STANDARD 20)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 find_package(Boost                      REQUIRED COMPONENTS log program_options system)
+find_package(duktape)
 find_package(GTest               CONFIG REQUIRED)
 find_package(libzip              CONFIG REQUIRED)
 find_package(LibtorrentRasterbar CONFIG REQUIRED)
@@ -132,6 +134,7 @@ target_link_libraries(
     Boost::boost
     Boost::log
     Boost::program_options
+    duktape
     jsonnet
     libzip::zip
     LibtorrentRasterbar::torrent-rasterbar

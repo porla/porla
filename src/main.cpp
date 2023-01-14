@@ -1,7 +1,6 @@
 #include <boost/asio.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
-#include <sodium.h>
 
 #include "authinithandler.hpp"
 #include "authloginhandler.hpp"
