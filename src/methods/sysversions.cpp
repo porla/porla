@@ -1,7 +1,6 @@
 #include "sysversions.hpp"
 
 #include <boost/version.hpp>
-#include <libjsonnet++.h>
 #include <libtorrent/version.hpp>
 #include <openssl/opensslv.h>
 #include <sqlite3.h>
@@ -55,9 +54,6 @@ void SysVersions::Invoke(const json &req, WriteCb<std::map<std::string, std::str
         }},
         {"tomlplusplus", {
             {"version", toml_version.str()}
-        }},
-        {"jsonnet", {
-            {"version", jsonnet::Jsonnet::version()}
         }}
     });
 }

@@ -14,7 +14,6 @@ find_package(GTest               CONFIG REQUIRED)
 find_package(libzip              CONFIG REQUIRED)
 find_package(LibtorrentRasterbar CONFIG REQUIRED)
 find_package(nlohmann_json       CONFIG REQUIRED)
-find_package(ryml                CONFIG REQUIRED)
 find_package(tomlplusplus        CONFIG REQUIRED)
 find_package(unofficial-sodium   CONFIG REQUIRED)
 find_package(unofficial-sqlite3  CONFIG REQUIRED)
@@ -22,8 +21,6 @@ find_package(uriparser           CONFIG REQUIRED)
 find_package(yaml-cpp            CONFIG REQUIRED)
 
 find_path(JWT_CPP_INCLUDE_DIRS "jwt-cpp/base.h")
-
-add_subdirectory(vendor/jsonnet)
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
@@ -139,10 +136,8 @@ target_link_libraries(
     Boost::log
     Boost::program_options
     duktape
-    jsonnet
     libzip::zip
     LibtorrentRasterbar::torrent-rasterbar
-    ryml::ryml
     unofficial-sodium::sodium
     unofficial-sodium::sodium_config_public
     unofficial::sqlite3::sqlite3

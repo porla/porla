@@ -14,7 +14,6 @@
     "libtorrent",
     "libzip",
     "nlohmann-json",
-    "ryml",
     "sqlite3",
     "tomlplusplus",
     "uriparser",
