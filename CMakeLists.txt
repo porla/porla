@@ -66,7 +66,6 @@ add_library(
     src/utils/secretkey.cpp
     src/utils/string.cpp
     src/utils/yaml.cpp
-    src/webhookclient.cpp
 
     src/data/migrate.cpp
     src/data/migrations/0001_initialsetup.cpp
