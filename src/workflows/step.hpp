@@ -6,7 +6,7 @@ namespace porla::Workflows
 {
     struct Step
     {
-        std::string                           uses;
-        std::map<std::string, nlohmann::json> with;
+        std::string    uses;
+        nlohmann::json with;
     };
 }

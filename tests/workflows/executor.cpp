@@ -105,7 +105,7 @@ TEST_F(ExecutorTests, OnTriggerWithTruthyConditionRunsWorkflow)
     const auto mock_action = std::make_shared<MockAction>();
     const auto executor = LoadWorkflow(R"(
 on: torrent_added
-if: std.findSubstr("t-t", torrent.name) != []
+if: torrent.name.includes("t-t")
 steps:
   - uses: mock
 )", mock_action);

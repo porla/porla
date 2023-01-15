@@ -6,14 +6,14 @@
 #include <vector>
 
 #include <boost/log/trivial.hpp>
-#include <libjsonnet++.h>
-#include <ryml/ryml.hpp>
+#include <yaml-cpp/yaml.h>
 
 #include "action.hpp"
 #include "actionfactory.hpp"
 #include "contextprovider.hpp"
 #include "step.hpp"
 #include "textrenderer.hpp"
+#include "../utils/yaml.hpp"
 
 using porla::Workflows::Action;
 using porla::Workflows::ActionCallback;
@@ -207,55 +207,26 @@ std::shared_ptr<Workflow> Workflow::LoadFromFile(const std::filesystem::path& wo
 
 std::shared_ptr<Workflow> Workflow::LoadFromYaml(const std::string& yaml)
 {
-    ryml::Tree wf = ryml::parse_in_arena(ryml::to_csubstr(yaml.c_str()));
+    const auto node = YAML::Load(yaml);
 
-    auto on_val = wf["on"].val();
-    std::string on(on_val.data(), on_val.size());
+    const auto on = node["on"].as<std::string>();
 
     std::string condition;
 
-    if (wf.rootref().has_child("if"))
+    if (node["if"])
     {
-        const auto if_val = wf["if"].val();
-        condition = std::string(if_val.data(), if_val.size());
+        condition = node["if"].as<std::string>();
     }
-
-    const auto steps = wf["steps"];
 
     std::vector<Step> workflow_steps;
 
-    if (steps.is_seq())
+    if (node["steps"] && node["steps"].IsSequence())
     {
-        for (const auto step : steps)
+        for (const auto step : node["steps"])
         {
-            const auto uses_val = step["uses"].val();
-
-            std::map<std::string, nlohmann::json> with;
-
-            if (step.has_child("with"))
-            {
-                for (const ryml::NodeRef &with_item: step["with"].children())
-                {
-                    const auto key = with_item.key();
-                    const auto val = with_item.val();
-
-                    std::string key_str(key.data(), key.size());
-                    std::string val_str(val.data(), val.size());
-
-                    if (val.is_integer())
-                    {
-                        with.insert({key_str, std::stoi(val_str)});
-                    }
-                    else
-                    {
-                        with.insert({key_str, val_str});
-                    }
-                }
-            }
-
             workflow_steps.emplace_back(Step{
-                .uses = std::string(uses_val.data(), uses_val.size()),
-                .with = with
+                .uses = step["uses"].as<std::string>(),
+                .with = step["with"] ? porla::Utils::Yaml::ToJson(step["with"]) : nullptr
             });
         }
     }

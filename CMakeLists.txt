@@ -19,6 +19,7 @@ find_package(tomlplusplus        CONFIG REQUIRED)
 find_package(unofficial-sodium   CONFIG REQUIRED)
 find_package(unofficial-sqlite3  CONFIG REQUIRED)
 find_package(uriparser           CONFIG REQUIRED)
+find_package(yaml-cpp            CONFIG REQUIRED)
 
 find_path(JWT_CPP_INCLUDE_DIRS "jwt-cpp/base.h")
 
@@ -49,6 +50,7 @@ add_library(
     src/config.cpp
     src/embeddedwebuihandler.cpp
     src/logger.cpp
+    src/httpclient.cpp
     src/httpeventstream.cpp
     src/httpjwtauth.cpp
     src/httpserver.cpp
@@ -63,6 +65,7 @@ add_library(
     src/utils/ratio.cpp
     src/utils/secretkey.cpp
     src/utils/string.cpp
+    src/utils/yaml.cpp
     src/webhookclient.cpp
 
     src/data/migrate.cpp
@@ -109,8 +112,10 @@ add_library(
     src/workflows/torrentcontextprovider.cpp
     src/workflows/workflow.cpp
 
+    src/workflows/actions/http.cpp
     src/workflows/actions/log.cpp
     src/workflows/actions/sleep.cpp
+    src/workflows/actions/push/discord.cpp
     src/workflows/actions/push/ntfy.cpp
     src/workflows/actions/torrents/move.cpp
     src/workflows/actions/torrents/reannounce.cpp
@@ -143,6 +148,7 @@ target_link_libraries(
     unofficial-sodium::sodium_config_public
     unofficial::sqlite3::sqlite3
     uriparser::uriparser
+    yaml-cpp
 )
 
 add_executable(

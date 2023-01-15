@@ -46,8 +46,10 @@
 #include "workflows/actionfactory.hpp"
 #include "workflows/executor.hpp"
 #include "workflows/workflow.hpp"
+#include "workflows/actions/http.hpp"
 #include "workflows/actions/log.hpp"
 #include "workflows/actions/sleep.hpp"
+#include "workflows/actions/push/discord.hpp"
 #include "workflows/actions/push/ntfy.hpp"
 #include "workflows/actions/torrents/move.hpp"
 #include "workflows/actions/torrents/reannounce.hpp"
@@ -134,7 +136,9 @@ int main(int argc, char* argv[])
             .workflows      = workflows,
             .action_factory = std::make_shared<porla::Workflows::ActionFactory>(
                 std::map<std::string, std::function<std::shared_ptr<porla::Workflows::Action>()>>{
+                    // The world is not ready for this {"http",                [&io]()      { return std::make_shared<porla::Workflows::Actions::Http>(io); }},
                     {"log",                 []()         { return std::make_shared<porla::Workflows::Actions::Log>(); }},
+                    {"push/discord",        [&io]()      { return std::make_shared<porla::Workflows::Actions::Push::Discord>(io); }},
                     {"push/ntfy-sh",        [&io]()      { return std::make_shared<porla::Workflows::Actions::Push::Ntfy>(io); }},
                     {"sleep",               [&io]()      { return std::make_shared<porla::Workflows::Actions::Sleep>(io); }},
                     {"torrents/move",       [&session]() { return std::make_shared<porla::Workflows::Actions::Torrents::Move>(session); }},

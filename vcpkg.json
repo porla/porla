@@ -17,6 +17,7 @@
     "ryml",
     "sqlite3",
     "tomlplusplus",
-    "uriparser"
+    "uriparser",
+    "yaml-cpp"
   ]
 }
