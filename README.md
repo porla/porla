@@ -1,13 +1,21 @@
-# Porla is a high-performance BitTorrent daemon
+# Porla is a high-performance BitTorrent client
 
-Porla is a powerful BitTorrent daemon with high performance and low memory
+Porla is a powerful BitTorrent client with high performance and low memory
 usage. It is designed for headless operations on servers and seedboxes and can
 easily manage tens of thousands of torrents.
 
+### Features
+
+ * [User-defined workflows](https://porla.org/workflows).
+ * Support for both BitTorrent v1 and v2.
+ * HTTP API with JWT auth.
+ * Modern web UI.
 
 ## Getting started
 
-Download the latest release and put it somewhere safe. Then, run it.
+Download the latest release and put it somewhere safe. Then, run it. By default
+Porla bind the web UI to `localhost:1337`. On first use you will be prompted to
+set up a user account.
 
 ```sh
 $ ./porla
@@ -62,6 +70,8 @@ configuration and use sensible defaults instead.
    milliseconds to push session stats. Defaults to _5000_.
  * `PORLA_TIMER_TORRENT_UPDATES` or `--timer-torrent-updates` - the interval in
    milliseconds to push torrent state updates. Defaults to _1000_.
+ * `PORLA_WORKFLOW_DIR` or `--workflow-dir` - the path to where Porla will load
+   user workflows from.
 
 ### Config file
 
@@ -69,6 +79,7 @@ configuration and use sensible defaults instead.
 db = ":memory:"
 log_level = "info"
 state_dir = "/opt/porla"
+workflow_dir = "workflows"
 
 [http]
 base_path = "/"
