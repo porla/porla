@@ -8,14 +8,15 @@
     "boost-program-options",
     "boost-signals2",
     "boost-system",
+    "gtest",
     "jwt-cpp",
     "libsodium",
     "libtorrent",
     "libzip",
     "nlohmann-json",
-    "ryml",
     "sqlite3",
     "tomlplusplus",
-    "uriparser"
+    "uriparser",
+    "yaml-cpp"
   ]
 }

@@ -23,7 +23,6 @@ namespace po = boost::program_options;
 using porla::Config;
 
 static void ApplySettings(const toml::table& tbl, lt::settings_pack& settings);
-static void ApplyPresetActions(std::vector<Config::PresetAction>& config_actions, const toml::array& actions_array);
 
 std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map& cmd)
 {
@@ -176,13 +175,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
                     if (auto val = value_tbl["upload_limit"].value<int>())
                         p.upload_limit = *val;
 
-                    // Set up actions
-                    if (auto val = value_tbl["on_torrent_added"].as_array())
-                        ApplyPresetActions(p.on_torrent_added, *val);
-
-                    if (auto val = value_tbl["on_torrent_finished"].as_array())
-                        ApplyPresetActions(p.on_torrent_finished, *val);
-
                     cfg->presets.insert({ key.data(), std::move(p) });
                 }
             }
@@ -239,59 +231,8 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
             if (auto val = config_file_tbl["timer"]["torrent_updates"].value<int>())
                 cfg->timer_torrent_updates = *val;
 
-            if (auto const* webhooks_array = config_file_tbl["webhooks"].as_array())
-            {
-                for (auto const& wh : *webhooks_array)
-                {
-                    auto const wh_tbl = *wh.as_table();
-
-                    Webhook hook = {};
-
-                    if (auto val = wh_tbl["on"].value<std::string>())
-                        hook.on.insert(*val);
-
-                    if (auto val = wh_tbl["on"].as_array())
-                    {
-                        for (auto const& event_name : *val)
-                        {
-                            if (auto event_name_str = event_name.value<std::string>())
-                                hook.on.insert(*event_name_str);
-                        }
-                    }
-
-                    hook.url = *wh_tbl["url"].value<std::string>();
-
-                    if (auto headers_array = wh_tbl["headers"].as_array())
-                    {
-                        for (auto const& header_item : *headers_array)
-                        {
-                            auto const* header_tbl = header_item.as_table();
-
-                            if (!header_tbl)
-                            {
-                                BOOST_LOG_TRIVIAL(warning) << "Webhook header item is not a TOML table";
-                                continue;
-                            }
-
-                            if (header_tbl->size() != 1)
-                            {
-                                BOOST_LOG_TRIVIAL(warning) << "Webhook header item should only have a single value";
-                                continue;
-                            }
-
-                            hook.headers.insert({
-                                header_tbl->begin()->first.data(),
-                                *header_tbl->begin()->second.value<std::string>()
-                            });
-                        }
-                    }
-
-                    if (auto val = wh_tbl["payload"].value<std::string>())
-                        hook.payload = *val;
-
-                    cfg->webhooks.push_back(std::move(hook));
-                }
-            }
+            if (auto val = config_file_tbl["workflow_dir"].value<std::string>())
+                cfg->workflow_dir = *val;
         }
         catch (const toml::parse_error& err)
         {
@@ -324,6 +265,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (cmd.count("timer-dht-stats"))       cfg->timer_dht_stats       = cmd["timer-dht-stats"].as<int>();
     if (cmd.count("timer-session-stats"))   cfg->timer_session_stats   = cmd["timer-session-stats"].as<pid_t>();
     if (cmd.count("timer-torrent-updates")) cfg->timer_torrent_updates = cmd["timer-torrent-updates"].as<pid_t>();
+    if (cmd.count("workflow-dir"))          cfg->workflow_dir          = cmd["workflow-dir"].as<std::string>();
 
     // If no db_file is set, default to a file in state_dir.
     if (!cfg->db_file.has_value())
@@ -372,6 +314,15 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         cfg->secret_key = porla::Utils::SecretKey::New();
     }
 
+    if (cfg->workflow_dir.has_value())
+    {
+        for (const auto& file : fs::directory_iterator(cfg->workflow_dir.value()))
+        {
+            if (!file.is_regular_file()) continue;
+            cfg->workflow_files.emplace_back(file.path());
+        }
+    }
+
     return std::move(cfg);
 }
 
@@ -387,33 +338,6 @@ Config::~Config()
     if (sqlite3_close(db) != SQLITE_OK)
     {
         BOOST_LOG_TRIVIAL(error) << "Failed to close SQLite connection: " << sqlite3_errmsg(db);
-    }
-}
-
-static void ApplyPresetActions(std::vector<Config::PresetAction>& config_actions, const toml::array& actions_array)
-{
-    for (const auto& actions_item : actions_array)
-    {
-        if (!actions_item.is_array()) continue;
-
-        const auto action_parameters = actions_item.as_array();
-
-        // require at least one item in the array (the name of the action)
-        if (action_parameters->empty()) continue;
-        if (!action_parameters->at(0).is_string()) continue;
-
-        std::string action_name = *action_parameters->at(0).value<std::string>();
-        toml::array action_args;
-
-        for (int i = 1; i < action_parameters->size(); i++)
-        {
-            action_args.push_back(action_parameters->at(i));
-        }
-
-        config_actions.emplace_back(Config::PresetAction{
-            .action_name = action_name,
-            .arguments   = action_args
-        });
     }
 }
 

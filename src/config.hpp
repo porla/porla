@@ -22,31 +22,14 @@ namespace porla
     class Config
     {
     public:
-        struct PresetAction
-        {
-            std::string action_name;
-            toml::array arguments;
-        };
-
         struct Preset
         {
             std::optional<int>                        download_limit;
             std::optional<int>                        max_connections;
             std::optional<int>                        max_uploads;
-            std::vector<PresetAction>                 on_torrent_added;
-            std::vector<PresetAction>                 on_torrent_finished;
             std::optional<std::string>                save_path;
             std::optional<libtorrent::storage_mode_t> storage_mode;
             std::optional<int>                        upload_limit;
-        };
-
-        struct Webhook
-        {
-            std::unordered_set<std::string>    on;
-            std::string                        url;
-            std::optional<std::vector<int>>    expect_status;
-            std::map<std::string, std::string> headers;
-            std::optional<std::string>         payload;
         };
 
         std::optional<std::string>            config_file;
@@ -65,7 +48,8 @@ namespace porla
         std::optional<int>                    timer_dht_stats;
         std::optional<int>                    timer_session_stats;
         std::optional<int>                    timer_torrent_updates;
-        std::vector<Webhook>                  webhooks;
+        std::optional<fs::path>               workflow_dir;
+        std::vector<fs::path>                 workflow_files;
 
         static std::unique_ptr<Config> Load(const boost::program_options::variables_map& cmd);
 

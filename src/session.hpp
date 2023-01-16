@@ -29,6 +29,8 @@ namespace porla
     class ISession
     {
     public:
+        virtual ~ISession() = default;
+
         typedef boost::signals2::signal<void(const libtorrent::info_hash_t&)> InfoHashSignal;
         typedef boost::signals2::signal<void(const std::map<std::string, int64_t>&)> SessionStatsSignal;
         typedef boost::signals2::signal<void(const libtorrent::torrent_handle&)> TorrentHandleSignal;

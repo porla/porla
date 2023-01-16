@@ -26,6 +26,7 @@ static po::options_description Options()
         ("timer-dht-stats",       po::value<int>(),         "The interval to use for the DHT stats updates.")
         ("timer-session-stats",   po::value<int>(),         "The interval to use for the session stats updates.")
         ("timer-torrent-updates", po::value<int>(),         "The interval to use for the torrent updates.")
+        ("workflow-dir",          po::value<std::string>(), "The directory where workflow files are stored.")
         ;
 
     return desc;
