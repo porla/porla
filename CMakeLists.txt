@@ -76,6 +76,7 @@ add_library(
     src/data/models/users.cpp
     src/data/statement.cpp
 
+    src/methods/fsspace.cpp
     src/methods/presetslist.cpp
     src/methods/sessionpause.cpp
     src/methods/sessionresume.cpp

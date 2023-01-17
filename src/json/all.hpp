@@ -1,5 +1,6 @@
 #pragma once
 
+#include "fsspace.hpp"
 #include "ltannounceentry.hpp"
 #include "lterrorcode.hpp"
 #include "ltinfohash.hpp"
