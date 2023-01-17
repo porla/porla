@@ -20,6 +20,7 @@
 #include "tools/versionjson.hpp"
 #include "utils/secretkey.hpp"
 
+#include "methods/fsspace.hpp"
 #include "methods/presetslist.hpp"
 #include "methods/sessionpause.hpp"
 #include "methods/sessionresume.hpp"
@@ -148,6 +149,7 @@ int main(int argc, char* argv[])
         }};
 
         porla::JsonRpcHandler rpc({
+            {"fs.space", porla::Methods::FsSpace()},
             {"presets.list", porla::Methods::PresetsList(cfg->presets)},
             {"session.pause", porla::Methods::SessionPause(session)},
             {"session.resume", porla::Methods::SessionResume(session)},
