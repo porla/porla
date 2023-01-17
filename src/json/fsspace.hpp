@@ -11,6 +11,7 @@ namespace porla::Methods
 {
     static void from_json(const json& j, FsSpaceReq& req)
     {
+        j["path"].get_to(req.path);
     }
 
     static void to_json(json& j, const FsSpaceRes& res)
