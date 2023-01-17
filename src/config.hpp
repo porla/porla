@@ -35,6 +35,7 @@ namespace porla
         std::optional<std::string>            config_file;
         sqlite3*                              db;
         std::optional<std::string>            db_file;
+        std::optional<bool>                   http_auth_enabled;
         std::optional<std::string>            http_base_path;
         std::optional<std::string>            http_host;
         std::optional<bool>                   http_metrics_enabled;
