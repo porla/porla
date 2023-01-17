@@ -49,6 +49,8 @@ configuration and use sensible defaults instead.
    additional configuration.
  * `PORLA_DB` or `--db` - path a file (which does not need to exist) that `porla`
    will use to store its state.
+ * `PORLA_HTTP_AUTH_DISABLED_YES_REALLY` - set to `true` to disable HTTP JWT
+   authentication (_not recommended_).
  * `PORLA_HTTP_BASE_PATH` or `--http-base-path` - set to a path where the HTTP parts
    of Porla will be served. Defaults to `/`.
  * `PORLA_HTTP_HOST` or `--http-host` - set to an IP address which to bind the HTTP
