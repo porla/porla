@@ -18,7 +18,7 @@ FsSpace::FsSpace() = default;
 
 std::optional<std::string> GetBlockDeviceFromPath(const std::string& path)
 {
-    static const auto mountpoint_re = std::regex(R"(^([\d]+)\s([\d]+)\s([\d]+:[\d]+)\s([a-zA-Z\d\/:\[\]]+)\s([a-zA-Z\d\/\.-]+)\s([a-zA-Z\d\,]+)\s([a-zA-Z\d\/:\s]+)\s-\s([a-zA-Z0-9\.]+)\s([a-zA-Z\d\/_]+)\s([a-zA-Z\d\/:\s=,_]+)$)");
+    static const auto mountpoint_re = std::regex(R"(^([\d]+)\s([\d]+)\s([\d]+:[\d]+)\s([a-zA-Z\d\/:\[\]]+)\s([a-zA-Z\d\/\.-]+)\s([a-zA-Z\d\,]+)\s([a-zA-Z\d\/:\s]+)\s-\s([a-zA-Z0-9\.]+)\s([a-zA-Z\d\/_-]+)\s([a-zA-Z\d\/:\s=,_]+)$)");
 
     struct stat fs{};
     if (stat(path.c_str(), &fs) < 0)
