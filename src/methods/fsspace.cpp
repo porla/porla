@@ -2,6 +2,9 @@
 
 #include <filesystem>
 
+#include <boost/log/trivial.hpp>
+#include <sys/quota.h>
+
 namespace fs = std::filesystem;
 
 using porla::Methods::FsSpace;
@@ -18,6 +21,12 @@ void FsSpace::Invoke(const FsSpaceReq& req, WriteCb<FsSpaceRes> cb)
     if (ec)
     {
         return cb.Error(-1, ec.message());
+    }
+
+    dqblk blk = {};
+    if (quotactl("/", QCMD(Q_GETQUOTA, USRQUOTA), static_cast<int>(getuid()), reinterpret_cast<char*>(&blk)) == -1)
+    {
+        BOOST_LOG_TRIVIAL(error) << "quotactl error: " << errno;
     }
 
     cb.Ok(FsSpaceRes{
