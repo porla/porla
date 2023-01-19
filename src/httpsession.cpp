@@ -36,7 +36,7 @@ public:
         UriParserStateA state;
         state.uri = &uri;
 
-        std::string faked_url = "http://porla" + m_req.target().to_string();
+        std::string faked_url = "http://porla" + std::string(m_req.target());
 
         if (uriParseUriA(&state, faked_url.c_str()) != URI_SUCCESS)
         {
