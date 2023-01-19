@@ -102,3 +102,21 @@ dht_stats = 5000
 session_stats = 5000
 torrent_updates = 1000
 ```
+
+## Development
+
+Various bits and pieces of information regarding development.
+
+### Updating the pre-built Dockerfile build environment
+
+To reduce build times, we use a pre-built Docker layer with all the vcpkg
+dependencies already built. This needs to be updated whenever we update the
+vcpkg submodule or radically change the project structure.
+
+_Requires push access to the Porla container registry_.
+
+```shell
+docker build -t porla-build-env -f Dockerfile.build-env .
+docker tag porla-build-env ghcr.io/porla/build-env:<timestamp>
+docker push ghcr.io/porla/build-env:<timestamp>
+```

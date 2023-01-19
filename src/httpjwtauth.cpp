@@ -41,9 +41,7 @@ void HttpJwtAuth::operator()(const std::shared_ptr<porla::HttpContext> &ctx)
         return ctx->Write(not_authorized());
     }
 
-    const std::string bearer_token = auth_header->value()
-        .substr(7)
-        .to_string();
+    const std::string bearer_token = std::string(auth_header->value().substr(7));
 
     try
     {

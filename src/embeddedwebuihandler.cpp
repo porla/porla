@@ -129,7 +129,7 @@ void EmbeddedWebUIHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
         return res;
     };
 
-    std::string path = ctx->Request().target().to_string();
+    std::string path = std::string(ctx->Request().target());
 
     // If the path is shorter than our base path, do not handle this request.
     // For example,
