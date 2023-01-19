@@ -4,34 +4,42 @@ Porla is a powerful BitTorrent client with high performance and low memory
 usage. It is designed for headless operations on servers and seedboxes and can
 easily manage tens of thousands of torrents.
 
+The focus of Porla is to provide a BitTorrent client that is _fast_, _correct_
+and _extensible_.
+
 ### Features
 
  * [User-defined workflows](https://porla.org/workflows).
  * Support for both BitTorrent v1 and v2.
- * HTTP API with JWT auth.
+ * [HTTP API](https://porla.org/api/auth) with JWT auth.
  * Modern web UI.
+
+<p align="center">
+   <img src="https://user-images.githubusercontent.com/1491824/213406812-32e16a5c-3d59-4efc-a9f1-d15690ac86e2.png"><br/>
+   <i>The main torrents list in Porla.</i>
+</p>
 
 ## Getting started
 
-Download the latest release and put it somewhere safe. Then, run it. By default
+Download the latest release and put it somewhere safe. Then, run it. By default,
 Porla bind the web UI to `localhost:1337`. On first use you will be prompted to
 set up a user account.
 
-```sh
-$ ./porla
+```shell
+porla
 ```
 
 To show all options available, suffix with `--help`.
 
-```sh
-$ ./porla --help
+```shell
+porla --help
 ```
 
 For example, you can run `porla` with an in-memory SQLite database by passing
 `--db=:memory:`.
 
-```sh
-$ ./porla --db=:memory:
+```shell
+porla --db=:memory:
 ```
 
 ## Configuration
@@ -77,6 +85,8 @@ configuration and use sensible defaults instead.
 
 ### Config file
 
+
+
 ```toml
 db = ":memory:"
 log_level = "info"
@@ -106,6 +116,20 @@ torrent_updates = 1000
 ## Development
 
 Various bits and pieces of information regarding development.
+
+### Building
+
+We try to make sure Porla is easy to get running directly from the Git
+repository. Dependencies are managed with [vcpkg](https://github.com/microsoft/vcpkg).
+
+```shell
+git clone --recursive https://github.com/porla/porla
+cd porla
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -G Ninja
+cmake --build build
+```
+
+You can also remove `-G Ninja` if you don't have Ninja available.
 
 ### Updating the pre-built Dockerfile build environment
 
