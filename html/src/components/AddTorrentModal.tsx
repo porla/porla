@@ -1,12 +1,11 @@
 import { Button, FormControl, FormErrorMessage, FormHelperText, FormLabel, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Select, Tab, TabList, TabPanel, TabPanels, Tabs } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
-import useSWR from "swr";
 import * as Yup from "yup";
 
 import { InfoHash, PresetsList } from "../types/index";
 import { useInvoker } from "../services/jsonrpc";
 
-const readFile = (blob: Blob): Promise<string> => {
+const readSingleFile = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = function () {
@@ -17,20 +16,28 @@ const readFile = (blob: Blob): Promise<string> => {
     };
     reader.onerror = () => reject();
     reader.readAsDataURL(blob);
-  })
+  });
+}
+
+const readFiles = async (fileList: FileList): Promise<string[]> => {
+  let files = [];
+  for (const blob of fileList) {
+    files.push(await readSingleFile(blob));
+  }
+  return files;
 }
 
 const AddTorrentSchema = Yup.object().shape({
   magnet_uri: Yup.string()
     .when("type", {
-      is: (t: any) => t === "magnet_uri",
+      is: (t: string) => t === "magnet_uri",
       then: Yup.string().required("Magnet link is required")
     }),
   save_path: Yup.string()
     .required("Save path is required."),
   ti: Yup.mixed()
     .when("type", {
-      is: (t: any) => t === "torrent",
+      is: (t: string) => t === "torrent",
       then: Yup.mixed().required("A torrent file is required")
     }),
   type: Yup.string()
@@ -40,7 +47,7 @@ const AddTorrentSchema = Yup.object().shape({
 
 type AddTorrentModalProps = {
   isOpen: boolean;
-  onClose: (hash?: InfoHash) => void;
+  onClose: (hashes?: InfoHash[]) => void;
   presets: PresetsList;
 }
 
@@ -61,37 +68,35 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
           initialValues={{
             type: "torrent",
             magnet_uri: "",
-            preset: "",
+            preset: "default" in presets ? "default" : "",
             save_path: "default" in presets
               ? presets.default.save_path
               : "",
-            ti: ""
+            ti: []
           }}
           onSubmit={async (values) => {
             const params: any = {
+              preset:    values.preset === "" ? "" : values.preset,
               save_path: values.save_path,
             };
 
-            if (values.preset !== "") {
-              params.preset = values.preset;
+            if (values.type === "magnet_uri") {
+              params.magnet_uri = values.magnet_uri;
+              return props.onClose([await torrentsAdd(params)]);
             }
 
-            switch (values.type) {
-              case "magnet_uri":
-                params.magnet_uri = values.magnet_uri;
-                break;
-              case "torrent":
-                params.ti = values.ti;
-                break;
+            let addedHashes: InfoHash[] = [];
+
+            for (const ti of values.ti) {
+              params.ti = ti;
+              addedHashes.push(await torrentsAdd(params));
             }
 
-            const hash = await torrentsAdd(params);
-
-            props.onClose(hash);
+            props.onClose(addedHashes);
           }}
           validationSchema={AddTorrentSchema}
         >
-          {({ errors, initialValues, isValid, setFieldValue, touched, values }) => (
+          {({ errors, setFieldValue, isSubmitting, touched, values }) => (
             <Form>
               <ModalHeader>Add {values.type === "torrent" ? "torrent" : "magnet link"}</ModalHeader>
               <ModalCloseButton />
@@ -112,17 +117,18 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
                           <FormControl isInvalid={touched.ti && !!errors.ti}>
                             <FormLabel>File</FormLabel>
                             <Input
+                              multiple
                               type="file"
                               onChange={async e => {
                                 if (e.currentTarget.files != null) {
-                                  setFieldValue("ti", await readFile(e.currentTarget.files[0]));
+                                  setFieldValue("ti", await readFiles(e.currentTarget.files));
                                 }
                               }}
                             />
                             {
                               errors.ti && touched.ti
                                 ? <FormErrorMessage>{errors.ti}</FormErrorMessage>
-                                : <FormHelperText>A torrent file.</FormHelperText>
+                                : <FormHelperText>One (or more) torrent files. All files will be added with the same settings.</FormHelperText>
                             }
                           </FormControl>
                         )}
@@ -166,7 +172,7 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
                           }}
                         >
                           { Object.keys(presets).map(p => (
-                            <option key={p}>{p}</option>
+                            <option key={p} selected={p === values.preset}>{p}</option>
                           ))}
                         </Select>
                         <FormHelperText>Select a preset to apply to the torrent.</FormHelperText>
@@ -190,11 +196,12 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
                     </FormControl>
                   )}
                 </Field>
+                <pre>{JSON.stringify(values, null, 2)}</pre>
               </ModalBody>
               <ModalFooter>
                 <Button
                   colorScheme={"purple"}
-                  disabled={Object.keys(touched).length === 0 || !isValid}
+                  disabled={isSubmitting}
                   type="submit"
                 >
                   Add {values.type === "torrent" ? "torrent" : "magnet link"}
