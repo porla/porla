@@ -18,6 +18,7 @@ FsSpace::FsSpace() = default;
 
 std::optional<std::string> GetBlockDeviceFromPath(const std::string& path)
 {
+#ifdef __linux__
     static const auto mountpoint_re = std::regex(R"(^([\d]+)\s([\d]+)\s([\d]+:[\d]+)\s([a-zA-Z\d\/:\[\]]+)\s([a-zA-Z\d\/\.-]+)\s([a-zA-Z\d\,]+)\s([a-zA-Z\d\/:\s]+)\s-\s([a-zA-Z0-9\.]+)\s([a-zA-Z\d\/_-]+)\s([a-zA-Z\d\/:\s=,_]+)$)");
 
     struct stat fs{};
@@ -52,12 +53,14 @@ std::optional<std::string> GetBlockDeviceFromPath(const std::string& path)
             BOOST_LOG_TRIVIAL(debug) << "Mount point line did not match: " << line;
         }
     }
+#endif
 
     return std::nullopt;
 }
 
 std::optional<FsSpaceQuota> GetQuota(const std::string& path)
 {
+#ifdef __linux__
     if (auto block_device = GetBlockDeviceFromPath(path))
     {
         BOOST_LOG_TRIVIAL(info) << "Found block device: " << *block_device;
@@ -82,6 +85,7 @@ std::optional<FsSpaceQuota> GetQuota(const std::string& path)
             .inodes_time       = blk.dqb_itime
         };
     }
+#endif
 
     return std::nullopt;
 }
