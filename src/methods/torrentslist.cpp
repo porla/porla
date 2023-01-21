@@ -19,6 +19,8 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
     {
         {{"download_rate", false},  [](auto const& lhs, auto const& rhs) { return lhs.download_rate >= rhs.download_rate; }},
         {{"download_rate", true},   [](auto const& lhs, auto const& rhs) { return lhs.download_rate < rhs.download_rate; }},
+        {{"eta", false},            [](auto const& lhs, auto const& rhs) { return lhs.eta >= rhs.eta; }},
+        {{"eta", true},             [](auto const& lhs, auto const& rhs) { return lhs.eta < rhs.eta; }},
         {{"list_peers", false},     [](auto const& lhs, auto const& rhs) { return lhs.list_peers >= rhs.list_peers; }},
         {{"list_peers", true},      [](auto const& lhs, auto const& rhs) { return lhs.list_peers < rhs.list_peers; }},
         {{"list_seeds", false},     [](auto const& lhs, auto const& rhs) { return lhs.list_seeds >= rhs.list_seeds; }},
@@ -49,6 +51,8 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
                 return lhs.queue_position < rhs.queue_position;
             }
         },
+        {{"ratio", false},          [](auto const& lhs, auto const& rhs) { return lhs.ratio >= rhs.ratio; }},
+        {{"ratio", true},           [](auto const& lhs, auto const& rhs) { return lhs.ratio < rhs.ratio; }},
         {{"save_path", false},      [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) > 0; }},
         {{"save_path", true},       [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) < 0; }},
         {{"size", false},           [](auto const& lhs, auto const& rhs) { return lhs.size >= rhs.size; }},
@@ -115,7 +119,6 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             {
                 if (filter.field == "category" && filter.args.is_string())
                 {
-                    const auto& category_value = filter.args.get<std::string>();
                     filter_includes_torrent = client_data->category == filter.args;
                 }
                 else if (filter.field == "save_path" && filter.args.is_string())
@@ -187,11 +190,11 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
     }
 
     cb.Ok(TorrentsListRes{
-        .page = req.page.value_or(0),
-        .page_size = req.page_size.value_or(50),
-        .torrents = std::vector(
-            torrents.begin() + page_beg,
-            torrents.begin() + page_end),
+        .order_by       = req.order_by.value_or("queue_position"),
+        .order_by_dir   = req.order_by_dir.value_or("asc"),
+        .page           = req.page.value_or(0),
+        .page_size      = req.page_size.value_or(50),
+        .torrents       = std::vector(torrents.begin() + page_beg, torrents.begin() + page_end),
         .torrents_total = static_cast<int>(torrents.size())
     });
 }

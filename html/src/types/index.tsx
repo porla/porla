@@ -42,6 +42,8 @@ export type TorrentProperties = {
 }
 
 export type ITorrentsList = {
+  order_by: string;
+  order_by_dir: string;
   page_size: number;
   torrents: Torrent[];
   torrents_total: number;

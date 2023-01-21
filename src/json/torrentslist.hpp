@@ -53,6 +53,8 @@ namespace porla::Methods
 
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsListRes,
+        order_by,
+        order_by_dir,
         page,
         page_size,
         torrents,
