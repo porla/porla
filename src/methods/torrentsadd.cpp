@@ -6,6 +6,7 @@
 
 #include "../data/models/torrentsmetadata.hpp"
 #include "../session.hpp"
+#include "../torrentclientdata.hpp"
 #include "../utils/base64.hpp"
 
 namespace lt = libtorrent;
@@ -22,6 +23,13 @@ static void ApplyPreset(lt::add_torrent_params& p, const porla::Config::Preset& 
     if (preset.save_path.has_value())       p.save_path       = preset.save_path.value();
     if (preset.storage_mode.has_value())    p.storage_mode    = preset.storage_mode.value();
     if (preset.upload_limit.has_value())    p.upload_limit    = preset.upload_limit.value();
+
+    // Set our custom client data
+    if (preset.category.has_value())
+        p.userdata.get<porla::TorrentClientData>()->category = preset.category.value();
+
+    if (!preset.tags.empty())
+        p.userdata.get<porla::TorrentClientData>()->tags = preset.tags;
 }
 
 TorrentsAdd::TorrentsAdd(sqlite3* db, ISession& session, const std::map<std::string, Config::Preset>& presets)
@@ -34,6 +42,7 @@ TorrentsAdd::TorrentsAdd(sqlite3* db, ISession& session, const std::map<std::str
 void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
 {
     lt::add_torrent_params p;
+    p.userdata = lt::client_data_t(new TorrentClientData());
 
     // Apply the 'default' preset if it exists
     if (m_presets.find("default") != m_presets.end())
