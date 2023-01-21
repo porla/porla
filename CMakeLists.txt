@@ -70,9 +70,9 @@ add_library(
     src/data/migrations/0003_users.cpp
     src/data/migrations/0004_removesessionparams.cpp
     src/data/migrations/0005_metadata.cpp
+    src/data/migrations/0006_clientdata.cpp
     src/data/models/addtorrentparams.cpp
     src/data/models/sessionsettings.cpp
-    src/data/models/torrentsmetadata.cpp
     src/data/models/users.cpp
     src/data/statement.cpp
 

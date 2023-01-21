@@ -159,6 +159,9 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
                     Preset p = {};
 
+                    if (auto val = value_tbl["category"].value<std::string>())
+                        p.category = *val;
+
                     if (auto val = value_tbl["download_limit"].value<int>())
                         p.download_limit = *val;
 
@@ -175,6 +178,17 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
                     {
                         if (strcmp(val->c_str(), "allocate") == 0) p.storage_mode = lt::storage_mode_allocate;
                         if (strcmp(val->c_str(), "sparse") == 0)   p.storage_mode = lt::storage_mode_sparse;
+                    }
+
+                    if (auto const tags_val = value_tbl["tags"].as_array())
+                    {
+                        for (auto const& tag_item : *tags_val)
+                        {
+                            if (auto const tag_value = tag_item.value<std::string>())
+                            {
+                                p.tags.insert(*tag_value);
+                            }
+                        }
                     }
 
                     if (auto val = value_tbl["upload_limit"].value<int>())

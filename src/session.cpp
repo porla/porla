@@ -11,14 +11,13 @@
 #include <utility>
 
 #include "data/models/addtorrentparams.hpp"
-#include "data/models/torrentsmetadata.hpp"
+#include "torrentclientdata.hpp"
 #include "torrentsvt.hpp"
 
 namespace fs = std::filesystem;
 namespace lt = libtorrent;
 
 using porla::Data::Models::AddTorrentParams;
-using porla::Data::Models::TorrentsMetadata;
 using porla::Session;
 
 template<typename T>
@@ -288,10 +287,11 @@ Session::~Session()
                 outstanding--;
 
                 AddTorrentParams::Update(m_db, rd->handle.info_hashes(), AddTorrentParams{
-                    .name = rd->params.name,
-                    .params = rd->params,
+                    .client_data    = rd->handle.userdata().get<TorrentClientData>(),
+                    .name           = rd->params.name,
+                    .params         = rd->params,
                     .queue_position = static_cast<int>(rd->handle.status().queue_position),
-                    .save_path = rd->params.save_path
+                    .save_path      = rd->params.save_path
                 });
             }
         }
@@ -342,10 +342,11 @@ lt::info_hash_t Session::AddTorrent(lt::add_torrent_params const& p)
     lt::torrent_status ts = th.status();
 
     AddTorrentParams::Insert(m_db, ts.info_hashes, AddTorrentParams{
-        .name = ts.name,
-        .params = p,
+        .client_data    = p.userdata.get<TorrentClientData>(),
+        .name           = ts.name,
+        .params         = p,
         .queue_position = static_cast<int>(ts.queue_position),
-        .save_path = ts.save_path,
+        .save_path      = ts.save_path,
     });
 
     th.save_resume_data(
@@ -509,10 +510,11 @@ void Session::ReadAlerts()
             auto const& status = srda->handle.status();
 
             AddTorrentParams::Update(m_db, status.info_hashes, AddTorrentParams{
-                .name = status.name,
-                .params = srda->params,
+                .client_data    = srda->handle.userdata().get<TorrentClientData>(),
+                .name           = status.name,
+                .params         = srda->params,
                 .queue_position = static_cast<int>(status.queue_position),
-                .save_path = status.save_path
+                .save_path      = status.save_path
             });
 
             BOOST_LOG_TRIVIAL(info) << "Resume data saved for " << status.name;
@@ -615,7 +617,6 @@ void Session::ReadAlerts()
             auto tra = lt::alert_cast<lt::torrent_removed_alert>(alert);
 
             AddTorrentParams::Remove(m_db, tra->info_hashes);
-            TorrentsMetadata::RemoveAll(m_db, tra->info_hashes);
 
             m_torrents.erase(tra->info_hashes);
             m_torrentRemoved(tra->info_hashes);

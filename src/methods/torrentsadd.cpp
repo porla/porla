@@ -4,13 +4,12 @@
 #include <libtorrent/add_torrent_params.hpp>
 #include <libtorrent/magnet_uri.hpp>
 
-#include "../data/models/torrentsmetadata.hpp"
 #include "../session.hpp"
+#include "../torrentclientdata.hpp"
 #include "../utils/base64.hpp"
 
 namespace lt = libtorrent;
 
-using porla::Data::Models::TorrentsMetadata;
 using porla::Methods::TorrentsAdd;
 using porla::Methods::TorrentsAddReq;
 
@@ -22,6 +21,13 @@ static void ApplyPreset(lt::add_torrent_params& p, const porla::Config::Preset& 
     if (preset.save_path.has_value())       p.save_path       = preset.save_path.value();
     if (preset.storage_mode.has_value())    p.storage_mode    = preset.storage_mode.value();
     if (preset.upload_limit.has_value())    p.upload_limit    = preset.upload_limit.value();
+
+    // Set our custom client data
+    if (preset.category.has_value())
+        p.userdata.get<porla::TorrentClientData>()->category = preset.category.value();
+
+    if (!preset.tags.empty())
+        p.userdata.get<porla::TorrentClientData>()->tags = preset.tags;
 }
 
 TorrentsAdd::TorrentsAdd(sqlite3* db, ISession& session, const std::map<std::string, Config::Preset>& presets)
@@ -34,6 +40,7 @@ TorrentsAdd::TorrentsAdd(sqlite3* db, ISession& session, const std::map<std::str
 void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
 {
     lt::add_torrent_params p;
+    p.userdata = lt::client_data_t(new TorrentClientData());
 
     // Apply the 'default' preset if it exists
     if (m_presets.find("default") != m_presets.end())
@@ -99,6 +106,12 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
     if (req.upload_limit.has_value())    p.upload_limit    = req.upload_limit.value();
     if (req.url_seeds.has_value())       p.url_seeds       = req.url_seeds.value();
 
+    // userdata values
+    if (req.category.has_value())        p.userdata.get<TorrentClientData>()->category = req.category.value();
+    if (req.metadata.has_value())        p.userdata.get<TorrentClientData>()->metadata = req.metadata.value();
+    if (req.tags.has_value())            p.userdata.get<TorrentClientData>()->tags     = req.tags.value();
+
+
     // Before passing our params to the session. Validate that we have at least
     // an info hash, or
     // a torrent info object, and
@@ -130,19 +143,6 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
     {
         return cb.Error(-4, "Failed to add torrent");
     }
-
-    // Set metadata if we successfully added the torrent
-    if (auto metadata = req.metadata)
-    {
-        for (auto const& [key, value] : metadata.value())
-        {
-            TorrentsMetadata::Set(m_db, hash, key, value);
-        }
-    }
-
-    // Set static metadata, preset etc
-    if (auto val = req.preset)
-        TorrentsMetadata::Set(m_db, hash, "preset", json(req.preset.value()));
 
     cb.Ok(TorrentsAddRes{
         .info_hash = hash

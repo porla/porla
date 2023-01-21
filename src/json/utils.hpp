@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace porla::Methods
+namespace porla
 {
     template<class J, class T>
     void optional_to_json(J& j, const char* name, const std::optional<T>& value)

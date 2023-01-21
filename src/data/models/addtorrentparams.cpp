@@ -3,9 +3,13 @@
 #include <boost/log/trivial.hpp>
 #include <libtorrent/read_resume_data.hpp>
 #include <libtorrent/write_resume_data.hpp>
+#include <nlohmann/json.hpp>
 
 #include "../statement.hpp"
+#include "../../json/torrentclientdata.hpp"
+#include "../../torrentclientdata.hpp"
 
+using json = nlohmann::json;
 using porla::Data::Statement;
 using porla::Data::Models::AddTorrentParams;
 
@@ -39,14 +43,14 @@ int AddTorrentParams::Count(sqlite3 *db)
 
 void AddTorrentParams::ForEach(sqlite3 *db, const std::function<void(lt::add_torrent_params&)>& cb)
 {
-    auto stmt = Statement::Prepare(db, "SELECT name,resume_data_buf,save_path FROM addtorrentparams\n"
+    auto stmt = Statement::Prepare(db, "SELECT client_data,name,resume_data_buf,save_path FROM addtorrentparams\n"
                                        "ORDER BY queue_position ASC");
     stmt.Step(
         [&cb](const Statement::IRow& row)
         {
 
             libtorrent::error_code ec;
-            auto atp = lt::read_resume_data(row.GetBuffer(1), ec);
+            auto atp = lt::read_resume_data(row.GetBuffer(2), ec);
 
             if (ec)
             {
@@ -54,8 +58,17 @@ void AddTorrentParams::ForEach(sqlite3 *db, const std::function<void(lt::add_tor
                 return SQLITE_OK;
             }
 
-            atp.name = row.GetStdString(0);
-            atp.save_path = row.GetStdString(2);
+            atp.userdata = lt::client_data_t(new TorrentClientData());
+            atp.name = row.GetStdString(1);
+            atp.save_path = row.GetStdString(3);
+
+            const auto client_data_str = row.GetStdString(0);
+
+            if (!client_data_str.empty())
+            {
+                json::parse(client_data_str).get_to(
+                    *atp.userdata.get<TorrentClientData>());
+            }
 
             cb(atp);
 
@@ -67,16 +80,19 @@ void AddTorrentParams::Insert(sqlite3 *db, const libtorrent::info_hash_t& hash, 
 {
     std::vector<char> buf = lt::write_resume_data_buf(params.params);
 
+    const std::string client_data_json = json(*params.client_data).dump();
+
     auto stmt = Statement::Prepare(db, "INSERT INTO addtorrentparams\n"
-                                       "    (info_hash_v1, info_hash_v2, name, queue_position, resume_data_buf, save_path)\n"
-                                       "VALUES ($1, $2, $3, $4, $5, $6);");
+                                       "    (info_hash_v1, info_hash_v2, client_data, name, queue_position, resume_data_buf, save_path)\n"
+                                       "VALUES ($1, $2, $3, $4, $5, $6, $7);");
     stmt
         .Bind(1, hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
         .Bind(2, hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
-        .Bind(3, std::string_view(params.name))
-        .Bind(4, params.queue_position)
-        .Bind(5, buf)
-        .Bind(6, std::string_view(params.save_path))
+        .Bind(3, std::string_view(client_data_json))
+        .Bind(4, std::string_view(params.name))
+        .Bind(5, params.queue_position)
+        .Bind(6, buf)
+        .Bind(7, std::string_view(params.save_path))
         .Execute();
 }
 

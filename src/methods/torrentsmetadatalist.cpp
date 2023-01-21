@@ -1,9 +1,8 @@
 #include "torrentsmetadatalist.hpp"
 
-#include "../data/models/torrentsmetadata.hpp"
 #include "../session.hpp"
+#include "../torrentclientdata.hpp"
 
-using porla::Data::Models::TorrentsMetadata;
 using porla::Methods::TorrentsMetadataList;
 using porla::Methods::TorrentsMetadataListReq;
 using porla::Methods::TorrentsMetadataListRes;
@@ -16,15 +15,17 @@ TorrentsMetadataList::TorrentsMetadataList(sqlite3 *db, ISession &session)
 
 void TorrentsMetadataList::Invoke(const TorrentsMetadataListReq& req, WriteCb<TorrentsMetadataListRes> cb)
 {
-    auto const& torrents = m_session.Torrents();
-    auto const handle = torrents.find(req.info_hash);
+    const auto& torrents = m_session.Torrents();
+    const auto handle = torrents.find(req.info_hash);
 
     if (handle == torrents.end())
     {
         return cb.Error(-1, "Torrent not found");
     }
 
+    const auto client_data = handle->second.userdata().get<TorrentClientData>();
+
     return cb.Ok(TorrentsMetadataListRes{
-        .metadata = TorrentsMetadata::GetAll(m_db, req.info_hash)
+        .metadata = client_data->metadata
     });
 }
