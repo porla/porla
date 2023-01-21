@@ -1,11 +1,10 @@
 #include "torrentslist.hpp"
 
-#include "../data/models/torrentsmetadata.hpp"
 #include "../session.hpp"
+#include "../torrentclientdata.hpp"
 #include "../utils/eta.hpp"
 #include "../utils/ratio.hpp"
 
-using porla::Data::Models::TorrentsMetadata;
 using porla::Methods::TorrentsList;
 
 TorrentsList::TorrentsList(sqlite3* db, porla::ISession& session)
@@ -77,23 +76,10 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
     for (auto const& [_, handle] : m_session.Torrents())
     {
-        auto const stored_metadata = TorrentsMetadata::GetAll(m_db, handle.info_hashes());
+        const auto client_data = handle.userdata().get<TorrentClientData>();
 
-        json category                 = json();
-        std::optional<json> metadata  = std::nullopt;
-        std::int64_t size             = -1;
-        std::vector<std::string> tags = {};
-
-        if (stored_metadata.contains("category")
-            && stored_metadata.at("category").is_string())
-        {
-            category = stored_metadata.at("category");
-        }
-
-        if (stored_metadata.contains("tags"))
-        {
-            stored_metadata.at("tags").get_to(tags);
-        }
+        std::map<std::string, json> metadata = {};
+        std::int64_t size                    = -1;
 
         if (req.include_metadata.has_value())
         {
@@ -103,16 +89,14 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
             if (metadata_keys.size() == 1 && metadata_keys.at(0) == "*")
             {
-                metadata = stored_metadata;
+                metadata = client_data->metadata;
             }
             else
             {
-                metadata = json::object({});
-
-                for (auto const& key : metadata_keys)
+                for (const auto& key : metadata_keys)
                 {
-                    if (!stored_metadata.contains(key)) continue;
-                    metadata.value()[key] = stored_metadata.at(key);
+                    if (!client_data->metadata.contains(key)) continue;
+                    metadata[key] = client_data->metadata.at(key);
                 }
             }
         }
@@ -125,30 +109,27 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
         // Filter torrents here.
         bool filter_includes_torrent = true;
 
-        if (auto filters = req.filters)
+        if (const auto& filters = req.filters)
         {
-            for (auto const& filter : filters.value())
+            for (const auto& filter : filters.value())
             {
-                if (filter.field == "category"
-                    && filter.args.is_string())
+                if (filter.field == "category" && filter.args.is_string())
                 {
-                    auto const& category_value = filter.args.get<std::string>();
-                    filter_includes_torrent = category == filter.args;
+                    const auto& category_value = filter.args.get<std::string>();
+                    filter_includes_torrent = client_data->category == filter.args;
                 }
-                else if (filter.field == "save_path"
-                    && filter.args.is_string())
+                else if (filter.field == "save_path" && filter.args.is_string())
                 {
                     filter_includes_torrent = ts.save_path == filter.args;
                 }
-                else if (filter.field == "tags"
-                    && filter.args.is_string())
+                else if (filter.field == "tags" && filter.args.is_string())
                 {
-                    auto const& tag_value = filter.args.get<std::string>();
+                    const auto& tag_value = filter.args.get<std::string>();
 
                     filter_includes_torrent = std::find(
-                        tags.begin(),
-                        tags.end(),
-                        tag_value) != tags.end();
+                        client_data->tags.begin(),
+                        client_data->tags.end(),
+                        tag_value) != client_data->tags.end();
                 }
             }
         }
@@ -161,7 +142,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
         torrents.push_back(TorrentsListRes::Item{
             .all_time_download = ts.all_time_download,
             .all_time_upload   = ts.all_time_upload,
-            .category          = category,
+            .category          = client_data->category,
             .download_rate     = ts.download_rate,
             .error             = ts.errc,
             .eta               = porla::Utils::ETA(ts).count(),
@@ -180,7 +161,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             .save_path         = ts.save_path,
             .size              = size,
             .state             = ts.state,
-            .tags              = tags,
+            .tags              = client_data->tags,
             .total             = ts.total,
             .total_done        = ts.total_done,
             .upload_rate       = ts.upload_rate,

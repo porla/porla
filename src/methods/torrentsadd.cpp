@@ -4,14 +4,12 @@
 #include <libtorrent/add_torrent_params.hpp>
 #include <libtorrent/magnet_uri.hpp>
 
-#include "../data/models/torrentsmetadata.hpp"
 #include "../session.hpp"
 #include "../torrentclientdata.hpp"
 #include "../utils/base64.hpp"
 
 namespace lt = libtorrent;
 
-using porla::Data::Models::TorrentsMetadata;
 using porla::Methods::TorrentsAdd;
 using porla::Methods::TorrentsAddReq;
 
@@ -139,19 +137,6 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
     {
         return cb.Error(-4, "Failed to add torrent");
     }
-
-    // Set metadata if we successfully added the torrent
-    if (auto metadata = req.metadata)
-    {
-        for (auto const& [key, value] : metadata.value())
-        {
-            TorrentsMetadata::Set(m_db, hash, key, value);
-        }
-    }
-
-    // Set static metadata, preset etc
-    if (auto val = req.preset)
-        TorrentsMetadata::Set(m_db, hash, "preset", json(req.preset.value()));
 
     cb.Ok(TorrentsAddRes{
         .info_hash = hash
