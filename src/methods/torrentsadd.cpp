@@ -106,6 +106,12 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
     if (req.upload_limit.has_value())    p.upload_limit    = req.upload_limit.value();
     if (req.url_seeds.has_value())       p.url_seeds       = req.url_seeds.value();
 
+    // userdata values
+    if (req.category.has_value())        p.userdata.get<TorrentClientData>()->category = req.category.value();
+    if (req.metadata.has_value())        p.userdata.get<TorrentClientData>()->metadata = req.metadata.value();
+    if (req.tags.has_value())            p.userdata.get<TorrentClientData>()->tags     = req.tags.value();
+
+
     // Before passing our params to the session. Validate that we have at least
     // an info hash, or
     // a torrent info object, and
