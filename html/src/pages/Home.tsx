@@ -22,11 +22,14 @@ export default function Home() {
   const [ showAdd, setShowAdd ] = useState(false);
   const [ propsTorrent, setPropsTorrent ] = useState<Torrent | null>();
   const { clearFilters, filters } = useTorrentsFilter();
+  const [ order, setOrder ] = useState<any>();
 
   const { error, data, mutate } = useRPC<ITorrentsList>('torrents.list', () => {
     return {
       filters,
-      page
+      page,
+      order_by: order?.by,
+      order_by_dir: order?.dir
     }
   }, {
     refreshInterval: 1000
@@ -168,6 +171,8 @@ export default function Home() {
 
               <GridItem area={"content"} overflow={"scroll"}>
                 <TorrentsList
+                  orderBy={data.order_by}
+                  orderByDir={data.order_by_dir}
                   torrents={data.torrents}
                   isDeleting={() => false}
                   onMove={t => setMoveTorrent(t)}
@@ -189,6 +194,16 @@ export default function Home() {
                     await mutate();
                   }}
                   onShowProperties={t => setPropsTorrent(t)}
+                  onSort={async (by, dir) => {
+                    console.log(by, dir);
+                    setOrder(() => {
+                      return {
+                        by,
+                        dir
+                      }
+                    });
+                    await mutate();
+                  }}
                 />
               </GridItem>
             </Grid>

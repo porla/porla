@@ -152,7 +152,7 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
 
   return (
     <Grid
-      gridTemplateColumns={"32px 24px 1fr 100px 110px 110px 100px 48px"}
+      gridTemplateColumns={"32px 48px 1fr 100px 110px 110px 100px 48px"}
       gridTemplateRows={"min-content"}
     >
       <GridItem alignSelf={"center"}>
