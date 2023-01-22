@@ -195,7 +195,6 @@ export default function Home() {
                   }}
                   onShowProperties={t => setPropsTorrent(t)}
                   onSort={async (by, dir) => {
-                    console.log(by, dir);
                     setOrder(() => {
                       return {
                         by,

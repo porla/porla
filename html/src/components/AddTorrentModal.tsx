@@ -4,6 +4,8 @@ import * as Yup from "yup";
 
 import { InfoHash, PresetsList } from "../types/index";
 import { useInvoker } from "../services/jsonrpc";
+import { useEffect, useState } from "react";
+import { filesize } from "filesize";
 
 const readSingleFile = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -54,7 +56,24 @@ type AddTorrentModalProps = {
 export default function AddTorrentModal(props: AddTorrentModalProps) {
   const { presets } = props;
 
-  const torrentsAdd = useInvoker<InfoHash>("torrents.add");
+  const fsSpace             = useInvoker<any>("fs.space");
+  const torrentsAdd         = useInvoker<InfoHash>("torrents.add");
+  const [ path, setPath ]   = useState<string | null>(null);
+  const [ space, setSpace ] = useState<any>();
+
+  useEffect(() => {
+    if (path) {
+      fsSpace({ path })
+        .then(r => setSpace(() => r))
+        .catch(() => setSpace(() => null));
+    }
+  }, [path]);
+
+  useEffect(() => {
+    if (props.presets.default && props.presets.default.save_path) {
+      setPath(() => props.presets.default.save_path!);
+    }
+  }, []);
 
   return (
     <Modal
@@ -168,6 +187,7 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
                             // their original value.
                             if (!touched.save_path) {
                               setFieldValue("save_path", presets[e.target.value].save_path);
+                              setPath(() => presets[e.target.value].save_path);
                             }
                           }}
                         >
@@ -187,16 +207,34 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
                       <Input
                         type="text"
                         {...w.field}
+                        onChange={e => {
+                          setFieldValue("save_path", e.target.value);
+                          setPath(() => e.target.value);
+                        }}
                       />
                       {
                         errors.save_path && touched.save_path
                           ? <FormErrorMessage>{errors.save_path}</FormErrorMessage>
-                          : <FormHelperText>The path on disk where the torrent will be saved.</FormHelperText>
+                          : <FormHelperText>
+                              {
+                                space && space.quota
+                                  ? <>
+                                      Available quota:
+                                        <strong>
+                                          {filesize((space.quota.blocks_limit_hard * 8) - space.quota.current_space).toString()}
+                                        </strong>
+                                    </>
+                                  : space
+                                    ? <>
+                                        Available space: <strong>{filesize(space.available).toString()}</strong> 
+                                      </>
+                                    : <>The path on disk where the torrent will be saved.</>
+                              }
+                            </FormHelperText>
                       }
                     </FormControl>
                   )}
                 </Field>
-                <pre>{JSON.stringify(values, null, 2)}</pre>
               </ModalBody>
               <ModalFooter>
                 <Button
