@@ -13,12 +13,14 @@ find_package(duktape)
 find_package(GTest               CONFIG REQUIRED)
 find_package(libzip              CONFIG REQUIRED)
 find_package(LibtorrentRasterbar CONFIG REQUIRED)
+find_package(MediaInfoLib        CONFIG REQUIRED)
 find_package(nlohmann_json       CONFIG REQUIRED)
 find_package(tomlplusplus        CONFIG REQUIRED)
 find_package(unofficial-sodium   CONFIG REQUIRED)
 find_package(unofficial-sqlite3  CONFIG REQUIRED)
 find_package(uriparser           CONFIG REQUIRED)
 find_package(yaml-cpp            CONFIG REQUIRED)
+find_package(ZenLib              CONFIG REQUIRED)
 
 find_path(JWT_CPP_INCLUDE_DIRS "jwt-cpp/base.h")
 
@@ -140,11 +142,13 @@ target_link_libraries(
     duktape
     libzip::zip
     LibtorrentRasterbar::torrent-rasterbar
+    mediainfo
     unofficial-sodium::sodium
     unofficial-sodium::sodium_config_public
     unofficial::sqlite3::sqlite3
     uriparser::uriparser
     yaml-cpp
+    zen
 )
 
 add_executable(
