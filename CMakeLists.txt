@@ -37,6 +37,19 @@ add_custom_command(
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FileEmbed.cmake)
 
 add_library(
+    ${PROJECT_NAME}_mediainfo
+    STATIC
+    src/mediainfo/parser.cpp
+)
+
+target_link_libraries(
+    ${PROJECT_NAME}_mediainfo
+    PRIVATE
+    mediainfo
+    zen
+)
+
+add_library(
     ${PROJECT_NAME}_core
     STATIC
     ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
@@ -136,19 +149,19 @@ target_include_directories(
 target_link_libraries(
     ${PROJECT_NAME}_core
 
+    ${PROJECT_NAME}_mediainfo
+
     Boost::boost
     Boost::log
     Boost::program_options
     duktape
     libzip::zip
     LibtorrentRasterbar::torrent-rasterbar
-    mediainfo
     unofficial-sodium::sodium
     unofficial-sodium::sodium_config_public
     unofficial::sqlite3::sqlite3
     uriparser::uriparser
     yaml-cpp
-    zen
 )
 
 add_executable(

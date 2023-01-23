@@ -55,6 +55,8 @@
 #include "workflows/actions/torrents/reannounce.hpp"
 #include "workflows/actions/torrents/remove.hpp"
 
+#include "mediainfo/parser.hpp"
+
 int main(int argc, char* argv[])
 {
     static std::map<std::string, std::function<int(int, char**, std::unique_ptr<porla::Config>)>> subcommands =

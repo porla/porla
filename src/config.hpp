@@ -43,6 +43,9 @@ namespace porla
         std::optional<bool>                   http_metrics_enabled;
         std::optional<uint16_t>               http_port;
         std::optional<bool>                   http_webui_enabled;
+
+        std::optional<bool>                   mediainfo_enabled;
+
         std::map<std::string, Preset>         presets;
         std::string                           secret_key;
         std::optional<std::vector<lt_plugin>> session_extensions;

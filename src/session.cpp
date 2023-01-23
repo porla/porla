@@ -1,6 +1,7 @@
 #include "session.hpp"
 
 #include <fstream>
+#include <utility>
 
 #include <boost/log/trivial.hpp>
 #include <libtorrent/alert_types.hpp>
@@ -8,9 +9,9 @@
 #include <libtorrent/extensions/ut_pex.hpp>
 #include <libtorrent/extensions/smart_ban.hpp>
 #include <libtorrent/session_stats.hpp>
-#include <utility>
 
 #include "data/models/addtorrentparams.hpp"
+#include "mediainfo/parser.hpp"
 #include "torrentclientdata.hpp"
 #include "torrentsvt.hpp"
 
@@ -357,6 +358,46 @@ lt::info_hash_t Session::AddTorrent(lt::add_torrent_params const& p)
     m_torrents.insert({ ts.info_hashes, th });
     m_torrentAdded(ts);
 
+    if (true)
+    {
+        const auto& files = th.torrent_file()->files();
+
+        for (int i = 0; i < files.num_files(); i++)
+        {
+            const lt::file_index_t file_index{i};
+            const fs::path file_path = files.file_path(file_index);
+
+            if (file_path.extension() == ".mp4")
+            {
+                int asked_size = 0;
+
+                const auto file_piece = files.piece_index_at_file(file_index);
+                std::vector<std::pair<lt::piece_index_t, lt::download_priority_t>> piece_prio;
+
+                for (auto piece_index : files.file_piece_range(file_index))
+                {
+                    asked_size += files.piece_size(file_piece + piece_index);
+
+                    piece_prio.emplace_back(file_piece + piece_index, lt::top_priority);
+
+                    th.userdata().get<TorrentClientData>()->mediainfo_pieces_wanted.insert(
+                        static_cast<int>(file_piece + piece_index));
+
+                    BOOST_LOG_TRIVIAL(info) << file_piece + piece_index;
+
+                    if (asked_size >= 3 * 1024 * 1024)
+                    {
+                        break;
+                    }
+                }
+
+                th.prioritize_pieces(piece_prio);
+
+                BOOST_LOG_TRIVIAL(info) << asked_size;
+            }
+        }
+    }
+
     return ts.info_hashes;
 }
 
@@ -501,6 +542,43 @@ void Session::ReadAlerts()
                 lt::torrent_handle::flush_disk_cache
                 | lt::torrent_handle::save_info_dict
                 | lt::torrent_handle::only_if_modified);
+
+            break;
+        }
+        case lt::piece_finished_alert::alert_type:
+        {
+            const auto pfa = lt::alert_cast<lt::piece_finished_alert>(alert);
+            auto client_data = pfa->handle.userdata().get<TorrentClientData>();
+
+            if (client_data->mediainfo_pieces_wanted.empty() || client_data->mediainfo.has_value())
+            {
+                break;
+            }
+
+            const int piece_index = static_cast<int>(pfa->piece_index);
+
+            if (client_data->mediainfo_pieces_wanted.contains(piece_index))
+            {
+                client_data->mediainfo_pieces_completed.insert(piece_index);
+            }
+
+            if (client_data->mediainfo_pieces_completed.size() == client_data->mediainfo_pieces_wanted.size())
+            {
+                const auto& files = pfa->handle.torrent_file()->files();
+                const lt::file_index_t file_index = files.file_index_at_piece(pfa->piece_index);
+                const std::string file_path = files.file_path(
+                    file_index,
+                    pfa->handle.status(lt::torrent_handle::query_save_path).save_path);
+
+                BOOST_LOG_TRIVIAL(info) << file_path;
+
+                MediaInfo::Parser::Parse(file_path);
+
+                pfa->handle.status().pieces.all_set()
+
+                client_data->mediainfo_pieces_completed.clear();
+                client_data->mediainfo_pieces_wanted.clear();
+            }
 
             break;
         }

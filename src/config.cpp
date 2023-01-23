@@ -316,7 +316,8 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     // the config are applied, and cannot be overwritten by it.
     cfg->session_settings.set_int(
         lt::settings_pack::alert_mask,
-        lt::alert::status_notification
+        lt::alert::piece_progress_notification
+        | lt::alert::status_notification
         | lt::alert::storage_notification);
 
     cfg->session_settings.set_str(lt::settings_pack::peer_fingerprint, lt::generate_fingerprint("PO", 0, 1));
