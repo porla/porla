@@ -574,8 +574,6 @@ void Session::ReadAlerts()
 
                 MediaInfo::Parser::Parse(file_path);
 
-                pfa->handle.status().pieces.all_set()
-
                 client_data->mediainfo_pieces_completed.clear();
                 client_data->mediainfo_pieces_wanted.clear();
             }
