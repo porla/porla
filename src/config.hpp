@@ -45,6 +45,8 @@ namespace porla
         std::optional<bool>                   http_webui_enabled;
 
         std::optional<bool>                   mediainfo_enabled;
+        std::unordered_set<std::string>       mediainfo_file_extensions;
+        std::optional<int>                    mediainfo_file_wanted_size;
 
         std::map<std::string, Preset>         presets;
         std::string                           secret_key;

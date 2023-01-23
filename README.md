@@ -10,6 +10,7 @@ and _extensible_.
 ### Features
 
  * [User-defined workflows](https://porla.org/workflows).
+ * Automatically parse media files for codec information, etc.
  * Support for both BitTorrent v1 and v2.
  * [HTTP API](https://porla.org/api/auth) with JWT auth.
  * Modern web UI.
@@ -18,6 +19,23 @@ and _extensible_.
    <img src="https://user-images.githubusercontent.com/1491824/213406812-32e16a5c-3d59-4efc-a9f1-d15690ac86e2.png"><br/>
    <i>The main torrents list in Porla.</i>
 </p>
+
+#### Workflows
+
+Workflows can be used to automate and integrate Porla with all types of
+applications and services, such as Discord and [ntfy.sh](https://ntfy.sh). They
+are inspired by GitHub Actions.
+
+#### Parsing media file information
+
+Porla can automatically parse media information from various container file
+formats such as `mkv`, `mp4`, etc. When parsing is enabled, pieces at the start
+of each media file will be prioritized higher to allow parsing as soon as
+possible.
+
+The media information is available through the API and third-party software
+such as Sonarr or Radarr can use this to decide whether to reject a release.
+
 
 ## Getting started
 

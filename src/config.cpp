@@ -50,8 +50,9 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     };
 
     auto cfg = std::unique_ptr<Config>(new Config());
-    cfg->http_auth_enabled = true;
-    cfg->session_settings  = lt::default_settings();
+    cfg->http_auth_enabled         = true;
+    cfg->mediainfo_file_extensions = {".mkv", ".mov", ".mp4"};
+    cfg->session_settings          = lt::default_settings();
 
     // Check default locations for a config file.
     for (auto const& path : config_file_search_paths)
