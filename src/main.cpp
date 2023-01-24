@@ -107,7 +107,7 @@ int main(int argc, char* argv[])
         porla::Session session(io, porla::SessionOptions{
             .db                         = cfg->db,
             .extensions                 = cfg->session_extensions,
-            .mediainfo_enabled          = cfg->mediainfo_enabled.value_or(true),
+            .mediainfo_enabled          = cfg->mediainfo_enabled.value_or(false),
             .mediainfo_file_extensions  = cfg->mediainfo_file_extensions,
             .mediainfo_file_min_size    = cfg->mediainfo_file_min_size.value_or(100 * 1024 * 1024),
             .mediainfo_file_wanted_size = cfg->mediainfo_file_wanted_size.value_or(1 * 1024 * 1024),

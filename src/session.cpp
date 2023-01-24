@@ -359,18 +359,9 @@ lt::info_hash_t Session::AddTorrent(lt::add_torrent_params const& p)
         | lt::torrent_handle::save_info_dict
         | lt::torrent_handle::only_if_modified);
 
-    m_torrents.insert({ ts.info_hashes, th });
-    m_torrentAdded(ts);
-
     if (m_mediainfo_enabled)
     {
         const auto& files = th.torrent_file()->files();
-
-        // Set all pieces to dont_download.
-        th.prioritize_pieces(
-            std::vector<lt::download_priority_t>(
-                files.num_pieces(),
-                lt::dont_download));
 
         std::vector<std::pair<lt::piece_index_t, lt::download_priority_t>> piece_prio;
 
@@ -420,14 +411,21 @@ lt::info_hash_t Session::AddTorrent(lt::add_torrent_params const& p)
 
         if (!piece_prio.empty())
         {
+            // Set all pieces to dont_download.
+            th.prioritize_pieces(
+                std::vector<lt::download_priority_t>(files.num_pieces(), lt::dont_download));
+
+            // Set priority on the pieces we are interested in
             th.prioritize_pieces(piece_prio);
 
-            th.userdata().get<TorrentClientData>()
-                ->mediainfo_enabled = true;
+            th.userdata().get<TorrentClientData>()->mediainfo_enabled = true;
 
             BOOST_LOG_TRIVIAL(info) << "Prioritizing " << piece_prio.size() << " piece(s)";
         }
     }
+
+    m_torrents.insert({ ts.info_hashes, th });
+    m_torrentAdded(ts);
 
     return ts.info_hashes;
 }
@@ -621,6 +619,29 @@ void Session::ReadAlerts()
                 }
             }
 
+            // If all pieces have been downloaded - set mediainfo_enabled to
+            // false and set all piece priorities to default
+
+            const bool all_completed = std::all_of(
+                client_data->mediainfo_file_pieces_completed.begin(),
+                client_data->mediainfo_file_pieces_completed.end(),
+                [](const std::pair<int, std::unordered_set<int>>& pair)
+                {
+                    return pair.second.empty();
+                });
+
+            if (all_completed)
+            {
+                client_data->mediainfo_file_pieces_completed = {};
+                client_data->mediainfo_file_pieces_wanted    = {};
+                client_data->mediainfo_enabled               = false;
+
+                // Set all pieces to default priority
+                pfa->handle.prioritize_pieces(
+                    std::vector<lt::download_priority_t>(
+                        pfa->handle.get_piece_priorities().size(), lt::default_priority));
+            }
+
             break;
         }
         case lt::save_resume_data_alert::alert_type:
@@ -700,14 +721,17 @@ void Session::ReadAlerts()
         }
         case lt::torrent_finished_alert::alert_type:
         {
-            auto tfa = lt::alert_cast<lt::torrent_finished_alert>(alert);
-            auto const& status = tfa->handle.status();
+            const auto tfa          = lt::alert_cast<lt::torrent_finished_alert>(alert);
+            const auto& status      = tfa->handle.status();
+            const auto& client_data = tfa->handle.userdata().get<TorrentClientData>();
 
-
-            if (status.total_download > 0)
+            if (status.total_download > 0 && !client_data->mediainfo_enabled.value_or(false))
             {
-                // Only emit this event if we have downloaded any data this session.
                 BOOST_LOG_TRIVIAL(info) << "Torrent " << status.name << " finished";
+
+                // Only emit this event if we have downloaded any data this session and it
+                // was not the mediainfo pieces.
+
                 m_torrentFinished(status);
             }
 

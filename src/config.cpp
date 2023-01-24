@@ -315,12 +315,16 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
     // Apply static libtorrent settings here. These are always set after all other settings from
     // the config are applied, and cannot be overwritten by it.
-    cfg->session_settings.set_int(
-        lt::settings_pack::alert_mask,
-        lt::alert::piece_progress_notification
-        | lt::alert::status_notification
-        | lt::alert::storage_notification);
+    lt::alert_category_t alerts =
+        lt::alert::status_notification
+        | lt::alert::storage_notification;
 
+    if (cfg->mediainfo_enabled.value_or(false))
+    {
+        alerts |= lt::alert::piece_progress_notification;
+    }
+
+    cfg->session_settings.set_int(lt::settings_pack::alert_mask, alerts);
     cfg->session_settings.set_str(lt::settings_pack::peer_fingerprint, lt::generate_fingerprint("PO", 0, 1));
     cfg->session_settings.set_str(lt::settings_pack::user_agent, "porla/1.0");
 
