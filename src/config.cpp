@@ -51,7 +51,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
     auto cfg = std::unique_ptr<Config>(new Config());
     cfg->http_auth_enabled         = true;
-    cfg->mediainfo_file_extensions = {".mkv", ".mov", ".mp4"};
+    cfg->mediainfo_file_extensions = {".mkv", ".mov", ".mp4", ".jpg", ".srt"};
     cfg->session_settings          = lt::default_settings();
 
     // Check default locations for a config file.
@@ -144,6 +144,9 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
             if (auto val = config_file_tbl["http"]["webui_enabled"].value<bool>())
                 cfg->http_webui_enabled = *val;
+
+            if (auto val = config_file_tbl["mediainfo"]["enabled"].value<bool>())
+                cfg->mediainfo_enabled = *val;
 
             // Load presets
             if (auto const* presets_tbl = config_file_tbl["presets"].as_table())

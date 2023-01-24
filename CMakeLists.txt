@@ -116,6 +116,7 @@ add_library(
 
     src/tools/authtoken.cpp
     src/tools/generatesecretkey.cpp
+    src/tools/mediainfoparse.cpp
     src/tools/versionjson.cpp
 
     src/workflows/actionfactory.cpp

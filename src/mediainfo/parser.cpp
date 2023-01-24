@@ -1,9 +1,12 @@
 #include "parser.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <boost/process.hpp>
+
 #include <MediaInfo/MediaInfo.h>
 #include <ZenLib/Ztring.h>
 
+namespace bp = boost::process;
 using porla::MediaInfo::Parser;
 
 bool Parser::Parse(const std::filesystem::path& path)
@@ -18,4 +21,29 @@ bool Parser::Parse(const std::filesystem::path& path)
     BOOST_LOG_TRIVIAL(info) << stream_general.c_str();
 
     return false;
+}
+
+bool Parser::ParseExternal(const std::filesystem::path& path)
+{
+    char self[PATH_MAX];
+    const ssize_t chars_read = readlink("/proc/self/exe", self, PATH_MAX);
+
+    if (chars_read < 0)
+    {
+        return false;
+    }
+
+    std::stringstream cmd;
+    cmd << std::string(self, chars_read) << " mediainfo:parse " << path;
+
+    bp::ipstream err;
+    bp::ipstream out;
+
+    bp::child mediainfo_parser(cmd.str(), bp::std_out > out, bp::std_err > err);
+    mediainfo_parser.wait_for(std::chrono::seconds(1));
+
+    std::stringstream out_str;
+    out_str << out.rdbuf();
+
+    return true;
 }

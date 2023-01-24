@@ -379,24 +379,19 @@ lt::info_hash_t Session::AddTorrent(lt::add_torrent_params const& p)
             if (m_mediainfo_file_extensions.contains(file_path.extension()))
             {
                 int asked_size = 0;
-
-                const auto file_piece = files.piece_index_at_file(file_index);
-
+                lt::piece_index_t file_piece = files.piece_index_at_file(file_index);
                 std::unordered_set<int> file_pieces;
 
-                for (auto piece_index : files.file_piece_range(file_index))
+                while (asked_size < m_mediainfo_file_wanted_size)
                 {
-                    asked_size += files.piece_size(file_piece + piece_index);
+                    if (file_piece >= files.end_piece()) break;
 
-                    BOOST_LOG_TRIVIAL(info) << "Piece size: " << files.piece_size(file_piece + piece_index);
+                    asked_size += files.piece_size(file_piece);
 
-                    piece_prio.emplace_back(file_piece + piece_index, lt::top_priority);
-                    file_pieces.insert(static_cast<int>(file_piece + piece_index));
+                    piece_prio.emplace_back(file_piece, lt::top_priority);
+                    file_pieces.insert(static_cast<int>(file_piece));
 
-                    if (asked_size >= m_mediainfo_file_wanted_size)
-                    {
-                        break;
-                    }
+                    file_piece = lt::piece_index_t{static_cast<int>(file_piece) + 1};
                 }
 
                 th.userdata().get<TorrentClientData>()
@@ -608,11 +603,11 @@ void Session::ReadAlerts()
                             lt::file_index_t{wanted_file},
                             pfa->handle.status(lt::torrent_handle::query_save_path).save_path);
 
-                    BOOST_LOG_TRIVIAL(info) << pfa->handle.status().pieces.count();
-                    BOOST_LOG_TRIVIAL(info) << pfa->handle.status().total_payload_download;
                     BOOST_LOG_TRIVIAL(info) << "All required pieces ready for media info parsing: " << file_path;
 
-                    MediaInfo::Parser::Parse(file_path);
+                    MediaInfo::Parser::ParseExternal(file_path);
+
+                    BOOST_LOG_TRIVIAL(info) << "Parsed";
 
                     completed.clear();
                     wanted.clear();

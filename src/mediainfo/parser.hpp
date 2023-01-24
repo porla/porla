@@ -8,5 +8,6 @@ namespace porla::MediaInfo
     {
     public:
         static bool Parse(const std::filesystem::path& path);
+        static bool ParseExternal(const std::filesystem::path& path);
     };
 }

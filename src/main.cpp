@@ -17,6 +17,7 @@
 #include "systemhandler.hpp"
 #include "tools/authtoken.hpp"
 #include "tools/generatesecretkey.hpp"
+#include "tools/mediainfoparse.hpp"
 #include "tools/versionjson.hpp"
 #include "utils/secretkey.hpp"
 
@@ -55,14 +56,13 @@
 #include "workflows/actions/torrents/reannounce.hpp"
 #include "workflows/actions/torrents/remove.hpp"
 
-#include "mediainfo/parser.hpp"
-
 int main(int argc, char* argv[])
 {
     static std::map<std::string, std::function<int(int, char**, std::unique_ptr<porla::Config>)>> subcommands =
     {
         {"auth:token", &porla::Tools::AuthToken},
         {"key:generate", &porla::Tools::GenerateSecretKey},
+        {"mediainfo:parse", &porla::Tools::MediaInfoParse},
         {"version:json", &porla::Tools::VersionJson}
     };
 

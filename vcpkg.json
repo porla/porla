@@ -5,6 +5,7 @@
   "dependencies": [
     "boost-beast",
     "boost-log",
+    "boost-process",
     "boost-program-options",
     "boost-signals2",
     "boost-system",
