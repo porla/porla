@@ -21,6 +21,7 @@ namespace porla
         std::optional<std::vector<lt_plugin>> extensions;
         bool                                  mediainfo_enabled;
         std::unordered_set<std::string>       mediainfo_file_extensions;
+        std::int64_t                          mediainfo_file_min_size;
         int                                   mediainfo_file_wanted_size;
         lt::settings_pack                     settings              = lt::default_settings();
         std::filesystem::path                 session_params_file   = std::filesystem::path();
@@ -141,6 +142,7 @@ namespace porla
 
         bool m_mediainfo_enabled;
         std::unordered_set<std::string> m_mediainfo_file_extensions;
+        std::int64_t m_mediainfo_file_min_size;
         int  m_mediainfo_file_wanted_size;
 
         std::filesystem::path m_session_params_file;

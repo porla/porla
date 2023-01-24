@@ -46,6 +46,7 @@ namespace porla
 
         std::optional<bool>                   mediainfo_enabled;
         std::unordered_set<std::string>       mediainfo_file_extensions;
+        std::optional<std::int64_t>           mediainfo_file_min_size;
         std::optional<int>                    mediainfo_file_wanted_size;
 
         std::map<std::string, Preset>         presets;

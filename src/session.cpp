@@ -150,6 +150,7 @@ Session::Session(boost::asio::io_context& io, porla::SessionOptions const& optio
     , m_tdb(nullptr)
     , m_mediainfo_enabled(options.mediainfo_enabled)
     , m_mediainfo_file_extensions(options.mediainfo_file_extensions)
+    , m_mediainfo_file_min_size(options.mediainfo_file_min_size)
     , m_mediainfo_file_wanted_size(options.mediainfo_file_wanted_size)
 {
     lt::session_params params = ReadSessionParams(m_session_params_file);
@@ -365,12 +366,24 @@ lt::info_hash_t Session::AddTorrent(lt::add_torrent_params const& p)
     {
         const auto& files = th.torrent_file()->files();
 
+        // Set all pieces to dont_download.
+        th.prioritize_pieces(
+            std::vector<lt::download_priority_t>(
+                files.num_pieces(),
+                lt::dont_download));
+
+        std::vector<std::pair<lt::piece_index_t, lt::download_priority_t>> piece_prio;
+
         for (int i = 0; i < files.num_files(); i++)
         {
             const lt::file_index_t file_index{i};
             const fs::path file_path = files.file_path(file_index);
 
-            std::vector<std::pair<lt::piece_index_t, lt::download_priority_t>> piece_prio;
+            if (files.file_size(file_index) < m_mediainfo_file_min_size)
+            {
+                BOOST_LOG_TRIVIAL(debug) << "Skipping file - too small";
+                continue;
+            }
 
             if (m_mediainfo_file_extensions.contains(file_path.extension()))
             {
@@ -383,6 +396,8 @@ lt::info_hash_t Session::AddTorrent(lt::add_torrent_params const& p)
                 for (auto piece_index : files.file_piece_range(file_index))
                 {
                     asked_size += files.piece_size(file_piece + piece_index);
+
+                    BOOST_LOG_TRIVIAL(info) << "Piece size: " << files.piece_size(file_piece + piece_index);
 
                     piece_prio.emplace_back(file_piece + piece_index, lt::top_priority);
                     file_pieces.insert(static_cast<int>(file_piece + piece_index));
@@ -401,8 +416,16 @@ lt::info_hash_t Session::AddTorrent(lt::add_torrent_params const& p)
                     ->mediainfo_file_pieces_completed
                         .insert({static_cast<int>(file_index), {}});
             }
+        }
 
+        if (!piece_prio.empty())
+        {
             th.prioritize_pieces(piece_prio);
+
+            th.userdata().get<TorrentClientData>()
+                ->mediainfo_enabled = true;
+
+            BOOST_LOG_TRIVIAL(info) << "Prioritizing " << piece_prio.size() << " piece(s)";
         }
     }
 
@@ -558,7 +581,7 @@ void Session::ReadAlerts()
             const auto pfa = lt::alert_cast<lt::piece_finished_alert>(alert);
             auto client_data = pfa->handle.userdata().get<TorrentClientData>();
 
-            if (client_data->mediainfo_file_pieces_wanted.empty() || client_data->mediainfo.has_value())
+            if (client_data->mediainfo_file_pieces_wanted.empty() || !client_data->mediainfo_enabled.value_or(false))
             {
                 break;
             }
@@ -587,6 +610,8 @@ void Session::ReadAlerts()
                             lt::file_index_t{wanted_file},
                             pfa->handle.status(lt::torrent_handle::query_save_path).save_path);
 
+                    BOOST_LOG_TRIVIAL(info) << pfa->handle.status().pieces.count();
+                    BOOST_LOG_TRIVIAL(info) << pfa->handle.status().total_payload_download;
                     BOOST_LOG_TRIVIAL(info) << "All required pieces ready for media info parsing: " << file_path;
 
                     MediaInfo::Parser::Parse(file_path);
