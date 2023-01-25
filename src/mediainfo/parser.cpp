@@ -14,7 +14,7 @@ namespace fs = std::filesystem;
 using json = nlohmann::json;
 using porla::MediaInfo::Parser;
 
-#ifdef __APPLE__
+#if defined(__APPLE__)
 #include <mach-o/dyld.h>
 #include <sys/param.h>
 static fs::path GetExecutablePath()
@@ -24,16 +24,29 @@ static fs::path GetExecutablePath()
     _NSGetExecutablePath(buf, &copied);
     return buf;
 }
+#elif defined(__linux__)
+static fs::path GetExecutablePath()
+{
+    char self[PATH_MAX];
+    const ssize_t chars_read = readlink("/proc/self/exe", self, PATH_MAX);
+
+    if (chars_read < 0)
+    {
+        // TODO: Add error handling
+        return {};
+    }
+
+    return self;
+}
 #endif
 
 bool Parser::Parse(const std::filesystem::path& path)
 {
     MediaInfoLib::MediaInfo mi;
-    mi.Open(ZenLib::Ztring(path.c_str()).To_Unicode());
-
-    // ZenLib::Ztring stream_general = mi.Option(__T("Info_Parameters"));
-    // ZenLib::Ztring stream_general = mi.Get(MediaInfoLib::Stream_Video, 0, __T("Width"), MediaInfoLib::Info_Text, MediaInfoLib::Info_Name);
-    ZenLib::Ztring stream_general = mi.Inform();
+    if (mi.Open(ZenLib::Ztring(path.c_str()).To_Unicode()) == 0)
+    {
+        return false;
+    }
 
     json j{
        {"general", {
@@ -41,20 +54,27 @@ bool Parser::Parse(const std::filesystem::path& path)
            {"format", mi.Get(MediaInfoLib::Stream_General, 0, __T("Format")).c_str()},
            {"format_profile", mi.Get(MediaInfoLib::Stream_General, 0, __T("Format_Profile")).c_str()},
            {"codec_id", mi.Get(MediaInfoLib::Stream_General, 0, __T("CodecID")).c_str()},
-           {"duration", std::stoi(mi.Get(MediaInfoLib::Stream_General, 0, __T("Duration")).c_str())},
-           {"overall_bitrate", std::stoi(mi.Get(MediaInfoLib::Stream_General, 0, __T("OverallBitRate")).c_str())},
+           {"duration", std::stoi(mi.Get(MediaInfoLib::Stream_General, 0, __T("Duration")))},
+           {"overall_bitrate", std::stoi(mi.Get(MediaInfoLib::Stream_General, 0, __T("OverallBitRate")))},
        }}
     };
 
     for (int i = 0; i < mi.Count_Get(MediaInfoLib::Stream_Video); i++)
     {
         json video{
+            {"aspect_ratio_display", std::stof(mi.Get(MediaInfoLib::Stream_Video, i, __T("DisplayAspectRatio")))},
+            {"aspect_ratio_pixel", std::stof(mi.Get(MediaInfoLib::Stream_Video, i, __T("PixelAspectRatio")))},
+            {"bitrate", std::stoi(mi.Get(MediaInfoLib::Stream_Video, i, __T("BitRate")))},
+            {"chroma_subsampling", mi.Get(MediaInfoLib::Stream_Video, i, __T("ChromaSubsampling")).c_str()},
             {"codec_id", mi.Get(MediaInfoLib::Stream_Video, i, __T("CodecID")).c_str()},
+            {"color_space", mi.Get(MediaInfoLib::Stream_Video, i, __T("ColorSpace")).c_str()},
+            {"duration", std::stoi(mi.Get(MediaInfoLib::Stream_Video, i, __T("Duration")))},
+            {"frame_rate", std::stof(mi.Get(MediaInfoLib::Stream_Video, i, __T("FrameRate")))},
             {"format", mi.Get(MediaInfoLib::Stream_Video, i, __T("Format")).c_str()},
-            {"format_info", mi.Get(MediaInfoLib::Stream_Video, i, __T("Format/Info")).c_str()},
             {"format_profile", mi.Get(MediaInfoLib::Stream_Video, i, __T("Format_Profile")).c_str()},
-            {"height", std::stoi(mi.Get(MediaInfoLib::Stream_Video, i, __T("Height")).c_str())},
-            {"width", std::stoi(mi.Get(MediaInfoLib::Stream_Video, i, __T("Width")).c_str())},
+            {"hdr_profile", mi.Get(MediaInfoLib::Stream_Video, i, __T("HDR_Format")).c_str()},
+            {"height", std::stoi(mi.Get(MediaInfoLib::Stream_Video, i, __T("Height")))},
+            {"width", std::stoi(mi.Get(MediaInfoLib::Stream_Video, i, __T("Width")))},
         };
 
         j["video"].push_back(video);
@@ -64,6 +84,7 @@ bool Parser::Parse(const std::filesystem::path& path)
     {
         json audio{
             {"codec_id", mi.Get(MediaInfoLib::Stream_Audio, i, __T("CodecID")).c_str()},
+            {"duration", std::stoi(mi.Get(MediaInfoLib::Stream_Audio, i, __T("Duration")))},
             {"format", mi.Get(MediaInfoLib::Stream_Audio, i, __T("Format")).c_str()},
         };
 
@@ -77,14 +98,6 @@ bool Parser::Parse(const std::filesystem::path& path)
 
 bool Parser::ParseExternal(const std::filesystem::path& path)
 {
-    /*char self[PATH_MAX];
-    const ssize_t chars_read = readlink("/proc/self/exe", self, PATH_MAX);
-
-    if (chars_read < 0)
-    {
-        return false;
-    }*/
-
     std::stringstream cmd;
     cmd << GetExecutablePath() << " mediainfo:parse " << path;
 

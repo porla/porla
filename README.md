@@ -36,6 +36,9 @@ possible.
 The media information is available through the API and third-party software
 such as Sonarr or Radarr can use this to decide whether to reject a release.
 
+_Media information parsing is done out-of-process to ensure stability if the
+parsing fails catastrophically for some reason_.
+
 
 ## Getting started
 
