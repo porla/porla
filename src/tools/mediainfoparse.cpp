@@ -3,8 +3,10 @@
 #include <iostream>
 
 #include <boost/program_options.hpp>
+#include <nlohmann/json.hpp>
 
 #include "../config.hpp"
+#include "../json/mediainfo.hpp"
 #include "../mediainfo/parser.hpp"
 
 namespace po = boost::program_options;
@@ -40,7 +42,10 @@ int porla::Tools::MediaInfoParse(int argc, char **argv, std::unique_ptr<porla::C
 
     const auto input_file = vm["input"].as<std::string>();
 
-    porla::MediaInfo::Parser::Parse(input_file);
+    if (const auto container = porla::MediaInfo::Parser::Parse(input_file))
+    {
+        std::cout << nlohmann::json(*container).dump() << std::endl;
+    }
 
     return 0;
 }
