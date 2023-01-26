@@ -150,6 +150,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             .eta               = porla::Utils::ETA(ts).count(),
             .flags             = static_cast<std::uint64_t>(ts.flags),
             .info_hash         = ts.info_hashes,
+            .has_mediainfo     = client_data->mediainfo.has_value(),
             .list_peers        = ts.list_peers,
             .list_seeds        = ts.list_seeds,
             .metadata          = metadata,

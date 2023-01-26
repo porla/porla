@@ -35,6 +35,11 @@ public:
         return m_torrentFinished.connect(subscriber);
     }
 
+    boost::signals2::connection OnTorrentMediaInfo(const TorrentHandleSignal::slot_type& subscriber) override
+    {
+        return m_torrentMediaInfo.connect(subscriber);
+    }
+
     boost::signals2::connection OnTorrentPaused(const TorrentStatusSignal::slot_type& subscriber) override
     {
         return m_torrentPaused.connect(subscriber);
@@ -66,6 +71,7 @@ public:
     TorrentHandleSignal m_storageMovedFailed;
     TorrentStatusSignal m_torrentAdded;
     TorrentStatusSignal m_torrentFinished;
+    TorrentHandleSignal m_torrentMediaInfo;
     TorrentStatusSignal m_torrentPaused;
     InfoHashSignal m_torrentRemoved;
     TorrentStatusSignal m_torrentResumed;

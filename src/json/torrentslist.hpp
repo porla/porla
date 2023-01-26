@@ -33,6 +33,7 @@ namespace porla::Methods
         eta,
         flags,
         info_hash,
+        has_mediainfo,
         list_peers,
         list_seeds,
         metadata,

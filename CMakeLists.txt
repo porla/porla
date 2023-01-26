@@ -101,6 +101,7 @@ add_library(
     src/methods/torrentsadd.cpp
     src/methods/torrentsfileslist.cpp
     src/methods/torrentslist.cpp
+    src/methods/torrentsmediainfo.cpp
     src/methods/torrentsmetadatalist.cpp
     src/methods/torrentsmove.cpp
     src/methods/torrentspause.cpp

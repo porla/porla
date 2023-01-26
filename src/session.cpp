@@ -637,6 +637,13 @@ void Session::ReadAlerts()
                 pfa->handle.prioritize_pieces(
                     std::vector<lt::download_priority_t>(
                         pfa->handle.get_piece_priorities().size(), lt::default_priority));
+
+                boost::asio::post(
+                    m_io,
+                    [th = pfa->handle, &ev = m_torrentMediaInfo]()
+                    {
+                        ev(th);
+                    });
             }
 
             break;
