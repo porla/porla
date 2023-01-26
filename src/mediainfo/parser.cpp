@@ -8,6 +8,7 @@
 #include <nlohmann/json.hpp>
 #include <ZenLib/Ztring.h>
 
+#include "container.hpp"
 #include "../json/mediainfo.hpp"
 
 namespace bp = boost::process;
@@ -117,8 +118,6 @@ std::optional<porla::MediaInfo::Container> Parser::ParseExternal(const std::file
 
     std::stringstream out_str;
     out_str << out.rdbuf();
-
-    BOOST_LOG_TRIVIAL(info) << mediainfo_parser.exit_code();
 
     return json::parse(out_str.str());
 }

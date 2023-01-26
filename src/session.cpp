@@ -394,13 +394,14 @@ lt::info_hash_t Session::AddTorrent(lt::add_torrent_params const& p)
                     file_piece = lt::piece_index_t{static_cast<int>(file_piece) + 1};
                 }
 
-                th.userdata().get<TorrentClientData>()
-                    ->mediainfo_file_pieces_wanted
-                        .insert({static_cast<int>(file_index), file_pieces});
+                std::map<int, std::unordered_set<int>> completed;
+                std::map<int, std::unordered_set<int>> wanted;
 
-                th.userdata().get<TorrentClientData>()
-                    ->mediainfo_file_pieces_completed
-                        .insert({static_cast<int>(file_index), {}});
+                completed.insert({static_cast<int>(file_index), {}});
+                wanted.insert({static_cast<int>(file_index), file_pieces});
+
+                th.userdata().get<TorrentClientData>()->mediainfo_file_pieces_wanted = wanted;
+                th.userdata().get<TorrentClientData>()->mediainfo_file_pieces_completed = completed;
             }
         }
 
@@ -574,22 +575,24 @@ void Session::ReadAlerts()
             const auto pfa = lt::alert_cast<lt::piece_finished_alert>(alert);
             auto client_data = pfa->handle.userdata().get<TorrentClientData>();
 
-            if (client_data->mediainfo_file_pieces_wanted.empty() || !client_data->mediainfo_enabled.value_or(false))
+            if (!client_data->mediainfo_file_pieces_wanted.has_value()
+                || client_data->mediainfo_file_pieces_wanted->empty()
+                || !client_data->mediainfo_enabled.value_or(false))
             {
                 break;
             }
 
             const int piece_index = static_cast<int>(pfa->piece_index);
 
-            for (auto& [wanted_file, wanted_pieces] : client_data->mediainfo_file_pieces_wanted)
+            for (auto& [wanted_file, wanted_pieces] : *client_data->mediainfo_file_pieces_wanted)
             {
                 if (wanted_pieces.empty())
                 {
                     continue;
                 }
 
-                auto& completed = client_data->mediainfo_file_pieces_completed.at(wanted_file);
-                auto& wanted = client_data->mediainfo_file_pieces_wanted.at(wanted_file);
+                auto& completed = client_data->mediainfo_file_pieces_completed->at(wanted_file);
+                auto& wanted = client_data->mediainfo_file_pieces_wanted->at(wanted_file);
 
                 if (wanted.contains(piece_index))
                 {
@@ -598,16 +601,15 @@ void Session::ReadAlerts()
 
                 if (completed.size() == wanted.size())
                 {
-                    const auto &files = pfa->handle.torrent_file()->files();
+                    const auto& files = pfa->handle.torrent_file()->files();
                     const std::string file_path = files.file_path(
                             lt::file_index_t{wanted_file},
                             pfa->handle.status(lt::torrent_handle::query_save_path).save_path);
 
-                    BOOST_LOG_TRIVIAL(info) << "All required pieces ready for media info parsing: " << file_path;
-
-                    MediaInfo::Parser::ParseExternal(file_path);
-
-                    BOOST_LOG_TRIVIAL(info) << "Parsed";
+                    if (const auto container = MediaInfo::Parser::ParseExternal(file_path))
+                    {
+                        client_data->mediainfo = container;
+                    }
 
                     completed.clear();
                     wanted.clear();
@@ -618,8 +620,8 @@ void Session::ReadAlerts()
             // false and set all piece priorities to default
 
             const bool all_completed = std::all_of(
-                client_data->mediainfo_file_pieces_completed.begin(),
-                client_data->mediainfo_file_pieces_completed.end(),
+                client_data->mediainfo_file_pieces_completed->begin(),
+                client_data->mediainfo_file_pieces_completed->end(),
                 [](const std::pair<int, std::unordered_set<int>>& pair)
                 {
                     return pair.second.empty();
@@ -627,8 +629,8 @@ void Session::ReadAlerts()
 
             if (all_completed)
             {
-                client_data->mediainfo_file_pieces_completed = {};
-                client_data->mediainfo_file_pieces_wanted    = {};
+                client_data->mediainfo_file_pieces_completed = std::nullopt;
+                client_data->mediainfo_file_pieces_wanted    = std::nullopt;
                 client_data->mediainfo_enabled               = false;
 
                 // Set all pieces to default priority
