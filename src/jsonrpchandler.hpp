@@ -13,7 +13,7 @@ namespace porla
     {
     public:
         explicit JsonRpcHandler(
-            std::map<std::string, std::function<void(const nlohmann::json&, std::shared_ptr<porla::HttpContext>)>> methods);
+            std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, std::shared_ptr<porla::HttpContext>)>> methods);
 
         JsonRpcHandler(const JsonRpcHandler&) = delete;
         JsonRpcHandler& operator=(const JsonRpcHandler&) = delete;
@@ -22,6 +22,6 @@ namespace porla
         void operator()(const std::shared_ptr<porla::HttpContext>& ctx);
 
     private:
-        std::map<std::string, std::function<void(const nlohmann::json&, std::shared_ptr<porla::HttpContext>)>> m_methods;
+        std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, std::shared_ptr<porla::HttpContext>)>> m_methods;
     };
 }

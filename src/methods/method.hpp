@@ -16,8 +16,9 @@ namespace porla::Methods
     class WriteCb
     {
     public:
-        explicit WriteCb(std::shared_ptr<porla::HttpContext> ctx)
-            : m_ctx(std::move(ctx))
+        explicit WriteCb(nlohmann::json id, std::shared_ptr<porla::HttpContext> ctx)
+            : m_id(std::move(id))
+            , m_ctx(std::move(ctx))
         {
         }
 
@@ -36,6 +37,7 @@ namespace porla::Methods
         {
             m_ctx->WriteJson({
                 {"jsonrpc", "2.0"},
+                {"id", m_id},
                 {"error", {
                     {"code", code},
                     {"message", message}
@@ -47,11 +49,13 @@ namespace porla::Methods
         {
             m_ctx->WriteJson({
                 {"jsonrpc", "2.0"},
+                {"id", m_id},
                 {"result", result}
             });
         }
 
     private:
+        nlohmann::json m_id;
         std::shared_ptr<porla::HttpContext> m_ctx;
     };
 
@@ -59,9 +63,9 @@ namespace porla::Methods
     class Method
     {
     public:
-        void operator()(const nlohmann::json& body, std::shared_ptr<porla::HttpContext> ctx)
+        void operator()(const nlohmann::json& id, const nlohmann::json& body, std::shared_ptr<porla::HttpContext> ctx)
         {
-            Invoke(body.get<TReq>(), WriteCb<TRes>(std::move(ctx)));
+            Invoke(body.get<TReq>(), WriteCb<TRes>(id, std::move(ctx)));
         }
 
     protected:

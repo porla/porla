@@ -20,6 +20,7 @@ export async function jsonrpc<T>(token: string, method: string, params?: any) {
     body: JSON.stringify({
       jsonrpc: '2.0',
       method,
+      id: Date.now(),
       params: params || {}
     }),
     headers: {
