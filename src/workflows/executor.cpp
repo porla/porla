@@ -33,6 +33,7 @@ Executor::~Executor()
 {
     m_state->torrent_added_connection.disconnect();
     m_state->torrent_finished_connection.disconnect();
+    m_state->torrent_mediainfo_connection.disconnect();
 }
 
 void Executor::OnTorrentAdded(const lt::torrent_status& ts)
@@ -60,6 +61,8 @@ void Executor::TriggerWorkflows(
     const std::string& event_name,
     const std::map<std::string, std::shared_ptr<ContextProvider>>& contexts)
 {
+    BOOST_LOG_TRIVIAL(info) << "Running workflows for " << event_name;
+
     for (const auto& workflow : m_workflows)
     {
         if (!workflow->ShouldExecute(event_name, contexts))

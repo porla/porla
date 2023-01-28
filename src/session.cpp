@@ -629,14 +629,15 @@ void Session::ReadAlerts()
 
             if (all_completed)
             {
-                client_data->mediainfo_file_pieces_completed = std::nullopt;
-                client_data->mediainfo_file_pieces_wanted    = std::nullopt;
-                client_data->mediainfo_enabled               = false;
-
                 // Set all pieces to default priority
                 pfa->handle.prioritize_pieces(
                     std::vector<lt::download_priority_t>(
                         pfa->handle.get_piece_priorities().size(), lt::default_priority));
+
+                client_data->mediainfo_file_pieces_completed = std::nullopt;
+                client_data->mediainfo_file_pieces_wanted    = std::nullopt;
+                client_data->mediainfo_enabled               = false;
+                client_data->mediainfo_enabled_staggered     = true;
 
                 boost::asio::post(
                     m_io,
@@ -729,8 +730,13 @@ void Session::ReadAlerts()
             const auto& status      = tfa->handle.status();
             const auto& client_data = tfa->handle.userdata().get<TorrentClientData>();
 
-            if (status.total_download > 0 && !client_data->mediainfo_enabled.value_or(false))
+            if (status.total_download > 0 && !client_data->mediainfo_enabled_staggered.value_or(false))
             {
+                // The _staggered variant of enabled is true for one torrent_finished_alert after
+                // the media info has been downloaded. This is to disable the event to be emitted
+                // after we prioritize pieces for media info stuffs.
+                client_data->mediainfo_enabled_staggered = false;
+
                 BOOST_LOG_TRIVIAL(info) << "Torrent " << status.name << " finished";
 
                 // Only emit this event if we have downloaded any data this session and it
