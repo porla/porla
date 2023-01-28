@@ -35,6 +35,7 @@ namespace porla::Methods
             std::int64_t                    eta;
             std::uint64_t                   flags;
             lt::info_hash_t                 info_hash;
+            bool                            has_mediainfo;
             int                             list_peers;
             int                             list_seeds;
             std::optional<json>             metadata;

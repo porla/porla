@@ -17,13 +17,17 @@ namespace porla
 {
     struct SessionOptions
     {
-        sqlite3* db = nullptr;
+        sqlite3*                              db                    = nullptr;
         std::optional<std::vector<lt_plugin>> extensions;
-        lt::settings_pack settings = lt::default_settings();
-        std::filesystem::path session_params_file = std::filesystem::path();
-        int timer_dht_stats = 5000;
-        int timer_session_stats = 5000;
-        int timer_torrent_updates = 1000;
+        bool                                  mediainfo_enabled;
+        std::unordered_set<std::string>       mediainfo_file_extensions;
+        std::int64_t                          mediainfo_file_min_size;
+        int                                   mediainfo_file_wanted_size;
+        lt::settings_pack                     settings              = lt::default_settings();
+        std::filesystem::path                 session_params_file   = std::filesystem::path();
+        int                                   timer_dht_stats       = 5000;
+        int                                   timer_session_stats   = 5000;
+        int                                   timer_torrent_updates = 1000;
     };
 
     class ISession
@@ -43,6 +47,7 @@ namespace porla
         virtual boost::signals2::connection OnStorageMovedFailed(const TorrentHandleSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnTorrentAdded(const TorrentStatusSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnTorrentFinished(const TorrentStatusSignal::slot_type& subscriber) = 0;
+        virtual boost::signals2::connection OnTorrentMediaInfo(const TorrentHandleSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnTorrentPaused(const TorrentStatusSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnTorrentRemoved(const InfoHashSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnTorrentResumed(const TorrentStatusSignal::slot_type& subscriber) = 0;
@@ -100,6 +105,11 @@ namespace porla
             return m_torrentFinished.connect(subscriber);
         }
 
+        boost::signals2::connection OnTorrentMediaInfo(const TorrentHandleSignal::slot_type& subscriber) override
+        {
+            return m_torrentMediaInfo.connect(subscriber);
+        }
+
         boost::signals2::connection OnTorrentPaused(const TorrentStatusSignal::slot_type& subscriber) override
         {
             return m_torrentPaused.connect(subscriber);
@@ -136,6 +146,11 @@ namespace porla
         std::vector<Timer> m_timers;
         std::vector<lt::stats_metric> m_stats;
 
+        bool m_mediainfo_enabled;
+        std::unordered_set<std::string> m_mediainfo_file_extensions;
+        std::int64_t m_mediainfo_file_min_size;
+        int  m_mediainfo_file_wanted_size;
+
         std::filesystem::path m_session_params_file;
 
         SessionStatsSignal m_sessionStats;
@@ -144,6 +159,7 @@ namespace porla
         TorrentHandleSignal m_storageMovedFailed;
         TorrentStatusSignal m_torrentAdded;
         TorrentStatusSignal m_torrentFinished;
+        TorrentHandleSignal m_torrentMediaInfo;
         TorrentStatusSignal m_torrentPaused;
         InfoHashSignal m_torrentRemoved;
         TorrentStatusSignal m_torrentResumed;

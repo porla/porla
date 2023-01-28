@@ -1,6 +1,7 @@
 #include "session.hpp"
 
 #include <fstream>
+#include <utility>
 
 #include <boost/log/trivial.hpp>
 #include <libtorrent/alert_types.hpp>
@@ -8,9 +9,9 @@
 #include <libtorrent/extensions/ut_pex.hpp>
 #include <libtorrent/extensions/smart_ban.hpp>
 #include <libtorrent/session_stats.hpp>
-#include <utility>
 
 #include "data/models/addtorrentparams.hpp"
+#include "mediainfo/parser.hpp"
 #include "torrentclientdata.hpp"
 #include "torrentsvt.hpp"
 
@@ -147,6 +148,10 @@ Session::Session(boost::asio::io_context& io, porla::SessionOptions const& optio
     , m_session_params_file(options.session_params_file)
     , m_stats(lt::session_stats_metrics())
     , m_tdb(nullptr)
+    , m_mediainfo_enabled(options.mediainfo_enabled)
+    , m_mediainfo_file_extensions(options.mediainfo_file_extensions)
+    , m_mediainfo_file_min_size(options.mediainfo_file_min_size)
+    , m_mediainfo_file_wanted_size(options.mediainfo_file_wanted_size)
 {
     lt::session_params params = ReadSessionParams(m_session_params_file);
     params.settings = options.settings;
@@ -354,6 +359,67 @@ lt::info_hash_t Session::AddTorrent(lt::add_torrent_params const& p)
         | lt::torrent_handle::save_info_dict
         | lt::torrent_handle::only_if_modified);
 
+    if (m_mediainfo_enabled)
+    {
+        const auto& files = th.torrent_file()->files();
+
+        std::vector<std::pair<lt::piece_index_t, lt::download_priority_t>> piece_prio;
+
+        for (int i = 0; i < files.num_files(); i++)
+        {
+            const lt::file_index_t file_index{i};
+            const fs::path file_path = files.file_path(file_index);
+
+            if (files.file_size(file_index) < m_mediainfo_file_min_size)
+            {
+                BOOST_LOG_TRIVIAL(debug) << "Skipping file - too small";
+                continue;
+            }
+
+            if (m_mediainfo_file_extensions.contains(file_path.extension()))
+            {
+                int asked_size = 0;
+                lt::piece_index_t file_piece = files.piece_index_at_file(file_index);
+                std::unordered_set<int> file_pieces;
+
+                while (asked_size < m_mediainfo_file_wanted_size)
+                {
+                    if (file_piece >= files.end_piece()) break;
+
+                    asked_size += files.piece_size(file_piece);
+
+                    piece_prio.emplace_back(file_piece, lt::top_priority);
+                    file_pieces.insert(static_cast<int>(file_piece));
+
+                    file_piece = lt::piece_index_t{static_cast<int>(file_piece) + 1};
+                }
+
+                std::map<int, std::unordered_set<int>> completed;
+                std::map<int, std::unordered_set<int>> wanted;
+
+                completed.insert({static_cast<int>(file_index), {}});
+                wanted.insert({static_cast<int>(file_index), file_pieces});
+
+                th.userdata().get<TorrentClientData>()->mediainfo_file_pieces_wanted = wanted;
+                th.userdata().get<TorrentClientData>()->mediainfo_file_pieces_completed = completed;
+            }
+        }
+
+        if (!piece_prio.empty())
+        {
+            // Set all pieces to dont_download.
+            th.prioritize_pieces(
+                std::vector<lt::download_priority_t>(files.num_pieces(), lt::dont_download));
+
+            // Set priority on the pieces we are interested in
+            th.prioritize_pieces(piece_prio);
+
+            th.userdata().get<TorrentClientData>()->mediainfo_enabled = true;
+
+            BOOST_LOG_TRIVIAL(info) << "Prioritizing " << piece_prio.size() << " piece(s)";
+        }
+    }
+
     m_torrents.insert({ ts.info_hashes, th });
     m_torrentAdded(ts);
 
@@ -504,6 +570,85 @@ void Session::ReadAlerts()
 
             break;
         }
+        case lt::piece_finished_alert::alert_type:
+        {
+            const auto pfa = lt::alert_cast<lt::piece_finished_alert>(alert);
+            auto client_data = pfa->handle.userdata().get<TorrentClientData>();
+
+            if (!client_data->mediainfo_file_pieces_wanted.has_value()
+                || client_data->mediainfo_file_pieces_wanted->empty()
+                || !client_data->mediainfo_enabled.value_or(false))
+            {
+                break;
+            }
+
+            const int piece_index = static_cast<int>(pfa->piece_index);
+
+            for (auto& [wanted_file, wanted_pieces] : *client_data->mediainfo_file_pieces_wanted)
+            {
+                if (wanted_pieces.empty())
+                {
+                    continue;
+                }
+
+                auto& completed = client_data->mediainfo_file_pieces_completed->at(wanted_file);
+                auto& wanted = client_data->mediainfo_file_pieces_wanted->at(wanted_file);
+
+                if (wanted.contains(piece_index))
+                {
+                    completed.insert(piece_index);
+                }
+
+                if (completed.size() == wanted.size())
+                {
+                    const auto& files = pfa->handle.torrent_file()->files();
+                    const std::string file_path = files.file_path(
+                            lt::file_index_t{wanted_file},
+                            pfa->handle.status(lt::torrent_handle::query_save_path).save_path);
+
+                    if (const auto container = MediaInfo::Parser::ParseExternal(file_path))
+                    {
+                        client_data->mediainfo = container;
+                    }
+
+                    completed.clear();
+                    wanted.clear();
+                }
+            }
+
+            // If all pieces have been downloaded - set mediainfo_enabled to
+            // false and set all piece priorities to default
+
+            const bool all_completed = std::all_of(
+                client_data->mediainfo_file_pieces_completed->begin(),
+                client_data->mediainfo_file_pieces_completed->end(),
+                [](const std::pair<int, std::unordered_set<int>>& pair)
+                {
+                    return pair.second.empty();
+                });
+
+            if (all_completed)
+            {
+                // Set all pieces to default priority
+                pfa->handle.prioritize_pieces(
+                    std::vector<lt::download_priority_t>(
+                        pfa->handle.get_piece_priorities().size(), lt::default_priority));
+
+                client_data->mediainfo_file_pieces_completed = std::nullopt;
+                client_data->mediainfo_file_pieces_wanted    = std::nullopt;
+                client_data->mediainfo_enabled               = false;
+                client_data->mediainfo_enabled_staggered     = true;
+
+                boost::asio::post(
+                    m_io,
+                    [th = pfa->handle, &ev = m_torrentMediaInfo]()
+                    {
+                        ev(th);
+                    });
+            }
+
+            break;
+        }
         case lt::save_resume_data_alert::alert_type:
         {
             auto srda = lt::alert_cast<lt::save_resume_data_alert>(alert);
@@ -581,14 +726,22 @@ void Session::ReadAlerts()
         }
         case lt::torrent_finished_alert::alert_type:
         {
-            auto tfa = lt::alert_cast<lt::torrent_finished_alert>(alert);
-            auto const& status = tfa->handle.status();
+            const auto tfa          = lt::alert_cast<lt::torrent_finished_alert>(alert);
+            const auto& status      = tfa->handle.status();
+            const auto& client_data = tfa->handle.userdata().get<TorrentClientData>();
 
-
-            if (status.total_download > 0)
+            if (status.total_download > 0 && !client_data->mediainfo_enabled_staggered.value_or(false))
             {
-                // Only emit this event if we have downloaded any data this session.
+                // The _staggered variant of enabled is true for one torrent_finished_alert after
+                // the media info has been downloaded. This is to disable the event to be emitted
+                // after we prioritize pieces for media info stuffs.
+                client_data->mediainfo_enabled_staggered = false;
+
                 BOOST_LOG_TRIVIAL(info) << "Torrent " << status.name << " finished";
+
+                // Only emit this event if we have downloaded any data this session and it
+                // was not the mediainfo pieces.
+
                 m_torrentFinished(status);
             }
 

@@ -87,20 +87,21 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
         if (req.include_metadata.has_value())
         {
-            auto const metadata_keys = req.include_metadata.value();
+            const auto metadata_keys   = req.include_metadata.value();
+            const auto metadata_client = client_data->metadata.value_or(std::map<std::string, nlohmann::json>());
 
             // Include metadata for all the keys specified. If ["*"], include everything.
 
             if (metadata_keys.size() == 1 && metadata_keys.at(0) == "*")
             {
-                metadata = client_data->metadata;
+                metadata = metadata_client;
             }
             else
             {
                 for (const auto& key : metadata_keys)
                 {
-                    if (!client_data->metadata.contains(key)) continue;
-                    metadata[key] = client_data->metadata.at(key);
+                    if (!metadata_client.contains(key)) continue;
+                    metadata[key] = metadata_client.at(key);
                 }
             }
         }
@@ -128,11 +129,9 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
                 else if (filter.field == "tags" && filter.args.is_string())
                 {
                     const auto& tag_value = filter.args.get<std::string>();
+                    const auto  tags      = client_data->tags.value_or(std::unordered_set<std::string>());
 
-                    filter_includes_torrent = std::find(
-                        client_data->tags.begin(),
-                        client_data->tags.end(),
-                        tag_value) != client_data->tags.end();
+                    filter_includes_torrent = tags.find(tag_value) != tags.end();
                 }
             }
         }
@@ -151,6 +150,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             .eta               = porla::Utils::ETA(ts).count(),
             .flags             = static_cast<std::uint64_t>(ts.flags),
             .info_hash         = ts.info_hashes,
+            .has_mediainfo     = client_data->mediainfo.has_value(),
             .list_peers        = ts.list_peers,
             .list_seeds        = ts.list_seeds,
             .metadata          = metadata,
@@ -164,7 +164,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             .save_path         = ts.save_path,
             .size              = size,
             .state             = ts.state,
-            .tags              = client_data->tags,
+            .tags              = client_data->tags.value_or(std::unordered_set<std::string>()),
             .total             = ts.total,
             .total_done        = ts.total_done,
             .upload_rate       = ts.upload_rate,

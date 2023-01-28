@@ -115,16 +115,19 @@ void AddTorrentParams::Update(sqlite3 *db, const libtorrent::info_hash_t& hash, 
 {
     std::vector<char> buf = lt::write_resume_data_buf(params.params);
 
-    auto stmt = Statement::Prepare(db, "UPDATE addtorrentparams SET name = $1, resume_data_buf = $2, queue_position = $3, save_path = $4\n"
-                                       "WHERE (info_hash_v1 = $5 AND info_hash_v2 IS NULL)\n"
-                                       "   OR (info_hash_v1 IS NULL AND info_hash_v2 = $6)\n"
-                                       "   OR (info_hash_v1 = $5 AND info_hash_v2 = $6);");
+    const std::string client_data_json = json(*params.client_data).dump();
+
+    auto stmt = Statement::Prepare(db, "UPDATE addtorrentparams SET client_data = $1, name = $2, resume_data_buf = $3, queue_position = $4, save_path = $5\n"
+                                       "WHERE (info_hash_v1 = $6 AND info_hash_v2 IS NULL)\n"
+                                       "   OR (info_hash_v1 IS NULL AND info_hash_v2 = $7)\n"
+                                       "   OR (info_hash_v1 = $6 AND info_hash_v2 = $7);");
     stmt
-        .Bind(1, std::string_view(params.name))
-        .Bind(2, buf)
-        .Bind(3, params.queue_position)
-        .Bind(4, std::string_view(params.save_path))
-        .Bind(5, hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
-        .Bind(6, hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
+        .Bind(1, std::string_view(client_data_json))
+        .Bind(2, std::string_view(params.name))
+        .Bind(3, buf)
+        .Bind(4, params.queue_position)
+        .Bind(5, std::string_view(params.save_path))
+        .Bind(6, hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
+        .Bind(7, hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
         .Execute();
 }

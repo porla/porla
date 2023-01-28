@@ -33,6 +33,7 @@ namespace porla::Workflows
     private:
         void OnTorrentAdded(const libtorrent::torrent_status& ts);
         void OnTorrentFinished(const libtorrent::torrent_status& ts);
+        void OnTorrentMediaInfo(const libtorrent::torrent_handle& ts);
 
         void TriggerWorkflows(
             const std::string& event_name,
