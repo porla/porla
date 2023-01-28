@@ -1,4 +1,14 @@
-# Porla is a high-performance BitTorrent client
+<h1 align="center">
+  <img src=".github/images/logo.svg" width="160px"/><br/>
+  Porla
+</h1>
+
+<p align="center">
+  <a href="https://discord.gg/FNVVRzqJAG">
+    <img src="https://img.shields.io/discord/1031839440496234526?color=%237289da&style=for-the-badge" />
+  </a>
+  <img src="https://img.shields.io/github/v/release/porla/porla?color=%2365325D&style=for-the-badge" />
+</p>
 
 Porla is a powerful BitTorrent client with high performance and low memory
 usage. It is designed for headless operations on servers and seedboxes and can
@@ -7,6 +17,10 @@ easily manage tens of thousands of torrents.
 The focus of Porla is to provide a BitTorrent client that is _fast_, _correct_
 and _extensible_.
 
+<p align="center">
+   <img src=".github/images/porla-torrents-list.png"><br/>
+</p>
+
 ### Features
 
  * [User-defined workflows](https://porla.org/workflows).
@@ -14,11 +28,6 @@ and _extensible_.
  * Support for both BitTorrent v1 and v2.
  * [HTTP API](https://porla.org/api/auth) with JWT auth.
  * Modern web UI.
-
-<p align="center">
-   <img src="https://user-images.githubusercontent.com/1491824/213406812-32e16a5c-3d59-4efc-a9f1-d15690ac86e2.png"><br/>
-   <i>The main torrents list in Porla.</i>
-</p>
 
 #### Workflows
 
