@@ -172,7 +172,32 @@ static const std::vector<std::tuple<std::string, std::function<void(const lt::to
     {"seed_rank", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
         sqlite3_result_int(ctx, ts.seed_rank);
     }},
-    // TODO: state
+    {"state", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
+        switch (ts.state)
+        {
+        case libtorrent::torrent_status::checking_files:
+            sqlite3_result_text(ctx, "checking_files", -1, SQLITE_TRANSIENT);
+            break;
+        case libtorrent::torrent_status::downloading_metadata:
+            sqlite3_result_text(ctx, "downloading_metadata", -1, SQLITE_TRANSIENT);
+            break;
+        case libtorrent::torrent_status::downloading:
+            sqlite3_result_text(ctx, "downloading", -1, SQLITE_TRANSIENT);
+            break;
+        case libtorrent::torrent_status::finished:
+            sqlite3_result_text(ctx, "finished", -1, SQLITE_TRANSIENT);
+            break;
+        case libtorrent::torrent_status::seeding:
+            sqlite3_result_text(ctx, "seeding", -1, SQLITE_TRANSIENT);
+            break;
+        case libtorrent::torrent_status::checking_resume_data:
+            sqlite3_result_text(ctx, "checking_resume_data", -1, SQLITE_TRANSIENT);
+            break;
+        default:
+            sqlite3_result_text(ctx, "unknown", -1, SQLITE_TRANSIENT);
+            break;
+        }
+    }},
     {"need_save_resume", [](const lt::torrent_status& ts, sqlite3_context* ctx) {
         sqlite3_result_int(ctx, ts.need_save_resume ? 1 : 0);
     }},
