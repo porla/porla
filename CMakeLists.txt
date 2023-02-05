@@ -8,6 +8,7 @@ project(porla)
 set(CMAKE_CXX_STANDARD 20)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+find_package(antlr4-runtime      CONFIG REQUIRED)
 find_package(Boost                      REQUIRED COMPONENTS log program_options system)
 find_package(duktape)
 find_package(GTest               CONFIG REQUIRED)
@@ -23,6 +24,8 @@ find_package(yaml-cpp            CONFIG REQUIRED)
 find_package(ZenLib              CONFIG REQUIRED)
 
 find_path(JWT_CPP_INCLUDE_DIRS "jwt-cpp/base.h")
+
+include_directories(${ANTLR4_INCLUDE_DIR})
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
@@ -153,6 +156,7 @@ target_link_libraries(
 
     ${PROJECT_NAME}_mediainfo
 
+    antlr4_static
     Boost::boost
     Boost::log
     Boost::program_options

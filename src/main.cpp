@@ -1,3 +1,4 @@
+#include <antlr4-runtime/antlr4-runtime.h>
 #include <boost/asio.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
@@ -59,6 +60,8 @@
 
 int main(int argc, char* argv[])
 {
+    antlr4::ANTLRInputStream input("");
+
     static std::map<std::string, std::function<int(int, char**, std::unique_ptr<porla::Config>)>> subcommands =
     {
         {"auth:token", &porla::Tools::AuthToken},
