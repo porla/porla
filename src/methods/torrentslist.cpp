@@ -17,21 +17,21 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 {
     static std::map<std::pair<std::string, bool>, std::function<bool(const TorrentsListRes::Item&, const TorrentsListRes::Item&)>> sorters =
     {
-        {{"download_rate", false},  [](auto const& lhs, auto const& rhs) { return lhs.download_rate >= rhs.download_rate; }},
+        {{"download_rate", false},  [](auto const& lhs, auto const& rhs) { return lhs.download_rate > rhs.download_rate; }},
         {{"download_rate", true},   [](auto const& lhs, auto const& rhs) { return lhs.download_rate < rhs.download_rate; }},
-        {{"eta", false},            [](auto const& lhs, auto const& rhs) { return lhs.eta >= rhs.eta; }},
+        {{"eta", false},            [](auto const& lhs, auto const& rhs) { return lhs.eta > rhs.eta; }},
         {{"eta", true},             [](auto const& lhs, auto const& rhs) { return lhs.eta < rhs.eta; }},
-        {{"list_peers", false},     [](auto const& lhs, auto const& rhs) { return lhs.list_peers >= rhs.list_peers; }},
+        {{"list_peers", false},     [](auto const& lhs, auto const& rhs) { return lhs.list_peers > rhs.list_peers; }},
         {{"list_peers", true},      [](auto const& lhs, auto const& rhs) { return lhs.list_peers < rhs.list_peers; }},
-        {{"list_seeds", false},     [](auto const& lhs, auto const& rhs) { return lhs.list_seeds >= rhs.list_seeds; }},
+        {{"list_seeds", false},     [](auto const& lhs, auto const& rhs) { return lhs.list_seeds > rhs.list_seeds; }},
         {{"list_seeds", true},      [](auto const& lhs, auto const& rhs) { return lhs.list_seeds < rhs.list_seeds; }},
         {{"name", false},           [](auto const& lhs, auto const& rhs) { return strcmp(lhs.name.c_str(), rhs.name.c_str()) > 0; }},
         {{"name", true},            [](auto const& lhs, auto const& rhs) { return strcmp(lhs.name.c_str(), rhs.name.c_str()) < 0; }},
-        {{"num_peers", false},      [](auto const& lhs, auto const& rhs) { return lhs.num_peers >= rhs.num_peers; }},
+        {{"num_peers", false},      [](auto const& lhs, auto const& rhs) { return lhs.num_peers > rhs.num_peers; }},
         {{"num_peers", true},       [](auto const& lhs, auto const& rhs) { return lhs.num_peers < rhs.num_peers; }},
-        {{"num_seeds", false},      [](auto const& lhs, auto const& rhs) { return lhs.num_seeds >= rhs.num_seeds; }},
+        {{"num_seeds", false},      [](auto const& lhs, auto const& rhs) { return lhs.num_seeds > rhs.num_seeds; }},
         {{"num_seeds", true},       [](auto const& lhs, auto const& rhs) { return lhs.num_seeds < rhs.num_seeds; }},
-        {{"progress", false},       [](auto const& lhs, auto const& rhs) { return lhs.progress >= rhs.progress; }},
+        {{"progress", false},       [](auto const& lhs, auto const& rhs) { return lhs.progress > rhs.progress; }},
         {{"progress", true},        [](auto const& lhs, auto const& rhs) { return lhs.progress < rhs.progress; }},
         {
             {"queue_position", false},
@@ -51,17 +51,17 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
                 return lhs.queue_position < rhs.queue_position;
             }
         },
-        {{"ratio", false},          [](auto const& lhs, auto const& rhs) { return lhs.ratio >= rhs.ratio; }},
+        {{"ratio", false},          [](auto const& lhs, auto const& rhs) { return lhs.ratio > rhs.ratio; }},
         {{"ratio", true},           [](auto const& lhs, auto const& rhs) { return lhs.ratio < rhs.ratio; }},
         {{"save_path", false},      [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) > 0; }},
         {{"save_path", true},       [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) < 0; }},
-        {{"size", false},           [](auto const& lhs, auto const& rhs) { return lhs.size >= rhs.size; }},
+        {{"size", false},           [](auto const& lhs, auto const& rhs) { return lhs.size > rhs.size; }},
         {{"size", true},            [](auto const& lhs, auto const& rhs) { return lhs.size < rhs.size; }},
-        {{"total", false},          [](auto const& lhs, auto const& rhs) { return lhs.total >= rhs.total; }},
+        {{"total", false},          [](auto const& lhs, auto const& rhs) { return lhs.total > rhs.total; }},
         {{"total", true},           [](auto const& lhs, auto const& rhs) { return lhs.total < rhs.total; }},
-        {{"total_done", false},     [](auto const& lhs, auto const& rhs) { return lhs.total_done >= rhs.total_done; }},
+        {{"total_done", false},     [](auto const& lhs, auto const& rhs) { return lhs.total_done > rhs.total_done; }},
         {{"total_done", true},      [](auto const& lhs, auto const& rhs) { return lhs.total_done < rhs.total_done; }},
-        {{"upload_rate", false},    [](auto const& lhs, auto const& rhs) { return lhs.upload_rate >= rhs.upload_rate; }},
+        {{"upload_rate", false},    [](auto const& lhs, auto const& rhs) { return lhs.upload_rate > rhs.upload_rate; }},
         {{"upload_rate", true},     [](auto const& lhs, auto const& rhs) { return lhs.upload_rate < rhs.upload_rate; }},
     };
 
@@ -141,7 +141,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             continue;
         }
 
-        torrents.push_back(TorrentsListRes::Item{
+        torrents.emplace_back(TorrentsListRes::Item{
             .all_time_download = ts.all_time_download,
             .all_time_upload   = ts.all_time_upload,
             .category          = client_data->category,
