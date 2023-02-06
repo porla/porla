@@ -26,6 +26,7 @@ and _extensible_.
  * [User-defined workflows](https://porla.org/workflows).
  * Automatically parse media files for codec information, etc.
  * Support for both BitTorrent v1 and v2.
+ * Embedded query language to find torrents. Fast.
  * [HTTP API](https://porla.org/api/auth) with JWT auth.
  * Modern web UI.
 
@@ -47,6 +48,13 @@ such as Sonarr or Radarr can use this to decide whether to reject a release.
 
 _Media information parsing is done out-of-process to ensure stability if the
 parsing fails catastrophically for some reason_.
+
+#### The Porla query language (PQL)
+
+To make it easy to navigate and filter a large amount of torrents Porla has a
+simple, embedded query language named PQL.
+
+With PQL you can easily find torrents matching specific criterias.
 
 
 ## Getting started
@@ -173,4 +181,15 @@ _Requires push access to the Porla container registry_.
 docker build -t porla-build-env -f Dockerfile.build-env .
 docker tag porla-build-env ghcr.io/porla/build-env:<timestamp>
 docker push ghcr.io/porla/build-env:<timestamp>
+```
+
+### Generating ANTLR4 grammar source files
+
+This is only needed when `PorlaQueryLang.g4` is modified.
+
+```shell
+wget https://www.antlr.org/download/antlr-4.11.1-complete.jar
+pushd src/query
+java -jar ../../antlr-4.11.1-complete.jar -Dlanguage=Cpp -visitor -no-listener -o _aux PorlaQueryLang.g4
+popd
 ```

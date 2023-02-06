@@ -53,6 +53,23 @@ target_link_libraries(
 )
 
 add_library(
+    ${PROJECT_NAME}_query
+    STATIC
+    src/query/_aux/PorlaQueryLangBaseVisitor.cpp
+    src/query/_aux/PorlaQueryLangLexer.cpp
+    src/query/_aux/PorlaQueryLangParser.cpp
+    src/query/_aux/PorlaQueryLangVisitor.cpp
+    src/query/pql.cpp
+)
+
+target_link_libraries(
+    ${PROJECT_NAME}_query
+    PRIVATE
+    antlr4_static
+    LibtorrentRasterbar::torrent-rasterbar
+)
+
+add_library(
     ${PROJECT_NAME}_core
     STATIC
     ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
@@ -155,8 +172,8 @@ target_link_libraries(
     ${PROJECT_NAME}_core
 
     ${PROJECT_NAME}_mediainfo
+    ${PROJECT_NAME}_query
 
-    antlr4_static
     Boost::boost
     Boost::log
     Boost::program_options
@@ -184,6 +201,7 @@ add_executable(
     ${PROJECT_NAME}_tests
     tests/inmemorysession.cpp
     tests/main.cpp
+    tests/query/pql.cpp
     tests/utils/string.cpp
     tests/workflows/actions/log.cpp
     tests/workflows/actions/sleep.cpp
@@ -195,6 +213,7 @@ add_executable(
 target_link_libraries(
     ${PROJECT_NAME}_tests
     ${PROJECT_NAME}_core
+    ${PROJECT_NAME}_query
     GTest::gmock
     GTest::gtest
     GTest::gmock_main

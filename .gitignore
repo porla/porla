@@ -6,3 +6,6 @@ cmake-build-*
 docs/build/
 node_modules/
 webui.zip
+antlr-4*.jar
+src/query/.antlr
+src/query/_aux
