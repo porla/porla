@@ -21,7 +21,6 @@
 #include "torrentspeersadd.hpp"
 #include "torrentspeerslist.hpp"
 #include "torrentspropertiesget.hpp"
-#include "torrentsquery.hpp"
 #include "torrentsrecheck.hpp"
 #include "torrentsremove.hpp"
 #include "torrentsresume.hpp"

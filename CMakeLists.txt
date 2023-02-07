@@ -91,7 +91,6 @@ add_library(
     src/metricshandler.cpp
     src/session.cpp
     src/systemhandler.cpp
-    src/torrentsvt.cpp
     src/uri.cpp
     src/utils/eta.cpp
     src/utils/ratio.cpp
@@ -128,7 +127,6 @@ add_library(
     src/methods/torrentspeersadd.cpp
     src/methods/torrentspeerslist.cpp
     src/methods/torrentspropertiesget.cpp
-    src/methods/torrentsquery.cpp
     src/methods/torrentsrecheck.cpp
     src/methods/torrentsremove.cpp
     src/methods/torrentsresume.cpp

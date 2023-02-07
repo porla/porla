@@ -58,7 +58,6 @@ public:
     libtorrent::info_hash_t AddTorrent(libtorrent::add_torrent_params const& p) override;
     void ApplySettings(const libtorrent::settings_pack& settings) override;
     void Pause() override;
-    int Query(const std::string_view& query, const std::function<int(sqlite3_stmt*)>& cb) override;
     void Recheck(const lt::info_hash_t& hash) override;
     void Remove(const lt::info_hash_t& hash, bool remove_data) override;
     void Resume() override;
