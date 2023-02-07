@@ -10,6 +10,8 @@
 #include "_aux/PorlaQueryLangLexer.h"
 #include "_aux/PorlaQueryLangParser.h"
 
+#include "../torrentclientdata.hpp"
+
 using porla::Query::PQL;
 
 typedef std::function<bool(const libtorrent::torrent_status&)> TorrentStatusFilter;
@@ -75,6 +77,7 @@ public:
         {
             {"downloading", [](const auto& ts) { return ts.state == lt::torrent_status::downloading; }},
             {"finished", [](const auto& ts) { return ts.state == lt::torrent_status::finished; }},
+            {"moving", [](const auto& ts) { return ts.moving_storage; }},
             {"paused", [](const auto& ts) { return (ts.flags & lt::torrent_flags::paused) == lt::torrent_flags::paused; }},
             {"seeding", [](const auto& ts) { return ts.state == lt::torrent_status::seeding; }}
         };
@@ -108,75 +111,164 @@ public:
 
     antlrcpp::Any visitOperatorPredicate(PorlaQueryLangParser::OperatorPredicateContext* context) override
     {
+        typedef std::function<bool(Oper oper, const ValueVariant&, const lt::torrent_status&)> OperFunc;
+
+        struct OperRef
+        {
+            OperFunc func;
+        };
+
+        static const std::map<std::string, OperRef> oper_map =
+        {
+            {"age", OperRef{
+                .func = [](Oper oper, const ValueVariant& val, const lt::torrent_status& ts)
+                {
+                    if (const auto age = std::get_if<std::int64_t>(&val))
+                    {
+                        const time_t torrent_age = time(nullptr) - ts.added_time;
+                        return Compare(torrent_age, *age, oper);
+                    }
+
+                    throw std::runtime_error("invalid value type - expected integer");
+                }
+            }},
+            {"category", OperRef{
+                .func = [](Oper oper, const ValueVariant& val, const lt::torrent_status& ts)
+                {
+                    if (const auto category = std::get_if<std::string>(&val))
+                    {
+                        const auto client_data = ts.handle.userdata().get<porla::TorrentClientData>();
+
+                        if (client_data == nullptr || !client_data->category.has_value())
+                        {
+                            return false;
+                        }
+
+                        return Compare(client_data->category.value(), *category, oper);
+                    }
+
+                    throw std::runtime_error("invalid value type - expected string");
+                }
+            }},
+            {"download_rate", OperRef{
+                .func = [](Oper oper, const ValueVariant& val, const lt::torrent_status& ts)
+                {
+                    if (const auto dl = std::get_if<std::int64_t>(&val))
+                    {
+                        return Compare(ts.download_payload_rate, *dl, oper);
+                    }
+
+                    throw std::runtime_error("invalid value type - expected number");
+                }
+            }},
+            {"name", OperRef{
+                .func = [](Oper oper, const ValueVariant& val, const lt::torrent_status& ts)
+                {
+                    if (const auto name = std::get_if<std::string>(&val))
+                    {
+                        if (oper == Oper::CONTAINS)
+                        {
+                            return ts.name.find(*name) != std::string::npos;
+                        }
+
+                        return Compare(ts.name, *name, oper);
+                    }
+
+                    throw std::runtime_error("invalid value type - expected string");
+                }
+            }},
+            {"progress", OperRef{
+                .func = [](Oper oper, const ValueVariant& val, const lt::torrent_status& ts)
+                {
+                    if (const auto progress = std::get_if<float>(&val))
+                    {
+                        return Compare(ts.progress, *progress, oper);
+                    }
+
+                    throw std::runtime_error("invalid value type - expected string");
+                }
+            }},
+            {"save_path", OperRef{
+                .func = [](Oper oper, const ValueVariant& val, const lt::torrent_status& ts)
+                {
+                    if (const auto save_path = std::get_if<std::string>(&val))
+                    {
+                        if (oper == Oper::CONTAINS)
+                        {
+                            return ts.save_path.find(*save_path) != std::string::npos;
+                        }
+
+                        return Compare(ts.save_path, *save_path, oper);
+                    }
+
+                    throw std::runtime_error("invalid value type - expected string");
+                }
+            }},
+            {"size", OperRef{
+                .func = [](Oper oper, const ValueVariant& val, const lt::torrent_status& ts)
+                {
+                    if (const auto size = std::get_if<std::int64_t>(&val))
+                    {
+                        if (const auto torrent_file = ts.torrent_file.lock())
+                        {
+                            return Compare(torrent_file->total_size(), *size, oper);
+                        }
+
+                        return false;
+                    }
+
+                    throw std::runtime_error("invalid value type - expected string");
+                }
+            }},
+            {"tags", OperRef{
+                .func = [](Oper oper, const ValueVariant& val, const lt::torrent_status& ts)
+                {
+                    if (oper != Oper::CONTAINS)
+                    {
+                        throw std::runtime_error("tags only support contains");
+                    }
+
+                    if (const auto tag = std::get_if<std::string>(&val))
+                    {
+                        const auto client_data = ts.handle.userdata().get<porla::TorrentClientData>();
+
+                        return client_data != nullptr
+                            && client_data->tags.has_value()
+                            && client_data->tags->contains(*tag);
+                    }
+
+                    throw std::runtime_error("invalid value type - expected string");
+                }
+            }},
+            {"upload_rate", OperRef{
+                .func = [](Oper oper, const ValueVariant& val, const lt::torrent_status& ts)
+                {
+                    if (const auto ul = std::get_if<std::int64_t>(&val))
+                    {
+                        return Compare(ts.upload_payload_rate, *ul, oper);
+                    }
+
+                    throw std::runtime_error("invalid value type - expected number");
+                }
+            }}
+        };
+
         const auto reference = std::any_cast<std::string>(this->visit(context->reference()));
         const auto oper      = std::any_cast<Oper>(this->visit(context->operator_()));
         const auto value     = std::any_cast<ValueVariant>(this->visit(context->value()));
 
-        if (reference == "age")
+        const auto oper_ref = oper_map.find(reference);
+
+        if (oper_ref == oper_map.end())
         {
-            return TorrentStatusFilter(
-                [val = std::get<std::int64_t>(value), oper](const libtorrent::torrent_status& ts)
-                {
-                    const time_t age = time(nullptr) - ts.added_time;
-                    return Compare(age, val, oper);
-                });
+            throw std::runtime_error("invalid reference");
         }
 
-        if (reference == "category")
-        {
-            return TorrentStatusFilter(
-                [](const libtorrent::torrent_status& ts)
-                {
-                    return false;
-                });
-        }
-
-        if (reference == "dl")
-        {
-            return TorrentStatusFilter(
-                [val = std::get<std::int64_t>(value), oper](const libtorrent::torrent_status& ts)
-                {
-                    return Compare(ts.download_payload_rate, val, oper);
-                });
-        }
-
-        if (reference == "name")
-        {
-            return TorrentStatusFilter(
-                [val = std::get<std::string>(value)](const libtorrent::torrent_status& ts)
-                {
-                    return ts.name.find(val) != std::string::npos;
-                });
-        }
-
-        if (reference == "size")
-        {
-            return TorrentStatusFilter(
-                [](const libtorrent::torrent_status& ts)
-                {
-                    return false;
-                });
-        }
-
-        if (reference == "tags")
-        {
-            return TorrentStatusFilter(
-                [](const libtorrent::torrent_status& ts)
-                {
-                    return false;
-                });
-        }
-
-        if (reference == "ul")
-        {
-            return TorrentStatusFilter(
-                [val = std::get<std::int64_t>(value), oper](const libtorrent::torrent_status& ts)
-                {
-                    return Compare(ts.upload_payload_rate, val, oper);
-                });
-        }
-
-        throw std::runtime_error("invalid operator predicate");
+        return TorrentStatusFilter(
+            [oper, value, func = oper_ref->second.func](const lt::torrent_status& ts)
+            {
+                return func(oper, value, ts);
+            });
     }
 
     antlrcpp::Any visitOrExpression(PorlaQueryLangParser::OrExpressionContext* context) override
@@ -210,6 +302,11 @@ public:
 
     antlrcpp::Any visitValue(PorlaQueryLangParser::ValueContext* context) override
     {
+        if (const auto float_value = context->FLOAT())
+        {
+            return ValueVariant(std::stof(float_value->getText()));
+        }
+
         if (const auto int_value = context->INT())
         {
             std::int64_t val = std::stoll(int_value->getText());

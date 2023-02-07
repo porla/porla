@@ -14,7 +14,8 @@ public:
   enum {
     T__0 = 1, AND = 2, OR = 3, OPER_EQ = 4, OPER_CONTAINS = 5, OPER_GT = 6, 
     OPER_GTE = 7, OPER_LT = 8, OPER_LTE = 9, WHITESPACE = 10, INT = 11, 
-    STRING = 12, UNIT_DURATION = 13, UNIT_SIZE = 14, UNIT_SPEED = 15, ID = 16
+    FLOAT = 12, STRING = 13, UNIT_DURATION = 14, UNIT_SIZE = 15, UNIT_SPEED = 16, 
+    ID = 17
   };
 
   enum {
@@ -163,6 +164,7 @@ public:
     antlr4::tree::TerminalNode *UNIT_DURATION();
     antlr4::tree::TerminalNode *UNIT_SIZE();
     antlr4::tree::TerminalNode *UNIT_SPEED();
+    antlr4::tree::TerminalNode *FLOAT();
     antlr4::tree::TerminalNode *STRING();
 
 

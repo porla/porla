@@ -19,17 +19,19 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Values(
         "age > 1d",
         "category = \"some-category\"",
-        "dl > 1mbps",
+        "download_rate > 1mbps",
         "name contains \"foo\"",
         "is:downloading",
         "is:finished",
         "is:paused",
         "is:seeding",
         "is:seeding and age > 1w",
+        "progress <= 0.8",
+        "save_path = \"/dl\"",
         "size > 1gb",
         "size < 1gb or age > 3h",
         "size > 1gb and tags contains \"foo\"",
-        "ul < 1mbps"
+        "upload_rate < 1mbps"
     ));
 
 TEST(porla_Query_PQL, Filter_Name_Contains)
@@ -54,15 +56,15 @@ TEST(porla_Query_PQL, Filter_Age)
     EXPECT_EQ(PQL::Parse("age <= 1h")->Includes(status), false);
 }
 
-TEST(porla_Query_PQL, Filter_DL)
+TEST(porla_Query_PQL, Filter_DownloadRate)
 {
     libtorrent::torrent_status status;
     status.download_payload_rate = 2 * 1024 * 1024; // 2 mbps
 
-    EXPECT_EQ(PQL::Parse("dl >= 1")->Includes(status), true);
-    EXPECT_EQ(PQL::Parse("dl <  10mbps")->Includes(status), true);
-    EXPECT_EQ(PQL::Parse("dl >  500kbps")->Includes(status), true);
-    EXPECT_EQ(PQL::Parse("dl > 103")->Includes(status), true);
-    EXPECT_EQ(PQL::Parse("dl <  1mbps")->Includes(status), false);
-    EXPECT_EQ(PQL::Parse("dl <= 346kbps")->Includes(status), false);
+    EXPECT_EQ(PQL::Parse("download_rate >= 1")->Includes(status), true);
+    EXPECT_EQ(PQL::Parse("download_rate <  10mbps")->Includes(status), true);
+    EXPECT_EQ(PQL::Parse("download_rate >  500kbps")->Includes(status), true);
+    EXPECT_EQ(PQL::Parse("download_rate > 103")->Includes(status), true);
+    EXPECT_EQ(PQL::Parse("download_rate <  1mbps")->Includes(status), false);
+    EXPECT_EQ(PQL::Parse("download_rate <= 346kbps")->Includes(status), false);
 }

@@ -13,13 +13,14 @@ OPER_LTE      : '<=';
 
 WHITESPACE    : [ \t\r\n]+ -> skip;
 INT           : '-'? [0-9]+ ;
+FLOAT         : '-'? [0-9]+ '.' [0-9]+ ;
 STRING        : '"' .*? '"';
 
 UNIT_DURATION : 's' | 'm' | 'h' | 'd' | 'w';
 UNIT_SIZE     : 'b' | 'kb' | 'mb' | 'gb' | 'tb' | 'pb';
 UNIT_SPEED    : 'bps' | 'kbps' | 'mbps' | 'gbps';
 
-ID            : [a-zA-Z]+;
+ID            : [a-zA-Z_]+;
 
 
 filter
@@ -45,6 +46,7 @@ value
     : INT WHITESPACE? UNIT_DURATION?
     | INT WHITESPACE? UNIT_SIZE?
     | INT WHITESPACE? UNIT_SPEED?
+    | FLOAT
     | STRING
     ;
 
