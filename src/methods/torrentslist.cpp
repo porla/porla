@@ -1,5 +1,6 @@
 #include "torrentslist.hpp"
 
+#include "../query/pql.hpp"
 #include "../session.hpp"
 #include "../torrentclientdata.hpp"
 #include "../utils/eta.hpp"
@@ -116,19 +117,24 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
         if (const auto& filters = req.filters)
         {
-            for (const auto& filter : filters.value())
+            for (const auto& [field, args] : filters.value())
             {
-                if (filter.field == "category" && filter.args.is_string())
+                if (field == "category" && args.is_string())
                 {
-                    filter_includes_torrent = client_data->category == filter.args;
+                    filter_includes_torrent = client_data->category == args;
                 }
-                else if (filter.field == "save_path" && filter.args.is_string())
+                else if (field == "query" && args.is_string())
                 {
-                    filter_includes_torrent = ts.save_path == filter.args;
+                    const auto filter = Query::PQL::Parse(args.get<std::string>());
+                    filter_includes_torrent = filter->Includes(ts);
                 }
-                else if (filter.field == "tags" && filter.args.is_string())
+                else if (field == "save_path" && args.is_string())
                 {
-                    const auto& tag_value = filter.args.get<std::string>();
+                    filter_includes_torrent = ts.save_path == args;
+                }
+                else if (field == "tags" && args.is_string())
+                {
+                    const auto& tag_value = args.get<std::string>();
                     const auto  tags      = client_data->tags.value_or(std::unordered_set<std::string>());
 
                     filter_includes_torrent = tags.find(tag_value) != tags.end();

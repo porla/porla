@@ -19,11 +19,6 @@ namespace porla::Methods
         page_size);
 
     NLOHMANN_JSONIFY_ALL_THINGS(
-        TorrentsListReqFilter,
-        field,
-        args);
-
-    NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsListRes::Item,
         all_time_download,
         all_time_upload,
