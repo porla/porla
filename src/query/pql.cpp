@@ -2,8 +2,9 @@
 
 #include <antlr4-runtime.h>
 
-#include <optional>
+#include <functional>
 #include <utility>
+#include <variant>
 
 #include "_aux/PorlaQueryLangBaseVisitor.h"
 #include "_aux/PorlaQueryLangLexer.h"
