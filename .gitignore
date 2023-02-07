@@ -8,4 +8,5 @@ node_modules/
 webui.zip
 antlr-4*.jar
 src/query/.antlr
-src/query/_aux
+src/query/_aux/*.interp
+src/query/_aux/*.tokens
