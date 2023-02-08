@@ -1,33 +1,31 @@
 import { createContext, ReactNode, useContext, useMemo, useState } from "react"
-import { Filter } from "../types";
+import { TorrentsListFilters } from "../types";
 
 type TorrentsFilterContextType = {
-  addFilter: (filter: Filter) => void;
-  clearFilter: (field: string) => void;
   clearFilters: () => void;
-  filters: Filter[];
+  filters: TorrentsListFilters;
+  setFilter<K extends keyof TorrentsListFilters>(key: K, value: TorrentsListFilters[K]): void;
 }
 
 const TorrentsFilterContext = createContext<TorrentsFilterContextType>({} as TorrentsFilterContextType);
 
 export function TorrentsFilterProvider({ children } : { children: ReactNode }): JSX.Element {
-  const [filters, setFilters] = useState<Filter[]>([]);
-
-  function addFilter(filter: Filter) {
-    setFilters(() => [filter, ...filters])
-  }
-
-  function clearFilter(field: string) {
-    setFilters(() => [...filters.filter(f => f.field !== field)])
-  }
+  const [filters, set_f] = useState<TorrentsListFilters>({});
 
   function clearFilters() {
-    setFilters(() => []);
+    set_f({});
+  }
+
+  function setFilter<K extends keyof TorrentsListFilters>(key: K, value: TorrentsListFilters[K]) {
+    set_f(f => {
+      let n = { ...f };
+      n[key] = value
+      return n;
+    });
   }
 
   const memoedValue = useMemo(() => ({
-    addFilter,
-    clearFilter,
+    setFilter,
     clearFilters,
     filters,
   }), [filters]);

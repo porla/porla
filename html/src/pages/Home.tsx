@@ -26,6 +26,7 @@ export default function Home() {
 
   const { error, data, mutate } = useRPC<ITorrentsList>('torrents.list', () => {
     return {
+      filters,
       page,
       order_by: order?.by,
       order_by_dir: order?.dir
@@ -153,7 +154,7 @@ export default function Home() {
                       onClick={() => setShowAdd(true)}
                     />
                     <HStack>
-                      {filters && filters.map((f: any) => <FilterItem filter={f} />)}
+                      {filters && filters.query && (<>{filters.query}</>)}
                     </HStack>
                   </HStack>
                   <Spacer />

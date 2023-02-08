@@ -14,7 +14,7 @@ TEST_P(PqlParameterizedTestFixture, Parses_Valid_Queries)
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    PQLParserTests,
+    PqlParserTests,
     PqlParameterizedTestFixture,
     ::testing::Values(
         "age > 1d",

@@ -117,22 +117,22 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
         if (const auto& filters = req.filters)
         {
-            for (const auto& [field, args] : filters.value())
+            for (const auto& [filter_field, args] : filters.value())
             {
-                if (field == "category" && args.is_string())
+                if (filter_field == "category" && args.is_string())
                 {
                     filter_includes_torrent = client_data->category == args;
                 }
-                else if (field == "query" && args.is_string())
+                else if (filter_field == "query" && args.is_string() && !args.get<std::string>().empty())
                 {
                     const auto filter = Query::PQL::Parse(args.get<std::string>());
                     filter_includes_torrent = filter->Includes(ts);
                 }
-                else if (field == "save_path" && args.is_string())
+                else if (filter_field == "save_path" && args.is_string())
                 {
                     filter_includes_torrent = ts.save_path == args;
                 }
-                else if (field == "tags" && args.is_string())
+                else if (filter_field == "tags" && args.is_string())
                 {
                     const auto& tag_value = args.get<std::string>();
                     const auto  tags      = client_data->tags.value_or(std::unordered_set<std::string>());

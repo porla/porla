@@ -260,7 +260,9 @@ export type ISettingsList = {
   settings: ISettingsDict;
 }
 
-export type Filter = {
-  field: string;
-  args: string | number;
+export type TorrentsListFilters = {
+  category?: string | null | undefined;
+  query?: string | null | undefined;
+  save_path?: string | null | undefined;
+  tags?: string[] | null | undefined;
 }
