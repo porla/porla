@@ -7,6 +7,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import Isotype from './assets/isotype.svg';
 import prefixPath from './base';
 import AppErrorModal from './components/AppErrorModal';
+import Query from './components/Query';
 import SettingsDrawer from './components/SettingsDrawer';
 import useAuth from './contexts/auth';
 import useNinja from './contexts/ninja';
@@ -65,6 +66,8 @@ function AuthApp() {
             <Stack direction={"row"} alignItems={"center"} spacing={5}>
               <Image src={Isotype} width={"32px"} />
             </Stack>
+
+            <Query />
 
             <IconButton
               aria-label=''
