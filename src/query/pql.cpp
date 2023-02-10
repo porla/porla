@@ -11,6 +11,7 @@
 #include "_aux/PorlaQueryLangParser.h"
 
 #include "../torrentclientdata.hpp"
+#include "../utils/ratio.hpp"
 
 using porla::Query::PQL;
 using porla::Query::QueryError;
@@ -210,6 +211,24 @@ public:
                     }
 
                     throw QueryError("Invalid value type - expected string");
+                }
+            }},
+            {"ratio", OperRef{
+                .func = [](Oper oper, const ValueVariant& val, const lt::torrent_status& ts)
+                {
+                    const auto ratio = porla::Utils::Ratio(ts);
+
+                    if (const auto ratio_int = std::get_if<std::int64_t>(&val))
+                    {
+                        return Compare(ratio, *ratio_int, oper);
+                    }
+
+                    if (const auto ratio_float = std::get_if<float>(&val))
+                    {
+                        return Compare(ratio, *ratio_float, oper);
+                    }
+
+                    throw QueryError("Invalid value type - expected int or float");
                 }
             }},
             {"save_path", OperRef{
