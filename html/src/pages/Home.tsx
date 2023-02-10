@@ -175,7 +175,10 @@ export default function Home() {
                       onClick={() => setShowAdd(true)}
                     />
                     <HStack>
-                      {filters && filters.query && (<FilterItem field="query" desc="PQL query" />)}
+                      {filters && filters.category  && (<FilterItem field="category" desc={filters.category} />)}
+                      {filters && filters.query     && (<FilterItem field="query" desc="PQL query" />)}
+                      {filters && filters.save_path && (<FilterItem field="save_path" desc={filters.save_path} />)}
+                      {filters && filters.tags      && (<FilterItem field="tags" desc={filters.tags.join(", ")} />)}
                     </HStack>
                   </HStack>
                   <Spacer />
