@@ -1,12 +1,11 @@
-import { Alert, AlertDescription, AlertIcon, AlertTitle, Box, Button, Flex, Grid, GridItem, Heading, HStack, Icon, IconButton, Spacer } from "@chakra-ui/react";
+import { Alert, AlertDescription, AlertIcon, AlertTitle, Box, Button, Flex, Grid, GridItem, Heading, HStack, IconButton, Spacer } from "@chakra-ui/react";
 import { useState } from "react";
 import Pager from "../components/Pager";
 import RemoveTorrentModal from "../components/RemoveTorrentModal";
-import TorrentsTable from "../components/TorrentsTable";
 import { useInvoker, useRPC } from "../services/jsonrpc";
 import AddTorrentModal from "../components/AddTorrentModal";
 import MoveTorrentModal from "../components/MoveTorrentModal";
-import { MdAddBox, MdClear } from "react-icons/md";
+import { MdAddBox } from "react-icons/md";
 import { ITorrentsList, PresetsList, Torrent } from "../types";
 import TorrentPropertiesModal from "../components/TorrentPropertiesModal";
 import TorrentsList from "../components/TorrentsList";
@@ -21,7 +20,7 @@ export default function Home() {
   const [ isDeleting, setIsDeleting ] = useState<Array<string>>([]);
   const [ showAdd, setShowAdd ] = useState(false);
   const [ propsTorrent, setPropsTorrent ] = useState<Torrent | null>();
-  const { clearFilters, filters } = useTorrentsFilter();
+  const { clearFilter, filters } = useTorrentsFilter();
   const [ order, setOrder ] = useState<any>();
 
   const { error, data, mutate } = useRPC<ITorrentsList>('torrents.list', () => {
@@ -50,7 +49,25 @@ export default function Home() {
       <Alert status="error">
         <AlertIcon />
         <AlertTitle>Could not list torrents.</AlertTitle>
-        <AlertDescription>{error.toString()}</AlertDescription>
+        <AlertDescription flex={1}>
+          {
+            error.code === -1000 ? (
+              <Flex alignItems={"center"} justifyContent={"space-between"}>
+                <Box>Query error: { error.message }</Box>
+                <Button
+                  colorScheme={"red"}
+                  size={"xs"}
+                  variant={"solid"}
+                  onClick={() => clearFilter("query")}
+                >
+                  Clear query
+                </Button>
+              </Flex>
+            ) : (
+              error.toString()
+            )
+          }
+        </AlertDescription>
       </Alert>
     )
   }
@@ -128,7 +145,7 @@ export default function Home() {
       />
 
       {
-        data?.torrents.length > 0
+        data?.torrents_total_unfiltered > 0
           ? (
             <Grid
               height={"100%"}
@@ -154,7 +171,7 @@ export default function Home() {
                       onClick={() => setShowAdd(true)}
                     />
                     <HStack>
-                      {filters && filters.query && (<>{filters.query}</>)}
+                      {filters && filters.query && (<FilterItem field="query" desc="PQL query" />)}
                     </HStack>
                   </HStack>
                   <Spacer />
@@ -170,40 +187,48 @@ export default function Home() {
               </GridItem>
 
               <GridItem area={"content"} overflow={"scroll"}>
-                <TorrentsList
-                  orderBy={data.order_by}
-                  orderByDir={data.order_by_dir}
-                  torrents={data.torrents}
-                  isDeleting={() => false}
-                  onMove={t => setMoveTorrent(t)}
-                  onPause={async (t) => {
-                    await torrentsPause({
-                      info_hash: t.info_hash
-                    });
-                    await mutate();
-                  }}
-                  onRecheck={async (t) => {
-                    await torrentsRecheck({ info_hash: t.info_hash });
-                    await mutate();
-                  }}
-                  onRemove={(torrent) => setRemoveTorrent(torrent)}
-                  onResume={async (t) => {
-                    await torrentsResume({
-                      info_hash: t.info_hash
-                    });
-                    await mutate();
-                  }}
-                  onShowProperties={t => setPropsTorrent(t)}
-                  onSort={async (by, dir) => {
-                    setOrder(() => {
-                      return {
-                        by,
-                        dir
-                      }
-                    });
-                    await mutate();
-                  }}
-                />
+                { data.torrents.length > 0
+                  ? <TorrentsList
+                      orderBy={data.order_by}
+                      orderByDir={data.order_by_dir}
+                      torrents={data.torrents}
+                      isDeleting={() => false}
+                      onMove={t => setMoveTorrent(t)}
+                      onPause={async (t) => {
+                        await torrentsPause({
+                          info_hash: t.info_hash
+                        });
+                        await mutate();
+                      }}
+                      onRecheck={async (t) => {
+                        await torrentsRecheck({ info_hash: t.info_hash });
+                        await mutate();
+                      }}
+                      onRemove={(torrent) => setRemoveTorrent(torrent)}
+                      onResume={async (t) => {
+                        await torrentsResume({
+                          info_hash: t.info_hash
+                        });
+                        await mutate();
+                      }}
+                      onShowProperties={t => setPropsTorrent(t)}
+                      onSort={async (by, dir) => {
+                        setOrder(() => {
+                          return {
+                            by,
+                            dir
+                          }
+                        });
+                        await mutate();
+                      }}
+                    />
+                  : (
+                    <Box p={10} textAlign={"center"}>
+                      Filter didn't match any torrents.
+                    </Box>
+                  )
+                }
+                
               </GridItem>
             </Grid>
           ) : (

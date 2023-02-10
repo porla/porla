@@ -56,5 +56,6 @@ namespace porla::Methods
         int               page_size;
         std::vector<Item> torrents;
         int               torrents_total;
+        int               torrents_total_unfiltered;
     };
 }

@@ -47,6 +47,7 @@ export type ITorrentsList = {
   page_size: number;
   torrents: Torrent[];
   torrents_total: number;
+  torrents_total_unfiltered: number;
 };
 
 export type InfoHash = [string | null, string | null];

@@ -13,9 +13,33 @@
 #include "../torrentclientdata.hpp"
 
 using porla::Query::PQL;
+using porla::Query::QueryError;
 
 typedef std::function<bool(const libtorrent::torrent_status&)> TorrentStatusFilter;
 typedef std::variant<std::int64_t, float, std::string>         ValueVariant;
+
+class ExceptionErrorListener : public antlr4::BaseErrorListener
+{
+public:
+    void syntaxError(
+        antlr4::Recognizer* /* recognizer */,
+        antlr4::Token* /* offendingSymbol */,
+        size_t line,
+        size_t charPositionInLine,
+        const std::string& msg,
+        std::exception_ptr e) override {
+
+        e = nullptr;
+        std::ostringstream oss;
+        oss << "Syntax error - " << msg << " at " << line << ":" << charPositionInLine;
+        error_msg = oss.str();
+
+        throw QueryError(msg, charPositionInLine);
+    }
+
+private:
+    std::string error_msg;
+};
 
 enum class Oper
 {
@@ -41,7 +65,7 @@ bool Compare(TLeft const& lhs, TRight const& rhs, Oper oper)
             break;
     }
 
-    throw std::runtime_error("Unknown operator");
+    throw QueryError("Invalid operator", -1);
 }
 
 class Visitor : public PorlaQueryLangBaseVisitor
@@ -90,7 +114,7 @@ public:
             return flag_ref->second;
         }
 
-        throw std::runtime_error("invalid flag");
+        throw QueryError("Invalid flag '" + reference + "'", context->getStart()->getCharPositionInLine());
     }
 
     antlrcpp::Any visitFlagExpression(PorlaQueryLangParser::FlagExpressionContext* context) override
@@ -106,7 +130,7 @@ public:
         if (context->OPER_GTE()) return Oper::GTE;
         if (context->OPER_LT()) return Oper::LT;
         if (context->OPER_LTE()) return Oper::LTE;
-        throw std::runtime_error("invalid operator");
+        throw QueryError("Invalid operator: " + context->getText());
     }
 
     antlrcpp::Any visitOperatorPredicate(PorlaQueryLangParser::OperatorPredicateContext* context) override
@@ -129,7 +153,7 @@ public:
                         return Compare(torrent_age, *age, oper);
                     }
 
-                    throw std::runtime_error("invalid value type - expected integer");
+                    throw QueryError("Invalid value type - expected integer");
                 }
             }},
             {"category", OperRef{
@@ -147,7 +171,7 @@ public:
                         return Compare(client_data->category.value(), *category, oper);
                     }
 
-                    throw std::runtime_error("invalid value type - expected string");
+                    throw QueryError("Invalid value type - expected string");
                 }
             }},
             {"download_rate", OperRef{
@@ -155,10 +179,10 @@ public:
                 {
                     if (const auto dl = std::get_if<std::int64_t>(&val))
                     {
-                        return Compare(ts.download_payload_rate, *dl, oper);
+                        return Compare(ts.download_rate, *dl, oper);
                     }
 
-                    throw std::runtime_error("invalid value type - expected number");
+                    throw QueryError("Invalid value type - expected number");
                 }
             }},
             {"name", OperRef{
@@ -174,7 +198,7 @@ public:
                         return Compare(ts.name, *name, oper);
                     }
 
-                    throw std::runtime_error("invalid value type - expected string");
+                    throw QueryError("Invalid value type - expected string");
                 }
             }},
             {"progress", OperRef{
@@ -185,7 +209,7 @@ public:
                         return Compare(ts.progress, *progress, oper);
                     }
 
-                    throw std::runtime_error("invalid value type - expected string");
+                    throw QueryError("Invalid value type - expected string");
                 }
             }},
             {"save_path", OperRef{
@@ -201,7 +225,7 @@ public:
                         return Compare(ts.save_path, *save_path, oper);
                     }
 
-                    throw std::runtime_error("invalid value type - expected string");
+                    throw QueryError("Invalid value type - expected string");
                 }
             }},
             {"size", OperRef{
@@ -217,7 +241,7 @@ public:
                         return false;
                     }
 
-                    throw std::runtime_error("invalid value type - expected string");
+                    throw QueryError("Invalid value type - expected string");
                 }
             }},
             {"tags", OperRef{
@@ -225,7 +249,7 @@ public:
                 {
                     if (oper != Oper::CONTAINS)
                     {
-                        throw std::runtime_error("tags only support contains");
+                        throw QueryError("tags only support contains");
                     }
 
                     if (const auto tag = std::get_if<std::string>(&val))
@@ -237,7 +261,7 @@ public:
                             && client_data->tags->contains(*tag);
                     }
 
-                    throw std::runtime_error("invalid value type - expected string");
+                    throw QueryError("Invalid value type - expected string");
                 }
             }},
             {"upload_rate", OperRef{
@@ -245,10 +269,10 @@ public:
                 {
                     if (const auto ul = std::get_if<std::int64_t>(&val))
                     {
-                        return Compare(ts.upload_payload_rate, *ul, oper);
+                        return Compare(ts.upload_rate, *ul, oper);
                     }
 
-                    throw std::runtime_error("invalid value type - expected number");
+                    throw QueryError("Invalid value type - expected number");
                 }
             }}
         };
@@ -261,7 +285,7 @@ public:
 
         if (oper_ref == oper_map.end())
         {
-            throw std::runtime_error("invalid reference");
+            throw QueryError("Invalid reference '" + reference + "'", context->getStart()->getCharPositionInLine());
         }
 
         return TorrentStatusFilter(
@@ -319,6 +343,15 @@ public:
                 if (duration->getText() == "w") val *= 60 * 60 * 24 * 7;
             }
 
+            if (auto size = context->UNIT_SIZE())
+            {
+                if (size->getText() == "kb") val *= 1024;
+                if (size->getText() == "mb") val *= 1024 * 1024;
+                if (size->getText() == "gb") val *= 1024 * 1024 * 1024;
+                if (size->getText() == "tb") val *= 1024 * 1024 * 1024 * 1024l;
+                if (size->getText() == "pb") val *= 1024 * 1024 * 1024 * 1024l * 1024l;
+            }
+
             if (auto speed = context->UNIT_SPEED())
             {
                 if (speed->getText() == "kbps") val *= 1024;
@@ -338,7 +371,7 @@ public:
             return ValueVariant(text);
         }
 
-        throw std::runtime_error("Invalid value");
+        throw QueryError("Invalid value type", context->getStart()->getCharPositionInLine());
     }
 };
 
@@ -360,14 +393,20 @@ private:
 
 std::unique_ptr<PQL::Filter> PQL::Parse(const std::string_view &input)
 {
+    ExceptionErrorListener errorListener;
+
     antlr4::ANTLRInputStream inputStream(input);
     PorlaQueryLangLexer lexer{&inputStream};
+    lexer.removeErrorListeners();
+    lexer.addErrorListener(&errorListener);
+
     antlr4::CommonTokenStream tokens(&lexer);
 
     PorlaQueryLangParser parser{&tokens};
+    parser.removeErrorListeners();
+    parser.addErrorListener(&errorListener);
 
     Visitor visitor;
-
     return std::make_unique<PqlFilter>(
         std::any_cast<TorrentStatusFilter>(visitor.visitFilter(parser.filter())));
 }

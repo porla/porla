@@ -54,5 +54,6 @@ namespace porla::Methods
         page,
         page_size,
         torrents,
-        torrents_total);
+        torrents_total,
+        torrents_total_unfiltered);
 }

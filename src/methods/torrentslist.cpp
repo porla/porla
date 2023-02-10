@@ -125,8 +125,15 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
                 }
                 else if (filter_field == "query" && args.is_string() && !args.get<std::string>().empty())
                 {
-                    const auto filter = Query::PQL::Parse(args.get<std::string>());
-                    filter_includes_torrent = filter->Includes(ts);
+                    try
+                    {
+                        const auto filter = Query::PQL::Parse(args.get<std::string>());
+                        filter_includes_torrent = filter->Includes(ts);
+                    }
+                    catch (const Query::QueryError& qe)
+                    {
+                        return cb.Error(-1000, qe.what(), {{"pos", qe.pos()}});
+                    }
                 }
                 else if (filter_field == "save_path" && args.is_string())
                 {
@@ -196,11 +203,12 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
     }
 
     cb.Ok(TorrentsListRes{
-        .order_by       = req.order_by.value_or("queue_position"),
-        .order_by_dir   = req.order_by_dir.value_or("asc"),
-        .page           = req.page.value_or(0),
-        .page_size      = req.page_size.value_or(50),
-        .torrents       = std::vector(torrents.begin() + page_beg, torrents.begin() + page_end),
-        .torrents_total = static_cast<int>(torrents.size())
+        .order_by                  = req.order_by.value_or("queue_position"),
+        .order_by_dir              = req.order_by_dir.value_or("asc"),
+        .page                      = req.page.value_or(0),
+        .page_size                 = req.page_size.value_or(50),
+        .torrents                  = std::vector(torrents.begin() + page_beg, torrents.begin() + page_end),
+        .torrents_total            = static_cast<int>(torrents.size()),
+        .torrents_total_unfiltered = static_cast<int>(m_session.Torrents().size())
     });
 }

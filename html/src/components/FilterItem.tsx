@@ -1,19 +1,20 @@
 import { Tag, TagCloseButton, TagLabel, TagLeftIcon } from "@chakra-ui/react";
-import { MdFilter, MdFolderOpen, MdLabel, MdTag } from "react-icons/md";
+import { MdFilterAlt, MdFolderOpen, MdLabel, MdTag } from "react-icons/md";
 import useTorrentsFilter from "../contexts/TorrentsFilterContext";
-import { Filter } from "../types";
+import { TorrentsListFilters } from "../types";
 
 type FilterItemProps = {
-  filter: Filter;
+  field: keyof TorrentsListFilters;
+  desc: string;
 }
 
-function FilterFieldIcon(field: string) {
+function FilterFieldIcon(field: keyof TorrentsListFilters) {
   switch (field) {
     case "category":  return MdLabel;
+    case "query":     return MdFilterAlt;
     case "save_path": return MdFolderOpen;
     case "tags":      return MdTag;
   }
-  return MdFilter;
 }
 
 export default function FilterItem(props: FilterItemProps) {
@@ -23,9 +24,9 @@ export default function FilterItem(props: FilterItemProps) {
     <Tag
       size={"sm"}
     >
-      <TagLeftIcon as={FilterFieldIcon(props.filter.field)} />
-      <TagLabel>{props.filter.args}</TagLabel>
-      <TagCloseButton onClick={() => clearFilter(props.filter.field)} />
+      <TagLeftIcon as={FilterFieldIcon(props.field)} />
+      <TagLabel>{props.desc}</TagLabel>
+      <TagCloseButton onClick={() => clearFilter(props.field)} />
     </Tag>
   )
 }
