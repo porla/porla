@@ -1,5 +1,5 @@
 import { Alert, AlertDescription, AlertIcon, AlertTitle, Box, Button, Flex, Grid, GridItem, Heading, HStack, IconButton, Spacer } from "@chakra-ui/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Pager from "../components/Pager";
 import RemoveTorrentModal from "../components/RemoveTorrentModal";
 import { useInvoker, useRPC } from "../services/jsonrpc";
@@ -43,6 +43,10 @@ export default function Home() {
   const torrentsRecheck = useInvoker<void>("torrents.recheck");
   const torrentsRemove = useInvoker<void>("torrents.remove");
   const torrentsResume = useInvoker<void>("torrents.resume");
+
+  useEffect(() => {
+    setPage(0);
+  }, [filters]);
 
   if (error) {
     return (
