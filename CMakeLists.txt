@@ -53,6 +53,17 @@ target_link_libraries(
 )
 
 add_library(
+    ${PROJECT_NAME}_utils
+    src/utils/ratio.cpp
+)
+
+target_link_libraries(
+    ${PROJECT_NAME}_utils
+    PRIVATE
+    LibtorrentRasterbar::torrent-rasterbar
+)
+
+add_library(
     ${PROJECT_NAME}_query
     STATIC
     src/query/_aux/PorlaQueryLangBaseVisitor.cpp
@@ -65,6 +76,7 @@ add_library(
 target_link_libraries(
     ${PROJECT_NAME}_query
     PRIVATE
+    ${PROJECT_NAME}_utils
     antlr4_static
     LibtorrentRasterbar::torrent-rasterbar
 )
@@ -93,7 +105,6 @@ add_library(
     src/systemhandler.cpp
     src/uri.cpp
     src/utils/eta.cpp
-    src/utils/ratio.cpp
     src/utils/secretkey.cpp
     src/utils/string.cpp
     src/utils/yaml.cpp
@@ -171,6 +182,7 @@ target_link_libraries(
 
     ${PROJECT_NAME}_mediainfo
     ${PROJECT_NAME}_query
+    ${PROJECT_NAME}_utils
 
     Boost::boost
     Boost::log
