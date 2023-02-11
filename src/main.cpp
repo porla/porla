@@ -37,7 +37,6 @@
 #include "methods/torrentspause.hpp"
 #include "methods/torrentspeersadd.hpp"
 #include "methods/torrentspeerslist.hpp"
-#include "methods/torrentsquery.hpp"
 #include "methods/torrentsrecheck.hpp"
 #include "methods/torrentsremove.hpp"
 #include "methods/torrentsresume.hpp"
@@ -175,7 +174,6 @@ int main(int argc, char* argv[])
             {"torrents.properties.get", porla::Methods::TorrentsPropertiesGet(session)},
             {"torrents.properties.set", porla::Methods::TorrentsPropertiesSet(session)},
             {"torrents.recheck", porla::Methods::TorrentsRecheck(session)},
-            {"torrents.query", porla::Methods::TorrentsQuery(session)},
             {"torrents.remove", porla::Methods::TorrentsRemove(session)},
             {"torrents.resume", porla::Methods::TorrentsResume(session)},
             {"torrents.trackers.list", porla::Methods::TorrentsTrackersList(session)}

@@ -8,6 +8,7 @@ project(porla)
 set(CMAKE_CXX_STANDARD 20)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+find_package(antlr4-runtime      CONFIG REQUIRED)
 find_package(Boost                      REQUIRED COMPONENTS log program_options system)
 find_package(duktape)
 find_package(GTest               CONFIG REQUIRED)
@@ -23,6 +24,8 @@ find_package(yaml-cpp            CONFIG REQUIRED)
 find_package(ZenLib              CONFIG REQUIRED)
 
 find_path(JWT_CPP_INCLUDE_DIRS "jwt-cpp/base.h")
+
+include_directories(${ANTLR4_INCLUDE_DIR})
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
@@ -50,6 +53,35 @@ target_link_libraries(
 )
 
 add_library(
+    ${PROJECT_NAME}_utils
+    src/utils/ratio.cpp
+)
+
+target_link_libraries(
+    ${PROJECT_NAME}_utils
+    PRIVATE
+    LibtorrentRasterbar::torrent-rasterbar
+)
+
+add_library(
+    ${PROJECT_NAME}_query
+    STATIC
+    src/query/_aux/PorlaQueryLangBaseVisitor.cpp
+    src/query/_aux/PorlaQueryLangLexer.cpp
+    src/query/_aux/PorlaQueryLangParser.cpp
+    src/query/_aux/PorlaQueryLangVisitor.cpp
+    src/query/pql.cpp
+)
+
+target_link_libraries(
+    ${PROJECT_NAME}_query
+    PRIVATE
+    ${PROJECT_NAME}_utils
+    antlr4_static
+    LibtorrentRasterbar::torrent-rasterbar
+)
+
+add_library(
     ${PROJECT_NAME}_core
     STATIC
     ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
@@ -71,10 +103,8 @@ add_library(
     src/metricshandler.cpp
     src/session.cpp
     src/systemhandler.cpp
-    src/torrentsvt.cpp
     src/uri.cpp
     src/utils/eta.cpp
-    src/utils/ratio.cpp
     src/utils/secretkey.cpp
     src/utils/string.cpp
     src/utils/yaml.cpp
@@ -108,7 +138,6 @@ add_library(
     src/methods/torrentspeersadd.cpp
     src/methods/torrentspeerslist.cpp
     src/methods/torrentspropertiesget.cpp
-    src/methods/torrentsquery.cpp
     src/methods/torrentsrecheck.cpp
     src/methods/torrentsremove.cpp
     src/methods/torrentsresume.cpp
@@ -152,6 +181,8 @@ target_link_libraries(
     ${PROJECT_NAME}_core
 
     ${PROJECT_NAME}_mediainfo
+    ${PROJECT_NAME}_query
+    ${PROJECT_NAME}_utils
 
     Boost::boost
     Boost::log
@@ -180,6 +211,7 @@ add_executable(
     ${PROJECT_NAME}_tests
     tests/inmemorysession.cpp
     tests/main.cpp
+    tests/query/pql.cpp
     tests/utils/string.cpp
     tests/workflows/actions/log.cpp
     tests/workflows/actions/sleep.cpp
@@ -191,6 +223,7 @@ add_executable(
 target_link_libraries(
     ${PROJECT_NAME}_tests
     ${PROJECT_NAME}_core
+    ${PROJECT_NAME}_query
     GTest::gmock
     GTest::gtest
     GTest::gmock_main

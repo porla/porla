@@ -2,6 +2,18 @@ import useSWR from "swr";
 import prefixPath from "../base";
 import useAuth from "../contexts/auth";
 
+class RpcError extends Error {
+  data: any;
+  code: number;
+
+  constructor(code: number, message: string, data: any) {
+    super(message)
+    this.name = "RpcError";
+    this.code = code;
+    this.data = data;
+  }
+}
+
 const fetcher = function<T>(token: string) {
   return async (method: string, params: any, ...args: any[]) => {
     return await jsonrpc<T>(token, method, params);
@@ -40,7 +52,7 @@ export async function jsonrpc<T>(token: string, method: string, params?: any) {
   const data = await res.json();
 
   if (data.error) {
-    throw new Error(data.error.message);
+    throw new RpcError(data.error.code, data.error.message, data.error.data);
   }
 
   return data.result as T;

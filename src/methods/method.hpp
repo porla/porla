@@ -33,14 +33,15 @@ namespace porla::Methods
             Ok(j);
         }
 
-        void Error(int code, const std::string_view& message)
+        void Error(int code, const std::string_view& message, const json& data = {})
         {
             m_ctx->WriteJson({
                 {"jsonrpc", "2.0"},
                 {"id", m_id},
                 {"error", {
                     {"code", code},
-                    {"message", message}
+                    {"message", message},
+                    {"data", data}
                 }}
             });
         }

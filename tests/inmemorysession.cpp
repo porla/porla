@@ -13,11 +13,6 @@ void InMemorySession::Pause()
 {
 }
 
-int InMemorySession::Query(const std::string_view &query, const std::function<int(sqlite3_stmt *)> &cb)
-{
-    return 0;
-}
-
 void InMemorySession::Recheck(const lt::info_hash_t &hash)
 {
 }

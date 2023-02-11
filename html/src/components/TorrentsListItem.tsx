@@ -148,7 +148,7 @@ function KeyValue(props: KeyValueProps) {
 export default function TorrentsListItem(props: TorrentsListItemProps) {
   const { colorMode } = useColorMode();
   const { isNinja } = useNinja();
-  const { addFilter } = useTorrentsFilter();
+  const { setFilter } = useTorrentsFilter();
 
   return (
     <Grid
@@ -217,7 +217,7 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
                       color: "white",
                       textDecoration: "underline"
                     }}
-                    onClick={() => addFilter({ field: "save_path", args: props.torrent.save_path })}
+                    onClick={() => setFilter("save_path", props.torrent.save_path)}
                   >
                     {props.torrent.save_path}
                   </Link>}
@@ -233,7 +233,7 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
                     color: "white",
                     textDecoration: "underline"
                   }}
-                  onClick={() => addFilter({ field: "category", args: props.torrent.category! })}
+                  onClick={() => setFilter("category", props.torrent.category!)}
                 >
                   {props.torrent.category}
                 </Link>
@@ -250,7 +250,7 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
                           }}
                           key={t}
                           me={1}
-                          onClick={() => addFilter({ field: "tags", args: t})}
+                          onClick={() => setFilter("tags", [t])}
                         >
                           {t}
                         </Link>

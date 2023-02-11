@@ -13,7 +13,6 @@
 #include "data/models/addtorrentparams.hpp"
 #include "mediainfo/parser.hpp"
 #include "torrentclientdata.hpp"
-#include "torrentsvt.hpp"
 
 namespace fs = std::filesystem;
 namespace lt = libtorrent;
@@ -147,7 +146,6 @@ Session::Session(boost::asio::io_context& io, porla::SessionOptions const& optio
     , m_db(options.db)
     , m_session_params_file(options.session_params_file)
     , m_stats(lt::session_stats_metrics())
-    , m_tdb(nullptr)
     , m_mediainfo_enabled(options.mediainfo_enabled)
     , m_mediainfo_file_extensions(options.mediainfo_file_extensions)
     , m_mediainfo_file_min_size(options.mediainfo_file_min_size)
@@ -190,25 +188,11 @@ Session::Session(boost::asio::io_context& io, porla::SessionOptions const& optio
 
     if (options.timer_torrent_updates > 0)
         m_timers.emplace_back(m_io, options.timer_torrent_updates, [&]() { m_session->post_torrent_updates(); });
-
-    if (sqlite3_open(":memory:", &m_tdb) != SQLITE_OK)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Failed to open in-memory database for virtual querying: " << sqlite3_errmsg(m_tdb);
-    }
-    else
-    {
-        porla::TorrentsVTable::Install(m_tdb, m_torrents);
-    }
 }
 
 Session::~Session()
 {
     BOOST_LOG_TRIVIAL(info) << "Shutting down session";
-
-    if (sqlite3_close(m_tdb) != SQLITE_OK)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Failed to close in-memory torrents table: " << sqlite3_errmsg(m_tdb);
-    }
 
     m_session->set_alert_notify([]{});
     m_timers.clear();
@@ -435,33 +419,6 @@ void Session::ApplySettings(const libtorrent::settings_pack& settings)
 void Session::Pause()
 {
     m_session->pause();
-}
-
-int Session::Query(const std::string_view& query, const std::function<int(sqlite3_stmt*)>& cb)
-{
-    sqlite3_stmt* stmt;
-    int res = sqlite3_prepare_v2(m_tdb, query.data(), -1, &stmt, nullptr);
-
-    if (res != SQLITE_OK)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Failed to prepare torrents query: " << sqlite3_errmsg(m_tdb);
-        return res;
-    }
-
-    while (sqlite3_step(stmt) == SQLITE_ROW)
-    {
-        cb(stmt);
-    }
-
-    res = sqlite3_finalize(stmt);
-
-    if (res != SQLITE_OK)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Failed to finalize torrents query statement: " << sqlite3_errmsg(m_tdb);
-        return res;
-    }
-
-    return SQLITE_OK;
 }
 
 void Session::Recheck(const lt::info_hash_t &hash)

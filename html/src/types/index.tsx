@@ -47,6 +47,7 @@ export type ITorrentsList = {
   page_size: number;
   torrents: Torrent[];
   torrents_total: number;
+  torrents_total_unfiltered: number;
 };
 
 export type InfoHash = [string | null, string | null];
@@ -260,7 +261,9 @@ export type ISettingsList = {
   settings: ISettingsDict;
 }
 
-export type Filter = {
-  field: string;
-  args: string | number;
+export type TorrentsListFilters = {
+  category?: string | null | undefined;
+  query?: string | null | undefined;
+  save_path?: string | null | undefined;
+  tags?: string[] | null | undefined;
 }
