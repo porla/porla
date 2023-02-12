@@ -55,6 +55,16 @@ public:
         return m_torrentResumed.connect(subscriber);
     }
 
+    boost::signals2::connection OnTorrentTrackerError(const TrackerErrorSignal::slot_type& subscriber) override
+    {
+        return m_torrentTrackerError.connect(subscriber);
+    }
+
+    boost::signals2::connection OnTorrentTrackerReply(const TorrentHandleSignal::slot_type& subscriber) override
+    {
+        return m_torrentTrackerReply.connect(subscriber);
+    }
+
     libtorrent::info_hash_t AddTorrent(libtorrent::add_torrent_params const& p) override;
     void ApplySettings(const libtorrent::settings_pack& settings) override;
     void Pause() override;
@@ -74,6 +84,8 @@ public:
     TorrentStatusSignal m_torrentPaused;
     InfoHashSignal m_torrentRemoved;
     TorrentStatusSignal m_torrentResumed;
+    TrackerErrorSignal m_torrentTrackerError;
+    TorrentHandleSignal m_torrentTrackerReply;
 
     std::map<lt::info_hash_t, lt::torrent_handle> m_torrents;
 };

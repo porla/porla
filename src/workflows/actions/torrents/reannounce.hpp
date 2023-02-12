@@ -25,6 +25,15 @@ namespace porla::Workflows::Actions::Torrents
         void Invoke(const ActionParams& params, std::shared_ptr<ActionCallback> callback) override;
 
     private:
+        void OnTorrentTrackerError(const libtorrent::tracker_error_alert* al);
+        void OnTorrentTrackerReply(const libtorrent::torrent_handle& th);
+
+        struct TorrentReannounceState;
+
+        boost::signals2::connection m_torrent_tracker_error_connection;
+        boost::signals2::connection m_torrent_tracker_reply_connection;
+
         ISession& m_session;
+        std::map<libtorrent::info_hash_t, std::unique_ptr<TorrentReannounceState>> m_states;
     };
 }
