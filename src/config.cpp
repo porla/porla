@@ -320,7 +320,8 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     // the config are applied, and cannot be overwritten by it.
     lt::alert_category_t alerts =
         lt::alert::status_notification
-        | lt::alert::storage_notification;
+        | lt::alert::storage_notification
+        | lt::alert::tracker_notification;
 
     if (cfg->mediainfo_enabled.value_or(false))
     {

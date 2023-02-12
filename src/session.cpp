@@ -746,6 +746,18 @@ void Session::ReadAlerts()
 
             break;
         }
+        case lt::tracker_error_alert::alert_type:
+        {
+            const auto tea = lt::alert_cast<lt::tracker_error_alert>(alert);
+            m_torrentTrackerError(tea);
+            break;
+        }
+        case lt::tracker_reply_alert::alert_type:
+        {
+            const auto tra = lt::alert_cast<lt::tracker_reply_alert>(alert);
+            m_torrentTrackerReply(tra->handle);
+            break;
+        }
         }
     }
 }

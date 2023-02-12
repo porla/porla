@@ -40,6 +40,7 @@ namespace porla
         typedef boost::signals2::signal<void(const libtorrent::torrent_handle&)> TorrentHandleSignal;
         typedef boost::signals2::signal<void(const libtorrent::torrent_status&)> TorrentStatusSignal;
         typedef boost::signals2::signal<void(const std::vector<libtorrent::torrent_status>&)> TorrentStatusListSignal;
+        typedef boost::signals2::signal<void(const lt::tracker_error_alert*)> TrackerErrorSignal;
 
         virtual boost::signals2::connection OnSessionStats(const SessionStatsSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnStateUpdate(const TorrentStatusListSignal::slot_type& subscriber) = 0;
@@ -51,6 +52,8 @@ namespace porla
         virtual boost::signals2::connection OnTorrentPaused(const TorrentStatusSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnTorrentRemoved(const InfoHashSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnTorrentResumed(const TorrentStatusSignal::slot_type& subscriber) = 0;
+        virtual boost::signals2::connection OnTorrentTrackerError(const TrackerErrorSignal::slot_type& subscriber) = 0;
+        virtual boost::signals2::connection OnTorrentTrackerReply(const TorrentHandleSignal::slot_type& subscriber) = 0;
 
         virtual libtorrent::info_hash_t AddTorrent(libtorrent::add_torrent_params const& p) = 0;
         virtual void ApplySettings(const libtorrent::settings_pack& settings) = 0;
@@ -124,6 +127,16 @@ namespace porla
             return m_torrentResumed.connect(subscriber);
         }
 
+        boost::signals2::connection OnTorrentTrackerError(const TrackerErrorSignal::slot_type& subscriber) override
+        {
+            return m_torrentTrackerError.connect(subscriber);
+        }
+
+        boost::signals2::connection OnTorrentTrackerReply(const TorrentHandleSignal::slot_type& subscriber) override
+        {
+            return m_torrentTrackerReply.connect(subscriber);
+        }
+
         void Load();
 
         libtorrent::info_hash_t AddTorrent(libtorrent::add_torrent_params const& p) override;
@@ -161,6 +174,8 @@ namespace porla
         TorrentStatusSignal m_torrentPaused;
         InfoHashSignal m_torrentRemoved;
         TorrentStatusSignal m_torrentResumed;
+        TrackerErrorSignal m_torrentTrackerError;
+        TorrentHandleSignal m_torrentTrackerReply;
 
         sqlite3* m_db;
 
