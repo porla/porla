@@ -55,7 +55,7 @@ void Reannounce::Invoke(const ActionParams& params, std::shared_ptr<ActionCallba
     auto state = std::make_unique<TorrentReannounceState>();
     state->callback      = callback;
     state->current_tries = 0;
-    state->max_tries     = 24;
+    state->max_tries     = 10;
     state->timeout       = 5;
 
     if (params.Input().contains("max_tries"))
@@ -76,8 +76,6 @@ void Reannounce::OnTorrentTrackerError(const libtorrent::tracker_error_alert* al
     auto ctx = m_states.find(al->handle.info_hashes());
     if (ctx == m_states.end()) return;
 
-    ctx->second->current_tries++;
-
     if (al->error && al->error.value() == lt::errors::tracker_failure)
     {
         const std::vector<std::string> match_failures =
@@ -94,9 +92,21 @@ void Reannounce::OnTorrentTrackerError(const libtorrent::tracker_error_alert* al
         {
             if (err.find(failure_message) != std::string::npos)
             {
-                BOOST_LOG_TRIVIAL(info) << "Reannouncing torrent " << al->torrent_name();
+                ctx->second->current_tries++;
+
+                if (ctx->second->current_tries >= ctx->second->max_tries)
+                {
+                    BOOST_LOG_TRIVIAL(warning) << "Max reannounce attempts reached for " << al->torrent_name();
+                    m_states.erase(ctx);
+                    return;
+                }
+
+                BOOST_LOG_TRIVIAL(info)
+                    << "Reannouncing torrent " << al->torrent_name()
+                    << " - attempt " << ctx->second->current_tries << " of " << ctx->second->max_tries;
 
                 al->handle.force_reannounce(ctx->second->timeout, -1, lt::torrent_handle::ignore_min_interval);
+
                 return;
             }
         }
