@@ -6,8 +6,9 @@
 
 using porla::HttpJwtAuth;
 
-HttpJwtAuth::HttpJwtAuth(std::string secret_key, porla::HttpMiddleware middleware)
+HttpJwtAuth::HttpJwtAuth(std::string secret_key, std::optional<std::string> alt_header, porla::HttpMiddleware middleware)
     : m_secret_key(std::move(secret_key))
+    , m_alt_header(alt_header)
     , m_http_middleware(std::move(middleware))
 {
 }
@@ -27,25 +28,47 @@ void HttpJwtAuth::operator()(const std::shared_ptr<porla::HttpContext> &ctx)
         return res;
     };
 
-    auto const auth_header = ctx->Request().find(http::field::authorization);
+    const auto header_finder = [&ctx]<typename T>(const T& header)
+    {
+        auto const auth_header = ctx->Request().find(header);
 
-    // No Authorization header
-    if (auth_header == ctx->Request().end())
+        // No Authorization header
+        if (auth_header == ctx->Request().end())
+        {
+            return std::optional<std::string>();
+        }
+
+        // Authorization header is too short to start with "Bearer " and also contain a token.
+        if (auth_header->value().size() <= 7)
+        {
+            return std::optional<std::string>();
+        }
+
+        return std::optional<std::string>(auth_header->value().substr(7));
+    };
+
+    std::optional<std::string> bearer_token;
+
+    // Check the alt header for a token, if an alt header is specified
+    if (m_alt_header.has_value())
+    {
+        bearer_token = header_finder(m_alt_header.value());
+    }
+
+    // No alt header found, or the alt header didn't contain a value
+    if (!bearer_token.has_value())
+    {
+        bearer_token = header_finder(http::field::authorization);
+    }
+
+    if (!bearer_token.has_value())
     {
         return ctx->Write(not_authorized());
     }
-
-    // Authorization header is too short to start with "Bearer " and also contain a token.
-    if (auth_header->value().size() <= 7)
-    {
-        return ctx->Write(not_authorized());
-    }
-
-    const std::string bearer_token = std::string(auth_header->value().substr(7));
 
     try
     {
-        auto decoded_token = jwt::decode(bearer_token);
+        auto decoded_token = jwt::decode(bearer_token.value());
 
         auto verifier = jwt::verify()
             .allow_algorithm(jwt::algorithm::hs256(m_secret_key))
