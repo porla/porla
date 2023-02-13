@@ -123,6 +123,16 @@ public:
         return this->visit(context->flag());
     }
 
+    antlrcpp::Any visitNotFlagExpression(PorlaQueryLangParser::NotFlagExpressionContext* context) override
+    {
+        const auto flag = std::any_cast<TorrentStatusFilter>(this->visit(context->flag()));
+        return TorrentStatusFilter(
+            [flag](const lt::torrent_status& ts)
+            {
+                return !flag(ts);
+            });
+    }
+
     antlrcpp::Any visitOperator(PorlaQueryLangParser::OperatorContext* context) override
     {
         if (context->OPER_CONTAINS()) return Oper::CONTAINS;

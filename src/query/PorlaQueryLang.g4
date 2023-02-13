@@ -3,6 +3,7 @@ grammar PorlaQueryLang;
 
 AND           : 'and';
 OR            : 'or';
+NOT           : 'not';
 
 OPER_EQ       : '=';
 OPER_CONTAINS : 'contains';
@@ -32,6 +33,7 @@ expression
     | expression OR expression  #OrExpression
     | predicate                 #PredicateExpression
     | flag                      #FlagExpression
+    | NOT flag                  #NotFlagExpression
     ;
 
 predicate
