@@ -95,9 +95,6 @@ configuration and use sensible defaults instead.
    additional configuration.
  * `PORLA_DB` or `--db` - path a file (which does not need to exist) that `porla`
    will use to store its state.
- * `PORLA_HTTP_ALT_AUTH_HEADER` or `--http-alt-auth-header` - if set, specifies
-   an alternate HTTP header to check for a JWT. If this is set, and a token is
-   found, the regular auth header will not be checked.
  * `PORLA_HTTP_AUTH_DISABLED_YES_REALLY` - set to `true` to disable HTTP JWT
    authentication (_not recommended_).
  * `PORLA_HTTP_BASE_PATH` or `--http-base-path` - set to a path where the HTTP parts
@@ -135,7 +132,6 @@ state_dir = "/opt/porla"
 workflow_dir = "workflows"
 
 [http]
-alt_auth_header = "X-Porla-Token"
 base_path = "/"
 host = "127.0.0.1"
 metrics_enabled = true

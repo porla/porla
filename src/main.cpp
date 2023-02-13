@@ -205,13 +205,13 @@ int main(int argc, char* argv[])
         http.Use(
             porla::HttpPost(http_base_path + "/api/v1/jsonrpc",
                 cfg->http_auth_enabled.value_or(true)
-                    ? static_cast<porla::HttpMiddleware>(porla::HttpJwtAuth(cfg->secret_key, cfg->http_alt_auth_header, [&rpc](auto const& ctx) { rpc(ctx); }))
+                    ? static_cast<porla::HttpMiddleware>(porla::HttpJwtAuth(cfg->secret_key, [&rpc](auto const& ctx) { rpc(ctx); }))
                     : static_cast<porla::HttpMiddleware>([&rpc](auto const& ctx) { rpc(ctx); })));
 
         http.Use(
             porla::HttpGet(http_base_path + "/api/v1/events",
                 cfg->http_auth_enabled.value_or(true)
-                    ? static_cast<porla::HttpMiddleware>(porla::HttpJwtAuth(cfg->secret_key, cfg->http_alt_auth_header, [&eventStream](auto const& ctx) { eventStream(ctx); }))
+                    ? static_cast<porla::HttpMiddleware>(porla::HttpJwtAuth(cfg->secret_key, [&eventStream](auto const& ctx) { eventStream(ctx); }))
                     : static_cast<porla::HttpMiddleware>([&eventStream](auto const& ctx) { eventStream(ctx); })));
 
         if (cfg->http_metrics_enabled.value_or(true))

@@ -79,9 +79,8 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     {
         if (strcmp("true", val) == 0) cfg->http_auth_enabled = false;
     }
-    if (auto val = std::getenv("PORLA_HTTP_ALT_AUTH_HEADER"))  cfg->http_alt_auth_header = val;
-    if (auto val = std::getenv("PORLA_HTTP_BASE_PATH"))        cfg->http_base_path       = val;
-    if (auto val = std::getenv("PORLA_HTTP_HOST"))             cfg->http_host            = val;
+    if (auto val = std::getenv("PORLA_HTTP_BASE_PATH"))        cfg->http_base_path  = val;
+    if (auto val = std::getenv("PORLA_HTTP_HOST"))             cfg->http_host       = val;
     if (auto val = std::getenv("PORLA_HTTP_METRICS_ENABLED"))
     {
         if (strcmp("true", val) == 0)  cfg->http_metrics_enabled = true;
@@ -130,9 +129,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
             if (auto val = config_file_tbl["db"].value<std::string>())
                 cfg->db_file = *val;
-
-            if (auto val = config_file_tbl["http"]["alt_auth_header"].value<std::string>())
-                cfg->http_alt_auth_header = *val;
 
             if (auto val = config_file_tbl["http"]["base_path"].value<std::string>())
                 cfg->http_base_path = *val;
@@ -268,7 +264,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     }
 
     if (cmd.count("db"))                    cfg->db_file               = cmd["db"].as<std::string>();
-    if (cmd.count("http-alt-auth-header"))  cfg->http_alt_auth_header  = cmd["http-alt-auth-header"].as<std::string>();
     if (cmd.count("http-base-path"))        cfg->http_base_path        = cmd["http-base-path"].as<std::string>();
     if (cmd.count("http-host"))             cfg->http_host             = cmd["http-host"].as<std::string>();
     if (cmd.count("http-metrics-enabled"))

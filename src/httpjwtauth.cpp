@@ -6,15 +6,16 @@
 
 using porla::HttpJwtAuth;
 
-HttpJwtAuth::HttpJwtAuth(std::string secret_key, std::optional<std::string> alt_header, porla::HttpMiddleware middleware)
+HttpJwtAuth::HttpJwtAuth(std::string secret_key, porla::HttpMiddleware middleware)
     : m_secret_key(std::move(secret_key))
-    , m_alt_header(alt_header)
     , m_http_middleware(std::move(middleware))
 {
 }
 
 void HttpJwtAuth::operator()(const std::shared_ptr<porla::HttpContext> &ctx)
 {
+    static const std::string AltAuthHeader = "X-Porla-Token";
+
     namespace http = boost::beast::http;
 
     auto const not_authorized = [&ctx]()
@@ -47,15 +48,9 @@ void HttpJwtAuth::operator()(const std::shared_ptr<porla::HttpContext> &ctx)
         return std::optional<std::string>(auth_header->value().substr(7));
     };
 
-    std::optional<std::string> bearer_token;
+    std::optional<std::string> bearer_token = header_finder(AltAuthHeader);
 
-    // Check the alt header for a token, if an alt header is specified
-    if (m_alt_header.has_value())
-    {
-        bearer_token = header_finder(m_alt_header.value());
-    }
-
-    // No alt header found, or the alt header didn't contain a value
+    // No alt header found, or the alt header didn't contain a value. Check the default Authorization header
     if (!bearer_token.has_value())
     {
         bearer_token = header_finder(http::field::authorization);

@@ -10,13 +10,12 @@ namespace porla
     class HttpJwtAuth
     {
     public:
-        explicit HttpJwtAuth(std::string secret_key, std::optional<std::string> alt_header, HttpMiddleware middleware);
+        explicit HttpJwtAuth(std::string secret_key, HttpMiddleware middleware);
 
         void operator()(const std::shared_ptr<porla::HttpContext>& ctx);
 
     private:
         std::string m_secret_key;
-        std::optional<std::string> m_alt_header;
         HttpMiddleware m_http_middleware;
     };
 }
