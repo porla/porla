@@ -35,6 +35,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitNotFlagExpression(PorlaQueryLangParser::NotFlagExpressionContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitOperatorPredicate(PorlaQueryLangParser::OperatorPredicateContext *ctx) override {
     return visitChildren(ctx);
   }

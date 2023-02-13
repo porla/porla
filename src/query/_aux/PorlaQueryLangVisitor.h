@@ -29,6 +29,8 @@ public:
 
     virtual std::any visitOrExpression(PorlaQueryLangParser::OrExpressionContext *context) = 0;
 
+    virtual std::any visitNotFlagExpression(PorlaQueryLangParser::NotFlagExpressionContext *context) = 0;
+
     virtual std::any visitOperatorPredicate(PorlaQueryLangParser::OperatorPredicateContext *context) = 0;
 
     virtual std::any visitFlag(PorlaQueryLangParser::FlagContext *context) = 0;

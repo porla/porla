@@ -22,6 +22,8 @@ INSTANTIATE_TEST_SUITE_P(
         "download_rate > 1mbps",
         "name contains \"foo\"",
         "is:downloading",
+        "not is:downloading",
+        "is:downloading and not is:paused",
         "is:finished",
         "is:paused",
         "is:seeding",
@@ -59,7 +61,7 @@ TEST(porla_Query_PQL, Filter_Age)
 TEST(porla_Query_PQL, Filter_DownloadRate)
 {
     libtorrent::torrent_status status;
-    status.download_payload_rate = 2 * 1024 * 1024; // 2 mbps
+    status.download_rate = 2 * 1024 * 1024; // 2 mbps
 
     EXPECT_EQ(PQL::Parse("download_rate >= 1")->Includes(status), true);
     EXPECT_EQ(PQL::Parse("download_rate <  10mbps")->Includes(status), true);
@@ -67,4 +69,14 @@ TEST(porla_Query_PQL, Filter_DownloadRate)
     EXPECT_EQ(PQL::Parse("download_rate > 103")->Includes(status), true);
     EXPECT_EQ(PQL::Parse("download_rate <  1mbps")->Includes(status), false);
     EXPECT_EQ(PQL::Parse("download_rate <= 346kbps")->Includes(status), false);
+}
+
+TEST(porla_Query_PQL, Filter_Flags)
+{
+    libtorrent::torrent_status status;
+    status.state = lt::torrent_status::seeding;
+
+    EXPECT_EQ(PQL::Parse("is:seeding")->Includes(status), true);
+    EXPECT_EQ(PQL::Parse("not is:seeding")->Includes(status), false);
+    EXPECT_EQ(PQL::Parse("is:seeding and not is:paused")->Includes(status), true);
 }

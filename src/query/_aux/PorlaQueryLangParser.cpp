@@ -47,37 +47,38 @@ void porlaquerylangParserInitialize() {
       "reference"
     },
     std::vector<std::string>{
-      "", "'is:'", "'and'", "'or'", "'='", "'contains'", "'>'", "'>='", 
-      "'<'", "'<='"
+      "", "'is:'", "'and'", "'or'", "'not'", "'='", "'contains'", "'>'", 
+      "'>='", "'<'", "'<='"
     },
     std::vector<std::string>{
-      "", "", "AND", "OR", "OPER_EQ", "OPER_CONTAINS", "OPER_GT", "OPER_GTE", 
-      "OPER_LT", "OPER_LTE", "WHITESPACE", "INT", "FLOAT", "STRING", "UNIT_DURATION", 
-      "UNIT_SIZE", "UNIT_SPEED", "ID"
+      "", "", "AND", "OR", "NOT", "OPER_EQ", "OPER_CONTAINS", "OPER_GT", 
+      "OPER_GTE", "OPER_LT", "OPER_LTE", "WHITESPACE", "INT", "FLOAT", "STRING", 
+      "UNIT_DURATION", "UNIT_SIZE", "UNIT_SPEED", "ID"
     }
   );
   static const int32_t serializedATNSegment[] = {
-  	4,1,17,69,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,1,0,
-  	1,0,1,1,1,1,1,1,3,1,20,8,1,1,1,1,1,1,1,1,1,1,1,1,1,5,1,28,8,1,10,1,12,
-  	1,31,9,1,1,2,1,2,1,2,1,2,1,3,1,3,1,3,1,4,1,4,3,4,42,8,4,1,4,3,4,45,8,
-  	4,1,4,1,4,3,4,49,8,4,1,4,3,4,52,8,4,1,4,1,4,3,4,56,8,4,1,4,3,4,59,8,4,
-  	1,4,1,4,3,4,63,8,4,1,5,1,5,1,6,1,6,1,6,0,1,2,7,0,2,4,6,8,10,12,0,1,1,
-  	0,4,9,74,0,14,1,0,0,0,2,19,1,0,0,0,4,32,1,0,0,0,6,36,1,0,0,0,8,62,1,0,
-  	0,0,10,64,1,0,0,0,12,66,1,0,0,0,14,15,3,2,1,0,15,1,1,0,0,0,16,17,6,1,
-  	-1,0,17,20,3,4,2,0,18,20,3,6,3,0,19,16,1,0,0,0,19,18,1,0,0,0,20,29,1,
-  	0,0,0,21,22,10,4,0,0,22,23,5,2,0,0,23,28,3,2,1,5,24,25,10,3,0,0,25,26,
-  	5,3,0,0,26,28,3,2,1,4,27,21,1,0,0,0,27,24,1,0,0,0,28,31,1,0,0,0,29,27,
-  	1,0,0,0,29,30,1,0,0,0,30,3,1,0,0,0,31,29,1,0,0,0,32,33,3,12,6,0,33,34,
-  	3,10,5,0,34,35,3,8,4,0,35,5,1,0,0,0,36,37,5,1,0,0,37,38,3,12,6,0,38,7,
-  	1,0,0,0,39,41,5,11,0,0,40,42,5,10,0,0,41,40,1,0,0,0,41,42,1,0,0,0,42,
-  	44,1,0,0,0,43,45,5,14,0,0,44,43,1,0,0,0,44,45,1,0,0,0,45,63,1,0,0,0,46,
-  	48,5,11,0,0,47,49,5,10,0,0,48,47,1,0,0,0,48,49,1,0,0,0,49,51,1,0,0,0,
-  	50,52,5,15,0,0,51,50,1,0,0,0,51,52,1,0,0,0,52,63,1,0,0,0,53,55,5,11,0,
-  	0,54,56,5,10,0,0,55,54,1,0,0,0,55,56,1,0,0,0,56,58,1,0,0,0,57,59,5,16,
-  	0,0,58,57,1,0,0,0,58,59,1,0,0,0,59,63,1,0,0,0,60,63,5,12,0,0,61,63,5,
-  	13,0,0,62,39,1,0,0,0,62,46,1,0,0,0,62,53,1,0,0,0,62,60,1,0,0,0,62,61,
-  	1,0,0,0,63,9,1,0,0,0,64,65,7,0,0,0,65,11,1,0,0,0,66,67,5,17,0,0,67,13,
-  	1,0,0,0,10,19,27,29,41,44,48,51,55,58,62
+  	4,1,18,71,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,1,0,
+  	1,0,1,1,1,1,1,1,1,1,1,1,3,1,22,8,1,1,1,1,1,1,1,1,1,1,1,1,1,5,1,30,8,1,
+  	10,1,12,1,33,9,1,1,2,1,2,1,2,1,2,1,3,1,3,1,3,1,4,1,4,3,4,44,8,4,1,4,3,
+  	4,47,8,4,1,4,1,4,3,4,51,8,4,1,4,3,4,54,8,4,1,4,1,4,3,4,58,8,4,1,4,3,4,
+  	61,8,4,1,4,1,4,3,4,65,8,4,1,5,1,5,1,6,1,6,1,6,0,1,2,7,0,2,4,6,8,10,12,
+  	0,1,1,0,5,10,77,0,14,1,0,0,0,2,21,1,0,0,0,4,34,1,0,0,0,6,38,1,0,0,0,8,
+  	64,1,0,0,0,10,66,1,0,0,0,12,68,1,0,0,0,14,15,3,2,1,0,15,1,1,0,0,0,16,
+  	17,6,1,-1,0,17,22,3,4,2,0,18,22,3,6,3,0,19,20,5,4,0,0,20,22,3,6,3,0,21,
+  	16,1,0,0,0,21,18,1,0,0,0,21,19,1,0,0,0,22,31,1,0,0,0,23,24,10,5,0,0,24,
+  	25,5,2,0,0,25,30,3,2,1,6,26,27,10,4,0,0,27,28,5,3,0,0,28,30,3,2,1,5,29,
+  	23,1,0,0,0,29,26,1,0,0,0,30,33,1,0,0,0,31,29,1,0,0,0,31,32,1,0,0,0,32,
+  	3,1,0,0,0,33,31,1,0,0,0,34,35,3,12,6,0,35,36,3,10,5,0,36,37,3,8,4,0,37,
+  	5,1,0,0,0,38,39,5,1,0,0,39,40,3,12,6,0,40,7,1,0,0,0,41,43,5,12,0,0,42,
+  	44,5,11,0,0,43,42,1,0,0,0,43,44,1,0,0,0,44,46,1,0,0,0,45,47,5,15,0,0,
+  	46,45,1,0,0,0,46,47,1,0,0,0,47,65,1,0,0,0,48,50,5,12,0,0,49,51,5,11,0,
+  	0,50,49,1,0,0,0,50,51,1,0,0,0,51,53,1,0,0,0,52,54,5,16,0,0,53,52,1,0,
+  	0,0,53,54,1,0,0,0,54,65,1,0,0,0,55,57,5,12,0,0,56,58,5,11,0,0,57,56,1,
+  	0,0,0,57,58,1,0,0,0,58,60,1,0,0,0,59,61,5,17,0,0,60,59,1,0,0,0,60,61,
+  	1,0,0,0,61,65,1,0,0,0,62,65,5,13,0,0,63,65,5,14,0,0,64,41,1,0,0,0,64,
+  	48,1,0,0,0,64,55,1,0,0,0,64,62,1,0,0,0,64,63,1,0,0,0,65,9,1,0,0,0,66,
+  	67,7,0,0,0,67,11,1,0,0,0,68,69,5,18,0,0,69,13,1,0,0,0,10,21,29,31,43,
+  	46,50,53,57,60,64
   };
   staticData->serializedATN = antlr4::atn::SerializedATNView(serializedATNSegment, sizeof(serializedATNSegment) / sizeof(serializedATNSegment[0]));
 
@@ -266,6 +267,25 @@ std::any PorlaQueryLangParser::OrExpressionContext::accept(tree::ParseTreeVisito
   else
     return visitor->visitChildren(this);
 }
+//----------------- NotFlagExpressionContext ------------------------------------------------------------------
+
+tree::TerminalNode* PorlaQueryLangParser::NotFlagExpressionContext::NOT() {
+  return getToken(PorlaQueryLangParser::NOT, 0);
+}
+
+PorlaQueryLangParser::FlagContext* PorlaQueryLangParser::NotFlagExpressionContext::flag() {
+  return getRuleContext<PorlaQueryLangParser::FlagContext>(0);
+}
+
+PorlaQueryLangParser::NotFlagExpressionContext::NotFlagExpressionContext(ExpressionContext *ctx) { copyFrom(ctx); }
+
+
+std::any PorlaQueryLangParser::NotFlagExpressionContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<PorlaQueryLangVisitor*>(visitor))
+    return parserVisitor->visitNotFlagExpression(this);
+  else
+    return visitor->visitChildren(this);
+}
 
 PorlaQueryLangParser::ExpressionContext* PorlaQueryLangParser::expression() {
    return expression(0);
@@ -292,7 +312,7 @@ PorlaQueryLangParser::ExpressionContext* PorlaQueryLangParser::expression(int pr
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(19);
+    setState(21);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case PorlaQueryLangParser::ID: {
@@ -314,11 +334,22 @@ PorlaQueryLangParser::ExpressionContext* PorlaQueryLangParser::expression(int pr
         break;
       }
 
+      case PorlaQueryLangParser::NOT: {
+        _localctx = _tracker.createInstance<NotFlagExpressionContext>(_localctx);
+        _ctx = _localctx;
+        previousContext = _localctx;
+        setState(19);
+        match(PorlaQueryLangParser::NOT);
+        setState(20);
+        flag();
+        break;
+      }
+
     default:
       throw NoViableAltException(this);
     }
     _ctx->stop = _input->LT(-1);
-    setState(29);
+    setState(31);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 2, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
@@ -326,20 +357,20 @@ PorlaQueryLangParser::ExpressionContext* PorlaQueryLangParser::expression(int pr
         if (!_parseListeners.empty())
           triggerExitRuleEvent();
         previousContext = _localctx;
-        setState(27);
+        setState(29);
         _errHandler->sync(this);
         switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 1, _ctx)) {
         case 1: {
           auto newContext = _tracker.createInstance<AndExpressionContext>(_tracker.createInstance<ExpressionContext>(parentContext, parentState));
           _localctx = newContext;
           pushNewRecursionContext(newContext, startState, RuleExpression);
-          setState(21);
-
-          if (!(precpred(_ctx, 4))) throw FailedPredicateException(this, "precpred(_ctx, 4)");
-          setState(22);
-          match(PorlaQueryLangParser::AND);
           setState(23);
-          expression(5);
+
+          if (!(precpred(_ctx, 5))) throw FailedPredicateException(this, "precpred(_ctx, 5)");
+          setState(24);
+          match(PorlaQueryLangParser::AND);
+          setState(25);
+          expression(6);
           break;
         }
 
@@ -347,13 +378,13 @@ PorlaQueryLangParser::ExpressionContext* PorlaQueryLangParser::expression(int pr
           auto newContext = _tracker.createInstance<OrExpressionContext>(_tracker.createInstance<ExpressionContext>(parentContext, parentState));
           _localctx = newContext;
           pushNewRecursionContext(newContext, startState, RuleExpression);
-          setState(24);
-
-          if (!(precpred(_ctx, 3))) throw FailedPredicateException(this, "precpred(_ctx, 3)");
-          setState(25);
-          match(PorlaQueryLangParser::OR);
           setState(26);
-          expression(4);
+
+          if (!(precpred(_ctx, 4))) throw FailedPredicateException(this, "precpred(_ctx, 4)");
+          setState(27);
+          match(PorlaQueryLangParser::OR);
+          setState(28);
+          expression(5);
           break;
         }
 
@@ -361,7 +392,7 @@ PorlaQueryLangParser::ExpressionContext* PorlaQueryLangParser::expression(int pr
           break;
         } 
       }
-      setState(31);
+      setState(33);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 2, _ctx);
     }
@@ -426,11 +457,11 @@ PorlaQueryLangParser::PredicateContext* PorlaQueryLangParser::predicate() {
   try {
     _localctx = _tracker.createInstance<PorlaQueryLangParser::OperatorPredicateContext>(_localctx);
     enterOuterAlt(_localctx, 1);
-    setState(32);
-    reference();
-    setState(33);
-    operator_();
     setState(34);
+    reference();
+    setState(35);
+    operator_();
+    setState(36);
     value();
    
   }
@@ -479,9 +510,9 @@ PorlaQueryLangParser::FlagContext* PorlaQueryLangParser::flag() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(36);
+    setState(38);
     match(PorlaQueryLangParser::T__0);
-    setState(37);
+    setState(39);
     reference();
    
   }
@@ -553,19 +584,19 @@ PorlaQueryLangParser::ValueContext* PorlaQueryLangParser::value() {
     exitRule();
   });
   try {
-    setState(62);
+    setState(64);
     _errHandler->sync(this);
     switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 9, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(39);
-      match(PorlaQueryLangParser::INT);
       setState(41);
+      match(PorlaQueryLangParser::INT);
+      setState(43);
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 3, _ctx)) {
       case 1: {
-        setState(40);
+        setState(42);
         match(PorlaQueryLangParser::WHITESPACE);
         break;
       }
@@ -573,12 +604,12 @@ PorlaQueryLangParser::ValueContext* PorlaQueryLangParser::value() {
       default:
         break;
       }
-      setState(44);
+      setState(46);
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 4, _ctx)) {
       case 1: {
-        setState(43);
+        setState(45);
         match(PorlaQueryLangParser::UNIT_DURATION);
         break;
       }
@@ -591,14 +622,14 @@ PorlaQueryLangParser::ValueContext* PorlaQueryLangParser::value() {
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(46);
-      match(PorlaQueryLangParser::INT);
       setState(48);
+      match(PorlaQueryLangParser::INT);
+      setState(50);
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 5, _ctx)) {
       case 1: {
-        setState(47);
+        setState(49);
         match(PorlaQueryLangParser::WHITESPACE);
         break;
       }
@@ -606,12 +637,12 @@ PorlaQueryLangParser::ValueContext* PorlaQueryLangParser::value() {
       default:
         break;
       }
-      setState(51);
+      setState(53);
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 6, _ctx)) {
       case 1: {
-        setState(50);
+        setState(52);
         match(PorlaQueryLangParser::UNIT_SIZE);
         break;
       }
@@ -624,14 +655,14 @@ PorlaQueryLangParser::ValueContext* PorlaQueryLangParser::value() {
 
     case 3: {
       enterOuterAlt(_localctx, 3);
-      setState(53);
-      match(PorlaQueryLangParser::INT);
       setState(55);
+      match(PorlaQueryLangParser::INT);
+      setState(57);
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 7, _ctx)) {
       case 1: {
-        setState(54);
+        setState(56);
         match(PorlaQueryLangParser::WHITESPACE);
         break;
       }
@@ -639,12 +670,12 @@ PorlaQueryLangParser::ValueContext* PorlaQueryLangParser::value() {
       default:
         break;
       }
-      setState(58);
+      setState(60);
       _errHandler->sync(this);
 
       switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 8, _ctx)) {
       case 1: {
-        setState(57);
+        setState(59);
         match(PorlaQueryLangParser::UNIT_SPEED);
         break;
       }
@@ -657,14 +688,14 @@ PorlaQueryLangParser::ValueContext* PorlaQueryLangParser::value() {
 
     case 4: {
       enterOuterAlt(_localctx, 4);
-      setState(60);
+      setState(62);
       match(PorlaQueryLangParser::FLOAT);
       break;
     }
 
     case 5: {
       enterOuterAlt(_localctx, 5);
-      setState(61);
+      setState(63);
       match(PorlaQueryLangParser::STRING);
       break;
     }
@@ -740,10 +771,10 @@ PorlaQueryLangParser::OperatorContext* PorlaQueryLangParser::operator_() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(64);
+    setState(66);
     _la = _input->LA(1);
     if (!(((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 1008) != 0)) {
+      ((1ULL << _la) & 2016) != 0)) {
     _errHandler->recoverInline(this);
     }
     else {
@@ -797,7 +828,7 @@ PorlaQueryLangParser::ReferenceContext* PorlaQueryLangParser::reference() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(66);
+    setState(68);
     match(PorlaQueryLangParser::ID);
    
   }
@@ -822,8 +853,8 @@ bool PorlaQueryLangParser::sempred(RuleContext *context, size_t ruleIndex, size_
 
 bool PorlaQueryLangParser::expressionSempred(ExpressionContext *_localctx, size_t predicateIndex) {
   switch (predicateIndex) {
-    case 0: return precpred(_ctx, 4);
-    case 1: return precpred(_ctx, 3);
+    case 0: return precpred(_ctx, 5);
+    case 1: return precpred(_ctx, 4);
 
   default:
     break;

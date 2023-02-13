@@ -12,10 +12,10 @@
 class  PorlaQueryLangLexer : public antlr4::Lexer {
 public:
   enum {
-    T__0 = 1, AND = 2, OR = 3, OPER_EQ = 4, OPER_CONTAINS = 5, OPER_GT = 6, 
-    OPER_GTE = 7, OPER_LT = 8, OPER_LTE = 9, WHITESPACE = 10, INT = 11, 
-    FLOAT = 12, STRING = 13, UNIT_DURATION = 14, UNIT_SIZE = 15, UNIT_SPEED = 16, 
-    ID = 17
+    T__0 = 1, AND = 2, OR = 3, NOT = 4, OPER_EQ = 5, OPER_CONTAINS = 6, 
+    OPER_GT = 7, OPER_GTE = 8, OPER_LT = 9, OPER_LTE = 10, WHITESPACE = 11, 
+    INT = 12, FLOAT = 13, STRING = 14, UNIT_DURATION = 15, UNIT_SIZE = 16, 
+    UNIT_SPEED = 17, ID = 18
   };
 
   explicit PorlaQueryLangLexer(antlr4::CharStream *input);
