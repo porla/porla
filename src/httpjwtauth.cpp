@@ -14,6 +14,8 @@ HttpJwtAuth::HttpJwtAuth(std::string secret_key, porla::HttpMiddleware middlewar
 
 void HttpJwtAuth::operator()(const std::shared_ptr<porla::HttpContext> &ctx)
 {
+    static const std::string AltAuthHeader = "X-Porla-Token";
+
     namespace http = boost::beast::http;
 
     auto const not_authorized = [&ctx]()
@@ -27,25 +29,41 @@ void HttpJwtAuth::operator()(const std::shared_ptr<porla::HttpContext> &ctx)
         return res;
     };
 
-    auto const auth_header = ctx->Request().find(http::field::authorization);
+    const auto header_finder = [&ctx]<typename T>(const T& header)
+    {
+        auto const auth_header = ctx->Request().find(header);
 
-    // No Authorization header
-    if (auth_header == ctx->Request().end())
+        // No Authorization header
+        if (auth_header == ctx->Request().end())
+        {
+            return std::optional<std::string>();
+        }
+
+        // Authorization header is too short to start with "Bearer " and also contain a token.
+        if (auth_header->value().size() <= 7)
+        {
+            return std::optional<std::string>();
+        }
+
+        return std::optional<std::string>(auth_header->value().substr(7));
+    };
+
+    std::optional<std::string> bearer_token = header_finder(AltAuthHeader);
+
+    // No alt header found, or the alt header didn't contain a value. Check the default Authorization header
+    if (!bearer_token.has_value())
+    {
+        bearer_token = header_finder(http::field::authorization);
+    }
+
+    if (!bearer_token.has_value())
     {
         return ctx->Write(not_authorized());
     }
-
-    // Authorization header is too short to start with "Bearer " and also contain a token.
-    if (auth_header->value().size() <= 7)
-    {
-        return ctx->Write(not_authorized());
-    }
-
-    const std::string bearer_token = std::string(auth_header->value().substr(7));
 
     try
     {
-        auto decoded_token = jwt::decode(bearer_token);
+        auto decoded_token = jwt::decode(bearer_token.value());
 
         auto verifier = jwt::verify()
             .allow_algorithm(jwt::algorithm::hs256(m_secret_key))
