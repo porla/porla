@@ -39,7 +39,14 @@ void Pause::Invoke(const ActionParams& params, std::shared_ptr<ActionCallback> c
         return;
     }
 
-    th->second.pause();
+    lt::pause_flags_t flags = {};
+
+    if (params.Input().contains("graceful") && params.Input()["graceful"].get<bool>())
+    {
+        flags = lt::torrent_handle::graceful_pause;
+    }
+
+    th->second.pause(flags);
 
     auto state = std::make_unique<TorrentPauseState>();
     state->callback = callback;
