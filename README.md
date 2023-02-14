@@ -24,7 +24,6 @@ and _extensible_.
 ### Features
 
  * [User-defined workflows](https://porla.org/workflows).
- * Automatically parse media files for codec information, etc.
  * Support for both BitTorrent v1 and v2.
  * Embedded query language to find torrents. Fast.
  * [HTTP API](https://porla.org/api/auth) with JWT auth.
@@ -36,26 +35,12 @@ Workflows can be used to automate and integrate Porla with all types of
 applications and services, such as Discord and [ntfy.sh](https://ntfy.sh). They
 are inspired by GitHub Actions.
 
-#### Parsing media file information
-
-Porla can automatically parse media information from various container file
-formats such as `mkv`, `mp4`, etc. When parsing is enabled, pieces at the start
-of each media file will be prioritized higher to allow parsing as soon as
-possible.
-
-The media information is available through the API and third-party software
-such as Sonarr or Radarr can use this to decide whether to reject a release.
-
-_Media information parsing is done out-of-process to ensure stability if the
-parsing fails catastrophically for some reason_.
-
 #### The Porla query language (PQL)
 
 To make it easy to navigate and filter a large amount of torrents Porla has a
 simple, embedded query language named PQL.
 
 With PQL you can easily find torrents matching specific criterias.
-
 
 ## Getting started
 
