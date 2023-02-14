@@ -49,7 +49,7 @@ namespace porla
         virtual boost::signals2::connection OnTorrentAdded(const TorrentStatusSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnTorrentFinished(const TorrentStatusSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnTorrentMediaInfo(const TorrentHandleSignal::slot_type& subscriber) = 0;
-        virtual boost::signals2::connection OnTorrentPaused(const TorrentStatusSignal::slot_type& subscriber) = 0;
+        virtual boost::signals2::connection OnTorrentPaused(const TorrentHandleSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnTorrentRemoved(const InfoHashSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnTorrentResumed(const TorrentStatusSignal::slot_type& subscriber) = 0;
         virtual boost::signals2::connection OnTorrentTrackerError(const TrackerErrorSignal::slot_type& subscriber) = 0;
@@ -112,7 +112,7 @@ namespace porla
             return m_torrentMediaInfo.connect(subscriber);
         }
 
-        boost::signals2::connection OnTorrentPaused(const TorrentStatusSignal::slot_type& subscriber) override
+        boost::signals2::connection OnTorrentPaused(const TorrentHandleSignal::slot_type& subscriber) override
         {
             return m_torrentPaused.connect(subscriber);
         }
@@ -171,7 +171,7 @@ namespace porla
         TorrentStatusSignal m_torrentAdded;
         TorrentStatusSignal m_torrentFinished;
         TorrentHandleSignal m_torrentMediaInfo;
-        TorrentStatusSignal m_torrentPaused;
+        TorrentHandleSignal m_torrentPaused;
         InfoHashSignal m_torrentRemoved;
         TorrentStatusSignal m_torrentResumed;
         TrackerErrorSignal m_torrentTrackerError;

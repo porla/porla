@@ -166,9 +166,9 @@ void HttpEventStream::OnStateUpdate(const std::vector<lt::torrent_status>& torre
     Broadcast("state_update", state.dump());
 }
 
-void HttpEventStream::OnTorrentPaused(const libtorrent::torrent_status &status)
+void HttpEventStream::OnTorrentPaused(const libtorrent::torrent_handle& th)
 {
-    Broadcast("torrent_paused", json({"info_hash", status.info_hashes}).dump());
+    Broadcast("torrent_paused", json({"info_hash", th.info_hashes()}).dump());
 }
 
 void HttpEventStream::OnTorrentRemoved(const libtorrent::info_hash_t &hash)
