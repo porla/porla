@@ -50,6 +50,7 @@
 #include "workflows/actions/sleep.hpp"
 #include "workflows/actions/push/discord.hpp"
 #include "workflows/actions/push/ntfy.hpp"
+#include "workflows/actions/torrents/flags.hpp"
 #include "workflows/actions/torrents/move.hpp"
 #include "workflows/actions/torrents/pause.hpp"
 #include "workflows/actions/torrents/reannounce.hpp"
@@ -142,6 +143,7 @@ int main(int argc, char* argv[])
                     {"push/discord",        [&io]()      { return std::make_shared<porla::Workflows::Actions::Push::Discord>(io); }},
                     {"push/ntfy-sh",        [&io]()      { return std::make_shared<porla::Workflows::Actions::Push::Ntfy>(io); }},
                     {"sleep",               [&io]()      { return std::make_shared<porla::Workflows::Actions::Sleep>(io); }},
+                    {"torrents/flags",      [&session]() { return std::make_shared<porla::Workflows::Actions::Torrents::Flags>(session); }},
                     {"torrents/move",       [&session]() { return std::make_shared<porla::Workflows::Actions::Torrents::Move>(session); }},
                     {"torrents/pause",      [&session]() { return std::make_shared<porla::Workflows::Actions::Torrents::Pause>(session); }},
                     {"torrents/reannounce", [&session]() { return std::make_shared<porla::Workflows::Actions::Torrents::Reannounce>(session); }},
