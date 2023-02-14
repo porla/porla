@@ -53,6 +53,7 @@
 #include "workflows/actions/push/discord.hpp"
 #include "workflows/actions/push/ntfy.hpp"
 #include "workflows/actions/torrents/move.hpp"
+#include "workflows/actions/torrents/pause.hpp"
 #include "workflows/actions/torrents/reannounce.hpp"
 #include "workflows/actions/torrents/remove.hpp"
 
@@ -149,6 +150,7 @@ int main(int argc, char* argv[])
                     {"push/ntfy-sh",        [&io]()      { return std::make_shared<porla::Workflows::Actions::Push::Ntfy>(io); }},
                     {"sleep",               [&io]()      { return std::make_shared<porla::Workflows::Actions::Sleep>(io); }},
                     {"torrents/move",       [&session]() { return std::make_shared<porla::Workflows::Actions::Torrents::Move>(session); }},
+                    {"torrents/pause",      [&session]() { return std::make_shared<porla::Workflows::Actions::Torrents::Pause>(session); }},
                     {"torrents/reannounce", [&session]() { return std::make_shared<porla::Workflows::Actions::Torrents::Reannounce>(session); }},
                     {"torrents/remove",     [&session]() { return std::make_shared<porla::Workflows::Actions::Torrents::Remove>(session); }}
                 })
