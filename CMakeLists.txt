@@ -14,14 +14,12 @@ find_package(duktape)
 find_package(GTest               CONFIG REQUIRED)
 find_package(libzip              CONFIG REQUIRED)
 find_package(LibtorrentRasterbar CONFIG REQUIRED)
-find_package(MediaInfoLib        CONFIG REQUIRED)
 find_package(nlohmann_json       CONFIG REQUIRED)
 find_package(tomlplusplus        CONFIG REQUIRED)
 find_package(unofficial-sodium   CONFIG REQUIRED)
 find_package(unofficial-sqlite3  CONFIG REQUIRED)
 find_package(uriparser           CONFIG REQUIRED)
 find_package(yaml-cpp            CONFIG REQUIRED)
-find_package(ZenLib              CONFIG REQUIRED)
 
 find_path(JWT_CPP_INCLUDE_DIRS "jwt-cpp/base.h")
 
@@ -38,19 +36,6 @@ add_custom_command(
     ${CMAKE_CURRENT_BINARY_DIR}/_webui.cpp
     COMMAND ${CMAKE_COMMAND} -P
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FileEmbed.cmake)
-
-add_library(
-    ${PROJECT_NAME}_mediainfo
-    STATIC
-    src/mediainfo/parser.cpp
-)
-
-target_link_libraries(
-    ${PROJECT_NAME}_mediainfo
-    PRIVATE
-    mediainfo
-    zen
-)
 
 add_library(
     ${PROJECT_NAME}_utils
@@ -131,7 +116,6 @@ add_library(
     src/methods/torrentsadd.cpp
     src/methods/torrentsfileslist.cpp
     src/methods/torrentslist.cpp
-    src/methods/torrentsmediainfo.cpp
     src/methods/torrentsmetadatalist.cpp
     src/methods/torrentsmove.cpp
     src/methods/torrentspause.cpp
@@ -146,7 +130,6 @@ add_library(
 
     src/tools/authtoken.cpp
     src/tools/generatesecretkey.cpp
-    src/tools/mediainfoparse.cpp
     src/tools/versionjson.cpp
 
     src/workflows/actionfactory.cpp
@@ -181,7 +164,6 @@ target_include_directories(
 target_link_libraries(
     ${PROJECT_NAME}_core
 
-    ${PROJECT_NAME}_mediainfo
     ${PROJECT_NAME}_query
     ${PROJECT_NAME}_utils
 

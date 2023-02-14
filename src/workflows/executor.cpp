@@ -15,7 +15,6 @@ struct Executor::State
 {
     boost::signals2::connection torrent_added_connection;
     boost::signals2::connection torrent_finished_connection;
-    boost::signals2::connection torrent_mediainfo_connection;
 };
 
 Executor::Executor(const ExecutorOptions& options)
@@ -26,14 +25,12 @@ Executor::Executor(const ExecutorOptions& options)
 {
     m_state->torrent_added_connection = m_session.OnTorrentAdded([this](const auto& ts) { OnTorrentAdded(ts); });
     m_state->torrent_finished_connection = m_session.OnTorrentFinished([this](const auto& ts) { OnTorrentFinished(ts); });
-    m_state->torrent_mediainfo_connection = m_session.OnTorrentMediaInfo([this](const auto& th) { OnTorrentMediaInfo(th); });
 }
 
 Executor::~Executor()
 {
     m_state->torrent_added_connection.disconnect();
     m_state->torrent_finished_connection.disconnect();
-    m_state->torrent_mediainfo_connection.disconnect();
 }
 
 void Executor::OnTorrentAdded(const lt::torrent_status& ts)
@@ -47,13 +44,6 @@ void Executor::OnTorrentFinished(const lt::torrent_status& ts)
 {
     TriggerWorkflows("torrent_finished", {
         {"torrent", std::make_shared<porla::Workflows::TorrentContextProvider>(ts)}
-    });
-}
-
-void Executor::OnTorrentMediaInfo(const libtorrent::torrent_handle& th)
-{
-    TriggerWorkflows("torrent_mediainfo", {
-        {"torrent", std::make_shared<porla::Workflows::TorrentContextProvider>(th.status())}
     });
 }
 

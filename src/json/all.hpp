@@ -14,7 +14,6 @@
 #include "torrentsaddres.hpp"
 #include "torrentsfileslist.hpp"
 #include "torrentslist.hpp"
-#include "torrentsmediainfo.hpp"
 #include "torrentsmetadatalist.hpp"
 #include "torrentsmove.hpp"
 #include "torrentspause.hpp"

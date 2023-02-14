@@ -51,7 +51,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
     auto cfg = std::unique_ptr<Config>(new Config());
     cfg->http_auth_enabled         = true;
-    cfg->mediainfo_file_extensions = {".mkv", ".mov", ".mp4", ".jpg", ".srt"};
     cfg->session_settings          = lt::default_settings();
 
     // Check default locations for a config file.
@@ -144,9 +143,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
             if (auto val = config_file_tbl["http"]["webui_enabled"].value<bool>())
                 cfg->http_webui_enabled = *val;
-
-            if (auto val = config_file_tbl["mediainfo"]["enabled"].value<bool>())
-                cfg->mediainfo_enabled = *val;
 
             // Load presets
             if (auto const* presets_tbl = config_file_tbl["presets"].as_table())
@@ -322,11 +318,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         lt::alert::status_notification
         | lt::alert::storage_notification
         | lt::alert::tracker_notification;
-
-    if (cfg->mediainfo_enabled.value_or(false))
-    {
-        alerts |= lt::alert::piece_progress_notification;
-    }
 
     cfg->session_settings.set_int(lt::settings_pack::alert_mask, alerts);
     cfg->session_settings.set_str(lt::settings_pack::peer_fingerprint, lt::generate_fingerprint("PO", 0, 1));

@@ -17,7 +17,6 @@
 #include "systemhandler.hpp"
 #include "tools/authtoken.hpp"
 #include "tools/generatesecretkey.hpp"
-#include "tools/mediainfoparse.hpp"
 #include "tools/versionjson.hpp"
 #include "utils/secretkey.hpp"
 
@@ -31,7 +30,6 @@
 #include "methods/torrentsadd.hpp"
 #include "methods/torrentsfileslist.hpp"
 #include "methods/torrentslist.hpp"
-#include "methods/torrentsmediainfo.hpp"
 #include "methods/torrentsmetadatalist.hpp"
 #include "methods/torrentsmove.hpp"
 #include "methods/torrentspause.hpp"
@@ -63,7 +61,6 @@ int main(int argc, char* argv[])
     {
         {"auth:token", &porla::Tools::AuthToken},
         {"key:generate", &porla::Tools::GenerateSecretKey},
-        {"mediainfo:parse", &porla::Tools::MediaInfoParse},
         {"version:json", &porla::Tools::VersionJson}
     };
 
@@ -108,10 +105,6 @@ int main(int argc, char* argv[])
         porla::Session session(io, porla::SessionOptions{
             .db                         = cfg->db,
             .extensions                 = cfg->session_extensions,
-            .mediainfo_enabled          = cfg->mediainfo_enabled.value_or(false),
-            .mediainfo_file_extensions  = cfg->mediainfo_file_extensions,
-            .mediainfo_file_min_size    = cfg->mediainfo_file_min_size.value_or(100 * 1024 * 1024),
-            .mediainfo_file_wanted_size = cfg->mediainfo_file_wanted_size.value_or(1 * 1024 * 1024),
             .settings                   = cfg->session_settings,
             .session_params_file        = cfg->state_dir.value_or(fs::current_path()) / "session.dat",
             .timer_dht_stats            = cfg->timer_dht_stats.value_or(5000),
@@ -167,7 +160,6 @@ int main(int argc, char* argv[])
             {"torrents.add", porla::Methods::TorrentsAdd(cfg->db, session, cfg->presets)},
             {"torrents.files.list", porla::Methods::TorrentsFilesList(session)},
             {"torrents.list", porla::Methods::TorrentsList(cfg->db, session)},
-            {"torrents.mediainfo", porla::Methods::TorrentsMediaInfo(session)},
             {"torrents.metadata.list", porla::Methods::TorrentsMetadataList(cfg->db, session)},
             {"torrents.move", porla::Methods::TorrentsMove(session)},
             {"torrents.pause", porla::Methods::TorrentsPause(session)},
