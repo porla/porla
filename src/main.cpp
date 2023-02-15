@@ -12,6 +12,7 @@
 #include "httpserver.hpp"
 #include "jsonrpchandler.hpp"
 #include "logger.hpp"
+#include "lua/engine.hpp"
 #include "metricshandler.hpp"
 #include "session.hpp"
 #include "systemhandler.hpp"
@@ -133,6 +134,11 @@ int main(int argc, char* argv[])
             BOOST_LOG_TRIVIAL(debug) << "Loading workflow from file " << workflow_file;
             workflows.push_back(porla::Workflows::Workflow::LoadFromFile(workflow_file));
         }
+
+        porla::Lua::Engine lua_engine{porla::Lua::EngineOptions{
+            .io      = io,
+            .session = session
+        }};
 
         porla::Workflows::Executor workflow_executor{porla::Workflows::ExecutorOptions{
             .session        = session,

@@ -14,7 +14,9 @@ find_package(duktape)
 find_package(GTest               CONFIG REQUIRED)
 find_package(libzip              CONFIG REQUIRED)
 find_package(LibtorrentRasterbar CONFIG REQUIRED)
+find_package(Lua                        REQUIRED)
 find_package(nlohmann_json       CONFIG REQUIRED)
+find_package(sol2                CONFIG REQUIRED)
 find_package(tomlplusplus        CONFIG REQUIRED)
 find_package(unofficial-sodium   CONFIG REQUIRED)
 find_package(unofficial-sqlite3  CONFIG REQUIRED)
@@ -106,6 +108,8 @@ add_library(
     src/data/models/users.cpp
     src/data/statement.cpp
 
+    src/lua/engine.cpp
+
     src/methods/fsspace.cpp
     src/methods/presetslist.cpp
     src/methods/sessionpause.cpp
@@ -161,6 +165,7 @@ target_include_directories(
     ${PROJECT_NAME}_core
     PUBLIC
     ${JWT_CPP_INCLUDE_DIRS}
+    ${LUA_INCLUDE_DIR}
 )
 
 target_link_libraries(
@@ -169,12 +174,15 @@ target_link_libraries(
     ${PROJECT_NAME}_query
     ${PROJECT_NAME}_utils
 
+    ${LUA_LIBRARIES}
+
     Boost::boost
     Boost::log
     Boost::program_options
     duktape
     libzip::zip
     LibtorrentRasterbar::torrent-rasterbar
+    sol2
     unofficial-sodium::sodium
     unofficial-sodium::sodium_config_public
     unofficial::sqlite3::sqlite3
