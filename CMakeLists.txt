@@ -138,6 +138,7 @@ add_library(
     src/workflows/torrentcontextprovider.cpp
     src/workflows/workflow.cpp
 
+    src/workflows/actions/exec.cpp
     src/workflows/actions/http.cpp
     src/workflows/actions/log.cpp
     src/workflows/actions/sleep.cpp
