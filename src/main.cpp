@@ -12,7 +12,7 @@
 #include "httpserver.hpp"
 #include "jsonrpchandler.hpp"
 #include "logger.hpp"
-#include "lua/engine.hpp"
+#include "lua/workflows/workflowengine.hpp"
 #include "metricshandler.hpp"
 #include "session.hpp"
 #include "systemhandler.hpp"
@@ -42,21 +42,6 @@
 #include "methods/torrentspropertiesget.hpp"
 #include "methods/torrentspropertiesset.hpp"
 #include "methods/torrentstrackerslist.hpp"
-
-#include "workflows/actionfactory.hpp"
-#include "workflows/executor.hpp"
-#include "workflows/workflow.hpp"
-#include "workflows/actions/exec.hpp"
-#include "workflows/actions/http.hpp"
-#include "workflows/actions/log.hpp"
-#include "workflows/actions/sleep.hpp"
-#include "workflows/actions/push/discord.hpp"
-#include "workflows/actions/push/ntfy.hpp"
-#include "workflows/actions/torrents/flags.hpp"
-#include "workflows/actions/torrents/move.hpp"
-#include "workflows/actions/torrents/pause.hpp"
-#include "workflows/actions/torrents/reannounce.hpp"
-#include "workflows/actions/torrents/remove.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -125,7 +110,7 @@ int main(int argc, char* argv[])
             return -1;
         }
 
-        porla::Lua::Engine lua_engine{porla::Lua::EngineOptions{
+        porla::Lua::Workflows::WorkflowEngine workflow_engine{porla::Lua::Workflows::WorkflowEngineOptions{
             .io           = io,
             .session      = session,
             .workflow_dir = cfg->workflow_dir.value_or(fs::path())

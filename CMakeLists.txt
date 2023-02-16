@@ -10,7 +10,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 find_package(antlr4-runtime      CONFIG REQUIRED)
 find_package(Boost                      REQUIRED COMPONENTS log program_options system)
-find_package(duktape)
 find_package(GTest               CONFIG REQUIRED)
 find_package(libzip              CONFIG REQUIRED)
 find_package(LibtorrentRasterbar CONFIG REQUIRED)
@@ -21,7 +20,6 @@ find_package(tomlplusplus        CONFIG REQUIRED)
 find_package(unofficial-sodium   CONFIG REQUIRED)
 find_package(unofficial-sqlite3  CONFIG REQUIRED)
 find_package(uriparser           CONFIG REQUIRED)
-find_package(yaml-cpp            CONFIG REQUIRED)
 
 find_path(JWT_CPP_INCLUDE_DIRS "jwt-cpp/base.h")
 
@@ -94,7 +92,6 @@ add_library(
     src/utils/eta.cpp
     src/utils/secretkey.cpp
     src/utils/string.cpp
-    src/utils/yaml.cpp
 
     src/data/migrate.cpp
     src/data/migrations/0001_initialsetup.cpp
@@ -108,9 +105,16 @@ add_library(
     src/data/models/users.cpp
     src/data/statement.cpp
 
-    src/lua/engine.cpp
+    src/lua/usertypes/workflow.cpp
+    src/lua/usertypes/workflowactionexec.cpp
+    src/lua/usertypes/workflowactionlog.cpp
+    src/lua/usertypes/workflowactionsleep.cpp
+    src/lua/usertypes/workflowactiontorrentmove.cpp
+    src/lua/workflows/workflowengine.cpp
+    src/lua/workflows/workflowrunner.cpp
     src/lua/workflows/actions/exec.cpp
     src/lua/workflows/actions/log.cpp
+    src/lua/workflows/actions/sleep.cpp
 
     src/methods/fsspace.cpp
     src/methods/presetslist.cpp
@@ -137,24 +141,6 @@ add_library(
     src/tools/authtoken.cpp
     src/tools/generatesecretkey.cpp
     src/tools/versionjson.cpp
-
-    src/workflows/actionfactory.cpp
-    src/workflows/executor.cpp
-    src/workflows/textrenderer.cpp
-    src/workflows/torrentcontextprovider.cpp
-    src/workflows/workflow.cpp
-
-    src/workflows/actions/exec.cpp
-    src/workflows/actions/http.cpp
-    src/workflows/actions/log.cpp
-    src/workflows/actions/sleep.cpp
-    src/workflows/actions/push/discord.cpp
-    src/workflows/actions/push/ntfy.cpp
-    src/workflows/actions/torrents/flags.cpp
-    src/workflows/actions/torrents/move.cpp
-    src/workflows/actions/torrents/pause.cpp
-    src/workflows/actions/torrents/reannounce.cpp
-    src/workflows/actions/torrents/remove.cpp
 )
 
 target_compile_definitions(
@@ -181,7 +167,6 @@ target_link_libraries(
     Boost::boost
     Boost::log
     Boost::program_options
-    duktape
     libzip::zip
     LibtorrentRasterbar::torrent-rasterbar
     sol2
@@ -189,7 +174,6 @@ target_link_libraries(
     unofficial-sodium::sodium_config_public
     unofficial::sqlite3::sqlite3
     uriparser::uriparser
-    yaml-cpp
 )
 
 add_executable(
@@ -208,11 +192,6 @@ add_executable(
     tests/main.cpp
     tests/query/pql.cpp
     tests/utils/string.cpp
-    tests/workflows/actions/log.cpp
-    tests/workflows/actions/sleep.cpp
-    tests/workflows/executor.cpp
-    tests/workflows/textrenderer.cpp
-    tests/workflows/workflow.cpp
 )
 
 target_link_libraries(

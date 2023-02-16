@@ -12,29 +12,27 @@ namespace porla
     class ISession;
 }
 
-namespace porla::Lua
+namespace porla::Lua::Workflows
 {
-    struct EngineOptions
+    struct WorkflowEngineOptions
     {
         boost::asio::io_context& io;
         porla::ISession&         session;
         std::filesystem::path    workflow_dir;
     };
 
-    class Engine
+    class WorkflowEngine
     {
     public:
-        explicit Engine(const EngineOptions& options);
-        ~Engine();
+        explicit WorkflowEngine(const WorkflowEngineOptions& options);
+        ~WorkflowEngine();
 
     private:
         void OnTorrentAdded(const libtorrent::torrent_status& ts);
 
         struct State;
-        struct WorkflowInstance;
 
-        EngineOptions m_opts;
+        WorkflowEngineOptions m_opts;
         std::unique_ptr<State> m_state;
-        std::vector<WorkflowInstance> m_workflow_instances;
     };
 }

@@ -20,7 +20,6 @@
     "sol2",
     "sqlite3",
     "tomlplusplus",
-    "uriparser",
-    "yaml-cpp"
+    "uriparser"
   ]
 }
