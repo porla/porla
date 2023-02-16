@@ -109,6 +109,8 @@ add_library(
     src/data/statement.cpp
 
     src/lua/engine.cpp
+    src/lua/workflows/actions/exec.cpp
+    src/lua/workflows/actions/log.cpp
 
     src/methods/fsspace.cpp
     src/methods/presetslist.cpp

@@ -125,38 +125,10 @@ int main(int argc, char* argv[])
             return -1;
         }
 
-        std::vector<std::shared_ptr<porla::Workflows::Workflow>> workflows;
-
-        BOOST_LOG_TRIVIAL(info) << "Loading " << cfg->workflow_files.size() << " workflow file(s)";
-
-        for (const auto& workflow_file : cfg->workflow_files)
-        {
-            BOOST_LOG_TRIVIAL(debug) << "Loading workflow from file " << workflow_file;
-            workflows.push_back(porla::Workflows::Workflow::LoadFromFile(workflow_file));
-        }
-
         porla::Lua::Engine lua_engine{porla::Lua::EngineOptions{
-            .io      = io,
-            .session = session
-        }};
-
-        porla::Workflows::Executor workflow_executor{porla::Workflows::ExecutorOptions{
-            .session        = session,
-            .workflows      = workflows,
-            .action_factory = std::make_shared<porla::Workflows::ActionFactory>(
-                std::map<std::string, std::function<std::shared_ptr<porla::Workflows::Action>()>>{
-                    // The world is not ready for this {"http",                [&io]()      { return std::make_shared<porla::Workflows::Actions::Http>(io); }},
-                    {"exec",                [&io]()      { return std::make_shared<porla::Workflows::Actions::Exec>(io); }},
-                    {"log",                 []()         { return std::make_shared<porla::Workflows::Actions::Log>(); }},
-                    {"push/discord",        [&io]()      { return std::make_shared<porla::Workflows::Actions::Push::Discord>(io); }},
-                    {"push/ntfy-sh",        [&io]()      { return std::make_shared<porla::Workflows::Actions::Push::Ntfy>(io); }},
-                    {"sleep",               [&io]()      { return std::make_shared<porla::Workflows::Actions::Sleep>(io); }},
-                    {"torrents/flags",      [&session]() { return std::make_shared<porla::Workflows::Actions::Torrents::Flags>(session); }},
-                    {"torrents/move",       [&session]() { return std::make_shared<porla::Workflows::Actions::Torrents::Move>(session); }},
-                    {"torrents/pause",      [&session]() { return std::make_shared<porla::Workflows::Actions::Torrents::Pause>(session); }},
-                    {"torrents/reannounce", [&session]() { return std::make_shared<porla::Workflows::Actions::Torrents::Reannounce>(session); }},
-                    {"torrents/remove",     [&session]() { return std::make_shared<porla::Workflows::Actions::Torrents::Remove>(session); }}
-                })
+            .io           = io,
+            .session      = session,
+            .workflow_dir = cfg->workflow_dir.value_or(fs::path())
         }};
 
         porla::JsonRpcHandler rpc({
