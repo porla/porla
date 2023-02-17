@@ -105,16 +105,22 @@ add_library(
     src/data/models/users.cpp
     src/data/statement.cpp
 
+    src/lua/usertypes/lttorrenthandle.cpp
     src/lua/usertypes/workflow.cpp
     src/lua/usertypes/workflowactionexec.cpp
     src/lua/usertypes/workflowactionlog.cpp
+    src/lua/usertypes/workflowactionpushdiscord.cpp
+    src/lua/usertypes/workflowactionpushntfy.cpp
     src/lua/usertypes/workflowactionsleep.cpp
     src/lua/usertypes/workflowactiontorrentmove.cpp
     src/lua/workflows/workflowengine.cpp
     src/lua/workflows/workflowrunner.cpp
     src/lua/workflows/actions/exec.cpp
     src/lua/workflows/actions/log.cpp
+    src/lua/workflows/actions/pushdiscord.cpp
+    src/lua/workflows/actions/pushntfy.cpp
     src/lua/workflows/actions/sleep.cpp
+    src/lua/workflows/actions/torrentflags.cpp
 
     src/methods/fsspace.cpp
     src/methods/presetslist.cpp

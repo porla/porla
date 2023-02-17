@@ -3,9 +3,12 @@
 #include <boost/log/trivial.hpp>
 #include <sol/sol.hpp>
 
+#include "../usertypes/lttorrenthandle.hpp"
 #include "../usertypes/workflow.hpp"
 #include "../usertypes/workflowactionexec.hpp"
 #include "../usertypes/workflowactionlog.hpp"
+#include "../usertypes/workflowactionpushdiscord.hpp"
+#include "../usertypes/workflowactionpushntfy.hpp"
 #include "../usertypes/workflowactionsleep.hpp"
 #include "../usertypes/workflowactiontorrentmove.hpp"
 
@@ -20,10 +23,15 @@ namespace fs = std::filesystem;
 using porla::Lua::Workflows::WorkflowEngine;
 using porla::Lua::Workflows::WorkflowEngineOptions;
 using porla::Lua::UserTypes::Workflow;
+
+using porla::Lua::UserTypes::LibtorrentTorrentHandle;
 using porla::Lua::UserTypes::WorkflowActionExec;
 using porla::Lua::UserTypes::WorkflowActionLog;
+using porla::Lua::UserTypes::WorkflowActionPushDiscord;
+using porla::Lua::UserTypes::WorkflowActionPushNtfy;
 using porla::Lua::UserTypes::WorkflowActionSleep;
 using porla::Lua::UserTypes::WorkflowActionTorrentMove;
+
 using porla::Lua::Workflows::Action;
 using porla::Lua::Workflows::ActionBuilder;
 using porla::Lua::Workflows::ActionBuilderOptions;
@@ -59,6 +67,8 @@ WorkflowEngine::WorkflowEngine(const WorkflowEngineOptions& opts)
     m_state = std::make_unique<State>();
     m_state->lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::string);
 
+    LibtorrentTorrentHandle::Register(m_state->lua);
+
     m_state->lua.require("porla.Workflow", sol::c_call<decltype(&Workflow::Require), &Workflow::Require>);
 
     m_state->lua.require("porla.actions.Exec",
@@ -67,6 +77,12 @@ WorkflowEngine::WorkflowEngine(const WorkflowEngineOptions& opts)
     m_state->lua.require("porla.actions.Log",
                          sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionLog>),
                          &OpenWorkflowActionT<WorkflowActionLog>>);
+    m_state->lua.require("porla.actions.PushDiscord",
+                         sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionPushDiscord>),
+                         &OpenWorkflowActionT<WorkflowActionPushDiscord>>);
+    m_state->lua.require("porla.actions.PushNtfy",
+                         sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionPushNtfy>),
+                         &OpenWorkflowActionT<WorkflowActionPushNtfy>>);
     m_state->lua.require("porla.actions.Sleep",
                          sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionSleep>),
                          &OpenWorkflowActionT<WorkflowActionSleep>>);
@@ -85,7 +101,7 @@ WorkflowEngine::WorkflowEngine(const WorkflowEngineOptions& opts)
         }
         catch (const sol::error& err)
         {
-            BOOST_LOG_TRIVIAL(error) << "Failed to load workflow " << file << ": " << err.what();
+            BOOST_LOG_TRIVIAL(error) << "Failed to load workflow " << file.path() << ": " << err.what();
         }
     }
 
@@ -106,7 +122,7 @@ void WorkflowEngine::OnTorrentAdded(const libtorrent::torrent_status& ts)
         }
 
         sol::table ctx = m_state->lua.create_table();
-        ctx["torrent"] = "hej";
+        ctx["lt:torrent_handle"] = ts.handle;
 
         const WorkflowRunnerOptions opts{
             .io      = m_opts.io,
