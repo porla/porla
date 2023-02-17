@@ -22,7 +22,7 @@ namespace porla::Lua::Workflows::Actions
     class TorrentFlags : public Action
     {
     public:
-        explicit TorrentFlags(const TorrentFlagsOptions& opts);
+        explicit TorrentFlags(TorrentFlagsOptions opts);
         ~TorrentFlags();
 
         void Invoke(const ActionParams& params, std::shared_ptr<ActionCallback> callback) override;

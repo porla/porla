@@ -3,11 +3,9 @@
 #include <map>
 #include <memory>
 
-#include <boost/signals2.hpp>
 #include <libtorrent/info_hash.hpp>
-#include <libtorrent/torrent_handle.hpp>
 
-#include "../../action.hpp"
+#include "../action.hpp"
 
 namespace porla
 {

@@ -1,12 +1,14 @@
 #include "torrentflags.hpp"
 
+#include <utility>
+
 #include "../../../session.hpp"
 
 using porla::Lua::Workflows::Actions::TorrentFlags;
 using porla::Lua::Workflows::Actions::TorrentFlagsOptions;
 
-TorrentFlags::TorrentFlags(const TorrentFlagsOptions& opts)
-    : m_opts(opts)
+TorrentFlags::TorrentFlags(TorrentFlagsOptions opts)
+    : m_opts(std::move(opts))
 {
 }
 
@@ -14,9 +16,9 @@ TorrentFlags::~TorrentFlags() = default;
 
 void TorrentFlags::Invoke(const ActionParams& params, std::shared_ptr<ActionCallback> callback)
 {
-    const lt::torrent_handle& handle = params.context["torrent"];
+    const lt::torrent_handle& handle = params.context["lt:torrent_handle"];
 
-    lt::torrent_flags_t set = {};
+    lt::torrent_flags_t set   = {};
     lt::torrent_flags_t unset = {};
 
     const auto parse_flags = [](lt::torrent_flags_t flags, const std::vector<std::string>& input_flags)
@@ -31,6 +33,12 @@ void TorrentFlags::Invoke(const ActionParams& params, std::shared_ptr<ActionCall
             if (f == "sequential_download") flags |= lt::torrent_flags::sequential_download;
         }
     };
+
+    parse_flags(set,   m_opts.set);
+    parse_flags(unset, m_opts.unset);
+
+    handle.set_flags(set);
+    handle.unset_flags(unset);
 
     callback->Complete();
 }
