@@ -1,11 +1,12 @@
 #pragma once
 
-#include <boost/asio.hpp>
-#include <libtorrent/torrent_status.hpp>
-
 #include <filesystem>
 #include <memory>
-#include <vector>
+
+namespace boost::asio
+{
+    class io_context;
+}
 
 namespace porla
 {
@@ -28,11 +29,7 @@ namespace porla::Lua::Workflows
         ~WorkflowEngine();
 
     private:
-        void OnTorrentAdded(const libtorrent::torrent_status& ts);
-
         struct State;
-
-        WorkflowEngineOptions m_opts;
         std::unique_ptr<State> m_state;
     };
 }

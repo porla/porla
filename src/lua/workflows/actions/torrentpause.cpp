@@ -1,5 +1,7 @@
 #include "torrentpause.hpp"
 
+#include <utility>
+
 #include "../../../session.hpp"
 
 using porla::Lua::Workflows::ActionCallback;
@@ -10,9 +12,10 @@ struct WorkItem
 {
     std::shared_ptr<ActionCallback> callback;
     lt::info_hash_t                 info_hash;
+    std::shared_ptr<void>           state;
 };
 
-class TorrentPause::State
+class TorrentPause::State : public std::enable_shared_from_this<TorrentPause::State>
 {
 public:
     explicit State(const TorrentPauseOptions& opts)
@@ -34,8 +37,9 @@ public:
         }
 
         m_work_item            = std::make_unique<WorkItem>();
-        m_work_item->callback  = callback;
+        m_work_item->callback  = std::move(callback);
         m_work_item->info_hash = th.info_hashes();
+        m_work_item->state     = shared_from_this();
 
         th.pause();
     }
@@ -47,7 +51,8 @@ private:
         if (th.info_hashes() != m_work_item->info_hash) return;
 
         m_work_item->callback->Complete();
-        m_work_item = nullptr;
+        m_work_item->state = nullptr;
+        m_work_item        = nullptr;
     }
 
     TorrentPauseOptions         m_opts;
@@ -56,7 +61,7 @@ private:
 };
 
 TorrentPause::TorrentPause(const TorrentPauseOptions& opts)
-    : m_state(std::make_unique<State>(opts))
+    : m_state(std::make_shared<State>(opts))
 {
 }
 

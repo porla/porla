@@ -25,7 +25,7 @@ namespace porla::Lua::Workflows::Actions
         void Invoke(const ActionParams& params, std::shared_ptr<ActionCallback> callback) override;
 
     private:
-        struct State;
-        std::unique_ptr<State> m_state;
+        class State;
+        std::shared_ptr<State> m_state;
     };
 }

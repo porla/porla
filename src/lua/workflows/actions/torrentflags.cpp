@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include <boost/log/trivial.hpp>
+
 #include "../../../session.hpp"
 
 using porla::Lua::Workflows::Actions::TorrentFlags;
@@ -21,7 +23,7 @@ void TorrentFlags::Invoke(const ActionParams& params, std::shared_ptr<ActionCall
     lt::torrent_flags_t set   = {};
     lt::torrent_flags_t unset = {};
 
-    const auto parse_flags = [](lt::torrent_flags_t flags, const std::vector<std::string>& input_flags)
+    const auto parse_flags = [](lt::torrent_flags_t& flags, const std::vector<std::string>& input_flags)
     {
         for (const auto& f : input_flags)
         {

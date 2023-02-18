@@ -27,6 +27,6 @@ namespace porla::Lua::Workflows::Actions
 
     private:
         struct State;
-        std::unique_ptr<State> m_state;
+        std::shared_ptr<State> m_state;
     };
 }

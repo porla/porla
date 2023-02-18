@@ -15,7 +15,7 @@ WorkflowActionTorrentFlags::WorkflowActionTorrentFlags(sol::table args)
         m_set = args["set"].get<sol::as_table_t<std::vector<std::string>>>();
     }
 
-    if (args["unset"] && args["set"].is<sol::as_table_t<std::vector<std::string>>>())
+    if (args["unset"] && args["unset"].is<sol::as_table_t<std::vector<std::string>>>())
     {
         m_unset = args["unset"].get<sol::as_table_t<std::vector<std::string>>>();
     }

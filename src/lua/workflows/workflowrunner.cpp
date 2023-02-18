@@ -50,7 +50,7 @@ void WorkflowRunner::RunOne()
 
     const auto& current_action = m_actions.at(m_current_action_index);
 
-    BOOST_LOG_TRIVIAL(info) << "Running action " << m_current_action_index + 1 << " of " << m_actions.size();
+    BOOST_LOG_TRIVIAL(debug) << "Running action " << m_current_action_index + 1 << " of " << m_actions.size();
 
     if (current_action.is<ActionBuilder*>())
     {
@@ -59,8 +59,6 @@ void WorkflowRunner::RunOne()
             .session = m_opts.session
         };
 
-        BOOST_LOG_TRIVIAL(info) << "Creating action instance";
-
         try
         {
             auto instance = current_action.as<ActionBuilder*>()->Build(opts);
@@ -68,8 +66,6 @@ void WorkflowRunner::RunOne()
             porla::Lua::Workflows::ActionParams params{
                 .context = m_ctx
             };
-
-            BOOST_LOG_TRIVIAL(info) << "Invoking action";
 
             instance->Invoke(params, shared_from_this());
         }

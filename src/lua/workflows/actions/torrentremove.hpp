@@ -1,9 +1,6 @@
 #pragma once
 
-#include <map>
 #include <memory>
-
-#include <libtorrent/info_hash.hpp>
 
 #include "../action.hpp"
 
@@ -29,11 +26,7 @@ namespace porla::Lua::Workflows::Actions
         void Invoke(const ActionParams& params, std::shared_ptr<ActionCallback> callback) override;
 
     private:
-        void OnTorrentRemoved(const libtorrent::info_hash_t& hash);
-
-        struct TorrentRemoveState;
-
-        TorrentRemoveOptions m_opts;
-        std::unique_ptr<TorrentRemoveState> m_state;
+        class State;
+        std::shared_ptr<State> m_state;
     };
 }

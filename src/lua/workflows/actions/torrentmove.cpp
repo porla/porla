@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include <boost/log/trivial.hpp>
+
 #include "../../../session.hpp"
 
 using porla::Lua::Workflows::ActionCallback;
@@ -12,9 +14,10 @@ struct WorkItem
 {
     std::shared_ptr<ActionCallback> callback;
     lt::info_hash_t                 info_hash;
+    std::shared_ptr<void>           state;
 };
 
-class TorrentMove::State
+class TorrentMove::State : public std::enable_shared_from_this<TorrentMove::State>
 {
 public:
     explicit State(TorrentMoveOptions opts)
@@ -25,6 +28,7 @@ public:
 
     ~State()
     {
+        BOOST_LOG_TRIVIAL(info) << "Removing TorrentMove state";
         m_on_storage_moved.disconnect();
     }
 
@@ -38,6 +42,7 @@ public:
         m_work_item            = std::make_unique<WorkItem>();
         m_work_item->callback  = std::move(callback);
         m_work_item->info_hash = th.info_hashes();
+        m_work_item->state     = shared_from_this();
 
         std::string path;
 
@@ -61,7 +66,8 @@ private:
         if (th.info_hashes() != m_work_item->info_hash) return;
 
         m_work_item->callback->Complete();
-        m_work_item = nullptr;
+        m_work_item->state = nullptr;
+        m_work_item        = nullptr;
     }
 
     TorrentMoveOptions          m_opts;
@@ -70,7 +76,7 @@ private:
 };
 
 TorrentMove::TorrentMove(const TorrentMoveOptions& opts)
-    : m_state(std::make_unique<State>(opts))
+    : m_state(std::make_shared<State>(opts))
 {
 }
 
