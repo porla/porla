@@ -1,127 +1,121 @@
-#include "reannounce.hpp"
+#include "torrentreannounce.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <libtorrent/alert_types.hpp>
 
-#include "../../../json/lttorrentstatus.hpp"
 #include "../../../session.hpp"
 
-using porla::Workflows::Actions::Torrents::Reannounce;
+using porla::Lua::Workflows::ActionCallback;
+using porla::Lua::Workflows::Actions::TorrentReannounce;
+using porla::Lua::Workflows::Actions::TorrentReannounceOptions;
 
-struct Reannounce::TorrentReannounceState
+struct WorkItem
 {
     std::shared_ptr<ActionCallback> callback;
     int                             current_tries{0};
-    int                             max_tries{24};
-    int                             timeout{5};
+    lt::info_hash_t                 info_hash;
 };
 
-Reannounce::Reannounce(porla::ISession& session)
-    : m_session(session)
+class TorrentReannounce::State
 {
-    m_torrent_tracker_error_connection = m_session.OnTorrentTrackerError([this](auto && th) { OnTorrentTrackerError(th); });
-    m_torrent_tracker_reply_connection = m_session.OnTorrentTrackerReply([this](auto && th) { OnTorrentTrackerReply(th); });
-}
-
-Reannounce::~Reannounce()
-{
-    m_torrent_tracker_error_connection.disconnect();
-    m_torrent_tracker_reply_connection.disconnect();
-}
-
-void Reannounce::Invoke(const ActionParams& params, std::shared_ptr<ActionCallback> callback)
-{
-    const auto& torrent = params.Render("torrent", true);
-
-    if (torrent == nullptr)
+public:
+    explicit State(const TorrentReannounceOptions& opts)
+        : m_opts(opts)
     {
-        // WARN
-        return;
+        m_on_tracker_error = opts.session.OnTorrentTrackerError([this](auto && th) { OnTorrentTrackerError(th); });
+        m_on_tracker_reply = opts.session.OnTorrentTrackerReply([this](auto && th) { OnTorrentTrackerReply(th); });
     }
 
-    const lt::torrent_status& ts = torrent;
-    const auto& th = m_session.Torrents().find(ts.info_hashes);
-
-    if (th == m_session.Torrents().end())
+    ~State()
     {
-        return;
+        m_on_tracker_error.disconnect();
+        m_on_tracker_reply.disconnect();
     }
 
-    BOOST_LOG_TRIVIAL(info) << "Reannouncing torrent " << th->second.status().name;
-
-    // Force an immediate reannounce and ignore the min interval.
-    th->second.force_reannounce(0, -1, lt::torrent_handle::ignore_min_interval);
-
-    auto state = std::make_unique<TorrentReannounceState>();
-    state->callback      = callback;
-    state->current_tries = 0;
-    state->max_tries     = 10;
-    state->timeout       = 5;
-
-    if (params.Input().contains("max_tries"))
+    void Announce(const lt::torrent_handle& th, std::shared_ptr<ActionCallback> callback)
     {
-        state->max_tries = params.Input()["max_tries"].get<int>();
-    }
-
-    if (params.Input().contains("timeout"))
-    {
-        state->timeout = params.Input()["timeout"].get<int>();
-    }
-
-    m_states.insert({ ts.info_hashes, std::move(state) });
-}
-
-void Reannounce::OnTorrentTrackerError(const libtorrent::tracker_error_alert* al)
-{
-    auto ctx = m_states.find(al->handle.info_hashes());
-    if (ctx == m_states.end()) return;
-
-    if (al->error && al->error.value() == lt::errors::tracker_failure)
-    {
-        const std::vector<std::string> match_failures =
+        if (m_work_item != nullptr)
         {
-            "not exist",
-            "not found",
-            "not registered",
-            "unregistered"
-        };
+            BOOST_LOG_TRIVIAL(error) << "Reannounce already running";
+            return;
+        }
 
-        const std::string err = al->error_message();
+        BOOST_LOG_TRIVIAL(info) << "Reannouncing torrent " << th.status().name;
 
-        for (const auto& failure_message : match_failures)
+        // Force an immediate reannounce and ignore the min interval.
+        th.force_reannounce(0, -1, lt::torrent_handle::ignore_min_interval);
+
+        m_work_item                = std::make_unique<WorkItem>();
+        m_work_item->callback      = std::move(callback);
+        m_work_item->current_tries = 0;
+        m_work_item->info_hash     = th.info_hashes();
+    }
+
+private:
+    void OnTorrentTrackerError(const libtorrent::tracker_error_alert* al)
+    {
+        if (m_work_item == nullptr)                             return;
+        if (al->handle.info_hashes() != m_work_item->info_hash) return;
+
+        if (al->error && al->error.value() == lt::errors::tracker_failure)
         {
-            if (err.find(failure_message) != std::string::npos)
+            const std::vector<std::string> match_failures =
             {
-                ctx->second->current_tries++;
+                "not exist",
+                "not found",
+                "not registered",
+                "unregistered"
+            };
 
-                if (ctx->second->current_tries >= ctx->second->max_tries)
+            const std::string err = al->error_message();
+
+            for (const auto& failure_message : match_failures)
+            {
+                if (err.find(failure_message) != std::string::npos)
                 {
-                    BOOST_LOG_TRIVIAL(warning) << "Max reannounce attempts reached for " << al->torrent_name();
-                    m_states.erase(ctx);
-                    return;
+                    m_work_item->current_tries++;
+
+                    if (m_work_item->current_tries >= m_opts.max_tries)
+                    {
+                        BOOST_LOG_TRIVIAL(warning) << "Max reannounce attempts reached for " << al->torrent_name();
+                        m_work_item = nullptr;
+                        return;
+                    }
+
+                    BOOST_LOG_TRIVIAL(info)
+                        << "Reannouncing torrent " << al->torrent_name()
+                        << " - attempt " << m_work_item->current_tries << " of " << m_opts.max_tries;
+
+                    al->handle.force_reannounce(m_opts.timeout, -1, lt::torrent_handle::ignore_min_interval);
                 }
-
-                BOOST_LOG_TRIVIAL(info)
-                    << "Reannouncing torrent " << al->torrent_name()
-                    << " - attempt " << ctx->second->current_tries << " of " << ctx->second->max_tries;
-
-                al->handle.force_reannounce(ctx->second->timeout, -1, lt::torrent_handle::ignore_min_interval);
-
-                return;
             }
         }
     }
-}
 
-void Reannounce::OnTorrentTrackerReply(const libtorrent::torrent_handle& th)
+    void OnTorrentTrackerReply(const libtorrent::torrent_handle& th)
+    {
+        if (m_work_item == nullptr)                     return;
+        if (th.info_hashes() != m_work_item->info_hash) return;
+
+        m_work_item->callback->Complete();
+        m_work_item = nullptr;
+    }
+
+    boost::signals2::connection m_on_tracker_error;
+    boost::signals2::connection m_on_tracker_reply;
+    TorrentReannounceOptions    m_opts;
+    std::unique_ptr<WorkItem>   m_work_item;
+};
+
+TorrentReannounce::TorrentReannounce(const TorrentReannounceOptions& opts)
 {
-    auto ctx = m_states.find(th.info_hashes());
-    if (ctx == m_states.end()) return;
-
-    BOOST_LOG_TRIVIAL(info) << "Reannouncing done";
-
-    ctx->second->callback->Complete(true);
-
-    m_states.erase(ctx);
+    m_state = std::make_unique<State>(opts);
 }
 
+TorrentReannounce::~TorrentReannounce() = default;
+
+void TorrentReannounce::Invoke(const ActionParams& params, std::shared_ptr<ActionCallback> callback)
+{
+    const lt::torrent_handle& th = params.context["lt:torrent_handle"];
+    m_state->Announce(th, callback);
+}

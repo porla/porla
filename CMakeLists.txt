@@ -112,7 +112,11 @@ add_library(
     src/lua/usertypes/workflowactionpushdiscord.cpp
     src/lua/usertypes/workflowactionpushntfy.cpp
     src/lua/usertypes/workflowactionsleep.cpp
+    src/lua/usertypes/workflowactiontorrentflags.cpp
     src/lua/usertypes/workflowactiontorrentmove.cpp
+    src/lua/usertypes/workflowactiontorrentpause.cpp
+    src/lua/usertypes/workflowactiontorrentreannounce.cpp
+    src/lua/usertypes/workflowactiontorrentremove.cpp
     src/lua/workflows/workflowengine.cpp
     src/lua/workflows/workflowrunner.cpp
     src/lua/workflows/actions/exec.cpp
@@ -121,6 +125,10 @@ add_library(
     src/lua/workflows/actions/pushntfy.cpp
     src/lua/workflows/actions/sleep.cpp
     src/lua/workflows/actions/torrentflags.cpp
+    src/lua/workflows/actions/torrentmove.cpp
+    src/lua/workflows/actions/torrentpause.cpp
+    src/lua/workflows/actions/torrentreannounce.cpp
+    src/lua/workflows/actions/torrentremove.cpp
 
     src/methods/fsspace.cpp
     src/methods/presetslist.cpp

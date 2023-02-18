@@ -10,7 +10,11 @@
 #include "../usertypes/workflowactionpushdiscord.hpp"
 #include "../usertypes/workflowactionpushntfy.hpp"
 #include "../usertypes/workflowactionsleep.hpp"
+#include "../usertypes/workflowactiontorrentflags.hpp"
 #include "../usertypes/workflowactiontorrentmove.hpp"
+#include "../usertypes/workflowactiontorrentpause.hpp"
+#include "../usertypes/workflowactiontorrentreannounce.hpp"
+#include "../usertypes/workflowactiontorrentremove.hpp"
 
 #include "action.hpp"
 #include "actionbuilder.hpp"
@@ -30,7 +34,11 @@ using porla::Lua::UserTypes::WorkflowActionLog;
 using porla::Lua::UserTypes::WorkflowActionPushDiscord;
 using porla::Lua::UserTypes::WorkflowActionPushNtfy;
 using porla::Lua::UserTypes::WorkflowActionSleep;
+using porla::Lua::UserTypes::WorkflowActionTorrentFlags;
 using porla::Lua::UserTypes::WorkflowActionTorrentMove;
+using porla::Lua::UserTypes::WorkflowActionTorrentPause;
+using porla::Lua::UserTypes::WorkflowActionTorrentReannounce;
+using porla::Lua::UserTypes::WorkflowActionTorrentRemove;
 
 using porla::Lua::Workflows::Action;
 using porla::Lua::Workflows::ActionBuilder;
@@ -86,9 +94,21 @@ WorkflowEngine::WorkflowEngine(const WorkflowEngineOptions& opts)
     m_state->lua.require("porla.actions.Sleep",
                          sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionSleep>),
                          &OpenWorkflowActionT<WorkflowActionSleep>>);
+    m_state->lua.require("porla.actions.TorrentFlags",
+                         sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionTorrentFlags>),
+                         &OpenWorkflowActionT<WorkflowActionTorrentFlags>>);
     m_state->lua.require("porla.actions.TorrentMove",
                          sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionTorrentMove>),
                          &OpenWorkflowActionT<WorkflowActionTorrentMove>>);
+    m_state->lua.require("porla.actions.TorrentPause",
+                         sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionTorrentPause>),
+                         &OpenWorkflowActionT<WorkflowActionTorrentPause>>);
+    m_state->lua.require("porla.actions.TorrentReannounce",
+                         sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionTorrentReannounce>),
+                         &OpenWorkflowActionT<WorkflowActionTorrentReannounce>>);
+    m_state->lua.require("porla.actions.TorrentRemove",
+                         sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionTorrentRemove>),
+                         &OpenWorkflowActionT<WorkflowActionTorrentRemove>>);
 
     for (const auto& file : fs::directory_iterator(opts.workflow_dir))
     {
