@@ -15,7 +15,6 @@ find_package(libzip              CONFIG REQUIRED)
 find_package(LibtorrentRasterbar CONFIG REQUIRED)
 find_package(Lua                        REQUIRED)
 find_package(nlohmann_json       CONFIG REQUIRED)
-find_package(sol2                CONFIG REQUIRED)
 find_package(tomlplusplus        CONFIG REQUIRED)
 find_package(unofficial-sodium   CONFIG REQUIRED)
 find_package(unofficial-sqlite3  CONFIG REQUIRED)
@@ -168,6 +167,7 @@ target_include_directories(
     PUBLIC
     ${JWT_CPP_INCLUDE_DIRS}
     ${LUA_INCLUDE_DIR}
+    vendor/sol2/include
 )
 
 target_link_libraries(
@@ -183,7 +183,6 @@ target_link_libraries(
     Boost::program_options
     libzip::zip
     LibtorrentRasterbar::torrent-rasterbar
-    sol2
     unofficial-sodium::sodium
     unofficial-sodium::sodium_config_public
     unofficial::sqlite3::sqlite3

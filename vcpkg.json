@@ -17,7 +17,6 @@
     "libzip",
     "lua",
     "nlohmann-json",
-    "sol2",
     "sqlite3",
     "tomlplusplus",
     "uriparser"
