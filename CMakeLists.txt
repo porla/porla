@@ -10,16 +10,15 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 find_package(antlr4-runtime      CONFIG REQUIRED)
 find_package(Boost                      REQUIRED COMPONENTS log program_options system)
-find_package(duktape)
 find_package(GTest               CONFIG REQUIRED)
 find_package(libzip              CONFIG REQUIRED)
 find_package(LibtorrentRasterbar CONFIG REQUIRED)
+find_package(Lua                        REQUIRED)
 find_package(nlohmann_json       CONFIG REQUIRED)
 find_package(tomlplusplus        CONFIG REQUIRED)
 find_package(unofficial-sodium   CONFIG REQUIRED)
 find_package(unofficial-sqlite3  CONFIG REQUIRED)
 find_package(uriparser           CONFIG REQUIRED)
-find_package(yaml-cpp            CONFIG REQUIRED)
 
 find_path(JWT_CPP_INCLUDE_DIRS "jwt-cpp/base.h")
 
@@ -92,7 +91,6 @@ add_library(
     src/utils/eta.cpp
     src/utils/secretkey.cpp
     src/utils/string.cpp
-    src/utils/yaml.cpp
 
     src/data/migrate.cpp
     src/data/migrations/0001_initialsetup.cpp
@@ -105,6 +103,32 @@ add_library(
     src/data/models/sessionsettings.cpp
     src/data/models/users.cpp
     src/data/statement.cpp
+
+    src/lua/usertypes/lttorrenthandle.cpp
+    src/lua/usertypes/torrent.cpp
+    src/lua/usertypes/workflow.cpp
+    src/lua/usertypes/workflowactionexec.cpp
+    src/lua/usertypes/workflowactionlog.cpp
+    src/lua/usertypes/workflowactionpushdiscord.cpp
+    src/lua/usertypes/workflowactionpushntfy.cpp
+    src/lua/usertypes/workflowactionsleep.cpp
+    src/lua/usertypes/workflowactiontorrentflags.cpp
+    src/lua/usertypes/workflowactiontorrentmove.cpp
+    src/lua/usertypes/workflowactiontorrentpause.cpp
+    src/lua/usertypes/workflowactiontorrentreannounce.cpp
+    src/lua/usertypes/workflowactiontorrentremove.cpp
+    src/lua/workflows/workflowengine.cpp
+    src/lua/workflows/workflowrunner.cpp
+    src/lua/workflows/actions/exec.cpp
+    src/lua/workflows/actions/log.cpp
+    src/lua/workflows/actions/pushdiscord.cpp
+    src/lua/workflows/actions/pushntfy.cpp
+    src/lua/workflows/actions/sleep.cpp
+    src/lua/workflows/actions/torrentflags.cpp
+    src/lua/workflows/actions/torrentmove.cpp
+    src/lua/workflows/actions/torrentpause.cpp
+    src/lua/workflows/actions/torrentreannounce.cpp
+    src/lua/workflows/actions/torrentremove.cpp
 
     src/methods/fsspace.cpp
     src/methods/presetslist.cpp
@@ -131,24 +155,6 @@ add_library(
     src/tools/authtoken.cpp
     src/tools/generatesecretkey.cpp
     src/tools/versionjson.cpp
-
-    src/workflows/actionfactory.cpp
-    src/workflows/executor.cpp
-    src/workflows/textrenderer.cpp
-    src/workflows/torrentcontextprovider.cpp
-    src/workflows/workflow.cpp
-
-    src/workflows/actions/exec.cpp
-    src/workflows/actions/http.cpp
-    src/workflows/actions/log.cpp
-    src/workflows/actions/sleep.cpp
-    src/workflows/actions/push/discord.cpp
-    src/workflows/actions/push/ntfy.cpp
-    src/workflows/actions/torrents/flags.cpp
-    src/workflows/actions/torrents/move.cpp
-    src/workflows/actions/torrents/pause.cpp
-    src/workflows/actions/torrents/reannounce.cpp
-    src/workflows/actions/torrents/remove.cpp
 )
 
 target_compile_definitions(
@@ -161,6 +167,8 @@ target_include_directories(
     ${PROJECT_NAME}_core
     PUBLIC
     ${JWT_CPP_INCLUDE_DIRS}
+    ${LUA_INCLUDE_DIR}
+    vendor/sol2/include
 )
 
 target_link_libraries(
@@ -169,17 +177,17 @@ target_link_libraries(
     ${PROJECT_NAME}_query
     ${PROJECT_NAME}_utils
 
+    ${LUA_LIBRARIES}
+
     Boost::boost
     Boost::log
     Boost::program_options
-    duktape
     libzip::zip
     LibtorrentRasterbar::torrent-rasterbar
     unofficial-sodium::sodium
     unofficial-sodium::sodium_config_public
     unofficial::sqlite3::sqlite3
     uriparser::uriparser
-    yaml-cpp
 )
 
 add_executable(
@@ -198,11 +206,6 @@ add_executable(
     tests/main.cpp
     tests/query/pql.cpp
     tests/utils/string.cpp
-    tests/workflows/actions/log.cpp
-    tests/workflows/actions/sleep.cpp
-    tests/workflows/executor.cpp
-    tests/workflows/textrenderer.cpp
-    tests/workflows/workflow.cpp
 )
 
 target_link_libraries(

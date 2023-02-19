@@ -15,10 +15,10 @@
     "libsodium",
     "libtorrent",
     "libzip",
+    "lua",
     "nlohmann-json",
     "sqlite3",
     "tomlplusplus",
-    "uriparser",
-    "yaml-cpp"
+    "uriparser"
   ]
 }
