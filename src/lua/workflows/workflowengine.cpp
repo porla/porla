@@ -5,6 +5,7 @@
 #include <sol/sol.hpp>
 
 #include "../usertypes/lttorrenthandle.hpp"
+#include "../usertypes/torrent.hpp"
 #include "../usertypes/workflow.hpp"
 #include "../usertypes/workflowactionexec.hpp"
 #include "../usertypes/workflowactionlog.hpp"
@@ -30,6 +31,7 @@ using porla::Lua::Workflows::WorkflowEngineOptions;
 using porla::Lua::UserTypes::Workflow;
 
 using porla::Lua::UserTypes::LibtorrentTorrentHandle;
+using porla::Lua::UserTypes::Torrent;
 using porla::Lua::UserTypes::WorkflowActionExec;
 using porla::Lua::UserTypes::WorkflowActionLog;
 using porla::Lua::UserTypes::WorkflowActionPushDiscord;
@@ -69,9 +71,14 @@ public:
     explicit State(const WorkflowEngineOptions& opts)
         : m_opts(opts)
     {
-        m_lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::string);
+        m_lua.open_libraries(
+            sol::lib::base,
+            sol::lib::package,
+            sol::lib::string,
+            sol::lib::table);
 
         LibtorrentTorrentHandle::Register(m_lua);
+        Torrent::Register(m_lua);
 
         m_lua.require("porla.Workflow", sol::c_call<decltype(&Workflow::Require), &Workflow::Require>);
 
@@ -134,16 +141,18 @@ public:
 private:
     void OnTorrentAdded(const libtorrent::torrent_status& ts)
     {
-        sol::table ctx = m_lua.create_table();
+        sol::table ctx           = m_lua.create_table();
         ctx["lt:torrent_handle"] = ts.handle;
+        ctx["torrent"]           = Torrent{ts.handle};
 
         RunEvents("TorrentAdded", ctx);
     }
 
     void OnTorrentFinished(const libtorrent::torrent_status& ts)
     {
-        sol::table ctx = m_lua.create_table();
+        sol::table ctx           = m_lua.create_table();
         ctx["lt:torrent_handle"] = ts.handle;
+        ctx["torrent"]           = Torrent{ts.handle};
 
         RunEvents("TorrentFinished", ctx);
     }

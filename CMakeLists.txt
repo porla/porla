@@ -105,6 +105,7 @@ add_library(
     src/data/statement.cpp
 
     src/lua/usertypes/lttorrenthandle.cpp
+    src/lua/usertypes/torrent.cpp
     src/lua/usertypes/workflow.cpp
     src/lua/usertypes/workflowactionexec.cpp
     src/lua/usertypes/workflowactionlog.cpp

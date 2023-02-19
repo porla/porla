@@ -16,7 +16,7 @@ namespace porla::Lua::Workflows::Actions
     class PushNtfy : public Action
     {
     public:
-        explicit PushNtfy(const PushNtfyOptions& opts);
+        explicit PushNtfy(PushNtfyOptions opts);
 
         void Invoke(const ActionParams& params, std::shared_ptr<ActionCallback> callback) override;
 
