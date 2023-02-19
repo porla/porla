@@ -12,9 +12,11 @@ namespace porla::Lua::UserTypes
 
         std::vector<sol::object> Actions();
         std::string              On();
+        bool                     ShouldExecute(const sol::table& ctx);
 
     private:
         std::vector<sol::object> m_actions;
+        sol::function            m_condition;
         std::string              m_on;
     };
 }

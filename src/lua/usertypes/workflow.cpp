@@ -29,6 +29,11 @@ Workflow::Workflow(const sol::table& args)
 {
     m_on = args["on"];
 
+    if (args["condition"].is<std::function<bool(sol::table)>>())
+    {
+        m_condition = args["condition"];
+    }
+
     const sol::table& actions = args["actions"];
 
     for (const auto& item : actions)
@@ -48,4 +53,15 @@ std::vector<sol::object> Workflow::Actions()
 std::string Workflow::On()
 {
     return m_on;
+}
+
+bool Workflow::ShouldExecute(const sol::table &ctx)
+{
+    // If no condition is set - always execute
+    if (!m_condition)
+    {
+        return true;
+    }
+
+    return m_condition(ctx);
 }

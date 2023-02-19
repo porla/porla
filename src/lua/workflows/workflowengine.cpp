@@ -168,6 +168,11 @@ private:
                 continue;
             }
 
+            if (!w->ShouldExecute(ctx))
+            {
+                continue;
+            }
+
             const WorkflowRunnerOptions opts{
                 .io      = m_opts.io,
                 .session = m_opts.session
