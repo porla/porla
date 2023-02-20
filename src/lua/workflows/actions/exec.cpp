@@ -60,6 +60,11 @@ void Exec::Invoke(const ActionParams& params, std::shared_ptr<ActionCallback> ca
         bp::on_exit(
             [params, state, callback](int exit_code, const boost::system::error_code& ec)
             {
-                callback->Complete();
+                sol::table output   = params.state.create_table();
+                output["exit_code"] = exit_code;
+                output["std_err"]   = state->std_err.get();
+                output["std_out"]   = state->std_out.get();
+
+                callback->Complete(output);
             }));
 }

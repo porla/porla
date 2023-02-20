@@ -159,6 +159,8 @@ private:
 
     void RunEvents(const std::string& eventName, sol::table& ctx)
     {
+        ctx["actions"] = std::vector<sol::object>();
+
         for (const auto& instance : m_workflows)
         {
             Workflow* w = instance.as<Workflow*>();
@@ -175,6 +177,7 @@ private:
 
             const WorkflowRunnerOptions opts{
                 .io      = m_opts.io,
+                .lua     = m_lua,
                 .session = m_opts.session
             };
 

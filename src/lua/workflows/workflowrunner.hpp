@@ -16,6 +16,7 @@ namespace porla::Lua::Workflows
     struct WorkflowRunnerOptions
     {
         boost::asio::io_context& io;
+        sol::state&              lua;
         porla::ISession&         session;
     };
 
@@ -25,6 +26,7 @@ namespace porla::Lua::Workflows
         explicit WorkflowRunner(const WorkflowRunnerOptions& opts, sol::table ctx, std::vector<sol::object> actions);
         ~WorkflowRunner();
 
+        void Complete(sol::object output) override;
         void Complete() override;
         void Run();
 

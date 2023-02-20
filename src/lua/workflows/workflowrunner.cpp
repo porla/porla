@@ -20,6 +20,15 @@ WorkflowRunner::~WorkflowRunner() = default;
 
 void WorkflowRunner::Complete()
 {
+    Complete(nullptr);
+}
+
+void WorkflowRunner::Complete(sol::object output)
+{
+    // Set output
+    std::vector<sol::object>& actions = m_ctx["actions"];
+    actions.push_back(output);
+
     m_current_action_index++;
 
     boost::asio::post(
@@ -64,7 +73,8 @@ void WorkflowRunner::RunOne()
             auto instance = current_action.as<ActionBuilder*>()->Build(opts);
 
             porla::Lua::Workflows::ActionParams params{
-                .context = m_ctx
+                .context = m_ctx,
+                .state   = m_opts.lua
             };
 
             instance->Invoke(params, shared_from_this());
