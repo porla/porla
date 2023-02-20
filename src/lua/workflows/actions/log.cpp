@@ -13,15 +13,21 @@ Log::Log(sol::table args)
 void Log::Invoke(const ActionParams& params, std::shared_ptr<ActionCallback> callback)
 {
     auto message = m_args["message"];
+    std::string rendered_message;
 
     if (message.is<std::string>())
     {
-        BOOST_LOG_TRIVIAL(info) << message.get<std::string>();
+        rendered_message = message.get<std::string>();
     }
     else if (message.is<std::function<std::string(sol::table)>>())
     {
-        BOOST_LOG_TRIVIAL(info) << message.get<std::function<std::string(sol::table)>>()(params.context);
+        rendered_message = message.get<std::function<std::string(sol::table)>>()(params.context);
     }
 
-    callback->Complete();
+    BOOST_LOG_TRIVIAL(info) << rendered_message;
+
+    sol::table output          = params.state.create_table();
+    output["rendered_message"] = rendered_message;
+
+    callback->Complete(output);
 }
