@@ -23,9 +23,10 @@ WorkflowActionExec::WorkflowActionExec(sol::table args)
 std::shared_ptr<Action> WorkflowActionExec::Build(const ActionBuilderOptions& opts)
 {
     porla::Lua::Workflows::Actions::ExecOptions exec_opts{
-        .io   = opts.io,
-        .file = m_args["file"],
-        .args = m_args["args"].get<sol::as_table_t<std::vector<std::string>>>()
+        .io     = opts.io,
+        .file   = m_args["file"],
+        .args   = m_args["args"].get<sol::as_table_t<std::vector<std::string>>>(),
+        .std_in = m_args["std_in"]
     };
 
     return std::make_shared<porla::Lua::Workflows::Actions::Exec>(exec_opts);
