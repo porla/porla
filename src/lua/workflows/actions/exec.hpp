@@ -14,6 +14,7 @@ namespace porla::Lua::Workflows::Actions
         boost::asio::io_context& io;
         std::string              file;
         std::vector<std::string> args;
+        sol::object              std_in;
     };
 
     class Exec : public porla::Lua::Workflows::Action

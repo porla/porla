@@ -48,6 +48,17 @@ void Exec::Invoke(const ActionParams& params, std::shared_ptr<ActionCallback> ca
         }
     }
 
+    bp::opstream std_in;
+
+    if (m_opts.std_in.is<std::string>())
+    {
+        std_in << m_opts.std_in.as<std::string>();
+    }
+    else if (m_opts.std_in.is<std::function<std::string(sol::table)>>())
+    {
+        std_in << m_opts.std_in.as<std::function<std::string(sol::table)>>()(params.context);
+    }
+
     auto state = std::make_shared<ExecState>();
     state->c = bp::child(
         m_opts.io,
@@ -55,6 +66,7 @@ void Exec::Invoke(const ActionParams& params, std::shared_ptr<ActionCallback> ca
         bp::args(m_opts.args),
         bp::env(env),
         bp::start_dir(input.working_dir.value_or("")),
+        bp::std_in  < std_in,
         bp::std_err > state->std_err,
         bp::std_out > state->std_out,
         bp::on_exit(
@@ -67,4 +79,6 @@ void Exec::Invoke(const ActionParams& params, std::shared_ptr<ActionCallback> ca
 
                 callback->Complete(output);
             }));
+
+    std_in.close();
 }
