@@ -128,6 +128,7 @@ public:
             }
         }
 
+        m_on_storage_moved    = m_opts.session.OnStorageMoved([this](auto && th) { OnStorageMoved(th); });
         m_on_torrent_added    = m_opts.session.OnTorrentAdded([this](auto && s) { OnTorrentAdded(s); });
         m_on_torrent_finished = m_opts.session.OnTorrentFinished([this](auto && s) { OnTorrentFinished(s); });
     }
@@ -139,6 +140,15 @@ public:
     }
 
 private:
+    void OnStorageMoved(const libtorrent::torrent_handle& th)
+    {
+        sol::table ctx           = m_lua.create_table();
+        ctx["lt:torrent_handle"] = th;
+        ctx["torrent"]           = Torrent{th};
+
+        RunEvents("TorrentMoved", ctx);
+    }
+
     void OnTorrentAdded(const libtorrent::torrent_status& ts)
     {
         sol::table ctx           = m_lua.create_table();
@@ -194,6 +204,7 @@ private:
     sol::state                  m_lua;
     boost::signals2::connection m_on_torrent_added;
     boost::signals2::connection m_on_torrent_finished;
+    boost::signals2::connection m_on_storage_moved;
     WorkflowEngineOptions       m_opts;
     std::vector<sol::object>    m_workflows;
 };
