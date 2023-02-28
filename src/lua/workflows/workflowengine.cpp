@@ -113,18 +113,21 @@ public:
                              sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionTorrentRemove>),
                                  &OpenWorkflowActionT<WorkflowActionTorrentRemove>>);
 
-        for (const auto& file : fs::directory_iterator(opts.workflow_dir))
+        if (!opts.workflow_dir.empty())
         {
-            if (file.path().extension() != ".lua") continue;
+            for (const auto &file: fs::directory_iterator(opts.workflow_dir))
+            {
+                if (file.path().extension() != ".lua") continue;
 
-            try
-            {
-                auto workflow = m_lua.script_file(file.path());
-                m_workflows.emplace_back(workflow);
-            }
-            catch (const sol::error& err)
-            {
-                BOOST_LOG_TRIVIAL(error) << "Failed to load workflow " << file.path() << ": " << err.what();
+                try
+                {
+                    auto workflow = m_lua.script_file(file.path());
+                    m_workflows.emplace_back(workflow);
+                }
+                catch (const sol::error &err)
+                {
+                    BOOST_LOG_TRIVIAL(error) << "Failed to load workflow " << file.path() << ": " << err.what();
+                }
             }
         }
 
