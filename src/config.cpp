@@ -255,6 +255,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         catch (const toml::parse_error& err)
         {
             BOOST_LOG_TRIVIAL(error) << "Failed to parse config file '" << cfg->config_file.value() << "': " << err;
+            throw;
         }
     }
 
@@ -345,16 +346,19 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
 Config::~Config()
 {
-    BOOST_LOG_TRIVIAL(debug) << "Vacuuming database";
-
-    if (sqlite3_exec(db, "VACUUM;", nullptr, nullptr, nullptr) != SQLITE_OK)
+    if (db != nullptr)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to vacuum database: " << sqlite3_errmsg(db);
-    }
+        BOOST_LOG_TRIVIAL(debug) << "Vacuuming database";
 
-    if (sqlite3_close(db) != SQLITE_OK)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Failed to close SQLite connection: " << sqlite3_errmsg(db);
+        if (sqlite3_exec(db, "VACUUM;", nullptr, nullptr, nullptr) != SQLITE_OK)
+        {
+            BOOST_LOG_TRIVIAL(error) << "Failed to vacuum database: " << sqlite3_errmsg(db);
+        }
+
+        if (sqlite3_close(db) != SQLITE_OK)
+        {
+            BOOST_LOG_TRIVIAL(error) << "Failed to close SQLite connection: " << sqlite3_errmsg(db);
+        }
     }
 }
 

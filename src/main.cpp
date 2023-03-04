@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
     }
     catch (const std::exception& ex)
     {
-        BOOST_LOG_TRIVIAL(fatal) << "Failed to load configuration: " << ex.what();
+        BOOST_LOG_TRIVIAL(fatal) << "Failed to load configuration";
         return -1;
     }
 
