@@ -13,7 +13,6 @@
 #include <toml++/toml.h>
 
 #include "data/migrate.hpp"
-#include "data/models/sessionsettings.hpp"
 #include "utils/secretkey.hpp"
 
 namespace fs = std::filesystem;
@@ -310,8 +309,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         throw std::runtime_error("Failed to apply migrations");
     }
 
-    porla::Data::Models::SessionSettings::Apply(cfg->db, cfg->session_settings);
-
     // Apply static libtorrent settings here. These are always set after all other settings from
     // the config are applied, and cannot be overwritten by it.
     lt::alert_category_t alerts =
@@ -363,6 +360,12 @@ Config::~Config()
 
 static void ApplySettings(const toml::table& tbl, lt::settings_pack& settings)
 {
+    static const std::unordered_set<std::string> BlockedKeys =
+    {
+        "peer_fingerprint",
+        "user_agent"
+    };
+
     for (auto const& [key,value] : tbl)
     {
         const int type = lt::setting_by_name(key.data());
@@ -372,7 +375,7 @@ static void ApplySettings(const toml::table& tbl, lt::settings_pack& settings)
             continue;
         }
 
-        if (porla::Data::Models::SessionSettings::BlockedKeys.contains(key.data()))
+        if (BlockedKeys.contains(key.data()))
         {
             continue;
         }

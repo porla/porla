@@ -99,8 +99,8 @@ add_library(
     src/data/migrations/0004_removesessionparams.cpp
     src/data/migrations/0005_metadata.cpp
     src/data/migrations/0006_clientdata.cpp
+    src/data/migrations/0007_removesessionsettings.cpp
     src/data/models/addtorrentparams.cpp
-    src/data/models/sessionsettings.cpp
     src/data/models/users.cpp
     src/data/statement.cpp
 
@@ -135,7 +135,6 @@ add_library(
     src/methods/sessionpause.cpp
     src/methods/sessionresume.cpp
     src/methods/sessionsettingslist.cpp
-    src/methods/sessionsettingsupdate.cpp
     src/methods/sysversions.cpp
     src/methods/torrentsadd.cpp
     src/methods/torrentsfileslist.cpp
