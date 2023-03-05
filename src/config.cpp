@@ -165,13 +165,20 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
                     }
 
                     listen << "," << *item_dev.value<std::string>() << *item_port.value<int>();
+                    outbound << "," << *item_dev.value<std::string>();
                 }
 
                 const std::string listen_val = listen.str();
+                const std::string outbound_val = outbound.str();
 
                 if (!listen_val.empty())
                 {
                     cfg->session_settings.set_str(lt::settings_pack::listen_interfaces, listen_val.substr(1));
+                }
+
+                if (!outbound_val.empty())
+                {
+                    cfg->session_settings.set_str(lt::settings_pack::outgoing_interfaces, outbound_val.substr(1));
                 }
             }
 
