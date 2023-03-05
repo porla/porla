@@ -128,6 +128,53 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
             if (auto val = config_file_tbl["db"].value<std::string>())
                 cfg->db_file = *val;
 
+            if (const auto listen_interfaces_array = config_file_tbl["listen_interfaces"].as_array())
+            {
+                std::stringstream listen;
+                std::stringstream outbound;
+
+                for (const auto& listen_interface_item : *listen_interfaces_array)
+                {
+                    if (!listen_interface_item.is_array())
+                    {
+                        BOOST_LOG_TRIVIAL(warning) << "Listen interface item is not an array";
+                        continue;
+                    }
+
+                    const auto& item_array = listen_interface_item.as_array();
+
+                    if (item_array->size() != 2)
+                    {
+                        BOOST_LOG_TRIVIAL(warning) << "Listen interface item of wrong size";
+                        continue;
+                    }
+
+                    const auto& item_dev = item_array->at(0);
+                    const auto& item_port = item_array->at(1);
+
+                    if (item_dev.type() != toml::node_type::string)
+                    {
+                        BOOST_LOG_TRIVIAL(warning) << "Listen interface device is not a string";
+                        continue;
+                    }
+
+                    if (item_port.type() != toml::node_type::integer)
+                    {
+                        BOOST_LOG_TRIVIAL(warning) << "Listen interface port is not an integer";
+                        continue;
+                    }
+
+                    listen << "," << *item_dev.value<std::string>() << *item_port.value<int>();
+                }
+
+                const std::string listen_val = listen.str();
+
+                if (!listen_val.empty())
+                {
+                    cfg->session_settings.set_str(lt::settings_pack::listen_interfaces, listen_val.substr(1));
+                }
+            }
+
             if (auto val = config_file_tbl["http"]["base_path"].value<std::string>())
                 cfg->http_base_path = *val;
 
@@ -195,6 +242,35 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
                     cfg->presets.insert({ key.data(), std::move(p) });
                 }
+            }
+
+            if (const auto proxy_tbl = config_file_tbl["proxy"].as_table())
+            {
+                BOOST_LOG_TRIVIAL(info) << "Configuring session proxy";
+
+                if (const auto val = (*proxy_tbl)["host"].value<std::string>())
+                    cfg->session_settings.set_str(lt::settings_pack::proxy_hostname, *val);
+
+                if (const auto val = (*proxy_tbl)["port"].value<int>())
+                    cfg->session_settings.set_int(lt::settings_pack::proxy_port, *val);
+
+                if (const auto val = (*proxy_tbl)["type"].value<std::string>())
+                {
+                    if (strcmp(val->c_str(), "socks4") == 0 || strcmp(val->c_str(), "SOCKS4") == 0)
+                        cfg->session_settings.set_int(lt::settings_pack::proxy_type, lt::settings_pack::socks4);
+
+                    if (strcmp(val->c_str(), "socks5") == 0 || strcmp(val->c_str(), "SOCKS5") == 0)
+                        cfg->session_settings.set_int(lt::settings_pack::proxy_type, lt::settings_pack::socks5);
+                }
+
+                if (const auto val = (*proxy_tbl)["hostnames"].value<bool>())
+                    cfg->session_settings.set_bool(lt::settings_pack::proxy_hostnames, *val);
+
+                if (const auto val = (*proxy_tbl)["peer_connections"].value<bool>())
+                    cfg->session_settings.set_bool(lt::settings_pack::proxy_peer_connections, *val);
+
+                if (const auto val = (*proxy_tbl)["tracker_connections"].value<bool>())
+                    cfg->session_settings.set_bool(lt::settings_pack::proxy_tracker_connections, *val);
             }
 
             if (auto val = config_file_tbl["secret_key"].value<std::string>())
