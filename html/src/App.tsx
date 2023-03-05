@@ -2,7 +2,7 @@ import { Box, Flex, Grid, GridItem, HStack, IconButton, Image, Link, Spacer, Sta
 import { useEffect, useState } from 'react';
 import { MdDarkMode, MdLightMode, MdOutlineCamera, MdOutlineCameraAlt, MdSettings } from 'react-icons/md';
 import { SiDiscord } from 'react-icons/si';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, NavLink, Outlet } from 'react-router-dom';
 
 import Isotype from './assets/isotype.svg';
 import prefixPath from './base';
@@ -69,12 +69,7 @@ function AuthApp() {
 
             <Query />
 
-            <IconButton
-              aria-label=''
-              icon={<MdSettings />}
-              onClick={() => setShowSettings(true)}
-              variant={"link"}
-            />
+            <Box></Box>
           </Flex>
         </GridItem>
 

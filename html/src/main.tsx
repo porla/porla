@@ -6,6 +6,7 @@ import { ChakraProvider } from '@chakra-ui/react';
 import App from './App';
 import theme from './theme';
 import Home from './pages/Home';
+import Settings from './pages/Settings';
 import Setup from './pages/Setup';
 import { AuthProvider } from './contexts/auth';
 import Login from './pages/Login';
@@ -24,6 +25,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
                 <Routes>
                   <Route path="/" element={<App />}>
                     <Route index element={<Home />} />
+                    <Route path="/settings" element={<Settings />} />
                   </Route>
                   <Route path="/login" element={<Login />} />
                   <Route path="/setup" element={<Setup />} />

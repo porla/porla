@@ -26,7 +26,6 @@
 #include "methods/sessionpause.hpp"
 #include "methods/sessionresume.hpp"
 #include "methods/sessionsettingslist.hpp"
-#include "methods/sessionsettingsupdate.hpp"
 #include "methods/sysversions.hpp"
 #include "methods/torrentsadd.hpp"
 #include "methods/torrentsfileslist.hpp"
@@ -69,7 +68,7 @@ int main(int argc, char* argv[])
     }
     catch (const std::exception& ex)
     {
-        BOOST_LOG_TRIVIAL(fatal) << "Failed to load configuration: " << ex.what();
+        BOOST_LOG_TRIVIAL(fatal) << "Failed to load configuration";
         return -1;
     }
 
@@ -122,7 +121,6 @@ int main(int argc, char* argv[])
             {"session.pause", porla::Methods::SessionPause(session)},
             {"session.resume", porla::Methods::SessionResume(session)},
             {"session.settings.list", porla::Methods::SessionSettingsList(session)},
-            {"session.settings.update", porla::Methods::SessionSettingsUpdate(session, cfg->db)},
             {"sys.versions", porla::Methods::SysVersions()},
             {"torrents.add", porla::Methods::TorrentsAdd(cfg->db, session, cfg->presets)},
             {"torrents.files.list", porla::Methods::TorrentsFilesList(session)},

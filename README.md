@@ -106,35 +106,8 @@ configuration and use sensible defaults instead.
  * `PORLA_WORKFLOW_DIR` or `--workflow-dir` - the path to where Porla will load
    user workflows from.
 
-### Config file
-
-
-
-```toml
-db = ":memory:"
-log_level = "info"
-state_dir = "/opt/porla"
-workflow_dir = "workflows"
-
-[http]
-base_path = "/"
-host = "127.0.0.1"
-metrics_enabled = true
-port = 1337
-
-[session_settings]
-base = "min_memory_usage"
-extensions = [
-   "smart_ban",
-   "ut_metadata",
-   "ut_pex"
-]
-
-[timer]
-dht_stats = 5000
-session_stats = 5000
-torrent_updates = 1000
-```
+Refer to [the official documentation](https://porla.org/configuration/) for
+information on how to set up the TOML configuration.
 
 ## Development
 

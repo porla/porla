@@ -13,7 +13,6 @@
 #include <toml++/toml.h>
 
 #include "data/migrate.hpp"
-#include "data/models/sessionsettings.hpp"
 #include "utils/secretkey.hpp"
 
 namespace fs = std::filesystem;
@@ -129,6 +128,60 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
             if (auto val = config_file_tbl["db"].value<std::string>())
                 cfg->db_file = *val;
 
+            if (const auto listen_interfaces_array = config_file_tbl["listen_interfaces"].as_array())
+            {
+                std::stringstream listen;
+                std::stringstream outbound;
+
+                for (const auto& listen_interface_item : *listen_interfaces_array)
+                {
+                    if (!listen_interface_item.is_array())
+                    {
+                        BOOST_LOG_TRIVIAL(warning) << "Listen interface item is not an array";
+                        continue;
+                    }
+
+                    const auto& item_array = listen_interface_item.as_array();
+
+                    if (item_array->size() != 2)
+                    {
+                        BOOST_LOG_TRIVIAL(warning) << "Listen interface item of wrong size";
+                        continue;
+                    }
+
+                    const auto& item_dev = item_array->at(0);
+                    const auto& item_port = item_array->at(1);
+
+                    if (item_dev.type() != toml::node_type::string)
+                    {
+                        BOOST_LOG_TRIVIAL(warning) << "Listen interface device is not a string";
+                        continue;
+                    }
+
+                    if (item_port.type() != toml::node_type::integer)
+                    {
+                        BOOST_LOG_TRIVIAL(warning) << "Listen interface port is not an integer";
+                        continue;
+                    }
+
+                    listen << "," << *item_dev.value<std::string>() << *item_port.value<int>();
+                    outbound << "," << *item_dev.value<std::string>();
+                }
+
+                const std::string listen_val = listen.str();
+                const std::string outbound_val = outbound.str();
+
+                if (!listen_val.empty())
+                {
+                    cfg->session_settings.set_str(lt::settings_pack::listen_interfaces, listen_val.substr(1));
+                }
+
+                if (!outbound_val.empty())
+                {
+                    cfg->session_settings.set_str(lt::settings_pack::outgoing_interfaces, outbound_val.substr(1));
+                }
+            }
+
             if (auto val = config_file_tbl["http"]["base_path"].value<std::string>())
                 cfg->http_base_path = *val;
 
@@ -198,6 +251,35 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
                 }
             }
 
+            if (const auto proxy_tbl = config_file_tbl["proxy"].as_table())
+            {
+                BOOST_LOG_TRIVIAL(info) << "Configuring session proxy";
+
+                if (const auto val = (*proxy_tbl)["host"].value<std::string>())
+                    cfg->session_settings.set_str(lt::settings_pack::proxy_hostname, *val);
+
+                if (const auto val = (*proxy_tbl)["port"].value<int>())
+                    cfg->session_settings.set_int(lt::settings_pack::proxy_port, *val);
+
+                if (const auto val = (*proxy_tbl)["type"].value<std::string>())
+                {
+                    if (strcmp(val->c_str(), "socks4") == 0 || strcmp(val->c_str(), "SOCKS4") == 0)
+                        cfg->session_settings.set_int(lt::settings_pack::proxy_type, lt::settings_pack::socks4);
+
+                    if (strcmp(val->c_str(), "socks5") == 0 || strcmp(val->c_str(), "SOCKS5") == 0)
+                        cfg->session_settings.set_int(lt::settings_pack::proxy_type, lt::settings_pack::socks5);
+                }
+
+                if (const auto val = (*proxy_tbl)["hostnames"].value<bool>())
+                    cfg->session_settings.set_bool(lt::settings_pack::proxy_hostnames, *val);
+
+                if (const auto val = (*proxy_tbl)["peer_connections"].value<bool>())
+                    cfg->session_settings.set_bool(lt::settings_pack::proxy_peer_connections, *val);
+
+                if (const auto val = (*proxy_tbl)["tracker_connections"].value<bool>())
+                    cfg->session_settings.set_bool(lt::settings_pack::proxy_tracker_connections, *val);
+            }
+
             if (auto val = config_file_tbl["secret_key"].value<std::string>())
                 cfg->secret_key = *val;
 
@@ -256,6 +338,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         catch (const toml::parse_error& err)
         {
             BOOST_LOG_TRIVIAL(error) << "Failed to parse config file '" << cfg->config_file.value() << "': " << err;
+            throw;
         }
     }
 
@@ -310,8 +393,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         throw std::runtime_error("Failed to apply migrations");
     }
 
-    porla::Data::Models::SessionSettings::Apply(cfg->db, cfg->session_settings);
-
     // Apply static libtorrent settings here. These are always set after all other settings from
     // the config are applied, and cannot be overwritten by it.
     lt::alert_category_t alerts =
@@ -348,21 +429,30 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
 Config::~Config()
 {
-    BOOST_LOG_TRIVIAL(debug) << "Vacuuming database";
-
-    if (sqlite3_exec(db, "VACUUM;", nullptr, nullptr, nullptr) != SQLITE_OK)
+    if (db != nullptr)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to vacuum database: " << sqlite3_errmsg(db);
-    }
+        BOOST_LOG_TRIVIAL(debug) << "Vacuuming database";
 
-    if (sqlite3_close(db) != SQLITE_OK)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Failed to close SQLite connection: " << sqlite3_errmsg(db);
+        if (sqlite3_exec(db, "VACUUM;", nullptr, nullptr, nullptr) != SQLITE_OK)
+        {
+            BOOST_LOG_TRIVIAL(error) << "Failed to vacuum database: " << sqlite3_errmsg(db);
+        }
+
+        if (sqlite3_close(db) != SQLITE_OK)
+        {
+            BOOST_LOG_TRIVIAL(error) << "Failed to close SQLite connection: " << sqlite3_errmsg(db);
+        }
     }
 }
 
 static void ApplySettings(const toml::table& tbl, lt::settings_pack& settings)
 {
+    static const std::unordered_set<std::string> BlockedKeys =
+    {
+        "peer_fingerprint",
+        "user_agent"
+    };
+
     for (auto const& [key,value] : tbl)
     {
         const int type = lt::setting_by_name(key.data());
@@ -372,7 +462,7 @@ static void ApplySettings(const toml::table& tbl, lt::settings_pack& settings)
             continue;
         }
 
-        if (porla::Data::Models::SessionSettings::BlockedKeys.contains(key.data()))
+        if (BlockedKeys.contains(key.data()))
         {
             continue;
         }
