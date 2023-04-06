@@ -63,14 +63,23 @@ std::optional<FsSpaceQuota> GetQuota(const std::string& path)
 #ifdef __linux__
     if (auto block_device = GetBlockDeviceFromPath(path))
     {
-        BOOST_LOG_TRIVIAL(info) << "Found block device: " << *block_device;
+        BOOST_LOG_TRIVIAL(debug) << "Found block device: " << *block_device;
 
         const int cmd = QCMD(Q_GETQUOTA, USRQUOTA);
         dqblk blk = {};
 
         if (quotactl(cmd, block_device->c_str(), static_cast<int>(getuid()), reinterpret_cast<char*>(&blk)) < 0)
         {
-            BOOST_LOG_TRIVIAL(error) << "quotactl error: " << errno;
+            switch (errno)
+            {
+            case ESRCH:
+                BOOST_LOG_TRIVIAL(debug) << "Quotas have not been turned on for " << *block_device;
+                break;
+            default:
+                BOOST_LOG_TRIVIAL(warning) << "quotactl error: " << errno << ", not returning quota information";
+                break;
+            }
+
             return std::nullopt;
         }
 
