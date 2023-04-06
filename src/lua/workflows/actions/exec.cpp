@@ -15,7 +15,7 @@ using porla::Lua::Workflows::Actions::ExecOptions;
 struct ExecInput
 {
     std::string                                       file{};
-    std::optional<std::vector<std::string>>           args{};
+    std::optional<std::vector<sol::object>>           args{};
     std::optional<std::map<std::string, std::string>> env{};
     std::optional<std::string>                        working_dir{};
 };
@@ -59,11 +59,29 @@ void Exec::Invoke(const ActionParams& params, std::shared_ptr<ActionCallback> ca
         std_in << m_opts.std_in.as<std::function<std::string(sol::table)>>()(params.context);
     }
 
+    std::vector<std::string> args;
+
+    for (auto& arg : m_opts.args)
+    {
+        if (arg.is<std::string>())
+        {
+            args.push_back(arg.as<std::string>());
+        }
+        else if (arg.is<std::function<std::string(sol::table)>>())
+        {
+            args.push_back(arg.as<std::function<std::string(sol::table)>>()(params.context));
+        }
+        else
+        {
+            BOOST_LOG_TRIVIAL(warning) << "Exec argument is not a string or function";
+        }
+    }
+
     auto state = std::make_shared<ExecState>();
     state->c = bp::child(
         m_opts.io,
         m_opts.file,
-        bp::args(m_opts.args),
+        bp::args(args),
         bp::env(env),
         bp::start_dir(input.working_dir.value_or("")),
         bp::std_in  < std_in,

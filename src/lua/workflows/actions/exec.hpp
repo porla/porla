@@ -13,7 +13,7 @@ namespace porla::Lua::Workflows::Actions
     {
         boost::asio::io_context& io;
         std::string              file;
-        std::vector<std::string> args;
+        std::vector<sol::object> args;
         sol::object              std_in;
     };
 
