@@ -18,7 +18,7 @@ void Sleep::Invoke(const ActionParams& params, std::shared_ptr<ActionCallback> c
     timer->async_wait(
         [timer, callback](const boost::system::error_code& ec)
         {
-            BOOST_LOG_TRIVIAL(debug) << "(actions/sleep): Completing";
+            BOOST_LOG_TRIVIAL(debug) << "(actions/sleep) Done waiting";
             callback->Complete();
         });
 }

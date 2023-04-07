@@ -28,7 +28,7 @@ boost::signals2::connection WorkflowRunner::OnFinished(const VoidSignal::slot_ty
 
 void WorkflowRunner::Complete()
 {
-    Complete(nullptr);
+    Complete({});
 }
 
 void WorkflowRunner::Complete(sol::object output)
