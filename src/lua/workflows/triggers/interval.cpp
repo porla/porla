@@ -27,7 +27,7 @@ void Interval::OnTimerExpired(const boost::system::error_code &ec)
 {
     if (ec)
     {
-        BOOST_LOG_TRIVIAL(error) << "Workflow::Interval timer error: " << ec.message();
+        BOOST_LOG_TRIVIAL(error) << "(triggers/interval) Timer error: " << ec.message();
         return;
     }
 
@@ -54,7 +54,7 @@ void Interval::OnTimerExpired(const boost::system::error_code &ec)
 
                     if (m_currently_running_workflows == 0)
                     {
-                        BOOST_LOG_TRIVIAL(info) << "All workflows for this interval have finished - rescheduling";
+                        BOOST_LOG_TRIVIAL(info) << "(triggers/interval) All workflows completed - rescheduling";
 
                         m_on_workflow_finished.clear();
 

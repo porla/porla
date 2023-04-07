@@ -16,6 +16,7 @@ namespace porla::Lua::Workflows::Triggers
         std::string              expression;
         boost::asio::io_context& io;
         sol::state&              lua;
+        std::string              query;
         porla::ISession&         session;
     };
 

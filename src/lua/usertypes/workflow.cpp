@@ -43,6 +43,5 @@ std::vector<sol::object> Workflow::Actions()
 
 TriggerBuilder& Workflow::TriggerBuilder()
 {
-    BOOST_LOG_TRIVIAL(info) << "jsj";
     return m_trigger.as<porla::Lua::Workflows::TriggerBuilder&>();
 }
