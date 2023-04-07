@@ -101,6 +101,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (auto val = std::getenv("PORLA_TIMER_DHT_STATS"))       cfg->timer_dht_stats       = std::stoi(val);
     if (auto val = std::getenv("PORLA_TIMER_SESSION_STATS"))   cfg->timer_session_stats   = std::stoi(val);
     if (auto val = std::getenv("PORLA_TIMER_TORRENT_UPDATES")) cfg->timer_torrent_updates = std::stoi(val);
+    if (auto val = std::getenv("PORLA_WORKFLOW_DIR"))          cfg->workflow_dir          = val;
 
     if (cmd.count("config-file"))
     {
