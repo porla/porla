@@ -6,6 +6,7 @@
 
 using porla::Lua::UserTypes::Workflow;
 using porla::Lua::Workflows::ActionBuilder;
+using porla::Lua::Workflows::TriggerBuilder;
 
 sol::table Workflow::Require(sol::this_state s)
 {
@@ -15,25 +16,15 @@ sol::table Workflow::Require(sol::this_state s)
             "Workflow",
             sol::constructors<Workflow(sol::table)>());
 
-    workflow_type["actions"] = sol::property(&Workflow::Actions);
-    workflow_type["on"]      = sol::property(&Workflow::On);
-
     sol::table module = lua.create_table();
     module["Workflow"] = workflow_type;
-    module["Workflow"]["TorrentAdded"] = "TorrentAdded";
 
     return module["Workflow"];
 }
 
 Workflow::Workflow(const sol::table& args)
+    : m_trigger(args["on"])
 {
-    m_on = args["on"];
-
-    if (args["condition"].is<std::function<bool(sol::table)>>())
-    {
-        m_condition = args["condition"];
-    }
-
     const sol::table& actions = args["actions"];
 
     for (const auto& item : actions)
@@ -50,18 +41,8 @@ std::vector<sol::object> Workflow::Actions()
     return m_actions;
 }
 
-std::string Workflow::On()
+TriggerBuilder& Workflow::TriggerBuilder()
 {
-    return m_on;
-}
-
-bool Workflow::ShouldExecute(const sol::table &ctx)
-{
-    // If no condition is set - always execute
-    if (!m_condition)
-    {
-        return true;
-    }
-
-    return m_condition(ctx);
+    BOOST_LOG_TRIVIAL(info) << "jsj";
+    return m_trigger.as<porla::Lua::Workflows::TriggerBuilder&>();
 }

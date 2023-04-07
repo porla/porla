@@ -2,6 +2,10 @@
 
 #include <sol/sol.hpp>
 
+#include "../workflows/triggerbuilder.hpp"
+
+using porla::Lua::Workflows::TriggerBuilder;
+
 namespace porla::Lua::UserTypes
 {
     struct Workflow
@@ -10,13 +14,11 @@ namespace porla::Lua::UserTypes
 
         explicit Workflow(const sol::table& args);
 
-        std::vector<sol::object> Actions();
-        std::string              On();
-        bool                     ShouldExecute(const sol::table& ctx);
+        std::vector<sol::object>   Actions();
+        Workflows::TriggerBuilder& TriggerBuilder();
 
     private:
         std::vector<sol::object> m_actions;
-        sol::function            m_condition;
-        std::string              m_on;
+        sol::object              m_trigger;
     };
 }

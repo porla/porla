@@ -10,27 +10,27 @@ namespace porla { class ISession; }
 
 namespace porla::Lua::Workflows::Triggers
 {
-    struct IntervalOptions
+    struct CronOptions
     {
         std::vector<sol::object> actions;
-        int                      interval;
+        std::string              expression;
         boost::asio::io_context& io;
         sol::state&              lua;
         porla::ISession&         session;
     };
 
-    class Interval : public Trigger
+    class Cron : public Trigger
     {
     public:
-        explicit Interval(const IntervalOptions& opts);
-        ~Interval();
+        explicit Cron(const CronOptions& opts);
+        ~Cron();
 
     private:
         void OnTimerExpired(const boost::system::error_code& ec);
+        void ScheduleNext();
 
-        IntervalOptions m_opts;
+        CronOptions m_opts;
         boost::asio::deadline_timer m_timer;
-        std::vector<boost::signals2::connection> m_on_workflow_finished;
         int m_currently_running_workflows;
     };
 }

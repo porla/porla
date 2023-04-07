@@ -117,6 +117,8 @@ add_library(
     src/lua/usertypes/workflowactiontorrentpause.cpp
     src/lua/usertypes/workflowactiontorrentreannounce.cpp
     src/lua/usertypes/workflowactiontorrentremove.cpp
+    src/lua/usertypes/workflowtriggercron.cpp
+    src/lua/usertypes/workflowtriggerinterval.cpp
     src/lua/workflows/workflowengine.cpp
     src/lua/workflows/workflowrunner.cpp
     src/lua/workflows/actions/exec.cpp
@@ -129,6 +131,8 @@ add_library(
     src/lua/workflows/actions/torrentpause.cpp
     src/lua/workflows/actions/torrentreannounce.cpp
     src/lua/workflows/actions/torrentremove.cpp
+    src/lua/workflows/triggers/cron.cpp
+    src/lua/workflows/triggers/interval.cpp
 
     src/methods/fsspace.cpp
     src/methods/presetslist.cpp
@@ -167,6 +171,7 @@ target_include_directories(
     PUBLIC
     ${JWT_CPP_INCLUDE_DIRS}
     ${LUA_INCLUDE_DIR}
+    vendor/croncpp/include
     vendor/sol2/include
 )
 

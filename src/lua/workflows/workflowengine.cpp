@@ -1,6 +1,5 @@
 #include "workflowengine.hpp"
 
-#include <boost/asio.hpp>
 #include <boost/log/trivial.hpp>
 #include <sol/sol.hpp>
 
@@ -17,9 +16,12 @@
 #include "../usertypes/workflowactiontorrentpause.hpp"
 #include "../usertypes/workflowactiontorrentreannounce.hpp"
 #include "../usertypes/workflowactiontorrentremove.hpp"
+#include "../usertypes/workflowtriggercron.hpp"
+#include "../usertypes/workflowtriggerinterval.hpp"
 
 #include "action.hpp"
 #include "actionbuilder.hpp"
+#include "triggerbuilder.hpp"
 #include "workflowrunner.hpp"
 
 #include "../../session.hpp"
@@ -42,11 +44,15 @@ using porla::Lua::UserTypes::WorkflowActionTorrentMove;
 using porla::Lua::UserTypes::WorkflowActionTorrentPause;
 using porla::Lua::UserTypes::WorkflowActionTorrentReannounce;
 using porla::Lua::UserTypes::WorkflowActionTorrentRemove;
+using porla::Lua::UserTypes::WorkflowTriggerCron;
+using porla::Lua::UserTypes::WorkflowTriggerInterval;
 
 using porla::Lua::Workflows::Action;
 using porla::Lua::Workflows::ActionBuilder;
 using porla::Lua::Workflows::ActionBuilderOptions;
 using porla::Lua::Workflows::ActionCallback;
+using porla::Lua::Workflows::TriggerBuilder;
+using porla::Lua::Workflows::TriggerBuilderOptions;
 using porla::Lua::Workflows::WorkflowRunner;
 using porla::Lua::Workflows::WorkflowRunnerOptions;
 
@@ -61,6 +67,21 @@ sol::table OpenWorkflowActionT(sol::this_state s)
         sol::constructors<T(sol::table)>(),
         sol::base_classes,
         sol::bases<ActionBuilder>());
+
+    return module[T::ShortName()];
+}
+
+template<typename T>
+sol::table OpenWorkflowTriggerT(sol::this_state s)
+{
+    sol::state_view lua(s);
+
+    sol::table module = lua.create_table();
+    module.new_usertype<T>(
+            T::ShortName(),
+            sol::constructors<T(sol::table)>(),
+            sol::base_classes,
+            sol::bases<TriggerBuilder>());
 
     return module[T::ShortName()];
 }
@@ -113,6 +134,15 @@ public:
                              sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionTorrentRemove>),
                                  &OpenWorkflowActionT<WorkflowActionTorrentRemove>>);
 
+        // triggers
+        m_lua.require("porla.triggers.Cron",
+                      sol::c_call<decltype(&OpenWorkflowTriggerT<WorkflowTriggerCron>),
+                      &OpenWorkflowTriggerT<WorkflowTriggerCron>>);
+
+        m_lua.require("porla.triggers.Interval",
+                      sol::c_call<decltype(&OpenWorkflowTriggerT<WorkflowTriggerInterval>),
+                      &OpenWorkflowTriggerT<WorkflowTriggerInterval>>);
+
         if (!opts.workflow_dir.empty())
         {
             for (const auto &file: fs::directory_iterator(opts.workflow_dir))
@@ -121,8 +151,18 @@ public:
 
                 try
                 {
-                    auto workflow = m_lua.script_file(file.path());
-                    m_workflows.emplace_back(workflow);
+                    auto result = m_lua.script_file(file.path());
+                    auto workflow = result.get<Workflow*>();
+
+                    auto& trigger_builder = workflow->TriggerBuilder();
+                    auto trigger = trigger_builder.Build(TriggerBuilderOptions{
+                        .actions = workflow->Actions(),
+                        .io      = opts.io,
+                        .lua     = m_lua,
+                        .session = opts.session
+                    });
+
+                    m_workflow_triggers.emplace_back(trigger);
                 }
                 catch (const sol::error &err)
                 {
@@ -172,36 +212,7 @@ private:
 
     void RunEvents(const std::string& eventName, sol::table& ctx)
     {
-        ctx["actions"] = std::vector<sol::object>();
-
-        for (const auto& instance : m_workflows)
-        {
-            Workflow* w = instance.as<Workflow*>();
-
-            if (w->On() != eventName)
-            {
-                continue;
-            }
-
-            if (!w->ShouldExecute(ctx))
-            {
-                continue;
-            }
-
-            const WorkflowRunnerOptions opts{
-                .io      = m_opts.io,
-                .lua     = m_lua,
-                .session = m_opts.session
-            };
-
-            BOOST_LOG_TRIVIAL(info) << "Launching workflow";
-
-            auto workflow = std::make_shared<WorkflowRunner>(opts, ctx, w->Actions());
-
-            boost::asio::post(
-                m_opts.io,
-                [workflow]() { workflow->Run(); });
-        }
+        /**/
     }
 
     sol::state                  m_lua;
@@ -209,7 +220,8 @@ private:
     boost::signals2::connection m_on_torrent_finished;
     boost::signals2::connection m_on_storage_moved;
     WorkflowEngineOptions       m_opts;
-    std::vector<sol::object>    m_workflows;
+
+    std::vector<std::shared_ptr<Trigger>> m_workflow_triggers;
 };
 
 WorkflowEngine::WorkflowEngine(const WorkflowEngineOptions& opts)

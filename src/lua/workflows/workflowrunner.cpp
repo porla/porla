@@ -16,7 +16,15 @@ WorkflowRunner::WorkflowRunner(const WorkflowRunnerOptions& opts, sol::table ctx
 {
 }
 
-WorkflowRunner::~WorkflowRunner() = default;
+WorkflowRunner::~WorkflowRunner()
+{
+    m_on_finished();
+}
+
+boost::signals2::connection WorkflowRunner::OnFinished(const VoidSignal::slot_type &subscriber)
+{
+    return m_on_finished.connect(subscriber);
+}
 
 void WorkflowRunner::Complete()
 {
