@@ -119,6 +119,7 @@ add_library(
     src/lua/usertypes/workflowactiontorrentremove.cpp
     src/lua/usertypes/workflowtriggercron.cpp
     src/lua/usertypes/workflowtriggerinterval.cpp
+    src/lua/usertypes/workflowtriggertorrentadded.cpp
     src/lua/workflows/workflowengine.cpp
     src/lua/workflows/workflowrunner.cpp
     src/lua/workflows/actions/exec.cpp
@@ -133,6 +134,7 @@ add_library(
     src/lua/workflows/actions/torrentremove.cpp
     src/lua/workflows/triggers/cron.cpp
     src/lua/workflows/triggers/interval.cpp
+    src/lua/workflows/triggers/torrentadded.cpp
 
     src/methods/fsspace.cpp
     src/methods/presetslist.cpp

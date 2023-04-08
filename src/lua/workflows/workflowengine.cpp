@@ -18,6 +18,7 @@
 #include "../usertypes/workflowactiontorrentremove.hpp"
 #include "../usertypes/workflowtriggercron.hpp"
 #include "../usertypes/workflowtriggerinterval.hpp"
+#include "../usertypes/workflowtriggertorrentadded.hpp"
 
 #include "action.hpp"
 #include "actionbuilder.hpp"
@@ -46,6 +47,7 @@ using porla::Lua::UserTypes::WorkflowActionTorrentReannounce;
 using porla::Lua::UserTypes::WorkflowActionTorrentRemove;
 using porla::Lua::UserTypes::WorkflowTriggerCron;
 using porla::Lua::UserTypes::WorkflowTriggerInterval;
+using porla::Lua::UserTypes::WorkflowTriggerTorrentAdded;
 
 using porla::Lua::Workflows::Action;
 using porla::Lua::Workflows::ActionBuilder;
@@ -136,12 +138,16 @@ public:
 
         // triggers
         m_lua.require("porla.triggers.Cron",
-                      sol::c_call<decltype(&OpenWorkflowTriggerT<WorkflowTriggerCron>),
-                      &OpenWorkflowTriggerT<WorkflowTriggerCron>>);
+            sol::c_call<decltype(&OpenWorkflowTriggerT<WorkflowTriggerCron>),
+                &OpenWorkflowTriggerT<WorkflowTriggerCron>>);
 
         m_lua.require("porla.triggers.Interval",
-                      sol::c_call<decltype(&OpenWorkflowTriggerT<WorkflowTriggerInterval>),
-                      &OpenWorkflowTriggerT<WorkflowTriggerInterval>>);
+            sol::c_call<decltype(&OpenWorkflowTriggerT<WorkflowTriggerInterval>),
+                &OpenWorkflowTriggerT<WorkflowTriggerInterval>>);
+
+        m_lua.require("porla.triggers.TorrentAdded",
+            sol::c_call<decltype(&OpenWorkflowTriggerT<WorkflowTriggerTorrentAdded>),
+                &OpenWorkflowTriggerT<WorkflowTriggerTorrentAdded>>);
 
         if (!opts.workflow_dir.empty())
         {
@@ -170,57 +176,11 @@ public:
                 }
             }
         }
-
-        m_on_storage_moved    = m_opts.session.OnStorageMoved([this](auto && th) { OnStorageMoved(th); });
-        m_on_torrent_added    = m_opts.session.OnTorrentAdded([this](auto && s) { OnTorrentAdded(s); });
-        m_on_torrent_finished = m_opts.session.OnTorrentFinished([this](auto && s) { OnTorrentFinished(s); });
-    }
-
-    ~State()
-    {
-        m_on_torrent_added.disconnect();
-        m_on_torrent_finished.disconnect();
     }
 
 private:
-    void OnStorageMoved(const libtorrent::torrent_handle& th)
-    {
-        sol::table ctx           = m_lua.create_table();
-        ctx["lt:torrent_handle"] = th;
-        ctx["torrent"]           = Torrent{th};
-
-        RunEvents("TorrentMoved", ctx);
-    }
-
-    void OnTorrentAdded(const libtorrent::torrent_status& ts)
-    {
-        sol::table ctx           = m_lua.create_table();
-        ctx["lt:torrent_handle"] = ts.handle;
-        ctx["torrent"]           = Torrent{ts.handle};
-
-        RunEvents("TorrentAdded", ctx);
-    }
-
-    void OnTorrentFinished(const libtorrent::torrent_status& ts)
-    {
-        sol::table ctx           = m_lua.create_table();
-        ctx["lt:torrent_handle"] = ts.handle;
-        ctx["torrent"]           = Torrent{ts.handle};
-
-        RunEvents("TorrentFinished", ctx);
-    }
-
-    void RunEvents(const std::string& eventName, sol::table& ctx)
-    {
-        /**/
-    }
-
-    sol::state                  m_lua;
-    boost::signals2::connection m_on_torrent_added;
-    boost::signals2::connection m_on_torrent_finished;
-    boost::signals2::connection m_on_storage_moved;
-    WorkflowEngineOptions       m_opts;
-
+    sol::state                            m_lua;
+    WorkflowEngineOptions                 m_opts;
     std::vector<std::shared_ptr<Trigger>> m_workflow_triggers;
 };
 
