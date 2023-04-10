@@ -20,7 +20,7 @@ WorkflowRunner::~WorkflowRunner() = default;
 
 void WorkflowRunner::Complete()
 {
-    Complete(nullptr);
+    Complete({});
 }
 
 void WorkflowRunner::Complete(sol::object output)

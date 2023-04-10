@@ -28,7 +28,6 @@ public:
 
     ~State()
     {
-        BOOST_LOG_TRIVIAL(info) << "Removing TorrentMove state";
         m_on_storage_moved.disconnect();
     }
 
