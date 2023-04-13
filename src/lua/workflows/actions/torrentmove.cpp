@@ -28,7 +28,6 @@ public:
 
     ~State()
     {
-        BOOST_LOG_TRIVIAL(info) << "Removing TorrentMove state";
         m_on_storage_moved.disconnect();
     }
 
@@ -67,7 +66,6 @@ private:
 
         m_work_item->callback->Complete();
         m_work_item->state = nullptr;
-        m_work_item        = nullptr;
     }
 
     TorrentMoveOptions          m_opts;
