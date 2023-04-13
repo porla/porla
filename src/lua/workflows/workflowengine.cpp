@@ -19,6 +19,8 @@
 #include "../usertypes/workflowtriggercron.hpp"
 #include "../usertypes/workflowtriggerinterval.hpp"
 #include "../usertypes/workflowtriggertorrentadded.hpp"
+#include "../usertypes/workflowtriggertorrentfinished.hpp"
+#include "../usertypes/workflowtriggertorrentmoved.hpp"
 
 #include "action.hpp"
 #include "actionbuilder.hpp"
@@ -48,6 +50,8 @@ using porla::Lua::UserTypes::WorkflowActionTorrentRemove;
 using porla::Lua::UserTypes::WorkflowTriggerCron;
 using porla::Lua::UserTypes::WorkflowTriggerInterval;
 using porla::Lua::UserTypes::WorkflowTriggerTorrentAdded;
+using porla::Lua::UserTypes::WorkflowTriggerTorrentFinished;
+using porla::Lua::UserTypes::WorkflowTriggerTorrentMoved;
 
 using porla::Lua::Workflows::Action;
 using porla::Lua::Workflows::ActionBuilder;
@@ -148,6 +152,14 @@ public:
         m_lua.require("porla.triggers.TorrentAdded",
             sol::c_call<decltype(&OpenWorkflowTriggerT<WorkflowTriggerTorrentAdded>),
                 &OpenWorkflowTriggerT<WorkflowTriggerTorrentAdded>>);
+
+        m_lua.require("porla.triggers.TorrentFinished",
+            sol::c_call<decltype(&OpenWorkflowTriggerT<WorkflowTriggerTorrentFinished>),
+                &OpenWorkflowTriggerT<WorkflowTriggerTorrentFinished>>);
+
+        m_lua.require("porla.triggers.TorrentMoved",
+            sol::c_call<decltype(&OpenWorkflowTriggerT<WorkflowTriggerTorrentMoved>),
+                &OpenWorkflowTriggerT<WorkflowTriggerTorrentMoved>>);
 
         if (!opts.workflow_dir.empty())
         {
