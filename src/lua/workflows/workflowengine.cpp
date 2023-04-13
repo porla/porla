@@ -7,6 +7,7 @@
 #include "../usertypes/torrent.hpp"
 #include "../usertypes/workflow.hpp"
 #include "../usertypes/workflowactionexec.hpp"
+#include "../usertypes/workflowactionhttprequest.hpp"
 #include "../usertypes/workflowactionlog.hpp"
 #include "../usertypes/workflowactionpushdiscord.hpp"
 #include "../usertypes/workflowactionpushntfy.hpp"
@@ -38,6 +39,7 @@ using porla::Lua::UserTypes::Workflow;
 using porla::Lua::UserTypes::LibtorrentTorrentHandle;
 using porla::Lua::UserTypes::Torrent;
 using porla::Lua::UserTypes::WorkflowActionExec;
+using porla::Lua::UserTypes::WorkflowActionHttpRequest;
 using porla::Lua::UserTypes::WorkflowActionLog;
 using porla::Lua::UserTypes::WorkflowActionPushDiscord;
 using porla::Lua::UserTypes::WorkflowActionPushNtfy;
@@ -112,6 +114,9 @@ public:
         m_lua.require("porla.actions.Exec",
                              sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionExec>),
                                  &OpenWorkflowActionT<WorkflowActionExec>>);
+        m_lua.require("porla.actions.HttpRequest",
+            sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionHttpRequest>),
+                &OpenWorkflowActionT<WorkflowActionHttpRequest>>);
         m_lua.require("porla.actions.Log",
                              sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionLog>),
                                  &OpenWorkflowActionT<WorkflowActionLog>>);

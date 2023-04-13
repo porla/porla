@@ -10,6 +10,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 find_package(antlr4-runtime      CONFIG REQUIRED)
 find_package(Boost                      REQUIRED COMPONENTS log program_options system)
+find_package(CURL                CONFIG REQUIRED)
 find_package(GTest               CONFIG REQUIRED)
 find_package(libzip              CONFIG REQUIRED)
 find_package(LibtorrentRasterbar CONFIG REQUIRED)
@@ -108,6 +109,7 @@ add_library(
     src/lua/usertypes/torrent.cpp
     src/lua/usertypes/workflow.cpp
     src/lua/usertypes/workflowactionexec.cpp
+    src/lua/usertypes/workflowactionhttprequest.cpp
     src/lua/usertypes/workflowactionlog.cpp
     src/lua/usertypes/workflowactionpushdiscord.cpp
     src/lua/usertypes/workflowactionpushntfy.cpp
@@ -126,6 +128,7 @@ add_library(
     src/lua/workflows/workflowfilter.cpp
     src/lua/workflows/workflowrunner.cpp
     src/lua/workflows/actions/exec.cpp
+    src/lua/workflows/actions/httprequest.cpp
     src/lua/workflows/actions/log.cpp
     src/lua/workflows/actions/pushdiscord.cpp
     src/lua/workflows/actions/pushntfy.cpp
@@ -193,6 +196,7 @@ target_link_libraries(
     Boost::boost
     Boost::log
     Boost::program_options
+    CURL::libcurl
     libzip::zip
     LibtorrentRasterbar::torrent-rasterbar
     unofficial-sodium::sodium
