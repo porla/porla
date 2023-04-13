@@ -4,6 +4,7 @@
 
 #include <boost/signals2.hpp>
 
+#include "../workflowfilter.hpp"
 #include "../workflowrunner.hpp"
 #include "../../usertypes/torrent.hpp"
 #include "../../../session.hpp"
@@ -11,6 +12,7 @@
 using porla::Lua::UserTypes::Torrent;
 using porla::Lua::Workflows::Triggers::TorrentMoved;
 using porla::Lua::Workflows::Triggers::TorrentMovedOptions;
+using porla::Lua::Workflows::WorkflowFilter;
 using porla::Lua::Workflows::WorkflowRunner;
 using porla::Lua::Workflows::WorkflowRunnerOptions;
 
@@ -35,6 +37,8 @@ private:
         ctx["actions"]           = std::vector<sol::object>();
         ctx["lt:torrent_handle"] = th;
         ctx["torrent"]           = Torrent{th};
+
+        if (!WorkflowFilter::Includes(m_opts.filter, ctx)) return;
 
         const WorkflowRunnerOptions runner_opts{
             .io      = m_opts.io,

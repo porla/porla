@@ -12,6 +12,7 @@ namespace porla::Lua::Workflows::Triggers
     struct TorrentMovedOptions
     {
         std::vector<sol::object> actions;
+        sol::object              filter;
         boost::asio::io_context& io;
         sol::state&              lua;
         porla::ISession&         session;

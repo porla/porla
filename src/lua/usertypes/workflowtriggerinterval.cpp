@@ -21,6 +21,7 @@ std::shared_ptr<Trigger> WorkflowTriggerInterval::Build(const Workflows::Trigger
 {
     const IntervalOptions interval_opts{
         .actions  = opts.actions,
+        .filter   = opts.filter,
         .interval = m_args["interval"],
         .io       = opts.io,
         .lua      = opts.lua,

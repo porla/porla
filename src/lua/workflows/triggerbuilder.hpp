@@ -18,6 +18,7 @@ namespace porla::Lua::Workflows
     struct TriggerBuilderOptions
     {
         std::vector<sol::object> actions;
+        sol::object              filter;
         boost::asio::io_context& io;
         sol::state&              lua;
         porla::ISession&         session;

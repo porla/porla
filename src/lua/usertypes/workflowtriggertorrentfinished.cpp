@@ -17,6 +17,7 @@ std::shared_ptr<Trigger> WorkflowTriggerTorrentFinished::Build(const Workflows::
 {
     const TorrentFinishedOptions interval_opts{
         .actions  = opts.actions,
+        .filter   = opts.filter,
         .io       = opts.io,
         .lua      = opts.lua,
         .session  = opts.session

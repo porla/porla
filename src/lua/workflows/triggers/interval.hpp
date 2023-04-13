@@ -13,6 +13,7 @@ namespace porla::Lua::Workflows::Triggers
     struct IntervalOptions
     {
         std::vector<sol::object> actions;
+        sol::object              filter;
         int                      interval;
         boost::asio::io_context& io;
         sol::state&              lua;

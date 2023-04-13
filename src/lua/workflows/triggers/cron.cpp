@@ -3,6 +3,7 @@
 #include <boost/log/trivial.hpp>
 #include <croncpp.hpp>
 
+#include "../workflowfilter.hpp"
 #include "../workflowrunner.hpp"
 #include "../../usertypes/torrent.hpp"
 #include "../../../query/pql.hpp"
@@ -11,6 +12,7 @@
 using porla::Lua::UserTypes::Torrent;
 using porla::Lua::Workflows::Triggers::Cron;
 using porla::Lua::Workflows::Triggers::CronOptions;
+using porla::Lua::Workflows::WorkflowFilter;
 using porla::Lua::Workflows::WorkflowRunnerOptions;
 using porla::Query::PQL;
 using porla::Session;
@@ -29,7 +31,7 @@ void Cron::OnTimerExpired(const boost::system::error_code &ec)
 {
     if (ec)
     {
-        BOOST_LOG_TRIVIAL(error) << "Workflow::Cron trigger error: " << ec.message();
+        BOOST_LOG_TRIVIAL(error) << "(triggers/cron) Timer error: " << ec.message();
         return;
     }
 
@@ -46,21 +48,14 @@ void Cron::OnTimerExpired(const boost::system::error_code &ec)
 
     int launched_workflows = 0;
 
-    std::unique_ptr<PQL::Filter> filter;
-
-    if (!m_opts.query.empty())
-    {
-        filter = PQL::Parse(m_opts.query);
-    }
-
     for (const auto& [ hash, torrent ] : m_opts.session.Torrents())
     {
-        if (filter && !filter->Includes(torrent.status())) continue;
-
         sol::table ctx           = m_opts.lua.create_table();
         ctx["actions"]           = std::vector<sol::object>();
         ctx["lt:torrent_handle"] = torrent;
         ctx["torrent"]           = Torrent{torrent};
+
+        if (!WorkflowFilter::Includes(m_opts.filter, ctx)) continue;
 
         auto workflow = std::make_shared<WorkflowRunner>(runner_opts, ctx, m_opts.actions);
 

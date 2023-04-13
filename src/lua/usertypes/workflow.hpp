@@ -15,10 +15,12 @@ namespace porla::Lua::UserTypes
         explicit Workflow(const sol::table& args);
 
         std::vector<sol::object>   Actions();
+        sol::object                Filter();
         Workflows::TriggerBuilder& TriggerBuilder();
 
     private:
         std::vector<sol::object> m_actions;
+        sol::object              m_filter;
         sol::object              m_trigger;
     };
 }

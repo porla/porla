@@ -14,9 +14,9 @@ namespace porla::Lua::Workflows::Triggers
     {
         std::vector<sol::object> actions;
         std::string              expression;
+        sol::object              filter;
         boost::asio::io_context& io;
         sol::state&              lua;
-        std::string              query;
         porla::ISession&         session;
     };
 

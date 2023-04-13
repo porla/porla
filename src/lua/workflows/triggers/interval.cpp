@@ -2,6 +2,7 @@
 
 #include <boost/log/trivial.hpp>
 
+#include "../workflowfilter.hpp"
 #include "../workflowrunner.hpp"
 #include "../../usertypes/torrent.hpp"
 #include "../../../session.hpp"
@@ -9,6 +10,7 @@
 using porla::Lua::UserTypes::Torrent;
 using porla::Lua::Workflows::Triggers::Interval;
 using porla::Lua::Workflows::Triggers::IntervalOptions;
+using porla::Lua::Workflows::WorkflowFilter;
 using porla::Lua::Workflows::WorkflowRunnerOptions;
 using porla::Session;
 
@@ -43,6 +45,8 @@ void Interval::OnTimerExpired(const boost::system::error_code &ec)
         ctx["actions"]           = std::vector<sol::object>();
         ctx["lt:torrent_handle"] = torrent;
         ctx["torrent"]           = Torrent{torrent};
+
+        if (!WorkflowFilter::Includes(m_opts.filter, ctx)) continue;
 
         auto workflow = std::make_shared<WorkflowRunner>(runner_opts, ctx, m_opts.actions);
 

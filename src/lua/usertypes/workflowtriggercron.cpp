@@ -18,25 +18,6 @@ WorkflowTriggerCron::WorkflowTriggerCron(sol::table args)
     {
         throw std::runtime_error("Expected string value in Cron:expression parameter");
     }
-
-    if (m_args["query"] && !m_args["query"].is<std::string>())
-    {
-        throw std::runtime_error("Expected string value in Cron:query parameter");
-    }
-
-    if (m_args["query"])
-    {
-        try
-        {
-            porla::Query::PQL::Parse(m_args["query"].get<std::string>());
-        }
-        catch (const porla::Query::QueryError& err)
-        {
-            std::stringstream ss;
-            ss << "Failed to parse Cron:query as PQL: " << err.what() << " (pos " << err.pos() << ")";
-            throw std::runtime_error(ss.str());
-        }
-    }
 }
 
 std::shared_ptr<Trigger> WorkflowTriggerCron::Build(const Workflows::TriggerBuilderOptions &opts)
@@ -44,9 +25,9 @@ std::shared_ptr<Trigger> WorkflowTriggerCron::Build(const Workflows::TriggerBuil
     const CronOptions interval_opts{
         .actions    = opts.actions,
         .expression = m_args["expression"],
+        .filter     = opts.filter,
         .io         = opts.io,
         .lua        = opts.lua,
-        .query      = m_args["query"],
         .session    = opts.session
     };
 

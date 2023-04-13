@@ -123,6 +123,7 @@ add_library(
     src/lua/usertypes/workflowtriggertorrentfinished.cpp
     src/lua/usertypes/workflowtriggertorrentmoved.cpp
     src/lua/workflows/workflowengine.cpp
+    src/lua/workflows/workflowfilter.cpp
     src/lua/workflows/workflowrunner.cpp
     src/lua/workflows/actions/exec.cpp
     src/lua/workflows/actions/log.cpp

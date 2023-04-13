@@ -175,6 +175,7 @@ public:
                     auto& trigger_builder = workflow->TriggerBuilder();
                     auto trigger = trigger_builder.Build(TriggerBuilderOptions{
                         .actions = workflow->Actions(),
+                        .filter  = workflow->Filter(),
                         .io      = opts.io,
                         .lua     = m_lua,
                         .session = opts.session

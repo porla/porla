@@ -24,6 +24,7 @@ sol::table Workflow::Require(sol::this_state s)
 
 Workflow::Workflow(const sol::table& args)
     : m_trigger(args["on"])
+    , m_filter(args["filter"])
 {
     const sol::table& actions = args["actions"];
 
@@ -39,6 +40,11 @@ Workflow::Workflow(const sol::table& args)
 std::vector<sol::object> Workflow::Actions()
 {
     return m_actions;
+}
+
+sol::object Workflow::Filter()
+{
+    return m_filter;
 }
 
 TriggerBuilder& Workflow::TriggerBuilder()
