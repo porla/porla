@@ -10,7 +10,7 @@ bool WorkflowFilter::Includes(const sol::object& filter, const sol::table& conte
     if (!filter)
     {
         // No filter was specified
-        return false;
+        return true;
     }
 
     if (filter.is<std::string>())
@@ -28,5 +28,5 @@ bool WorkflowFilter::Includes(const sol::object& filter, const sol::table& conte
         return res;
     }
 
-    return false;
+    return true;
 }
