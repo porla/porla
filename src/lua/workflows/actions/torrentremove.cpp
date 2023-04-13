@@ -50,7 +50,6 @@ private:
 
         m_work_item->callback->Complete();
         m_work_item->state = nullptr;
-        m_work_item        = nullptr;
     }
 
     boost::signals2::connection     m_on_torrent_removed;

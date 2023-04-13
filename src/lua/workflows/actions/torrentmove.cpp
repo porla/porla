@@ -66,7 +66,6 @@ private:
 
         m_work_item->callback->Complete();
         m_work_item->state = nullptr;
-        m_work_item        = nullptr;
     }
 
     TorrentMoveOptions          m_opts;
