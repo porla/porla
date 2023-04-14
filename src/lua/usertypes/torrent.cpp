@@ -4,6 +4,7 @@
 #include <libtorrent/torrent_status.hpp>
 
 #include "../../torrentclientdata.hpp"
+#include "../../utils/ratio.hpp"
 
 using porla::Lua::UserTypes::Torrent;
 using porla::TorrentClientData;
@@ -26,11 +27,29 @@ void Torrent::Register(sol::state &lua)
         "porla_torrent",
         sol::no_constructor);
 
-    type["category"]  = sol::property(&Torrent::Category);
-    type["name"]      = sol::property(&Torrent::Name);
-    type["save_path"] = sol::property(&Torrent::SavePath);
-    type["size"]      = sol::property(&Torrent::Size);
-    type["tags"]      = sol::property(&Torrent::Tags);
+    type["category"]   = sol::property(&Torrent::Category);
+    type["is_seeding"] = [](const Torrent& self) { return self.m_state->ts.state == lt::torrent_status::seeding; };
+    type["name"]       = sol::property(&Torrent::Name);
+    type["ratio"]      = [](const Torrent& self) { return porla::Utils::Ratio(self.m_state->ts); };
+    type["save_path"]  = sol::property(&Torrent::SavePath);
+
+    type["active_duration"] = [](const Torrent& self)
+    {
+        return self.m_state->ts.active_duration;
+    };
+
+    type["finished_duration"] = [](const Torrent& self)
+    {
+        return self.m_state->ts.finished_duration;
+    };
+
+    type["seeding_duration"] = [](const Torrent& self)
+    {
+        return self.m_state->ts.seeding_duration;
+    };
+
+    type["size"]       = sol::property(&Torrent::Size);
+    type["tags"]       = sol::property(&Torrent::Tags);
 }
 
 Torrent::Torrent(const lt::torrent_handle &th)
