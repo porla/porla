@@ -12,11 +12,11 @@ namespace porla::Lua::Workflows::Actions
 {
     struct HttpRequestOptions
     {
-        std::string                        body;
+        sol::object                        body;
         boost::asio::io_context&           io;
         std::map<std::string, std::string> headers;
-        std::string                        method;
-        std::string                        url;
+        sol::object                        method;
+        sol::object                        url;
     };
 
 class HttpRequest : public porla::Lua::Workflows::Action, public std::enable_shared_from_this<HttpRequest>
