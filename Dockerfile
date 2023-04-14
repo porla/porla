@@ -23,6 +23,10 @@ RUN apk add --update ccache \
 
 # -- runtime layer
 FROM alpine:3.17.0 AS runtime
+
+ENV PORLA_HTTP_HOST=0.0.0.0
+EXPOSE 1337
+
 RUN apk --no-cache add curl
 WORKDIR /
 COPY --from=build-env /src/build/porla /usr/bin/porla
