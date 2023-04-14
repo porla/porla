@@ -14,7 +14,7 @@ WorkflowActionExec::WorkflowActionExec(sol::table args)
         throw std::runtime_error("Expected string value in Exec:file parameter");
     }
 
-    if (!m_args["args"].is<sol::as_table_t<std::vector<sol::object>>>())
+    if (m_args["args"] && !m_args["args"].is<sol::as_table_t<std::vector<sol::object>>>())
     {
         throw std::runtime_error("Expected an array of strings and functions in Exec:args parameter");
     }
@@ -22,10 +22,17 @@ WorkflowActionExec::WorkflowActionExec(sol::table args)
 
 std::shared_ptr<Action> WorkflowActionExec::Build(const ActionBuilderOptions& opts)
 {
+    std::vector<sol::object> args;
+
+    if (m_args["args"].is<sol::as_table_t<std::vector<sol::object>>>())
+    {
+        args = m_args["args"].get<sol::as_table_t<std::vector<sol::object>>>();
+    }
+
     porla::Lua::Workflows::Actions::ExecOptions exec_opts{
         .io     = opts.io,
         .file   = m_args["file"],
-        .args   = m_args["args"].get<sol::as_table_t<std::vector<sol::object>>>(),
+        .args   = args,
         .std_in = m_args["std_in"]
     };
 
