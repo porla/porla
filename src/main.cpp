@@ -1,6 +1,7 @@
 #include <boost/asio.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
+#include <curl/curl.h>
 
 #include "authinithandler.hpp"
 #include "authloginhandler.hpp"
@@ -50,6 +51,8 @@ int main(int argc, char* argv[])
         {"key:generate", &porla::Tools::GenerateSecretKey},
         {"version:json", &porla::Tools::VersionJson}
     };
+
+    curl_global_init(CURL_GLOBAL_DEFAULT);
 
     const boost::program_options::variables_map cmd = porla::CmdArgs::Parse(argc, argv);
 
@@ -189,6 +192,8 @@ int main(int argc, char* argv[])
 
         io.run();
     }
+
+    curl_global_cleanup();
 
     return 0;
 }
