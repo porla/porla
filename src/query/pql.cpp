@@ -155,6 +155,17 @@ public:
 
         static const std::map<std::string, OperRef> oper_map =
         {
+            {"active_duration", OperRef{
+                .func = [](Oper oper, const ValueVariant& val, const lt::torrent_status& ts)
+                {
+                    if (const auto duration = std::get_if<std::int64_t>(&val))
+                    {
+                        return Compare(ts.active_duration.count(), *duration, oper);
+                    }
+
+                    throw QueryError("Invalid value type - expected string");
+                }
+            }},
             {"age", OperRef{
                 .func = [](Oper oper, const ValueVariant& val, const lt::torrent_status& ts)
                 {
@@ -194,6 +205,17 @@ public:
                     }
 
                     throw QueryError("Invalid value type - expected number");
+                }
+            }},
+            {"finished_duration", OperRef{
+                .func = [](Oper oper, const ValueVariant& val, const lt::torrent_status& ts)
+                {
+                    if (const auto duration = std::get_if<std::int64_t>(&val))
+                    {
+                        return Compare(ts.finished_duration.count(), *duration, oper);
+                    }
+
+                    throw QueryError("Invalid value type - expected string");
                 }
             }},
             {"name", OperRef{
@@ -252,6 +274,17 @@ public:
                         }
 
                         return Compare(ts.save_path, *save_path, oper);
+                    }
+
+                    throw QueryError("Invalid value type - expected string");
+                }
+            }},
+            {"seeding_duration", OperRef{
+                .func = [](Oper oper, const ValueVariant& val, const lt::torrent_status& ts)
+                {
+                    if (const auto duration = std::get_if<std::int64_t>(&val))
+                    {
+                        return Compare(ts.seeding_duration.count(), *duration, oper);
                     }
 
                     throw QueryError("Invalid value type - expected string");
