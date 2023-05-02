@@ -27,11 +27,15 @@ void Torrent::Register(sol::state &lua)
         "porla_torrent",
         sol::no_constructor);
 
-    type["category"]   = sol::property(&Torrent::Category);
-    type["is_seeding"] = [](const Torrent& self) { return self.m_state->ts.state == lt::torrent_status::seeding; };
-    type["name"]       = sol::property(&Torrent::Name);
-    type["ratio"]      = [](const Torrent& self) { return porla::Utils::Ratio(self.m_state->ts); };
-    type["save_path"]  = sol::property(&Torrent::SavePath);
+    type["category"]       = sol::property(&Torrent::Category);
+    type["is_downloading"] = [](const Torrent& self) { return self.m_state->ts.state == lt::torrent_status::downloading; };
+    type["is_finished"]    = [](const Torrent& self) { return self.m_state->ts.state == lt::torrent_status::finished; };
+    type["is_moving"]      = [](const Torrent& self) { return self.m_state->ts.moving_storage; };
+    type["is_paused"]      = [](const Torrent& self) { return (self.m_state->ts.flags & lt::torrent_flags::paused) == lt::torrent_flags::paused; };
+    type["is_seeding"]     = [](const Torrent& self) { return self.m_state->ts.state == lt::torrent_status::seeding; };
+    type["name"]           = sol::property(&Torrent::Name);
+    type["ratio"]          = [](const Torrent& self) { return porla::Utils::Ratio(self.m_state->ts); };
+    type["save_path"]      = sol::property(&Torrent::SavePath);
 
     type["active_duration"] = [](const Torrent& self)
     {
