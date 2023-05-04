@@ -165,7 +165,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
                         continue;
                     }
 
-                    listen << "," << *item_dev.value<std::string>() << *item_port.value<int>();
+                    listen << "," << *item_dev.value<std::string>() << ":" << *item_port.value<int>();
                     outbound << "," << *item_dev.value<std::string>();
                 }
 
