@@ -30,7 +30,7 @@ Workflow::Workflow(const sol::table& args)
 
     for (const auto& item : actions)
     {
-        if (item.second.is<ActionBuilder*>())
+        if (item.second.is<ActionBuilder*>() || item.second.is<sol::function>())
         {
             m_actions.emplace_back(item.second);
         }

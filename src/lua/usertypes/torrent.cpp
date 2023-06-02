@@ -1,5 +1,6 @@
 #include "torrent.hpp"
 
+#include <boost/log/trivial.hpp>
 #include <libtorrent/torrent_handle.hpp>
 #include <libtorrent/torrent_status.hpp>
 
@@ -53,7 +54,7 @@ void Torrent::Register(sol::state &lua)
     });
 
     type["size"]       = sol::property(&Torrent::Size);
-    type["tags"]       = sol::property(&Torrent::Tags);
+    type["tags"]       = sol::property(&Torrent::Tags, &Torrent::TagsSet);
 }
 
 Torrent::Torrent(const lt::torrent_handle &th)
@@ -89,9 +90,20 @@ std::optional<std::int64_t> Torrent::Size()
     return std::nullopt;
 }
 
-std::vector<std::string> Torrent::Tags()
+std::unordered_set<std::string>& Torrent::Tags()
 {
-    const TorrentClientData* client_data = m_state->th.userdata().get<TorrentClientData>();
-    const auto tags = client_data->tags.value_or(std::unordered_set<std::string>());
-    return {tags.begin(), tags.end()};
+    auto client_data = m_state->th.userdata().get<TorrentClientData>();
+
+    if (!client_data->tags.has_value())
+    {
+        client_data->tags = std::unordered_set<std::string>();
+    }
+
+    return *client_data->tags;
+}
+
+void Torrent::TagsSet(const std::unordered_set<std::string>& value)
+{
+    auto client_data = m_state->th.userdata().get<TorrentClientData>();
+    client_data->tags = value;
 }
