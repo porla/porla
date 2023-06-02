@@ -28,29 +28,29 @@ void Torrent::Register(sol::state &lua)
         sol::no_constructor);
 
     type["category"]       = sol::property(&Torrent::Category);
-    type["is_downloading"] = [](const Torrent& self) { return self.m_state->ts.state == lt::torrent_status::downloading; };
-    type["is_finished"]    = [](const Torrent& self) { return self.m_state->ts.state == lt::torrent_status::finished; };
-    type["is_moving"]      = [](const Torrent& self) { return self.m_state->ts.moving_storage; };
-    type["is_paused"]      = [](const Torrent& self) { return (self.m_state->ts.flags & lt::torrent_flags::paused) == lt::torrent_flags::paused; };
-    type["is_seeding"]     = [](const Torrent& self) { return self.m_state->ts.state == lt::torrent_status::seeding; };
+    type["is_downloading"] = sol::property([](const Torrent& self) { return self.m_state->ts.state == lt::torrent_status::downloading; });
+    type["is_finished"]    = sol::property([](const Torrent& self) { return self.m_state->ts.state == lt::torrent_status::finished; });
+    type["is_moving"]      = sol::property([](const Torrent& self) { return self.m_state->ts.moving_storage; });
+    type["is_paused"]      = sol::property([](const Torrent& self) { return (self.m_state->ts.flags & lt::torrent_flags::paused) == lt::torrent_flags::paused; });
+    type["is_seeding"]     = sol::property([](const Torrent& self) { return self.m_state->ts.state == lt::torrent_status::seeding; });
     type["name"]           = sol::property(&Torrent::Name);
-    type["ratio"]          = [](const Torrent& self) { return porla::Utils::Ratio(self.m_state->ts); };
+    type["ratio"]          = sol::property([](const Torrent& self) { return porla::Utils::Ratio(self.m_state->ts); });
     type["save_path"]      = sol::property(&Torrent::SavePath);
 
-    type["active_duration"] = [](const Torrent& self)
+    type["active_duration"] = sol::property([](const Torrent& self)
     {
         return self.m_state->ts.active_duration;
-    };
+    });
 
-    type["finished_duration"] = [](const Torrent& self)
+    type["finished_duration"] = sol::property([](const Torrent& self)
     {
         return self.m_state->ts.finished_duration;
-    };
+    });
 
-    type["seeding_duration"] = [](const Torrent& self)
+    type["seeding_duration"] = sol::property([](const Torrent& self)
     {
         return self.m_state->ts.seeding_duration;
-    };
+    });
 
     type["size"]       = sol::property(&Torrent::Size);
     type["tags"]       = sol::property(&Torrent::Tags);
