@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <optional>
+#include <unordered_set>
 #include <vector>
 
 #include <libtorrent/fwd.hpp>
@@ -22,7 +23,8 @@ namespace porla::Lua::UserTypes
         std::string Name();
         std::string SavePath();
         std::optional<std::int64_t> Size();
-        std::vector<std::string> Tags();
+        std::unordered_set<std::string>& Tags();
+        void TagsSet(const std::unordered_set<std::string>& value);
 
         struct State;
         std::shared_ptr<State> m_state;

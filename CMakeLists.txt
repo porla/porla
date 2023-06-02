@@ -128,6 +128,7 @@ add_library(
     src/lua/workflows/workflowfilter.cpp
     src/lua/workflows/workflowrunner.cpp
     src/lua/workflows/actions/exec.cpp
+    src/lua/workflows/actions/function.cpp
     src/lua/workflows/actions/httprequest.cpp
     src/lua/workflows/actions/log.cpp
     src/lua/workflows/actions/pushdiscord.cpp
