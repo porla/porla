@@ -15,7 +15,7 @@ ENV CCACHE_REMOTE_STORAGE=${CCACHE_REMOTE_STORAGE}
 ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
 ENV VCPKG_FORCE_SYSTEM_BINARIES="1"
 
-RUN apk add --update ccache \
+RUN apk add --update bash ccache \
     && cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
     && cmake --build build \
     && ccache -s -v \
