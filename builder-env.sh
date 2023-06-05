@@ -6,7 +6,7 @@ if [[ $architecture == "x86_64" ]]; then
     cmake_options="-DCMAKE_BUILD_TYPE=Release -DVCPKG_TARGET_TRIPLET=x64-linux-musl-release"
 elif [[ $architecture == "aarch64" ]]; then
     binary_url="https://github.com/userdocs/ninja-build-static/releases/download/v1.11.1/ninja-arm64v8"
-    cmake_options='-DCMAKE_BUILD_TYPE=Release -DVCPKG_TARGET_TRIPLET=aarch64-linux-musl-release'
+    cmake_options='-DCMAKE_BUILD_TYPE=Release -DVCPKG_TARGET_TRIPLET=arm64-linux-musl-release'
 else
    echo "Unsupported architecture: $architecture"
    exit 1
