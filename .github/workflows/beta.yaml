@@ -36,8 +36,11 @@ jobs:
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
+        with:
+         platforms: amd64,arm64
 
       - name: Set up Docker Buildx
+        id: buildx
         uses: docker/setup-buildx-action@v2
 
       - name: Login to the container registry
@@ -61,10 +64,12 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v4
         with:
+          builder: ${{ steps.buildx.outputs.name }}
           build-args: |
             CCACHE_REMOTE_STORAGE=${{ secrets.PORLA_CCACHE_REMOTE_STORAGE_WRITE }}
             GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
+          platforms: amd64,arm64
           load: true
           tags: porla
 
@@ -80,14 +85,17 @@ jobs:
           name: porla-linux-amd64
           path: /tmp/porla
 
+
       - name: Push Docker image
         uses: docker/build-push-action@v4
         with:
+          builder: ${{ steps.buildx.outputs.name }}
           build-args: |
             CCACHE_REMOTE_STORAGE=${{ secrets.PORLA_CCACHE_REMOTE_STORAGE_WRITE }}
             GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
           push: true
+          platforms: amd64,arm64
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:beta-latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:beta-${{ steps.gitversion.outputs.shortSha }}
