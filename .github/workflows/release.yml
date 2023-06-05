@@ -78,7 +78,6 @@ jobs:
           build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
           platforms: amd64,arm64
-          load: true
           tags: porla
 
       - name: Copy Porla binary from image
