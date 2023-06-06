@@ -220,7 +220,7 @@ add_executable(
 )
 
 target_link_libraries(
-    ${PROJECT_NAME}
+    ${PROJECT_NAME}_${ARCH_NAME}
     ${PROJECT_NAME}_core
 )
 
