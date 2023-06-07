@@ -40,17 +40,17 @@ void Torrent::Register(sol::state &lua)
 
     type["active_duration"] = sol::property([](const Torrent& self)
     {
-        return self.m_state->ts.active_duration;
+        return self.m_state->ts.active_duration.count();
     });
 
     type["finished_duration"] = sol::property([](const Torrent& self)
     {
-        return self.m_state->ts.finished_duration;
+        return self.m_state->ts.finished_duration.count();
     });
 
     type["seeding_duration"] = sol::property([](const Torrent& self)
     {
-        return self.m_state->ts.seeding_duration;
+        return self.m_state->ts.seeding_duration.count();
     });
 
     type["size"]       = sol::property(&Torrent::Size);
