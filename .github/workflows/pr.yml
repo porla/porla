@@ -5,7 +5,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: porla/porla
+  PLATFORMS: linux/arm64,linux/amd64
 
 jobs:
   build:
@@ -13,10 +13,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    strategy:
-      matrix:
-        arch: [ amd64, arm64 ]
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -38,7 +34,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
-          platforms: ${{ matrix.arch }}
+          platforms: ${{ env.PLATFORMS }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -48,11 +44,31 @@ jobs:
           driver-opts: image=moby/buildkit:latest
 
       - name: Login to the container registry
+        # Skip when PR from a fork
+        if: ${{ !github.event.pull_request.head.repo.fork }}
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate docker image tags
+        id: metadata
+        uses: docker/metadata-action@v4
+        with:
+          flavor: |
+            # Disable latest tag
+            latest=false
+          images: |
+            name=ghcr.io/${{ github.repository_owner }}/porla
+          tags: |
+            # Tag with branch name
+            type=ref,event=branch
+            # Tag with pr-number
+            type=ref,event=pr
+            # Tag with git tag on release
+            type=ref,event=tag
+            type=raw,value=release,enable=${{ github.event_name == 'release' }}
 
       - name: Install Node.js dependencies
         run: npm ci
@@ -68,20 +84,33 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v4
         with:
+          builder: ${{ steps.buildx.outputs.name }}
           build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
-          load: true
-          platforms: ${{ matrix.arch }}
-          tags: porla
+          # Skip pushing when PR from a fork
+          push: ${{ !github.event.pull_request.head.repo.fork }}
+          platforms: ${{ env.PLATFORMS }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
 
-      - name: Copy Porla binary from image
+      - name: Copy Porla binaries from images
         run: |
-          docker create --name tmp porla
-          docker cp tmp:/usr/bin/porla /tmp/porla-${{ matrix.arch }}
+          docker create --name tmp arm64/${{ steps.metadata.outputs.tags }}
+          docker cp tmp:/usr/bin/porla /tmp/porla-arm64
           docker rm -f tmp
+          docker create --name tmp-amd64 amd64/${{ steps.metadata.outputs.tags }}
+          docker cp tmp-amd64:/usr/bin/porla /tmp/porla-amd64
+          docker rm -f tmp-amd64
+    
 
       - name: Upload Porla binary to artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: porla-linux-${{ matrix.arch }}
-          path: /tmp/porla-${{ matrix.arch }}
+          name: porla-linux-amd64
+          path: /tmp/porla-amd64
+
+      - name: Upload Porla arm64 binary to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: porla-linux-arm64
+          path: /tmp/porla-arm64
