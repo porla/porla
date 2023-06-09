@@ -95,10 +95,10 @@ jobs:
 
       - name: Copy Porla binaries from images
         run: |
-          docker create --name tmp arm64/${{ steps.metadata.outputs.tags }}
+          docker create --name tmp --platform linux/arm64 ${{ steps.metadata.outputs.tags }}
           docker cp tmp:/usr/bin/porla /tmp/porla-arm64
           docker rm -f tmp
-          docker create --name tmp-amd64 amd64/${{ steps.metadata.outputs.tags }}
+          docker create --name tmp-amd64 ${{ steps.metadata.outputs.tags }}
           docker cp tmp-amd64:/usr/bin/porla /tmp/porla-amd64
           docker rm -f tmp-amd64
     
