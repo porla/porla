@@ -206,13 +206,21 @@ target_link_libraries(
     uriparser::uriparser
 )
 
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+  set(ARCH_NAME "x64")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+  set(ARCH_NAME "arm64")
+else()
+  set(ARCH_NAME ${CMAKE_SYSTEM_PROCESSOR})
+endif()
+
 add_executable(
-    ${PROJECT_NAME}
+    ${PROJECT_NAME}_${ARCH_NAME}
     src/main.cpp
 )
 
 target_link_libraries(
-    ${PROJECT_NAME}
+    ${PROJECT_NAME}_${ARCH_NAME}
     ${PROJECT_NAME}_core
 )
 
