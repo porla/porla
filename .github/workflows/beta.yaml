@@ -15,6 +15,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        arch: [ amd64, arm64 ]
 
     steps:
       - name: Checkout
@@ -37,7 +40,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
-         platforms: amd64,arm64
+          platforms: ${{ matrix.arch }}
 
       - name: Set up Docker Buildx
         id: buildx
@@ -69,21 +72,20 @@ jobs:
             CCACHE_REMOTE_STORAGE=${{ secrets.PORLA_CCACHE_REMOTE_STORAGE_WRITE }}
             GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
-          platforms: amd64,arm64
-          load: true
+          platforms: ${{ matrix.arch }}
           tags: porla
 
       - name: Copy Porla binary from image
         run: |
           docker create --name tmp porla
-          docker cp tmp:/usr/bin/porla /tmp/porla
+          docker cp tmp:/usr/bin/porla /tmp/porla-${{ matrix.arch }}
           docker rm -f tmp
 
       - name: Upload Porla binary to artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: porla-linux-amd64
-          path: /tmp/porla
+          name: porla-linux-${{ matrix.arch }}
+          path: /tmp/porla-${{ matrix.arch }}
 
 
       - name: Push Docker image
@@ -95,7 +97,7 @@ jobs:
             GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
           push: true
-          platforms: amd64,arm64
+          platforms: ${{ matrix.arch }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:beta-latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:beta-${{ steps.gitversion.outputs.shortSha }}
