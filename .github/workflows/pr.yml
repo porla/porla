@@ -70,6 +70,7 @@ jobs:
         with:
           build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
+          load: true
           platforms: ${{ matrix.arch }}
           tags: porla
 
