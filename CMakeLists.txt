@@ -105,6 +105,9 @@ add_library(
     src/data/models/users.cpp
     src/data/statement.cpp
 
+    src/lua/plugins/pluginengine.cpp
+    src/lua/usertypes/cron.cpp
+    src/lua/usertypes/fsdirectory.cpp
     src/lua/usertypes/lttorrenthandle.cpp
     src/lua/usertypes/torrent.cpp
     src/lua/usertypes/workflow.cpp

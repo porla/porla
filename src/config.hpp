@@ -35,6 +35,7 @@ namespace porla
         };
 
         std::optional<std::string>            config_file;
+        toml::table                           config_tbl;
         sqlite3*                              db;
         std::optional<std::string>            db_file;
         std::optional<bool>                   http_auth_enabled;
@@ -44,6 +45,7 @@ namespace porla
         std::optional<uint16_t>               http_port;
         std::optional<bool>                   http_webui_enabled;
 
+        std::optional<fs::path>               plugins_dir;
         std::map<std::string, Preset>         presets;
         std::string                           secret_key;
         std::optional<std::vector<lt_plugin>> session_extensions;

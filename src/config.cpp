@@ -125,6 +125,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         try
         {
             const toml::table config_file_tbl = toml::parse(config_file_data);
+            cfg->config_tbl = config_file_tbl;
 
             if (auto val = config_file_tbl["session_settings"]["base"].value<std::string>())
             {
@@ -204,6 +205,9 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
             if (auto val = config_file_tbl["http"]["webui_enabled"].value<bool>())
                 cfg->http_webui_enabled = *val;
+
+            if (auto val = config_file_tbl["plugins_dir"].value<std::string>())
+                cfg->plugins_dir = *val;
 
             // Load presets
             if (auto const* presets_tbl = config_file_tbl["presets"].as_table())

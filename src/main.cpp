@@ -13,6 +13,7 @@
 #include "httpserver.hpp"
 #include "jsonrpchandler.hpp"
 #include "logger.hpp"
+#include "lua/plugins/pluginengine.hpp"
 #include "lua/workflows/workflowengine.hpp"
 #include "metricshandler.hpp"
 #include "session.hpp"
@@ -101,6 +102,13 @@ int main(int argc, char* argv[])
             .timer_session_stats        = cfg->timer_session_stats.value_or(5000),
             .timer_torrent_updates      = cfg->timer_torrent_updates.value_or(1000)
         });
+
+        // Load plugins before we load the torrents to give plugins a chance to run any hooks.
+        porla::Lua::Plugins::PluginEngine plugin_engine{porla::Lua::Plugins::PluginEngineOptions{
+            .config      = cfg->config_tbl,
+            .io          = io,
+            .plugins_dir = cfg->plugins_dir.value_or(fs::path())
+        }};
 
         try
         {
