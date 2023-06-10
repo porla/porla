@@ -85,13 +85,11 @@ jobs:
           build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
           # Skip pushing when PR from a fork
-          push: ${{ !github.event.pull_request.head.repo.fork }}
+          #push: ${{ !github.event.pull_request.head.repo.fork }}
+          push: true
           platforms: ${{ env.PLATFORMS }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
-          outputs: type=tar,dest=/tmp/
-      - name: List files in /tmp
-        run: ls -al /tmp
 
       - name: Copy Porla binaries from images
         run: |
