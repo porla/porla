@@ -78,6 +78,11 @@ jobs:
       - name: Package web UI
         run: pushd html/dist && zip -9 -r ../webui.zip * && popd && ls -la
 
+      - name: Build cache output
+        id: cache-target
+        run: |
+          echo "cache-to=type=registry,mode=max,ref=ghcr.io/${{ github.repository_owner }}/porla-build-cache:latest" >> $GITHUB_OUTPUT
+
       - name: Build Docker image
         uses: docker/build-push-action@v4
         with:
@@ -87,6 +92,8 @@ jobs:
           # Skip pushing when PR from a fork
           #push: ${{ !github.event.pull_request.head.repo.fork }}
           push: true
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/porla-build-cache:latest
+          cache-to: ${{ steps.cache-target.outputs.cache-to }}
           platforms: ${{ env.PLATFORMS }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
