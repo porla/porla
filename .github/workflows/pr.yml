@@ -90,8 +90,7 @@ jobs:
           build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
           # Skip pushing when PR from a fork
-          #push: ${{ !github.event.pull_request.head.repo.fork }}
-          push: true
+          push: ${{ !github.event.pull_request.head.repo.fork }}
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/porla-build-cache:latest
           cache-to: ${{ steps.cache-target.outputs.cache-to }}
           platforms: ${{ env.PLATFORMS }}
