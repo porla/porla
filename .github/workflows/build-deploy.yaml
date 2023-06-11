@@ -1,0 +1,166 @@
+name: Build and deploy
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  calc-version:
+    name: Run GitVersion
+    runs-on: ubuntu-latest
+    outputs:
+      semVer: ${{ steps.gitversion.outputs.fullSemVer }}
+      shortSha: ${{ steps.gitversion.outputs.shortSha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0.10.2
+        with:
+          versionSpec: '5.x'
+
+      - name: Calculate version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v0.10.2
+        with:
+          useConfigFile: true
+
+  build-web:
+    name: Build web UI
+    needs: [calc-version]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Install Node.js dependencies
+        run: npm ci
+        working-directory: ./html
+
+      - name: Build web UI
+        run: npm run build
+        working-directory: ./html
+
+      - name: Package web UI
+        run: pushd html/dist && zip -9 -r ../webui.zip * && popd && ls -la
+
+      - name: Upload web UI to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: webui.zip
+          path: html/webui.zip
+
+  build-app:
+    strategy:
+      matrix:
+        platform: [linux-amd64, linux-arm64]
+        include:
+          - platform: linux-amd64
+            runner: buildjet-4vcpu-ubuntu-2204
+
+          - platform: linux-arm64
+            runner: buildjet-8vcpu-ubuntu-2204-arm
+
+    name: Build Porla (${{ matrix.platform }})
+    needs: [build-web, calc-version]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Download web UI artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: webui.zip
+          path: html/
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v4
+        with:
+          build-args: GITVERSION_SEMVER=${{ needs.calc-version.outputs.semVer }}
+          context: .
+          load: true
+          tags: ghcr.io/porla/porla-${{ matrix.platform }}:${{ needs.calc-version.outputs.semVer }}
+
+      - name: Copy Porla binary from image
+        run: |
+          docker create --name tmp ghcr.io/porla/porla-${{ matrix.platform }}:${{ needs.calc-version.outputs.semVer }}
+          docker cp tmp:/usr/bin/porla /tmp/porla-${{ matrix.platform }}
+          docker rm -f tmp
+
+      - name: Save Docker container
+        run: |
+          docker save -o /tmp/porla-${{ matrix.platform }}-docker.tar ghcr.io/porla/porla-${{ matrix.platform }}:${{ needs.calc-version.outputs.semVer }}
+
+      - name: Upload Docker container to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: porla-${{ matrix.platform }}-docker.tar
+          path: /tmp/porla-${{ matrix.platform }}-docker.tar
+
+      - name: Upload Porla binary to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: porla-${{ matrix.platform }}
+          path: /tmp/porla-${{ matrix.platform }}
+
+  push-docker-image-beta:
+    if: success() && github.repository == 'porla/porla' && github.ref_name == 'main'
+    name: Push Docker image (beta)
+    runs-on: ubuntu-latest
+    needs: [calc-version,build-app]
+    steps:
+      # Download all artifacts (to keep it simple)
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: /tmp
+
+      - name: Login to the container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Load Docker images
+        run: |
+          docker load -i /tmp/porla-linux-amd64-docker.tar
+          docker load -i /tmp/porla-linux-arm64-docker.tar
+
+      - name: Push platform specific Docker images
+        run: |
+          docker push ghcr.io/porla/porla-linux-amd64:${{ needs.calc-version.outputs.semVer }}
+          docker push ghcr.io/porla/porla-linux-arm64:${{ needs.calc-version.outputs.semVer }}
+
+      - name: Create Docker manifest
+        run: |
+          docker manifest create ghcr.io/porla/porla:beta-latest \
+            ghcr.io/porla/porla-linux-amd64:${{ needs.calc-version.outputs.semVer }} \
+            ghcr.io/porla/porla-linux-arm64:${{ needs.calc-version.outputs.semVer }}
+
+          docker manifest create ghcr.io/porla/porla:beta-${{ needs.calc-version.outputs.semVer }} \
+            ghcr.io/porla/porla-linux-amd64:${{ needs.calc-version.outputs.semVer }} \
+            ghcr.io/porla/porla-linux-arm64:${{ needs.calc-version.outputs.semVer }}
+
+      - name: Push Docker manifest
+        run: |
+          docker manifest push ghcr.io/porla/porla:beta-latest
+          docker manifest push ghcr.io/porla/porla:beta-${{ needs.calc-version.outputs.semVer }}
