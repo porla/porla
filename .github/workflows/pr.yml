@@ -16,12 +16,95 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        runner: [buildjet-2vcpu-ubuntu-2204,buildjet-8vcpu-ubuntu-2204-arm]
+  build-amd64:
+    runs-on: buildjet-4vcpu-ubuntu-2204
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: true
 
-    runs-on: ${{ matrix.runner }}
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0.10.2
+        with:
+          versionSpec: '5.x'
+
+      - name: Calculate version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v0.10.2
+        with:
+          useConfigFile: true
+
+
+      - name: Login to the container registry
+        # Skip when PR from a fork
+        if: ${{ !github.event.pull_request.head.repo.fork }}
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare
+        id: prep
+        shell: bash
+        run: |
+          architecture=$(uname -m)
+          if [[ $architecture == "x86_64" ]]; then
+            echo "ARCH=amd64" >> $GITHUB_OUTPUT
+            echo "ARM=false" >> $GITHUB_OUTPUT
+          elif [[ $architecture == "aarch64" ]]; then
+            echo "ARCH=arm64" >> $GITHUB_OUTPUT
+            echo "ARM=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate docker image tags
+        id: metadata
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            name=ghcr.io/${{ github.repository_owner }}/porla-${{ steps.prep.outputs.ARCH }}
+          tags: |
+
+
+      - name: Install Node.js dependencies
+        run: npm ci
+        working-directory: ./html
+
+      - name: Build web UI
+        run: npm run build
+        working-directory: ./html
+
+      - name: Package web UI
+        run: pushd html/dist && zip -9 -r ../webui.zip * && popd && ls -la
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v4
+        with:
+          build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
+          context: .
+          # Skip pushing when PR from a fork
+          push: ${{ !github.event.pull_request.head.repo.fork }}
+          platforms: ${{ steps.prep.outputs.ARCH }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          load: true
+
+      - name: Copy Porla binary from image
+        run: |
+          docker create --name tmp ${{ steps.metadata.outputs.tags }}
+          docker cp tmp:/usr/bin/porla /tmp/porla
+          docker rm -f tmp
+
+      - name: Upload Porla binary to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: porla-linux-amd64
+          path: /tmp/porla
+
+  build-arm64:
+    runs-on: buildjet-8vcpu-ubuntu-2204-arm
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -96,30 +179,13 @@ jobs:
           load: true
 
       - name: Copy Porla binary from image (arm64)
-        if: (${{ steps.prep.outputs.ARM }} == true)
-        run: |
-          docker create --name tmp ${{ steps.metadata.outputs.tags }}
-          docker cp tmp:/usr/bin/porla /tmp/porla
-          docker rm -f tmp
-
-      - name: Copy Porla binary from image (amd64)
-        if: (${{ steps.prep.outputs.ARM }} == false)
         run: |
           docker create --name tmp ${{ steps.metadata.outputs.tags }}
           docker cp tmp:/usr/bin/porla /tmp/porla
           docker rm -f tmp
 
       - name: Upload Porla binary to artifacts (arm64)
-        if: (${{ steps.prep.outputs.ARM }} == false)
         uses: actions/upload-artifact@v3
         with:
           name: porla-linux-arm64
           path: /tmp/porla
-
-      - name: Upload Porla binary to artifacts (and64)
-        if: (${{ !steps.prep.outputs.ARM }} == true)
-        uses: actions/upload-artifact@v3
-        with:
-          name: porla-linux-amd64
-          path: /tmp/porla
-
