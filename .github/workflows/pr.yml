@@ -19,7 +19,7 @@ jobs:
   build:
     strategy:
       matrix:
-        runner: [buildjet-2vcpu-ubuntu-2204,buildjet-4vcpu-ubuntu-2204-arm]
+        runner: [buildjet-2vcpu-ubuntu-2204,buildjet-8vcpu-ubuntu-2204-arm]
 
     runs-on: ${{ matrix.runner }}
     steps:
