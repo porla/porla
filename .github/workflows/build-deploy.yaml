@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       semVer: ${{ steps.gitversion.outputs.fullSemVer }}
+      shortSha: ${{ steps.gitversion.outputs.shortSha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -96,17 +97,17 @@ jobs:
           build-args: GITVERSION_SEMVER=${{ needs.calc-version.outputs.semVer }}
           context: .
           load: true
-          tags: porla-${{ matrix.platform }}
+          tags: ghcr.io/porla/porla-${{ matrix.platform }}:${{ needs.calc-version.outputs.semVer }}
 
       - name: Copy Porla binary from image
         run: |
-          docker create --name tmp porla-${{ matrix.platform }}
+          docker create --name tmp ghcr.io/porla/porla-${{ matrix.platform }}:${{ needs.calc-version.outputs.semVer }}
           docker cp tmp:/usr/bin/porla /tmp/porla-${{ matrix.platform }}
           docker rm -f tmp
 
       - name: Save Docker container
         run: |
-          docker save -o /tmp/porla-${{ matrix.platform }}-docker.tar porla-${{ matrix.platform }}
+          docker save -o /tmp/porla-${{ matrix.platform }}-docker.tar ghcr.io/porla/porla-${{ matrix.platform }}:${{ needs.calc-version.outputs.semVer }}
 
       - name: Upload Docker container to artifacts
         uses: actions/upload-artifact@v3
@@ -119,3 +120,47 @@ jobs:
         with:
           name: porla-${{ matrix.platform }}
           path: /tmp/porla-${{ matrix.platform }}
+
+  push-docker-image-beta:
+    if: success() && github.repository == 'porla/porla' && github.ref_name == 'main'
+    name: Push Docker image (beta)
+    runs-on: ubuntu-latest
+    needs: [calc-version,build-app]
+    steps:
+      # Download all artifacts (to keep it simple)
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: /tmp
+
+      - name: Login to the container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Load Docker images
+        run: |
+          docker load -i /tmp/porla-linux-amd64-docker.tar
+          docker load -i /tmp/porla-linux-arm64-docker.tar
+
+      - name: Push platform specific Docker images
+        run: |
+          docker push ghcr.io/porla/porla-linux-amd64:${{ needs.calc-version.outputs.semVer }}
+          docker push ghcr.io/porla/porla-linux-arm64:${{ needs.calc-version.outputs.semVer }}
+
+      - name: Create Docker manifest
+        run: |
+          docker manifest create ghcr.io/porla/porla:beta-latest \
+            ghcr.io/porla/porla-linux-amd64:${{ needs.calc-version.outputs.semVer }} \
+            ghcr.io/porla/porla-linux-arm64:${{ needs.calc-version.outputs.semVer }}
+
+          docker manifest create ghcr.io/porla/porla:beta-${{ needs.calc-version.outputs.semVer }} \
+            ghcr.io/porla/porla-linux-amd64:${{ needs.calc-version.outputs.semVer }} \
+            ghcr.io/porla/porla-linux-arm64:${{ needs.calc-version.outputs.semVer }}
+
+      - name: Push Docker manifest
+        run: |
+          docker manifest push ghcr.io/porla/porla:beta-latest
+          docker manifest push ghcr.io/porla/porla:beta-${{ needs.calc-version.outputs.semVer }}
