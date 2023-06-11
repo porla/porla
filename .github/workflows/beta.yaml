@@ -15,16 +15,12 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  PLATFORMS: linux/arm64,linux/amd64
+
+
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        runner: [buildjet-4vcpu-ubuntu-2204]
-
-    runs-on: ${{ matrix.runner }}
-
+  build-amd64:
+    runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -43,34 +39,134 @@ jobs:
         with:
           useConfigFile: true
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: ${{ env.PLATFORMS }}
-
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v2
-        with:
-          install: true
-          version: latest
-          driver-opts: image=moby/buildkit:latest
-
       - name: Login to the container registry
-        # Skip when PR from a fork
-        if: ${{ !github.event.pull_request.head.repo.fork }}
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Prepare
+        id: prep
+        shell: bash
+        run: |
+          architecture=$(uname -m)
+          if [[ $architecture == "x86_64" ]]; then
+            echo "ARCH=amd64" >> $GITHUB_OUTPUT
+            echo "ARM=false" >> $GITHUB_OUTPUT
+          elif [[ $architecture == "aarch64" ]]; then
+            echo "ARCH=arm64" >> $GITHUB_OUTPUT
+            echo "ARM=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Generate docker image tags
         id: metadata
         uses: docker/metadata-action@v4
         with:
           images: |
-            name=ghcr.io/${{ github.repository_owner }}/porla
+            name=ghcr.io/${{ github.repository_owner }}/porla-${{ steps.prep.outputs.ARCH }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ github.sha }}
+            type=raw,value=${{ steps.gitversion.outputs.fullSemVer }}
+
+      - name: Create draft release
+        run: gh release create $GITHUB_REF_NAME -d -t "Porla $GITHUB_REF_NAME"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Node.js dependencies
+        run: npm ci
+        working-directory: ./html
+
+      - name: Build web UI
+        run: npm run build
+        working-directory: ./html
+
+      - name: Package web UI
+        run: pushd html/dist && zip -9 -r ../webui.zip * && popd && ls -la
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v4
+        with:
+          build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
+          context: .
+          platforms: ${{ steps.prep.outputs.ARCH }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+
+      - name: Copy Porla binaries from images
+        run: |
+          docker create --name tmp  ${{ steps.metadata.outputs.tags }}
+          docker cp tmp:/usr/bin/porla /tmp/porla
+          docker rm -f tmp
+
+      - name: Upload Porla binaries to release
+        run: |
+          gh release upload $GITHUB_REF_NAME /tmp/porla#porla-linux-amd64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          build-args: |
+            GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
+          context: .
+          # Skip pushing when PR from a fork
+          push: ${{ !github.event.pull_request.head.repo.fork }}
+          platforms: ${{ steps.prep.outputs.ARCH }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+
+  build-arm64:
+    runs-on: buildjet-8vcpu-ubuntu-2204-arm
+    needs: build-amd64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0.10.2
+        with:
+          versionSpec: '5.x'
+
+      - name: Calculate version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v0.10.2
+        with:
+          useConfigFile: true
+
+      - name: Login to the container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare
+        id: prep
+        shell: bash
+        run: |
+          architecture=$(uname -m)
+          if [[ $architecture == "x86_64" ]]; then
+            echo "ARCH=amd64" >> $GITHUB_OUTPUT
+            echo "ARM=false" >> $GITHUB_OUTPUT
+          elif [[ $architecture == "aarch64" ]]; then
+            echo "ARCH=arm64" >> $GITHUB_OUTPUT
+            echo "ARM=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate docker image tags
+        id: metadata
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            name=ghcr.io/${{ github.repository_owner }}/porla-beta-${{ steps.prep.outputs.ARCH }}
           tags: |
             type=raw,value=beta-latest
             type=raw,value=beta-${{ steps.gitversion.outputs.shortSha }}
@@ -89,46 +185,45 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v4
         with:
-          builder: ${{ steps.buildx.outputs.name }}
-          build-args: |
-            CCACHE_REMOTE_STORAGE=${{ secrets.PORLA_CCACHE_REMOTE_STORAGE_WRITE }}
-            GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
+          build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
-          platforms: ${{ env.PLATFORMS }}
+          platforms: ${{ steps.prep.outputs.ARCH }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
 
       - name: Copy Porla binaries from images
         run: |
-          docker create --name tmp --platform linux/arm64 ${{ steps.metadata.outputs.tags }}
-          docker cp tmp:/usr/bin/porla /tmp/porla-arm64
+          docker create --name tmp ${{ steps.metadata.outputs.tags }}
+          docker cp tmp:/usr/bin/porla /tmp/porla
           docker rm -f tmp
-          docker create --name tmp-amd64 ${{ steps.metadata.outputs.tags }}
-          docker cp tmp-amd64:/usr/bin/porla /tmp/porla-amd64
-          docker rm -f tmp-amd64
 
-      - name: Upload Porla binary to artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: porla-linux-amd64
-          path: /tmp/porla-amd64
-
-      - name: Upload Porla arm64 binary to artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: porla-linux-arm64
-          path: /tmp/porla-arm64
+      - name: Upload Porla binaries to release
+        run: |
+          gh release upload $GITHUB_REF_NAME /tmp/porla#porla-linux-arm64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push Docker image
         uses: docker/build-push-action@v4
         with:
           builder: ${{ steps.buildx.outputs.name }}
           build-args: |
-            CCACHE_REMOTE_STORAGE=${{ secrets.PORLA_CCACHE_REMOTE_STORAGE_WRITE }}
             GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
           # Skip pushing when PR from a fork
           push: ${{ !github.event.pull_request.head.repo.fork }}
-          platforms: ${{ env.PLATFORMS }}
+          platforms: ${{ steps.prep.outputs.ARCH }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
+
+  create-manifest:
+    runs-on: "buildjet-4vcpu-ubuntu-2204"
+    needs:
+      - build-arm64
+      - build-amd64
+    steps:
+      - name: Create manifest and push it
+        run: |
+          docker manifest create --amend ghcr.io/${{ github.repository_owner }}/porla:latest-beta ghcr.io/${{ github.repository_owner }}/porla-beta-amd64
+          docker manifest annotate ghcr.io/${{ github.repository_owner }}/porla:latest-beta  ghcr.io/${{ github.repository_owner }}/porla-beta-arm64 --arch linux/arm64
+          docker manifest push ghcr.io/${{ github.repository_owner }}/porla:latest-beta
