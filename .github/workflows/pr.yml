@@ -96,28 +96,28 @@ jobs:
           load: true
 
       - name: Copy Porla binary from image (arm64)
-        if: ${{ steps.prep.outputs.ARM }}
+        if: (${{ steps.prep.outputs.ARM }} == true)
         run: |
           docker create --name tmp ${{ steps.metadata.outputs.tags }}
           docker cp tmp:/usr/bin/porla /tmp/porla
           docker rm -f tmp
 
       - name: Copy Porla binary from image (amd64)
-        if: ${{ !steps.prep.outputs.ARM }}
+        if: (${{ steps.prep.outputs.ARM }} == false)
         run: |
           docker create --name tmp ${{ steps.metadata.outputs.tags }}
           docker cp tmp:/usr/bin/porla /tmp/porla
           docker rm -f tmp
 
       - name: Upload Porla binary to artifacts (arm64)
-        if: ${{ steps.prep.outputs.ARM }}
+        if: (${{ steps.prep.outputs.ARM }} == false)
         uses: actions/upload-artifact@v3
         with:
           name: porla-linux-arm64
           path: /tmp/porla
 
       - name: Upload Porla binary to artifacts (and64)
-        if: ${{ !steps.prep.outputs.ARM }}
+        if: (${{ !steps.prep.outputs.ARM }} == true)
         uses: actions/upload-artifact@v3
         with:
           name: porla-linux-amd64
