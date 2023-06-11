@@ -58,7 +58,7 @@ jobs:
           if [[ $architecture == "x86_64" ]]; then
             echo "ARCH=amd64" >> $GITHUB_OUTPUT
           elif [[ $architecture == "aarch64" ]]; then
-            echo "ARCH=amd64" >> $GITHUB_OUTPUT
+            echo "ARCH=arm64" >> $GITHUB_OUTPUT
           fi
 
       - name: Generate docker image tags
