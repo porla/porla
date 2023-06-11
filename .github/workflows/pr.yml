@@ -13,7 +13,7 @@ jobs:
       matrix:
         runner: [buildjet-4vcpu-ubuntu-2204]
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
 
     permissions:
       contents: read
