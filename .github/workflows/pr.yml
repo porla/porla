@@ -52,7 +52,7 @@ jobs:
       - name: Prepare
         id: prep
         run: |
-          ARCH=${uname -m}
+          ARCH=$(uname -m)
           echo ::set-output name=running-arch::${ARCH}
 
       - name: Generate docker image tags
@@ -60,7 +60,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            name=ghcr.io/${{ github.repository_owner }}/porla-${{ matrix.arch }}
+            name=ghcr.io/${{ github.repository_owner }}/porla-${{ steps.prep.outputs.running-arch }}
           tags: |
             
 
