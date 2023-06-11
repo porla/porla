@@ -60,7 +60,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: webui.zip
-          path: src/html/webui.zip
+          path: html/webui.zip
 
   build-app:
     needs: [build-web, calc-version]
