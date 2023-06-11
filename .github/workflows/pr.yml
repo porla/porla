@@ -9,7 +9,12 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runner: [buildjet-4vcpu-ubuntu-2204]
+
+    runs-on: ${{ matrix.runner }}
+
     permissions:
       contents: read
       packages: write
