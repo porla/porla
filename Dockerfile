@@ -19,7 +19,7 @@ RUN apk add --update bash ccache \
     && cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
     && cmake --build build \
     && ccache -s -v \
-    && strip build/porla*
+    && strip build/porla
 
 # -- runtime layer
 FROM alpine:3.18.0 AS runtime
@@ -29,5 +29,5 @@ EXPOSE 1337
 
 RUN apk --no-cache add curl bash
 WORKDIR /
-COPY --from=build-env /src/build/porla* /usr/bin/porla
+COPY --from=build-env /src/build/porla /usr/bin/porla
 ENTRYPOINT [ "/usr/bin/porla" ]
