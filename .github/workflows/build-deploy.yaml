@@ -93,16 +93,26 @@ jobs:
           build-args: GITVERSION_SEMVER=${{ needs.calc-version.outputs.semVer }}
           context: .
           load: true
-          tags: porla
+          tags: porla-${{ matrix.platform }}
 
       - name: Copy Porla binary from image
         run: |
-          docker create --name tmp porla
-          docker cp tmp:/usr/bin/porla /tmp/porla
+          docker create --name tmp porla-${{ matrix.platform }}
+          docker cp tmp:/usr/bin/porla /tmp/porla-${{ matrix.platform }}
           docker rm -f tmp
+
+      - name: Save Docker container
+        run: |
+          docker save -o /tmp/porla-${{ matrix.platform }}-docker.tar porla-${{ matrix.platform }}
+
+      - name: Upload Docker container to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: porla-${{ matrix.platform }}-docker.tar
+          path: /tmp/porla-${{ matrix.platform }}-docker.tar
 
       - name: Upload Porla binary to artifacts
         uses: actions/upload-artifact@v3
         with:
           name: porla-${{ matrix.platform }}
-          path: /tmp/porla
+          path: /tmp/porla-${{ matrix.platform }}
