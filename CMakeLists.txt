@@ -109,6 +109,8 @@ add_library(
     src/lua/usertypes/cron.cpp
     src/lua/usertypes/fsdirectory.cpp
     src/lua/usertypes/lttorrenthandle.cpp
+    src/lua/usertypes/sqlite3db.cpp
+    src/lua/usertypes/sqlite3statement.cpp
     src/lua/usertypes/torrent.cpp
     src/lua/usertypes/workflow.cpp
     src/lua/usertypes/workflowactionexec.cpp

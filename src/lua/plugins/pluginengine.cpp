@@ -2,9 +2,12 @@
 
 #include <boost/log/trivial.hpp>
 #include <sol/sol.hpp>
+#include <sqlite3.h>
 
 #include "../usertypes/cron.hpp"
 #include "../usertypes/fsdirectory.hpp"
+#include "../usertypes/sqlite3db.hpp"
+#include "../usertypes/sqlite3statement.hpp"
 
 namespace fs = std::filesystem;
 
@@ -78,11 +81,21 @@ public:
 
         UserTypes::Cron::Register(m_lua);
         UserTypes::FsDirectory::Register(m_lua);
+        UserTypes::Sqlite3Db::Register(m_lua);
+        UserTypes::Sqlite3Statement::Register(m_lua);
 
         sol::table fs = m_lua.create_table();
         fs["Directory"] = [&](const sol::object& args)
         {
             return std::make_unique<UserTypes::FsDirectory>(args);
+        };
+
+        sol::table sql = m_lua.create_table();
+        sql["open"] = [&](const sol::object& args)
+        {
+            sqlite3* db;
+            sqlite3_open(args.as<std::string>().c_str(), &db);
+            return std::make_shared<UserTypes::Sqlite3Db>(db);
         };
 
         m_lua["cron"] = [&](const sol::table& args)
@@ -91,6 +104,7 @@ public:
         };
 
         m_lua["fs"] = fs;
+        m_lua["sqlite3"] = sql;
 
         sol::table ctx = m_lua.create_table();
         ctx["config"] = TomlNode2LuaObject(m_lua, m_opts.config);
