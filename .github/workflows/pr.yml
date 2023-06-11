@@ -53,7 +53,6 @@ jobs:
         id: prep
         run: |
           echo "ARCH=$(uname -m)" >> $GITHUB_OUTPUT
-          
 
       - name: Generate docker image tags
         id: metadata
@@ -85,10 +84,33 @@ jobs:
           platforms: ${{ steps.prep.outputs.ARCH }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
-          outputs: type=local,dest=/tmp/image/
+          load: true
 
-      - name: ls of /tmp/image
-        run: ls /tmp/image
+      - name: Copy Porla binary from image (arm64)
+        if: ${{ matrix.runner }} == "buildjet-4vcpu-ubuntu-2204-arm"
+        run: |
+          docker create --name tmp ${{ steps.metadata.outputs.tags }}
+          docker cp tmp:/usr/bin/porla /tmp/porla
+          docker rm -f tmp
 
-      - name: Look at the docker images
-        run: docker image ls
+      - name: Copy Porla binary from image (amd64)
+        if: ${{ matrix.runner }} == "buildjet-2vcpu-ubuntu-2204"
+        run: |
+          docker create --name tmp ${{ steps.metadata.outputs.tags }}
+          docker cp tmp-amd64:/usr/bin/porla /tmp/porla
+          docker rm -f tmp-amd64
+
+      - name: Upload Porla binary to artifacts (arm64)
+        if: ${{ matrix.runner }} == "buildjet-4vcpu-ubuntu-2204-arm"
+        uses: actions/upload-artifact@v3
+        with:
+          name: porla-linux-arm64
+          path: /tmp/porla
+
+      - name: Upload Porla binary to artifacts (and64)
+        if: ${{ matrix.runner }} == "buildjet-2vcpu-ubuntu-2204"
+        uses: actions/upload-artifact@v3
+        with:
+          name: porla-linux-amd64
+          path: /tmp/porla
+
