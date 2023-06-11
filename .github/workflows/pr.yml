@@ -18,7 +18,7 @@ jobs:
   build:
     strategy:
       matrix:
-        runner: [buildjet-2vcpu-ubuntu-2204,buildjet-2vcpu-ubuntu-2204-arm]
+        runner: [buildjet-2vcpu-ubuntu-2204,buildjet-4vcpu-ubuntu-2204-arm]
 
     runs-on: ${{ matrix.runner }}
     steps:
@@ -52,15 +52,15 @@ jobs:
       - name: Prepare
         id: prep
         run: |
-          ARCH=$(uname -m)
-          echo ::set-output name=running-arch::${ARCH}
+          echo "ARCH=$(uname -m)" >> $GITHUB_OUTPUT
+          
 
       - name: Generate docker image tags
         id: metadata
         uses: docker/metadata-action@v4
         with:
           images: |
-            name=ghcr.io/${{ github.repository_owner }}/porla-${{ steps.prep.outputs.running-arch }}
+            name=ghcr.io/${{ github.repository_owner }}/porla-${{ steps.prep.outputs.ARCH }}
           tags: |
             
 
@@ -82,7 +82,7 @@ jobs:
           context: .
           # Skip pushing when PR from a fork
           push: ${{ !github.event.pull_request.head.repo.fork }}
-          platforms: ${{ steps.prep.outputs.running-arch }}
+          platforms: ${{ steps.prep.outputs.ARCH }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           outputs: type=local,dest=/tmp/image/
