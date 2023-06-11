@@ -97,17 +97,17 @@ jobs:
           build-args: GITVERSION_SEMVER=${{ needs.calc-version.outputs.semVer }}
           context: .
           load: true
-          tags: ghcr.io/porla/porla-${{ matrix.platform }}:${{ needs.calc-version.outputs.semVer }}
+          tags: ghcr.io/porla/porla-${{ matrix.platform }}:${{ needs.calc-version.outputs.shortSha }}
 
       - name: Copy Porla binary from image
         run: |
-          docker create --name tmp ghcr.io/porla/porla-${{ matrix.platform }}:${{ needs.calc-version.outputs.semVer }}
+          docker create --name tmp ghcr.io/porla/porla-${{ matrix.platform }}:${{ needs.calc-version.outputs.shortSha }}
           docker cp tmp:/usr/bin/porla /tmp/porla-${{ matrix.platform }}
           docker rm -f tmp
 
       - name: Save Docker container
         run: |
-          docker save -o /tmp/porla-${{ matrix.platform }}-docker.tar ghcr.io/porla/porla-${{ matrix.platform }}:${{ needs.calc-version.outputs.semVer }}
+          docker save -o /tmp/porla-${{ matrix.platform }}-docker.tar ghcr.io/porla/porla-${{ matrix.platform }}:${{ needs.calc-version.outputs.shortSha }}
 
       - name: Upload Docker container to artifacts
         uses: actions/upload-artifact@v3
@@ -147,20 +147,20 @@ jobs:
 
       - name: Push platform specific Docker images
         run: |
-          docker push ghcr.io/porla/porla-linux-amd64:${{ needs.calc-version.outputs.semVer }}
-          docker push ghcr.io/porla/porla-linux-arm64:${{ needs.calc-version.outputs.semVer }}
+          docker push ghcr.io/porla/porla-linux-amd64:${{ needs.calc-version.outputs.shortSha }}
+          docker push ghcr.io/porla/porla-linux-arm64:${{ needs.calc-version.outputs.shortSha }}
 
       - name: Create Docker manifest
         run: |
           docker manifest create ghcr.io/porla/porla:beta-latest \
-            ghcr.io/porla/porla-linux-amd64:${{ needs.calc-version.outputs.semVer }} \
-            ghcr.io/porla/porla-linux-arm64:${{ needs.calc-version.outputs.semVer }}
+            ghcr.io/porla/porla-linux-amd64:${{ needs.calc-version.outputs.shortSha }} \
+            ghcr.io/porla/porla-linux-arm64:${{ needs.calc-version.outputs.shortSha }}
 
-          docker manifest create ghcr.io/porla/porla:beta-${{ needs.calc-version.outputs.semVer }} \
-            ghcr.io/porla/porla-linux-amd64:${{ needs.calc-version.outputs.semVer }} \
-            ghcr.io/porla/porla-linux-arm64:${{ needs.calc-version.outputs.semVer }}
+          docker manifest create ghcr.io/porla/porla:beta-${{ needs.calc-version.outputs.shortSha }} \
+            ghcr.io/porla/porla-linux-amd64:${{ needs.calc-version.outputs.shortSha }} \
+            ghcr.io/porla/porla-linux-arm64:${{ needs.calc-version.outputs.shortSha }}
 
       - name: Push Docker manifest
         run: |
           docker manifest push ghcr.io/porla/porla:beta-latest
-          docker manifest push ghcr.io/porla/porla:beta-${{ needs.calc-version.outputs.semVer }}
+          docker manifest push ghcr.io/porla/porla:beta-${{ needs.calc-version.outputs.shortSha }}
