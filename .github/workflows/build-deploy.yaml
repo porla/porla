@@ -85,7 +85,9 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: webui.zip
-          path: html/webui.zip
+          path: html/
+
+      - run: ls -la html/
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
