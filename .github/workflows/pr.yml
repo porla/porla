@@ -57,8 +57,10 @@ jobs:
           architecture=$(uname -m)
           if [[ $architecture == "x86_64" ]]; then
             echo "ARCH=amd64" >> $GITHUB_OUTPUT
+            echo "ARM=false" >> $GITHUB_OUTPUT
           elif [[ $architecture == "aarch64" ]]; then
             echo "ARCH=arm64" >> $GITHUB_OUTPUT
+            echo "ARM=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Generate docker image tags
@@ -94,28 +96,28 @@ jobs:
           load: true
 
       - name: Copy Porla binary from image (arm64)
-        if: ${{ steps.prep.outputs.ARCH }} == "arm64"
+        if: ${{ steps.prep.outputs.ARM }}
         run: |
           docker create --name tmp ${{ steps.metadata.outputs.tags }}
           docker cp tmp:/usr/bin/porla /tmp/porla
           docker rm -f tmp
 
       - name: Copy Porla binary from image (amd64)
-        if: ${{ steps.prep.outputs.ARCH }} == "amd64"
+        if: ${{ !steps.prep.outputs.ARM }}
         run: |
           docker create --name tmp ${{ steps.metadata.outputs.tags }}
           docker cp tmp-amd64:/usr/bin/porla /tmp/porla
           docker rm -f tmp-amd64
 
       - name: Upload Porla binary to artifacts (arm64)
-        if: ${{ matrix.runner }} == "buildjet-4vcpu-ubuntu-2204-arm"
+        if: ${{ steps.prep.outputs.ARM }}
         uses: actions/upload-artifact@v3
         with:
           name: porla-linux-arm64
           path: /tmp/porla
 
       - name: Upload Porla binary to artifacts (and64)
-        if: ${{ matrix.runner }} == "buildjet-2vcpu-ubuntu-2204"
+        if: ${{ !steps.prep.outputs.ARM }}
         uses: actions/upload-artifact@v3
         with:
           name: porla-linux-amd64
