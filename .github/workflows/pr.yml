@@ -51,8 +51,14 @@ jobs:
 
       - name: Prepare
         id: prep
+        shell: bash
         run: |
-          echo "ARCH=$(uname -m)" >> $GITHUB_OUTPUT
+          architecture=$(uname -m)
+          if [[ $architecture == "x86_64" ]]; then
+            echo "ARCH=amd64" >> $GITHUB_OUTPUT
+          elif [[ $architecture == "aarch64" ]]; then
+            echo "ARCH=amd64" >> $GITHUB_OUTPUT
+          fi
 
       - name: Generate docker image tags
         id: metadata
@@ -87,14 +93,14 @@ jobs:
           load: true
 
       - name: Copy Porla binary from image (arm64)
-        if: ${{ matrix.runner }} == "buildjet-4vcpu-ubuntu-2204-arm"
+        if: steps.prep.outputs.ARCH == "arm64"
         run: |
           docker create --name tmp ${{ steps.metadata.outputs.tags }}
           docker cp tmp:/usr/bin/porla /tmp/porla
           docker rm -f tmp
 
       - name: Copy Porla binary from image (amd64)
-        if: ${{ matrix.runner }} == "buildjet-2vcpu-ubuntu-2204"
+        if: steps.prep.outputs.ARCH == "amd64"
         run: |
           docker create --name tmp ${{ steps.metadata.outputs.tags }}
           docker cp tmp-amd64:/usr/bin/porla /tmp/porla
