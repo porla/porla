@@ -64,16 +64,12 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            name=ghcr.io/${{ github.repository_owner }}/porla-${{ steps.prep.outputs.ARCH }}
+            name=ghcr.io/${{ github.repository_owner }}/porla-beta-${{ steps.prep.outputs.ARCH }}
           tags: |
-            type=raw,value=latest
-            type=raw,value=${{ github.sha }}
-            type=raw,value=${{ steps.gitversion.outputs.fullSemVer }}
+            type=raw,value=beta-latest
+            type=raw,value=beta-${{ github.sha }}
+            type=raw,value=beta-${{ steps.gitversion.outputs.fullSemVer }}
 
-      - name: Create draft release
-        run: gh release create $GITHUB_REF_NAME -d -t "Porla $GITHUB_REF_NAME"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Node.js dependencies
         run: npm ci
@@ -94,6 +90,7 @@ jobs:
           platforms: ${{ steps.prep.outputs.ARCH }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
+          load: true
 
       - name: Copy Porla binaries from images
         run: |
@@ -101,11 +98,11 @@ jobs:
           docker cp tmp:/usr/bin/porla /tmp/porla
           docker rm -f tmp
 
-      - name: Upload Porla binaries to release
-        run: |
-          gh release upload $GITHUB_REF_NAME /tmp/porla#porla-linux-amd64
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Porla binary to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: porla-linux-amd64
+          path: /tmp/porla
 
       - name: Push Docker image
         uses: docker/build-push-action@v4
@@ -190,6 +187,7 @@ jobs:
           platforms: ${{ steps.prep.outputs.ARCH }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
+          load: true
 
       - name: Copy Porla binaries from images
         run: |
@@ -197,11 +195,11 @@ jobs:
           docker cp tmp:/usr/bin/porla /tmp/porla
           docker rm -f tmp
 
-      - name: Upload Porla binaries to release
-        run: |
-          gh release upload $GITHUB_REF_NAME /tmp/porla#porla-linux-arm64
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Porla binary to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: porla-linux-arm64
+          path: /tmp/porla
 
       - name: Push Docker image
         uses: docker/build-push-action@v4
