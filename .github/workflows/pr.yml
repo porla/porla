@@ -106,8 +106,8 @@ jobs:
         if: ${{ !steps.prep.outputs.ARM }}
         run: |
           docker create --name tmp ${{ steps.metadata.outputs.tags }}
-          docker cp tmp-amd64:/usr/bin/porla /tmp/porla
-          docker rm -f tmp-amd64
+          docker cp tmp:/usr/bin/porla /tmp/porla
+          docker rm -f tmp
 
       - name: Upload Porla binary to artifacts (arm64)
         if: ${{ steps.prep.outputs.ARM }}
