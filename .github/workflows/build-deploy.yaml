@@ -10,11 +10,10 @@ on:
 
 jobs:
   calc-version:
+    name: Run GitVersion
     runs-on: ubuntu-latest
-
     outputs:
       semVer: ${{ steps.gitversion.outputs.fullSemVer }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -34,10 +33,9 @@ jobs:
           useConfigFile: true
 
   build-web:
+    name: Build web UI
     needs: [calc-version]
-
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -63,17 +61,16 @@ jobs:
           path: html/webui.zip
 
   build-app:
-    needs: [build-web, calc-version]
-
     strategy:
       matrix:
-        platform: [x64-linux]
+        platform: [linux-amd64]
         include:
-          - platform: x64-linux
+          - platform: linux-amd64
             runner: buildjet-4vcpu-ubuntu-2204
 
+    name: Build Porla (${{ matrix.platform }})
+    needs: [build-web, calc-version]
     runs-on: ${{ matrix.runner }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -87,8 +84,6 @@ jobs:
           name: webui.zip
           path: html/
 
-      - run: ls -la html/
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -99,3 +94,15 @@ jobs:
           context: .
           load: true
           tags: porla
+
+      - name: Copy Porla binary from image
+        run: |
+          docker create --name tmp porla
+          docker cp tmp:/usr/bin/porla /tmp/porla
+          docker rm -f tmp
+
+      - name: Upload Porla binary to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: porla-${{ matrix.platform }}
+          path: /tmp/porla
