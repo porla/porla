@@ -1,6 +1,7 @@
 name: Pull request
 
 on:
+  workflow_dispatch:
   pull_request:
 
 concurrency:
@@ -93,14 +94,14 @@ jobs:
           load: true
 
       - name: Copy Porla binary from image (arm64)
-        if: steps.prep.outputs.ARCH == "arm64"
+        if: ${{ steps.prep.outputs.ARCH }} == "arm64"
         run: |
           docker create --name tmp ${{ steps.metadata.outputs.tags }}
           docker cp tmp:/usr/bin/porla /tmp/porla
           docker rm -f tmp
 
       - name: Copy Porla binary from image (amd64)
-        if: steps.prep.outputs.ARCH == "amd64"
+        if: ${{ steps.prep.outputs.ARCH }} == "amd64"
         run: |
           docker create --name tmp ${{ steps.metadata.outputs.tags }}
           docker cp tmp-amd64:/usr/bin/porla /tmp/porla
