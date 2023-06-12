@@ -121,7 +121,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             {
                 if (filter_field == "category" && args.is_string())
                 {
-                    filter_includes_torrent = client_data->category == args;
+                    filter_includes_torrent = client_data->category == args.get<std::string>();
                 }
                 else if (filter_field == "query" && args.is_string() && !args.get<std::string>().empty())
                 {
@@ -137,7 +137,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
                 }
                 else if (filter_field == "save_path" && args.is_string())
                 {
-                    filter_includes_torrent = ts.save_path == args;
+                    filter_includes_torrent = ts.save_path == args.get<std::string>();
                 }
                 else if (filter_field == "tags" && args.is_string())
                 {
