@@ -4,6 +4,8 @@
 
 namespace porla::Lua::UserTypes
 {
+    class FsDirectoryEntry;
+
     class FsDirectory
     {
     public:
@@ -12,7 +14,7 @@ namespace porla::Lua::UserTypes
         explicit FsDirectory(sol::object args);
 
     private:
-        std::vector<std::string> Iterate();
+        std::vector<FsDirectoryEntry> Iterate();
         sol::object m_args;
     };
 }

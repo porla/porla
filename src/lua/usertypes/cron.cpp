@@ -24,7 +24,7 @@ Cron::~Cron() = default;
 
 void Cron::OnTimerExpired(const boost::system::error_code &ec)
 {
-    if (m_args["callback"])
+    if (m_args["callback"].is<sol::function>())
     {
         m_args["callback"]();
     }

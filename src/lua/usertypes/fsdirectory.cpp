@@ -4,8 +4,11 @@
 
 #include <boost/log/trivial.hpp>
 
+#include "fsdirectoryentry.hpp"
+
 namespace fs = std::filesystem;
 using porla::Lua::UserTypes::FsDirectory;
+using porla::Lua::UserTypes::FsDirectoryEntry;
 
 void FsDirectory::Register(sol::state &lua)
 {
@@ -26,15 +29,15 @@ FsDirectory::FsDirectory(sol::object args)
 {
 }
 
-std::vector<std::string> FsDirectory::Iterate()
+std::vector<FsDirectoryEntry> FsDirectory::Iterate()
 {
     const std::string path = m_args.as<std::string>();
 
-    std::vector<std::string> result;
+    std::vector<FsDirectoryEntry> result;
 
     for (const auto& file : fs::directory_iterator(path))
     {
-        result.emplace_back(file.path());
+        result.emplace_back(FsDirectoryEntry{file});
     }
 
     return result;

@@ -107,7 +107,8 @@ int main(int argc, char* argv[])
         porla::Lua::Plugins::PluginEngine plugin_engine{porla::Lua::Plugins::PluginEngineOptions{
             .config      = cfg->config_tbl,
             .io          = io,
-            .plugins_dir = cfg->plugins_dir.value_or(fs::path())
+            .plugins_dir = cfg->plugins_dir.value_or(fs::path()),
+            .session     = session
         }};
 
         try

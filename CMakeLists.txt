@@ -108,7 +108,9 @@ add_library(
     src/lua/plugins/pluginengine.cpp
     src/lua/usertypes/cron.cpp
     src/lua/usertypes/fsdirectory.cpp
+    src/lua/usertypes/fsdirectoryentry.cpp
     src/lua/usertypes/lttorrenthandle.cpp
+    src/lua/usertypes/session.cpp
     src/lua/usertypes/sqlite3db.cpp
     src/lua/usertypes/sqlite3statement.cpp
     src/lua/usertypes/torrent.cpp

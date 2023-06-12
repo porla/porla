@@ -20,8 +20,8 @@ void Sqlite3Db::Register(sol::state &lua)
     type["prepare"] = [](const Sqlite3Db& self, const std::string& sql)
     {
         sqlite3_stmt* stmt;
-        sqlite3_prepare(self.m_db, sql.c_str(), sql.size(), &stmt, nullptr);
-        return std::make_unique<Sqlite3Statement>(stmt);
+        sqlite3_prepare(self.m_db, sql.c_str(), static_cast<int>(sql.size()), &stmt, nullptr);
+        return std::make_shared<Sqlite3Statement>(stmt);
     };
 }
 

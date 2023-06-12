@@ -1,11 +1,14 @@
 #include "pluginengine.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <libtorrent/torrent_info.hpp>
 #include <sol/sol.hpp>
 #include <sqlite3.h>
 
 #include "../usertypes/cron.hpp"
 #include "../usertypes/fsdirectory.hpp"
+#include "../usertypes/fsdirectoryentry.hpp"
+#include "../usertypes/session.hpp"
 #include "../usertypes/sqlite3db.hpp"
 #include "../usertypes/sqlite3statement.hpp"
 
@@ -77,10 +80,13 @@ public:
     {
         m_lua.open_libraries(
             sol::lib::base,
-            sol::lib::package);
+            sol::lib::package,
+            sol::lib::string);
 
         UserTypes::Cron::Register(m_lua);
         UserTypes::FsDirectory::Register(m_lua);
+        UserTypes::FsDirectoryEntry::Register(m_lua);
+        UserTypes::Session::Register(m_lua);
         UserTypes::Sqlite3Db::Register(m_lua);
         UserTypes::Sqlite3Statement::Register(m_lua);
 
@@ -104,10 +110,15 @@ public:
         };
 
         m_lua["fs"] = fs;
+        m_lua["load_torrent_file"] = [&](const std::string& path)
+        {
+            return std::make_shared<lt::torrent_info>(path);
+        };
         m_lua["sqlite3"] = sql;
 
         sol::table ctx = m_lua.create_table();
         ctx["config"] = TomlNode2LuaObject(m_lua, m_opts.config);
+        ctx["session"] = std::make_shared<UserTypes::Session>(m_opts.session);
 
         if (!options.plugins_dir.empty())
         {
