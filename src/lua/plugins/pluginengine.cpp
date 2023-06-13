@@ -3,6 +3,7 @@
 #include <boost/log/trivial.hpp>
 #include <libtorrent/torrent_info.hpp>
 #include <sol/sol.hpp>
+#include <utility>
 #include <sqlite3.h>
 
 #include "../usertypes/cron.hpp"
@@ -11,6 +12,10 @@
 #include "../usertypes/session.hpp"
 #include "../usertypes/sqlite3db.hpp"
 #include "../usertypes/sqlite3statement.hpp"
+
+#include "../../session.hpp"
+
+#define PORLA_OPTS_KEY "__c_porla_opts"
 
 namespace fs = std::filesystem;
 
@@ -72,79 +77,227 @@ static sol::object TomlNode2LuaObject(sol::state& lua, const toml::node& node)
     return {};
 }
 
+struct PluginOptions
+{
+    toml::table              config;
+    boost::asio::io_context& io;
+    porla::ISession&         session;
+};
+
+class Plugin
+{
+public:
+    virtual ~Plugin() = default;
+    virtual bool Init() = 0;
+
+protected:
+    static sol::state DefaultLua(const PluginOptions& opts)
+    {
+        sol::state lua;
+        lua.globals()[PORLA_OPTS_KEY] = opts;
+
+        lua.open_libraries(
+            sol::lib::base,
+            sol::lib::package,
+            sol::lib::string);
+
+        porla::Lua::UserTypes::Cron::Register(lua);
+        porla::Lua::UserTypes::FsDirectory::Register(lua);
+        porla::Lua::UserTypes::FsDirectoryEntry::Register(lua);
+        porla::Lua::UserTypes::Session::Register(lua);
+        porla::Lua::UserTypes::Sqlite3Db::Register(lua);
+        porla::Lua::UserTypes::Sqlite3Statement::Register(lua);
+
+        return std::move(lua);
+    }
+};
+
+class DirectoryBasedPlugin : public Plugin
+{
+public:
+    DirectoryBasedPlugin(const PluginOptions& options, fs::path path)
+        : m_lua(DefaultLua(options))
+        , m_path(std::move(path))
+        , m_options(options)
+    {
+    }
+
+    bool Init() override
+    {
+        const auto plugin_lua = m_path / "plugin.lua";
+
+        if (!fs::is_regular_file(plugin_lua))
+        {
+            BOOST_LOG_TRIVIAL(warning) << "Expected file " << plugin_lua << " not found";
+            return false;
+        }
+
+        // Put the plugin directory in the package path
+        const std::string package_path = m_lua["package"]["path"];
+        m_lua["package"]["path"] = package_path + (!package_path.empty() ? ";" : "") + m_path.string() + "/?.lua";
+
+        m_lua["package"]["preload"]["config"] = [&](sol::this_state s)
+        {
+            return TomlNode2LuaObject(m_lua, m_options.config);
+        };
+
+        m_lua["package"]["preload"]["cron"] = [&](sol::this_state s)
+        {
+            sol::state_view lua{s};
+            sol::table cron = lua.create_table();
+
+            cron["schedule"] = [&](const sol::table& args)
+            {
+                return std::make_shared<porla::Lua::UserTypes::Cron>(m_options.io, args);
+            };
+
+            return cron;
+        };
+
+        m_lua["package"]["preload"]["fs"] = [](sol::this_state s)
+        {
+            sol::state_view lua{s};
+            sol::table fs = lua.create_table();
+
+            fs["abs"] = [](const std::string& path)
+            {
+                return fs::absolute(path).string();
+            };
+
+            fs["dir"] = [](const std::string& path)
+            {
+                std::vector<std::string> paths;
+                for (const auto& e : fs::directory_iterator(path)) paths.emplace_back(e.path());
+                return paths;
+            };
+
+            fs["exists"] = [](const std::string& path)
+            {
+                return fs::exists(path);
+            };
+
+            fs["ext"] = [](const std::string& path)
+            {
+                return fs::path(path).extension().string();
+            };
+
+            return fs;
+        };
+
+        m_lua["package"]["preload"]["log"] = [](sol::this_state s)
+        {
+            sol::state_view lua{s};
+            sol::table log = lua.create_table();
+
+            log["error"]   = [](const std::string& message) { BOOST_LOG_TRIVIAL(error) << message; };
+            log["info"]    = [](const std::string& message) { BOOST_LOG_TRIVIAL(info) << message; };
+            log["warning"] = [](const std::string& message) { BOOST_LOG_TRIVIAL(warning) << message; };
+
+            return log;
+        };
+
+        m_lua["package"]["preload"]["sqlite"] = [](sol::this_state s)
+        {
+            sol::state_view lua{s};
+            sol::table sql = lua.create_table();
+            sql["open"] = [&](const sol::object& args)
+            {
+                sqlite3* db;
+                sqlite3_open(args.as<std::string>().c_str(), &db);
+                return std::make_shared<porla::Lua::UserTypes::Sqlite3Db>(db);
+            };
+            return sql;
+        };
+
+        m_lua["package"]["preload"]["torrents"] = [](sol::this_state s)
+        {
+            sol::state_view lua{s};
+            sol::table torrents = lua.create_table();
+
+            torrents["load"] = [](const std::string& path)
+            {
+                return std::make_shared<lt::torrent_info>(path);
+            };
+
+            torrents["has"] = [](sol::this_state s, const sol::object& arg)
+            {
+                sol::state_view lua{s};
+                const auto options = lua.globals()[PORLA_OPTS_KEY].get<const PluginOptions&>();
+
+                if (arg.is<std::shared_ptr<lt::torrent_info>>())
+                {
+                    const auto ti = arg.as<std::shared_ptr<lt::torrent_info>>();
+                    return options.session.Torrents().find(ti->info_hashes()) != options.session.Torrents().end();
+                }
+
+                return false;
+            };
+
+            return torrents;
+        };
+
+        try
+        {
+            m_plugin = m_lua.create_table();
+
+            sol::environment env(m_lua, sol::create, m_lua.globals());
+            env["porla"] = m_plugin;
+
+            m_lua.script_file(plugin_lua.string(), env);
+
+            if (m_plugin["init"].is<sol::function>())
+            {
+                m_plugin["init"]();
+            }
+
+            return true;
+        }
+        catch (const sol::error& err)
+        {
+            BOOST_LOG_TRIVIAL(error) << "Failed to load plugin: " << err.what();
+        }
+
+        return false;
+    }
+
+private:
+    sol::state m_lua;
+    PluginOptions m_options;
+    fs::path m_path;
+    sol::table m_plugin;
+};
+
 class PluginEngine::State
 {
 public:
     explicit State(const PluginEngineOptions& options)
         : m_opts(options)
     {
-        m_lua.open_libraries(
-            sol::lib::base,
-            sol::lib::package,
-            sol::lib::string);
-
-        UserTypes::Cron::Register(m_lua);
-        UserTypes::FsDirectory::Register(m_lua);
-        UserTypes::FsDirectoryEntry::Register(m_lua);
-        UserTypes::Session::Register(m_lua);
-        UserTypes::Sqlite3Db::Register(m_lua);
-        UserTypes::Sqlite3Statement::Register(m_lua);
-
-        sol::table fs = m_lua.create_table();
-        fs["Directory"] = [&](const sol::object& args)
+        for (const auto& dir : m_opts.plugins)
         {
-            return std::make_unique<UserTypes::FsDirectory>(args);
-        };
+            BOOST_LOG_TRIVIAL(info) << "Loading plugin " << dir;
 
-        sol::table sql = m_lua.create_table();
-        sql["open"] = [&](const sol::object& args)
-        {
-            sqlite3* db;
-            sqlite3_open(args.as<std::string>().c_str(), &db);
-            return std::make_shared<UserTypes::Sqlite3Db>(db);
-        };
+            const PluginOptions plugin_options{
+                .config  = options.config,
+                .io      = options.io,
+                .session = options.session
+            };
 
-        m_lua["cron"] = [&](const sol::table& args)
-        {
-            return std::make_shared<UserTypes::Cron>(m_opts.io, args);
-        };
+            auto plugin = std::make_unique<DirectoryBasedPlugin>(plugin_options, dir);
 
-        m_lua["fs"] = fs;
-        m_lua["load_torrent_file"] = [&](const std::string& path)
-        {
-            return std::make_shared<lt::torrent_info>(path);
-        };
-        m_lua["sqlite3"] = sql;
-
-        sol::table ctx = m_lua.create_table();
-        ctx["config"] = TomlNode2LuaObject(m_lua, m_opts.config);
-        ctx["session"] = std::make_shared<UserTypes::Session>(m_opts.session);
-
-        if (!options.plugins_dir.empty())
-        {
-            for (const auto& file : fs::directory_iterator(options.plugins_dir))
+            if (!plugin->Init())
             {
-                if (file.path().extension() != ".lua") continue;
-
-                try
-                {
-                    sol::table plugin = m_lua.script_file(file.path());
-                    plugin["init"](ctx);
-
-                    m_plugins.emplace_back(plugin);
-                }
-                catch (const sol::error& err)
-                {
-                    BOOST_LOG_TRIVIAL(error) << "Failed to load plugin: " << err.what();
-                }
+                BOOST_LOG_TRIVIAL(error) << "Failed to load plugin: " << dir;
+                continue;
             }
+
+            m_plugins.emplace_back(std::move(plugin));
         }
     }
 
 private:
     const PluginEngineOptions& m_opts;
-    sol::state m_lua;
-    std::vector<sol::object> m_plugins;
+    std::vector<std::unique_ptr<Plugin>> m_plugins;
 };
 
 PluginEngine::PluginEngine(const PluginEngineOptions& options)

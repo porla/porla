@@ -20,7 +20,13 @@ void Sqlite3Db::Register(sol::state &lua)
     type["prepare"] = [](const Sqlite3Db& self, const std::string& sql)
     {
         sqlite3_stmt* stmt;
-        sqlite3_prepare(self.m_db, sql.c_str(), static_cast<int>(sql.size()), &stmt, nullptr);
+
+        if (sqlite3_prepare_v2(self.m_db, sql.data(), -1, &stmt, nullptr) != SQLITE_OK)
+        {
+            BOOST_LOG_TRIVIAL(error) << "Failed to prepare SQLite statement: " << sqlite3_errmsg(self.m_db);
+            throw std::runtime_error("Failed to prepare SQLite statement: " + std::string(sqlite3_errmsg(self.m_db)));
+        }
+
         return std::make_shared<Sqlite3Statement>(stmt);
     };
 }

@@ -206,8 +206,16 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
             if (auto val = config_file_tbl["http"]["webui_enabled"].value<bool>())
                 cfg->http_webui_enabled = *val;
 
-            if (auto val = config_file_tbl["plugins_dir"].value<std::string>())
-                cfg->plugins_dir = *val;
+            if (auto val = config_file_tbl["plugins"].as_array())
+            {
+                for (const auto& dir : *val)
+                {
+                    if (const auto& p = dir.value<std::string>())
+                    {
+                        cfg->plugins.emplace_back(*p);
+                    }
+                }
+            }
 
             // Load presets
             if (auto const* presets_tbl = config_file_tbl["presets"].as_table())

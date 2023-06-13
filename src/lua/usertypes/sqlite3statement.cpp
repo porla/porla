@@ -27,8 +27,27 @@ void Sqlite3Statement::Register(sol::state &lua)
         {
             sqlite3_bind_int(self->m_stmt, position, value.as<int>());
         }
+        else if (value.is<std::string>())
+        {
+            const std::string val = value.as<std::string>();
+            sqlite3_bind_text(self->m_stmt, position, val.data(), static_cast<int>(val.size()), SQLITE_TRANSIENT);
+        }
 
         return self;
+    };
+
+    type["exec"] = [](const Sqlite3Statement& self, const sol::function& func)
+    {
+        int res = sqlite3_step(self.m_stmt);
+
+        if (res == SQLITE_DONE)
+        {
+            return;
+        }
+
+        BOOST_LOG_TRIVIAL(error) << "Unexpected SQLite return code for exec. If results are expected, use step instead. Expected 101, got " << res;
+
+        throw std::runtime_error("Unexpected SQLite return code for exec: " + std::to_string(res));
     };
 
     type["step"] = [](const Sqlite3Statement& self, const sol::function& func)

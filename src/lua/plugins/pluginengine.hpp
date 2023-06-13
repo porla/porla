@@ -15,10 +15,10 @@ namespace porla::Lua::Plugins
 {
     struct PluginEngineOptions
     {
-        toml::table              config;
-        boost::asio::io_context& io;
-        std::filesystem::path    plugins_dir;
-        ISession&                session;
+        toml::table                        config;
+        boost::asio::io_context&           io;
+        std::vector<std::filesystem::path> plugins;
+        ISession&                          session;
     };
 
     class PluginEngine

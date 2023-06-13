@@ -45,7 +45,7 @@ namespace porla
         std::optional<uint16_t>               http_port;
         std::optional<bool>                   http_webui_enabled;
 
-        std::optional<fs::path>               plugins_dir;
+        std::vector<fs::path>                 plugins;
         std::map<std::string, Preset>         presets;
         std::string                           secret_key;
         std::optional<std::vector<lt_plugin>> session_extensions;
