@@ -13,12 +13,19 @@ namespace porla
 
 namespace porla::Lua::Plugins
 {
+    class Plugin;
+
     struct PluginEngineOptions
     {
         toml::table                        config;
         boost::asio::io_context&           io;
         std::vector<std::filesystem::path> plugins;
         ISession&                          session;
+    };
+
+    struct PluginState
+    {
+        std::unique_ptr<Plugin> plugin;
     };
 
     class PluginEngine
@@ -28,7 +35,6 @@ namespace porla::Lua::Plugins
         ~PluginEngine();
 
     private:
-        class State;
-        std::unique_ptr<State> m_state;
+        std::vector<PluginState> m_plugins;
     };
 }

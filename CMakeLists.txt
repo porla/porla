@@ -105,14 +105,16 @@ add_library(
     src/data/models/users.cpp
     src/data/statement.cpp
 
+    src/lua/packages/config.cpp
+    src/lua/packages/cron.cpp
+    src/lua/packages/filesystem.cpp
+    src/lua/packages/log.cpp
+    src/lua/packages/sqlite.cpp
+    src/lua/packages/torrents.cpp
+    src/lua/plugins/plugin.cpp
     src/lua/plugins/pluginengine.cpp
-    src/lua/usertypes/cron.cpp
-    src/lua/usertypes/fsdirectory.cpp
-    src/lua/usertypes/fsdirectoryentry.cpp
     src/lua/usertypes/lttorrenthandle.cpp
     src/lua/usertypes/session.cpp
-    src/lua/usertypes/sqlite3db.cpp
-    src/lua/usertypes/sqlite3statement.cpp
     src/lua/usertypes/torrent.cpp
     src/lua/usertypes/workflow.cpp
     src/lua/usertypes/workflowactionexec.cpp
