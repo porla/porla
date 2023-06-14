@@ -3,6 +3,8 @@
 #include <boost/log/trivial.hpp>
 #include <libtorrent/magnet_uri.hpp>
 #include <libtorrent/torrent_info.hpp>
+#include <libtorrent/torrent_status.hpp>
+#include <utility>
 
 #include "../plugins/plugin.hpp"
 #include "../../config.hpp"
@@ -10,6 +12,21 @@
 #include "../../torrentclientdata.hpp"
 
 using porla::Lua::Packages::Torrents;
+
+struct SignalConnection
+{
+    explicit SignalConnection(boost::signals2::connection c)
+        : connection(std::move(c))
+    {
+    }
+
+    ~SignalConnection()
+    {
+        connection.disconnect();
+    }
+
+    boost::signals2::connection connection;
+};
 
 static void ApplyPreset(lt::add_torrent_params& p, const porla::Config::Preset& preset)
 {
@@ -30,6 +47,14 @@ static void ApplyPreset(lt::add_torrent_params& p, const porla::Config::Preset& 
 
 void Torrents::Register(sol::state& lua)
 {
+    auto torrent_status_type = lua.new_usertype<lt::torrent_status>(
+        "lt.TorrentStatus",
+        sol::no_constructor);
+
+    torrent_status_type["current_tracker"] = sol::property([](const lt::torrent_status& ts) { return ts.current_tracker; });
+    torrent_status_type["name"]            = sol::property([](const lt::torrent_status& ts) { return ts.name; });
+    torrent_status_type["save_path"]       = sol::property([](const lt::torrent_status& ts) { return ts.save_path; });
+
     lua["package"]["preload"]["torrents"] = [](sol::this_state s)
     {
         sol::state_view lua{s};
@@ -86,6 +111,32 @@ void Torrents::Register(sol::state& lua)
             }
 
             return false;
+        };
+
+        torrents["on"] = [](sol::this_state s, const std::string& name, const sol::function& callback)
+        {
+            sol::state_view lua{s};
+            const auto options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
+
+            if (name == "added")
+            {
+                auto connection = options.session.OnTorrentAdded(
+                    [cb = callback](const lt::torrent_status& ts)
+                    {
+                        try
+                        {
+                            cb(ts);
+                        }
+                        catch (const sol::error& err)
+                        {
+                            BOOST_LOG_TRIVIAL(error) << "An error occurred in an event handler: " << err.what();
+                        }
+                    });
+
+                return std::make_shared<SignalConnection>(connection);
+            }
+
+            return std::shared_ptr<SignalConnection>();
         };
 
         torrents["parse"] = [](const std::string& data, const std::string& type)

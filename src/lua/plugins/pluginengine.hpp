@@ -35,6 +35,8 @@ namespace porla::Lua::Plugins
         explicit PluginEngine(const PluginEngineOptions& options);
         ~PluginEngine();
 
+        void UnloadAll();
+
     private:
         std::vector<PluginState> m_plugins;
     };

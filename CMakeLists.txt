@@ -109,6 +109,7 @@ add_library(
     src/lua/packages/cron.cpp
     src/lua/packages/filesystem.cpp
     src/lua/packages/log.cpp
+    src/lua/packages/process.cpp
     src/lua/packages/sqlite.cpp
     src/lua/packages/torrents.cpp
     src/lua/plugins/plugin.cpp

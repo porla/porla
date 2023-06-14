@@ -39,3 +39,8 @@ PluginEngine::PluginEngine(const PluginEngineOptions& options)
 }
 
 PluginEngine::~PluginEngine() = default;
+
+void PluginEngine::UnloadAll()
+{
+    m_plugins.clear();
+}

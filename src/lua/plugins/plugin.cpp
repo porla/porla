@@ -7,6 +7,7 @@
 #include "../packages/cron.hpp"
 #include "../packages/filesystem.hpp"
 #include "../packages/log.hpp"
+#include "../packages/process.hpp"
 #include "../packages/sqlite.hpp"
 #include "../packages/torrents.hpp"
 
@@ -45,7 +46,8 @@ std::unique_ptr<Plugin> Plugin::Load(const PluginLoadOptions& opts)
         sol::lib::base,
         sol::lib::io,
         sol::lib::package,
-        sol::lib::string);
+        sol::lib::string,
+        sol::lib::table);
 
     // Put the plugin directory path in the Lua package path
     const std::string package_path = state->lua["package"]["path"];
@@ -58,6 +60,7 @@ std::unique_ptr<Plugin> Plugin::Load(const PluginLoadOptions& opts)
     Packages::Cron::Register(state->lua);
     Packages::FileSystem::Register(state->lua);
     Packages::Log::Register(state->lua);
+    Packages::Process::Register(state->lua);
     Packages::Sqlite::Register(state->lua);
     Packages::Torrents::Register(state->lua);
 

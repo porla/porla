@@ -200,6 +200,8 @@ int main(int argc, char* argv[])
         http.Use(porla::HttpNotFound());
 
         io.run();
+
+        plugin_engine.UnloadAll();
     }
 
     curl_global_cleanup();
