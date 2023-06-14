@@ -101,6 +101,7 @@ add_library(
     src/data/migrations/0005_metadata.cpp
     src/data/migrations/0006_clientdata.cpp
     src/data/migrations/0007_removesessionsettings.cpp
+    src/data/migrations/0008_plugins.cpp
     src/data/models/addtorrentparams.cpp
     src/data/models/users.cpp
     src/data/statement.cpp
@@ -156,6 +157,8 @@ add_library(
     src/lua/workflows/triggers/torrentmoved.cpp
 
     src/methods/fsspace.cpp
+    src/methods/pluginsinstall.cpp
+    src/methods/pluginsuninstall.cpp
     src/methods/presetslist.cpp
     src/methods/sessionpause.cpp
     src/methods/sessionresume.cpp

@@ -5,6 +5,8 @@
 #include "lterrorcode.hpp"
 #include "ltinfohash.hpp"
 #include "ltpeerinfo.hpp"
+#include "pluginsinstall.hpp"
+#include "pluginsuninstall.hpp"
 #include "presetslist.hpp"
 #include "sessionpause.hpp"
 #include "sessionresume.hpp"

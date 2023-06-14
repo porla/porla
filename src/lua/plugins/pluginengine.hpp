@@ -1,9 +1,12 @@
 #pragma once
 
 #include <filesystem>
+#include <map>
 #include <memory>
+#include <optional>
 
 #include <boost/asio.hpp>
+#include <sqlite3.h>
 #include <toml++/toml.h>
 
 namespace porla
@@ -19,6 +22,7 @@ namespace porla::Lua::Plugins
     struct PluginEngineOptions
     {
         Config&                            config;
+        sqlite3*                           db;
         boost::asio::io_context&           io;
         std::vector<std::filesystem::path> plugins;
         ISession&                          session;
@@ -26,7 +30,15 @@ namespace porla::Lua::Plugins
 
     struct PluginState
     {
+        std::filesystem::path   path;
         std::unique_ptr<Plugin> plugin;
+    };
+
+    struct PluginInstallOptions
+    {
+        std::optional<std::string> config;
+        bool                       enable;
+        std::filesystem::path      path;
     };
 
     class PluginEngine
@@ -35,9 +47,13 @@ namespace porla::Lua::Plugins
         explicit PluginEngine(const PluginEngineOptions& options);
         ~PluginEngine();
 
+        void Install(const PluginInstallOptions& options, std::error_code& ec);
+        void Uninstall(const std::string& name, std::error_code& ec);
+
         void UnloadAll();
 
     private:
-        std::vector<PluginState> m_plugins;
+        PluginEngineOptions m_options;
+        std::map<std::string, PluginState> m_plugins;
     };
 }

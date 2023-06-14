@@ -19,6 +19,11 @@ public:
         Next();
     }
 
+    ~CronSchedule()
+    {
+        m_timer.cancel();
+    }
+
 private:
     void Next()
     {
@@ -47,6 +52,18 @@ private:
 
     void OnTimerExpired(const boost::system::error_code &ec)
     {
+        if (ec)
+        {
+            if (ec == boost::system::errc::operation_canceled)
+            {
+                return;
+            }
+
+            BOOST_LOG_TRIVIAL(error) << "Timer error: " << ec.message();
+
+            return;
+        }
+
         if (m_args["callback"].is<sol::function>())
         {
             try

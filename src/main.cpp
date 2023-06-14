@@ -24,6 +24,8 @@
 #include "utils/secretkey.hpp"
 
 #include "methods/fsspace.hpp"
+#include "methods/pluginsinstall.hpp"
+#include "methods/pluginsuninstall.hpp"
 #include "methods/presetslist.hpp"
 #include "methods/sessionpause.hpp"
 #include "methods/sessionresume.hpp"
@@ -106,6 +108,7 @@ int main(int argc, char* argv[])
         // Load plugins before we load the torrents to give plugins a chance to run any hooks.
         porla::Lua::Plugins::PluginEngine plugin_engine{porla::Lua::Plugins::PluginEngineOptions{
             .config  = *cfg,
+            .db      = cfg->db,
             .io      = io,
             .plugins = cfg->plugins,
             .session = session
@@ -129,6 +132,8 @@ int main(int argc, char* argv[])
 
         porla::JsonRpcHandler rpc({
             {"fs.space", porla::Methods::FsSpace()},
+            {"plugins.install", porla::Methods::PluginsInstall(plugin_engine)},
+            {"plugins.uninstall", porla::Methods::PluginsUninstall(plugin_engine)},
             {"presets.list", porla::Methods::PresetsList(cfg->presets)},
             {"session.pause", porla::Methods::SessionPause(session)},
             {"session.resume", porla::Methods::SessionResume(session)},
