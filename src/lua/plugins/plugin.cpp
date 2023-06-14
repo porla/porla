@@ -43,6 +43,7 @@ std::unique_ptr<Plugin> Plugin::Load(const PluginLoadOptions& opts)
 
     state->lua.open_libraries(
         sol::lib::base,
+        sol::lib::io,
         sol::lib::package,
         sol::lib::string);
 

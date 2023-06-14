@@ -3,6 +3,7 @@
 #include <toml++/toml.h>
 
 #include "../plugins/plugin.hpp"
+#include "../../config.hpp"
 
 using porla::Lua::Packages::Config;
 
@@ -32,7 +33,8 @@ static sol::object TomlNode2LuaObject(sol::state_view& lua, const toml::node& no
 
             for (int i = 0; i < arr.size(); i++)
             {
-                tbl[i] = TomlNode2LuaObject(lua, arr[i]);
+                // Lua arrays start at 1.
+                tbl[i + 1] = TomlNode2LuaObject(lua, arr[i]);
             }
 
             return tbl;
@@ -67,6 +69,6 @@ void Config::Register(sol::state& lua)
     {
         sol::state_view lua{s};
         const auto& options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
-        return TomlNode2LuaObject(lua, options.config);
+        return TomlNode2LuaObject(lua, options.config.config_tbl);
     };
 }

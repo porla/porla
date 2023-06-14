@@ -8,6 +8,7 @@
 
 namespace porla
 {
+    class Config;
     class ISession;
 }
 
@@ -15,7 +16,7 @@ namespace porla::Lua::Plugins
 {
     struct PluginLoadOptions
     {
-        toml::table              config;
+        Config&                  config;
         std::filesystem::path    dir;
         boost::asio::io_context& io;
         porla::ISession&         session;
