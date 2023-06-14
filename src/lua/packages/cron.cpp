@@ -49,7 +49,14 @@ private:
     {
         if (m_args["callback"].is<sol::function>())
         {
-            m_args["callback"]();
+            try
+            {
+                m_args["callback"]();
+            }
+            catch (const sol::error& err)
+            {
+                BOOST_LOG_TRIVIAL(error) << "Error when invoking callback: " << err.what();
+            }
         }
 
         Next();
