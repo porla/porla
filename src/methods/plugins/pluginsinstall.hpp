@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../config.hpp"
-#include "method.hpp"
+#include "../../config.hpp"
+#include "../method.hpp"
 #include "pluginsinstall_reqres.hpp"
 
 namespace porla::Lua::Plugins

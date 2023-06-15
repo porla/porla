@@ -24,8 +24,8 @@
 #include "utils/secretkey.hpp"
 
 #include "methods/fsspace.hpp"
-#include "methods/pluginsinstall.hpp"
-#include "methods/pluginsuninstall.hpp"
+#include "methods/plugins/pluginsinstall.hpp"
+#include "methods/plugins/pluginsuninstall.hpp"
 #include "methods/presetslist.hpp"
 #include "methods/sessionpause.hpp"
 #include "methods/sessionresume.hpp"

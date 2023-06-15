@@ -1,7 +1,7 @@
 #include "pluginsuninstall.hpp"
 
-#include "../lua/plugins/plugin.hpp"
-#include "../lua/plugins/pluginengine.hpp"
+#include "../../lua/plugins/plugin.hpp"
+#include "../../lua/plugins/pluginengine.hpp"
 
 using porla::Lua::Plugins::PluginEngine;
 using porla::Lua::Plugins::PluginInstallOptions;

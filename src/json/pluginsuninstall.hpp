@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "../methods/pluginsuninstall_reqres.hpp"
+#include "../methods/plugins/pluginsuninstall_reqres.hpp"
 #include "utils.hpp"
 
 namespace porla::Methods

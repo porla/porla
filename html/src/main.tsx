@@ -12,6 +12,7 @@ import { AuthProvider } from './contexts/auth';
 import Login from './pages/Login';
 import { NinjaProvider } from './contexts/ninja';
 import { TorrentsFilterProvider } from './contexts/TorrentsFilterContext';
+import Plugins from './pages/Plugins';
 
 const basename = (window as any).porla.base_path;
 
@@ -25,6 +26,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
                 <Routes>
                   <Route path="/" element={<App />}>
                     <Route index element={<Home />} />
+                    <Route path="/plugins" element={<Plugins />} />
                     <Route path="/settings" element={<Settings />} />
                   </Route>
                   <Route path="/login" element={<Login />} />

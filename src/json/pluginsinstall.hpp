@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "../methods/pluginsinstall_reqres.hpp"
+#include "../methods/plugins/pluginsinstall_reqres.hpp"
 #include "utils.hpp"
 
 namespace porla::Methods

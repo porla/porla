@@ -1,6 +1,6 @@
-import { Box, Flex, Grid, GridItem, HStack, IconButton, Image, Link, Spacer, Stack, Text, useColorMode } from '@chakra-ui/react';
+import { Flex, Grid, GridItem, HStack, IconButton, Image, Link, Spacer, Stack, Text, useColorMode } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
-import { MdDarkMode, MdLightMode, MdOutlineCamera, MdOutlineCameraAlt, MdSettings } from 'react-icons/md';
+import { MdDarkMode, MdExtension, MdLightMode, MdOutlineCameraAlt } from 'react-icons/md';
 import { SiDiscord } from 'react-icons/si';
 import { Navigate, NavLink, Outlet } from 'react-router-dom';
 
@@ -64,12 +64,22 @@ function AuthApp() {
             p={3}
           >
             <Stack direction={"row"} alignItems={"center"} spacing={5}>
-              <Image src={Isotype} width={"32px"} />
+              <NavLink to="/">
+                <Image src={Isotype} width={"32px"} />
+              </NavLink>
             </Stack>
 
             <Query />
 
-            <Box></Box>
+            <Flex>
+              <IconButton
+                aria-label="Plugins"
+                icon={<MdExtension />}
+                variant={"link"}
+                as={NavLink}
+                to="/plugins"
+              />
+            </Flex>
           </Flex>
         </GridItem>
 

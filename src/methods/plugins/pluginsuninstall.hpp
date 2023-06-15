@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../config.hpp"
-#include "method.hpp"
+#include "../method.hpp"
 #include "pluginsuninstall_reqres.hpp"
 
 namespace porla::Lua::Plugins

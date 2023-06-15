@@ -3,8 +3,6 @@
 #include <map>
 #include <string>
 
-#include "../config.hpp"
-
 namespace porla::Methods
 {
     struct PluginsInstallReq
