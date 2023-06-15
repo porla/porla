@@ -2,6 +2,7 @@
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
 #include <curl/curl.h>
+#include <git2.h>
 
 #include "authinithandler.hpp"
 #include "authloginhandler.hpp"
@@ -56,6 +57,7 @@ int main(int argc, char* argv[])
     };
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
+    git_libgit2_init();
 
     const boost::program_options::variables_map cmd = porla::CmdArgs::Parse(argc, argv);
 
@@ -130,9 +132,12 @@ int main(int argc, char* argv[])
             .workflow_dir = cfg->workflow_dir.value_or(fs::path())
         }};
 
+        // The path where Git plugins will be installed.
+        const fs::path plugin_state_dir = cfg->state_dir.value_or(fs::path()) / "installed_plugins";
+
         porla::JsonRpcHandler rpc({
             {"fs.space", porla::Methods::FsSpace()},
-            {"plugins.install", porla::Methods::PluginsInstall(plugin_engine)},
+            {"plugins.install", porla::Methods::PluginsInstall(plugin_engine, plugin_state_dir)},
             {"plugins.uninstall", porla::Methods::PluginsUninstall(plugin_engine)},
             {"presets.list", porla::Methods::PresetsList(cfg->presets)},
             {"session.pause", porla::Methods::SessionPause(session)},
@@ -209,6 +214,7 @@ int main(int argc, char* argv[])
         plugin_engine.UnloadAll();
     }
 
+    git_libgit2_shutdown();
     curl_global_cleanup();
 
     return 0;

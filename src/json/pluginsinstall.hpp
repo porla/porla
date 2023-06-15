@@ -11,7 +11,8 @@ namespace porla::Methods
         PluginsInstallReq,
         config,
         enable,
-        path)
+        path,
+        source)
 
     static void to_json(nlohmann::json& j, const PluginsInstallRes& res)
     {

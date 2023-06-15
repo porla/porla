@@ -17,6 +17,7 @@ find_package(LibtorrentRasterbar CONFIG REQUIRED)
 find_package(Lua                        REQUIRED)
 find_package(nlohmann_json       CONFIG REQUIRED)
 find_package(tomlplusplus        CONFIG REQUIRED)
+find_package(unofficial-git2  CONFIG REQUIRED)
 find_package(unofficial-sodium   CONFIG REQUIRED)
 find_package(unofficial-sqlite3  CONFIG REQUIRED)
 find_package(uriparser           CONFIG REQUIRED)
@@ -215,6 +216,7 @@ target_link_libraries(
     LibtorrentRasterbar::torrent-rasterbar
     unofficial-sodium::sodium
     unofficial-sodium::sodium_config_public
+    unofficial::git2::libgit2package
     unofficial::sqlite3::sqlite3
     uriparser::uriparser
 )

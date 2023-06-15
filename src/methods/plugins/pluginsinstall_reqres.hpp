@@ -9,7 +9,8 @@ namespace porla::Methods
     {
         std::optional<std::string> config;
         std::optional<bool>        enable;
-        fs::path                   path;
+        std::string                path;
+        std::optional<std::string> source;
     };
 
     struct PluginsInstallRes
