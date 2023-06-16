@@ -166,7 +166,7 @@ public:
             sol::c_call<decltype(&OpenWorkflowTriggerT<WorkflowTriggerTorrentMoved>),
                 &OpenWorkflowTriggerT<WorkflowTriggerTorrentMoved>>);
 
-        if (!opts.workflow_dir.empty())
+        if (!opts.workflow_dir.empty() && fs::exists(opts.workflow_dir))
         {
             for (const auto &file: fs::directory_iterator(opts.workflow_dir))
             {

@@ -416,15 +416,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         cfg->secret_key = porla::Utils::SecretKey::New();
     }
 
-    if (cfg->workflow_dir.has_value())
-    {
-        for (const auto& file : fs::directory_iterator(cfg->workflow_dir.value()))
-        {
-            if (!file.is_regular_file()) continue;
-            cfg->workflow_files.emplace_back(file.path());
-        }
-    }
-
     return std::move(cfg);
 }
 
