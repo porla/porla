@@ -159,6 +159,7 @@ add_library(
 
     src/methods/fsspace.cpp
     src/methods/plugins/pluginsinstall.cpp
+    src/methods/plugins/pluginslist.cpp
     src/methods/plugins/pluginsuninstall.cpp
     src/methods/presetslist.cpp
     src/methods/sessionpause.cpp

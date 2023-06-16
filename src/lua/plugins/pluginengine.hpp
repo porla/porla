@@ -44,10 +44,11 @@ namespace porla::Lua::Plugins
     class PluginEngine
     {
     public:
-        explicit PluginEngine(const PluginEngineOptions& options);
+        explicit PluginEngine(PluginEngineOptions options);
         ~PluginEngine();
 
         void Install(const PluginInstallOptions& options, std::error_code& ec);
+        std::map<std::string, PluginState>& Plugins();
         void Uninstall(const std::string& name, std::error_code& ec);
 
         void UnloadAll();

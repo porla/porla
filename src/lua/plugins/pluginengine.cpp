@@ -14,10 +14,40 @@ using porla::Lua::Plugins::Plugin;
 using porla::Lua::Plugins::PluginEngine;
 using porla::Lua::Plugins::PluginEngineOptions;
 using porla::Lua::Plugins::PluginInstallOptions;
+using porla::Lua::Plugins::PluginState;
 
-PluginEngine::PluginEngine(const PluginEngineOptions& options)
-    : m_options(options)
+PluginEngine::PluginEngine(PluginEngineOptions options)
+    : m_options(std::move(options))
 {
+    auto stmt = Statement::Prepare(m_options.db, "SELECT name,path FROM plugins WHERE enabled = 1");
+    stmt.Step(
+        [&](const auto& row)
+        {
+            const PluginLoadOptions plugin_load_options{
+                .config  = m_options.config,
+                .dir     = row.GetStdString(1),
+                .io      = m_options.io,
+                .session = m_options.session
+            };
+
+            auto plugin =  Plugin::Load(plugin_load_options);
+
+            if (!plugin)
+            {
+                return SQLITE_OK;
+            }
+
+            BOOST_LOG_TRIVIAL(info) << "Plugin " << row.GetStdString(0) << " loaded";
+
+            PluginState plugin_state{
+                .path   = row.GetStdString(1),
+                .plugin = std::move(plugin)
+            };
+
+            m_plugins.insert({ row.GetStdString(0), std::move(plugin_state) });
+
+            return SQLITE_OK;
+        });
 }
 
 PluginEngine::~PluginEngine() = default;
@@ -69,6 +99,11 @@ void PluginEngine::Install(const PluginInstallOptions& options, std::error_code&
             state->second.plugin = Plugin::Load(plugin_load_options);
         }
     }
+}
+
+std::map<std::string, PluginState> &PluginEngine::Plugins()
+{
+    return m_plugins;
 }
 
 void PluginEngine::Uninstall(const std::string& name, std::error_code& ec)

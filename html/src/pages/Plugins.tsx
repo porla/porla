@@ -1,10 +1,26 @@
-import { Box, Button, Checkbox, FormControl, FormErrorMessage, FormHelperText, FormLabel, HStack, Heading, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Select, Textarea } from "@chakra-ui/react";
+import { Box, Button, Checkbox, FormControl, FormErrorMessage, FormHelperText, FormLabel, HStack, Heading, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Select, Table, Tbody, Td, Textarea, Th, Thead, Tr } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
 import { useState } from "react";
-import { useInvoker } from "../services/jsonrpc";
+import { useInvoker, useRPC } from "../services/jsonrpc";
+
+type IVersionInfo = {
+  head_name: string;
+  shorthand: string;
+}
+
+type IPlugin = {
+  name: string;
+  path: string;
+  version_info: IVersionInfo | null;
+}
+
+type IPluginsList = {
+  plugins: IPlugin[];
+}
 
 export default function Plugins() {
   const installPlugin = useInvoker<any>("plugins.install");
+  const { data, error } = useRPC<IPluginsList>("plugins.list");
 
   const [ showInstall, setShowInstall ] = useState(false);
 
@@ -116,6 +132,27 @@ export default function Plugins() {
           Install new
         </Button>
       </HStack>
+
+      <Table>
+        <Thead>
+          <Tr>
+            <Th>Name</Th>
+            <Th>Path</Th>
+            <Th>Version</Th>
+            <Th></Th>
+          </Tr>
+        </Thead>
+        <Tbody>
+          {data?.plugins.map(p => (
+            <Tr>
+              <Td>{p.name}</Td>
+              <Td>{p.path}</Td>
+              <Td>{p.version_info?.head_name} ({p.version_info?.shorthand})</Td>
+              <Td></Td>
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
     </Box>
   )
 }

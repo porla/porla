@@ -26,6 +26,7 @@
 
 #include "methods/fsspace.hpp"
 #include "methods/plugins/pluginsinstall.hpp"
+#include "methods/plugins/pluginslist.hpp"
 #include "methods/plugins/pluginsuninstall.hpp"
 #include "methods/presetslist.hpp"
 #include "methods/sessionpause.hpp"
@@ -138,6 +139,7 @@ int main(int argc, char* argv[])
         porla::JsonRpcHandler rpc({
             {"fs.space", porla::Methods::FsSpace()},
             {"plugins.install", porla::Methods::PluginsInstall(plugin_engine, plugin_state_dir)},
+            {"plugins.list", porla::Methods::PluginsList(plugin_engine)},
             {"plugins.uninstall", porla::Methods::PluginsUninstall(plugin_engine)},
             {"presets.list", porla::Methods::PresetsList(cfg->presets)},
             {"session.pause", porla::Methods::SessionPause(session)},
