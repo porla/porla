@@ -126,6 +126,13 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         {
             const toml::table config_file_tbl = toml::parse(config_file_data);
 
+            if (auto val = config_file_tbl["session_settings"]["base"].value<std::string>())
+            {
+                if (*val == "default")               cfg->session_settings = lt::default_settings();
+                if (*val == "high_performance_seed") cfg->session_settings = lt::high_performance_seed();
+                if (*val == "min_memory_usage")      cfg->session_settings = lt::min_memory_usage();
+            }
+
             if (auto val = config_file_tbl["db"].value<std::string>())
                 cfg->db_file = *val;
 
@@ -309,13 +316,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
                 }
 
                 cfg->session_extensions = extensions;
-            }
-
-            if (auto val = config_file_tbl["session_settings"]["base"].value<std::string>())
-            {
-                if (*val == "default")               cfg->session_settings = lt::default_settings();
-                if (*val == "high_performance_seed") cfg->session_settings = lt::high_performance_seed();
-                if (*val == "min_memory_usage")      cfg->session_settings = lt::min_memory_usage();
             }
 
             if (auto session_settings_tbl = config_file_tbl["session_settings"].as_table())
