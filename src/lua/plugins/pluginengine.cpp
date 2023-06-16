@@ -17,34 +17,28 @@ using porla::Lua::Plugins::PluginInstallOptions;
 using porla::Lua::Plugins::PluginState;
 
 PluginEngine::PluginEngine(PluginEngineOptions options)
-    : m_options(std::move(options))
+    : m_options(options)
 {
-    auto stmt = Statement::Prepare(m_options.db, "SELECT name,path FROM plugins WHERE enabled = 1");
+    auto stmt = Statement::Prepare(m_options.db, "SELECT enabled,name,path,config FROM plugins");
     stmt.Step(
         [&](const auto& row)
         {
             const PluginLoadOptions plugin_load_options{
-                .config  = m_options.config,
-                .dir     = row.GetStdString(1),
-                .io      = m_options.io,
-                .session = m_options.session
+                .config        = m_options.config,
+                .dir           = row.GetStdString(2),
+                .io            = m_options.io,
+                .plugin_config = row.GetStdString(3),
+                .session       = m_options.session
             };
-
-            auto plugin =  Plugin::Load(plugin_load_options);
-
-            if (!plugin)
-            {
-                return SQLITE_OK;
-            }
-
-            BOOST_LOG_TRIVIAL(info) << "Plugin " << row.GetStdString(0) << " loaded";
 
             PluginState plugin_state{
-                .path   = row.GetStdString(1),
-                .plugin = std::move(plugin)
+                .path   = row.GetStdString(2),
+                .plugin = row.GetInt32(0) > 0
+                    ? Plugin::Load(plugin_load_options)
+                    : nullptr
             };
 
-            m_plugins.insert({ row.GetStdString(0), std::move(plugin_state) });
+            m_plugins.insert({ row.GetStdString(1), std::move(plugin_state) });
 
             return SQLITE_OK;
         });
@@ -90,10 +84,11 @@ void PluginEngine::Install(const PluginInstallOptions& options, std::error_code&
             BOOST_LOG_TRIVIAL(info) << "Doing the cha cha cha";
 
             const PluginLoadOptions plugin_load_options{
-                .config  = m_options.config,
-                .dir     = options.path,
-                .io      = m_options.io,
-                .session = m_options.session
+                .config        = m_options.config,
+                .dir           = options.path,
+                .io            = m_options.io,
+                .plugin_config = options.config,
+                .session       = m_options.session
             };
 
             state->second.plugin = Plugin::Load(plugin_load_options);
@@ -124,7 +119,10 @@ void PluginEngine::Uninstall(const std::string& name, std::error_code& ec)
     if (state->second.plugin != nullptr)
     {
         state->second.plugin.reset();
+        state->second.plugin = nullptr;
     }
+
+    m_plugins.erase(state);
 }
 
 void PluginEngine::UnloadAll()

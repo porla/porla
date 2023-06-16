@@ -16,10 +16,11 @@ namespace porla::Lua::Plugins
 {
     struct PluginLoadOptions
     {
-        Config&                  config;
-        std::filesystem::path    dir;
-        boost::asio::io_context& io;
-        porla::ISession&         session;
+        Config&                    config;
+        std::filesystem::path      dir;
+        boost::asio::io_context&   io;
+        std::optional<std::string> plugin_config;
+        porla::ISession&           session;
     };
 
     class Plugin

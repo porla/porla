@@ -1,7 +1,8 @@
-import { Box, Button, Checkbox, FormControl, FormErrorMessage, FormHelperText, FormLabel, HStack, Heading, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Select, Table, Tbody, Td, Textarea, Th, Thead, Tr } from "@chakra-ui/react";
+import { Box, Button, Checkbox, FormControl, FormErrorMessage, FormHelperText, FormLabel, HStack, Heading, IconButton, Input, Menu, MenuButton, MenuDivider, MenuItem, MenuList, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Select, Table, Tbody, Td, Textarea, Th, Thead, Tr } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
 import { useState } from "react";
 import { useInvoker, useRPC } from "../services/jsonrpc";
+import { MdExtensionOff, MdOutlineMoreVert, MdSettings } from "react-icons/md";
 
 type IVersionInfo = {
   head_name: string;
@@ -20,6 +21,8 @@ type IPluginsList = {
 
 export default function Plugins() {
   const installPlugin = useInvoker<any>("plugins.install");
+  const uninstallPlugin = useInvoker<any>("plugins.uninstall");
+
   const { data, error } = useRPC<IPluginsList>("plugins.list");
 
   const [ showInstall, setShowInstall ] = useState(false);
@@ -148,7 +151,33 @@ export default function Plugins() {
               <Td>{p.name}</Td>
               <Td>{p.path}</Td>
               <Td>{p.version_info?.head_name} ({p.version_info?.shorthand})</Td>
-              <Td></Td>
+              <Td>
+                <Menu>
+                  <MenuButton
+                    as={IconButton}
+                    icon={<MdOutlineMoreVert />}
+                    size={"sm"}
+                  />
+                  <MenuList>
+                    <MenuItem
+                      icon={<MdSettings />}
+                    >
+                      Configure
+                    </MenuItem>
+                    <MenuDivider />
+                    <MenuItem
+                      icon={<MdExtensionOff />}
+                      onClick={async () => {
+                        await uninstallPlugin({
+                          name: p.name
+                        })
+                      }}
+                    >
+                      Uninstall
+                    </MenuItem>
+                  </MenuList>
+                </Menu>
+              </Td>
             </Tr>
           ))}
         </Tbody>

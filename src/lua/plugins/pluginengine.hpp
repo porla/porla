@@ -24,7 +24,6 @@ namespace porla::Lua::Plugins
         Config&                            config;
         sqlite3*                           db;
         boost::asio::io_context&           io;
-        std::vector<std::filesystem::path> plugins;
         ISession&                          session;
     };
 

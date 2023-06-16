@@ -206,16 +206,12 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
             if (auto val = config_file_tbl["http"]["webui_enabled"].value<bool>())
                 cfg->http_webui_enabled = *val;
 
-            if (auto val = config_file_tbl["plugins"].as_array())
-            {
-                for (const auto& dir : *val)
-                {
-                    if (const auto& p = dir.value<std::string>())
-                    {
-                        cfg->plugins.emplace_back(*p);
-                    }
-                }
-            }
+            // Plugins
+            if (auto val = config_file_tbl["plugins"]["allow_git"].value<bool>())
+                cfg->plugins_allow_git = *val;
+
+            if (auto val = config_file_tbl["plugins"]["install_dir"].value<std::string>())
+                cfg->plugins_install_dir = *val;
 
             // Load presets
             if (auto const* presets_tbl = config_file_tbl["presets"].as_table())
@@ -381,6 +377,12 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (cmd.count("timer-session-stats"))   cfg->timer_session_stats   = cmd["timer-session-stats"].as<pid_t>();
     if (cmd.count("timer-torrent-updates")) cfg->timer_torrent_updates = cmd["timer-torrent-updates"].as<pid_t>();
     if (cmd.count("workflow-dir"))          cfg->workflow_dir          = cmd["workflow-dir"].as<std::string>();
+
+    // Set the plugins install dir
+    if (!cfg->plugins_install_dir.has_value())
+    {
+        cfg->plugins_install_dir = cfg->state_dir.value_or(fs::path()) / "installed_plugins";
+    }
 
     // If no db_file is set, default to a file in state_dir.
     if (!cfg->db_file.has_value())

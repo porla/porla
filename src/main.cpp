@@ -113,7 +113,6 @@ int main(int argc, char* argv[])
             .config  = *cfg,
             .db      = cfg->db,
             .io      = io,
-            .plugins = cfg->plugins,
             .session = session
         }};
 
@@ -133,12 +132,18 @@ int main(int argc, char* argv[])
             .workflow_dir = cfg->workflow_dir.value_or(fs::path())
         }};
 
-        // The path where Git plugins will be installed.
-        const fs::path plugin_state_dir = cfg->state_dir.value_or(fs::path()) / "installed_plugins";
+        const fs::path default_plugin_install_dir = cfg->state_dir.value_or(fs::path()) / "installed_plugins";
+
+        const porla::Methods::PluginsInstallOptions plugins_install_options{
+            .allow_git     = cfg->plugins_allow_git.value_or(false),
+            .install_dir   = cfg->plugins_install_dir.value_or(default_plugin_install_dir),
+            .io            = io,
+            .plugin_engine = plugin_engine
+        };
 
         porla::JsonRpcHandler rpc({
             {"fs.space", porla::Methods::FsSpace()},
-            {"plugins.install", porla::Methods::PluginsInstall(plugin_engine, plugin_state_dir)},
+            {"plugins.install", porla::Methods::PluginsInstall(plugins_install_options)},
             {"plugins.list", porla::Methods::PluginsList(plugin_engine)},
             {"plugins.uninstall", porla::Methods::PluginsUninstall(plugin_engine)},
             {"presets.list", porla::Methods::PresetsList(cfg->presets)},

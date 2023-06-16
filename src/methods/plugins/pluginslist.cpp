@@ -1,5 +1,6 @@
 #include "pluginslist.hpp"
 
+#include <boost/log/trivial.hpp>
 #include <git2.h>
 
 #include "../../lua/plugins/plugin.hpp"
