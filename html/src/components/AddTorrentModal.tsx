@@ -1,9 +1,9 @@
-import { Button, FormControl, FormErrorMessage, FormHelperText, FormLabel, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Select, Tab, TabList, TabPanel, TabPanels, Tabs } from "@chakra-ui/react";
+import { Alert, AlertDescription, AlertIcon, AlertTitle, Box, Button, FormControl, FormErrorMessage, FormHelperText, FormLabel, Input, Modal, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Select, Tab, TabList, TabPanel, TabPanels, Tabs } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
 import * as Yup from "yup";
 
 import { InfoHash, PresetsList } from "../types/index";
-import { useInvoker } from "../services/jsonrpc";
+import { RpcError, useInvoker } from "../services/jsonrpc";
 import { useEffect, useState } from "react";
 import { filesize } from "filesize";
 
@@ -58,6 +58,7 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
 
   const fsSpace             = useInvoker<any>("fs.space");
   const torrentsAdd         = useInvoker<InfoHash>("torrents.add");
+  const [ error, setError ] = useState<any>();
   const [ path, setPath ]   = useState<string | null>(null);
   const [ space, setSpace ] = useState<any>();
 
@@ -106,9 +107,28 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
 
             let addedHashes: InfoHash[] = [];
 
+            if (values.ti.length === 1) {
+              params.ti = values.ti[0];
+
+              try {
+                addedHashes.push(await torrentsAdd(params));
+                props.onClose(addedHashes);
+              } catch (err) {
+                setError(err);
+                setTimeout(() => setError(undefined), 3000);
+              }
+
+              return;
+            }
+
             for (const ti of values.ti) {
               params.ti = ti;
-              addedHashes.push(await torrentsAdd(params));
+
+              try {
+                addedHashes.push(await torrentsAdd(params));
+              } catch(err) {
+                console.error(err);
+              }
             }
 
             props.onClose(addedHashes);
@@ -236,7 +256,13 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
                   )}
                 </Field>
               </ModalBody>
-              <ModalFooter>
+              <ModalFooter justifyContent={"space-between"}>
+                <Box flex={1} mr={4}>
+                  <Alert status='error' visibility={error ? "visible" : "hidden"}>
+                    <AlertIcon />
+                    <AlertDescription fontSize={"sm"}>{error?.message}</AlertDescription>
+                  </Alert>
+                </Box>
                 <Button
                   colorScheme={"purple"}
                   disabled={isSubmitting}

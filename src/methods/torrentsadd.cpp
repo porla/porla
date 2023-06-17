@@ -83,6 +83,11 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
             BOOST_LOG_TRIVIAL(error) << "Failed to parse torrent file to info: " << ec.message();
             return cb.Error(-2, "Failed to parse torrent_info from bdecoded data");
         }
+
+        if (m_session.Torrents().find(p.ti->info_hashes()) != m_session.Torrents().end())
+        {
+            return cb.Error(-3, "Torrent already in session");
+        }
     }
     else if (req.magnet_uri.has_value())
     {
