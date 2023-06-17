@@ -20,11 +20,13 @@ type IPluginsList = {
 }
 
 export default function Plugins() {
+  const configurePlugin = useInvoker<any>("plugins.configure");
   const installPlugin = useInvoker<any>("plugins.install");
   const uninstallPlugin = useInvoker<any>("plugins.uninstall");
 
-  const { data, error } = useRPC<IPluginsList>("plugins.list");
+  const { data, mutate } = useRPC<IPluginsList>("plugins.list");
 
+  const [ showConfigure, setShowConfigure ] = useState(false);
   const [ showInstall, setShowInstall ] = useState(false);
 
   return (
@@ -42,6 +44,7 @@ export default function Plugins() {
               setSubmitting(true);
 
               await installPlugin(values);
+              await mutate();
 
               setShowInstall(false);
               setSubmitting(false);
@@ -124,6 +127,54 @@ export default function Plugins() {
         </ModalContent>
       </Modal>
 
+      <Modal isOpen={showConfigure} onClose={() => setShowConfigure(false)} size={"lg"}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Configure plugin</ModalHeader>
+          <Formik
+            initialValues={{
+              config: ''
+            }}
+            onSubmit={async (values) => {
+              await configurePlugin({
+                name: 'folder-monitor',
+                config: values.config
+              })
+            }}
+          >
+            {({ errors, isSubmitting, setFieldValue, touched, values }) => (
+              <Form>
+                <ModalBody>
+                  <Field name="config">
+                    {(w: any) => (
+                      <FormControl>
+                        <FormLabel>Configuration</FormLabel>
+                        <Textarea
+                          {...w.field}
+                          fontFamily={"monospace"}
+                          fontSize={"sm"}
+                          rows={10}
+                        >
+                        </Textarea>
+                        <FormHelperText>Any configuration that the plugin expects. Refer to the documentation of the plugin.</FormHelperText>
+                      </FormControl>
+                    )}
+                  </Field>
+                </ModalBody>
+                <ModalFooter>
+                  <Button
+                    colorScheme={"purple"}
+                    type={"submit"}
+                  >
+                    Save
+                  </Button>
+                </ModalFooter>
+              </Form>
+            )}
+          </Formik>
+        </ModalContent>
+      </Modal>
+
       <HStack m={3}>
         <Heading as="h3" size={"md"}>Plugins</Heading>
         <Button
@@ -161,6 +212,7 @@ export default function Plugins() {
                   <MenuList>
                     <MenuItem
                       icon={<MdSettings />}
+                      onClick={() => setShowConfigure(true)}
                     >
                       Configure
                     </MenuItem>
@@ -170,7 +222,9 @@ export default function Plugins() {
                       onClick={async () => {
                         await uninstallPlugin({
                           name: p.name
-                        })
+                        });
+
+                        await mutate();
                       }}
                     >
                       Uninstall

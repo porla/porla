@@ -158,9 +158,12 @@ add_library(
     src/lua/workflows/triggers/torrentmoved.cpp
 
     src/methods/fsspace.cpp
+    src/methods/plugins/pluginsconfigure.cpp
+    src/methods/plugins/pluginsget.cpp
     src/methods/plugins/pluginsinstall.cpp
     src/methods/plugins/pluginslist.cpp
     src/methods/plugins/pluginsuninstall.cpp
+    src/methods/plugins/pluginsupdate.cpp
     src/methods/presetslist.cpp
     src/methods/sessionpause.cpp
     src/methods/sessionresume.cpp

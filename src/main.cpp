@@ -25,9 +25,12 @@
 #include "utils/secretkey.hpp"
 
 #include "methods/fsspace.hpp"
+#include "methods/plugins/pluginsconfigure.hpp"
+#include "methods/plugins/pluginsget.hpp"
 #include "methods/plugins/pluginsinstall.hpp"
 #include "methods/plugins/pluginslist.hpp"
 #include "methods/plugins/pluginsuninstall.hpp"
+#include "methods/plugins/pluginsupdate.hpp"
 #include "methods/presetslist.hpp"
 #include "methods/sessionpause.hpp"
 #include "methods/sessionresume.hpp"
@@ -143,9 +146,12 @@ int main(int argc, char* argv[])
 
         porla::JsonRpcHandler rpc({
             {"fs.space", porla::Methods::FsSpace()},
+            {"plugins.configure", porla::Methods::PluginsConfigure(plugin_engine)},
+            {"plugins.get", porla::Methods::PluginsGet(plugin_engine)},
             {"plugins.install", porla::Methods::PluginsInstall(plugins_install_options)},
             {"plugins.list", porla::Methods::PluginsList(plugin_engine)},
             {"plugins.uninstall", porla::Methods::PluginsUninstall(plugin_engine)},
+            {"plugins.update", porla::Methods::PluginsUpdate(plugin_engine)},
             {"presets.list", porla::Methods::PresetsList(cfg->presets)},
             {"session.pause", porla::Methods::SessionPause(session)},
             {"session.resume", porla::Methods::SessionResume(session)},

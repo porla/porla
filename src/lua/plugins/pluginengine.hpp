@@ -29,8 +29,9 @@ namespace porla::Lua::Plugins
 
     struct PluginState
     {
-        std::filesystem::path   path;
-        std::unique_ptr<Plugin> plugin;
+        std::optional<std::string> config;
+        std::filesystem::path      path;
+        std::unique_ptr<Plugin>    plugin;
     };
 
     struct PluginInstallOptions
@@ -46,6 +47,7 @@ namespace porla::Lua::Plugins
         explicit PluginEngine(PluginEngineOptions options);
         ~PluginEngine();
 
+        void Configure(const std::string& name, const std::optional<std::string>& config);
         void Install(const PluginInstallOptions& options, std::error_code& ec);
         std::map<std::string, PluginState>& Plugins();
         void Uninstall(const std::string& name, std::error_code& ec);

@@ -1,6 +1,7 @@
 #include "sysversions.hpp"
 
 #include <boost/version.hpp>
+#include <git2.h>
 #include <libtorrent/version.hpp>
 #include <openssl/opensslv.h>
 #include <sqlite3.h>

@@ -32,7 +32,8 @@ PluginEngine::PluginEngine(PluginEngineOptions options)
             };
 
             PluginState plugin_state{
-                .path   = row.GetStdString(2),
+                .config = plugin_load_options.plugin_config,
+                .path   = plugin_load_options.dir,
                 .plugin = row.GetInt32(0) > 0
                     ? Plugin::Load(plugin_load_options)
                     : nullptr
@@ -45,6 +46,38 @@ PluginEngine::PluginEngine(PluginEngineOptions options)
 }
 
 PluginEngine::~PluginEngine() = default;
+
+void PluginEngine::Configure(const std::string& name, const std::optional<std::string>& config)
+{
+    auto stmt = Statement::Prepare(m_options.db, "UPDATE plugins SET config = $1 where name = $2");
+    stmt.Bind(1, config);
+    stmt.Bind(2, std::string_view(name));
+    stmt.Execute();
+
+    auto state = m_plugins.find(name);
+
+    if (state == m_plugins.end())
+    {
+        return;
+    }
+
+    if (state->second.plugin != nullptr)
+    {
+        state->second.plugin.reset();
+        state->second.plugin = nullptr;
+    }
+
+    const PluginLoadOptions plugin_load_options{
+        .config        = m_options.config,
+        .dir           = state->second.path,
+        .io            = m_options.io,
+        .plugin_config = config,
+        .session       = m_options.session
+    };
+
+    state->second.config = config;
+    state->second.plugin = Plugin::Load(plugin_load_options);
+}
 
 void PluginEngine::Install(const PluginInstallOptions& options, std::error_code& ec)
 {
@@ -67,6 +100,7 @@ void PluginEngine::Install(const PluginInstallOptions& options, std::error_code&
 
     // Add it to our view of plugins, but don't enable it.
     PluginState plugin_state{
+        .config = options.config,
         .path   = options.path,
         .plugin = nullptr
     };
