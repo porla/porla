@@ -2,7 +2,7 @@ import useSWR from "swr";
 import prefixPath from "../base";
 import useAuth from "../contexts/auth";
 
-class RpcError extends Error {
+export class RpcError extends Error {
   data: any;
   code: number;
 
