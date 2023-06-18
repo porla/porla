@@ -23,7 +23,7 @@ and _extensible_.
 
 ### Features
 
- * [User-defined workflows](https://porla.org/workflows).
+ * [User-defined workflows](https://porla.org/scripting/getting_started).
  * Support for both BitTorrent v1 and v2.
  * Embedded query language to find torrents. Fast.
  * [HTTP API](https://porla.org/api/auth) with JWT auth.
