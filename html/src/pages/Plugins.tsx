@@ -1,6 +1,6 @@
 import { Box, Button, Checkbox, FormControl, FormErrorMessage, FormHelperText, FormLabel, HStack, Heading, IconButton, Input, Menu, MenuButton, MenuDivider, MenuItem, MenuList, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Select, Table, Tbody, Td, Textarea, Th, Thead, Tr } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useInvoker, useRPC } from "../services/jsonrpc";
 import { MdExtensionOff, MdOutlineMoreVert, MdSettings } from "react-icons/md";
 
@@ -15,17 +15,105 @@ type IPlugin = {
   version_info: IVersionInfo | null;
 }
 
+type IPluginsGet = {
+  config?: string;
+}
+
 type IPluginsList = {
   plugins: IPlugin[];
 }
 
-export default function Plugins() {
+type PluginConfigureContentProps = {
+  name: string;
+  onClose: () => void;
+}
+
+type PluginConfigureContentFormProps = {
+  data: IPluginsGet;
+  name: string;
+  onClose: () => void;
+}
+
+function PluginConfigureContentForm(props: PluginConfigureContentFormProps) {
   const configurePlugin = useInvoker<any>("plugins.configure");
+
+  return (
+    <Formik
+      initialValues={{
+        config: props.data.config || ''
+      }}
+      onSubmit={async (values) => {
+        await configurePlugin({
+          name: props.name,
+          config: values.config
+        });
+        props.onClose();
+      }}
+    >
+      {({ errors, isSubmitting, setFieldValue, touched, values }) => (
+        <Form>
+          <ModalBody>
+            <Field name="config">
+              {(w: any) => (
+                <FormControl>
+                  <FormLabel>Configuration</FormLabel>
+                  <Textarea
+                    {...w.field}
+                    fontFamily={"monospace"}
+                    fontSize={"sm"}
+                    rows={10}
+                    value={values.config}
+                  >
+                  </Textarea>
+                  <FormHelperText>Any configuration that the plugin expects. Refer to the documentation of the plugin.</FormHelperText>
+                </FormControl>
+              )}
+            </Field>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              colorScheme={"purple"}
+              type={"submit"}
+            >
+              Save
+            </Button>
+          </ModalFooter>
+        </Form>
+      )}
+    </Formik>
+  )
+}
+
+function PluginConfigureContent(props: PluginConfigureContentProps) {
+  const { error, data, mutate } = useRPC<IPluginsGet>("plugins.get", {
+    name: props.name
+  });
+
+  if (!data) {
+    return <>Loading</>
+  }
+
+  return (
+    <ModalContent>
+      <ModalHeader>Configure plugin</ModalHeader>
+      <PluginConfigureContentForm
+        data={data}
+        name={props.name}
+        onClose={async () => {
+          await mutate();
+          props.onClose();
+        }} />
+    </ModalContent>
+  )
+}
+
+export default function Plugins() {
   const installPlugin = useInvoker<any>("plugins.install");
   const uninstallPlugin = useInvoker<any>("plugins.uninstall");
 
   const { data, mutate } = useRPC<IPluginsList>("plugins.list");
 
+  const [ configurePlugin, setConfigurePlugin ] = useState<string | undefined>();
   const [ showConfigure, setShowConfigure ] = useState(false);
   const [ showInstall, setShowInstall ] = useState(false);
 
@@ -127,52 +215,23 @@ export default function Plugins() {
         </ModalContent>
       </Modal>
 
-      <Modal isOpen={showConfigure} onClose={() => setShowConfigure(false)} size={"lg"}>
+      <Modal
+        isOpen={showConfigure}
+        onClose={() => {
+          setConfigurePlugin(undefined);
+          setShowConfigure(false);
+        }}
+        size={"lg"}
+      >
         <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Configure plugin</ModalHeader>
-          <Formik
-            initialValues={{
-              config: ''
-            }}
-            onSubmit={async (values) => {
-              await configurePlugin({
-                name: 'folder-monitor',
-                config: values.config
-              })
-            }}
-          >
-            {({ errors, isSubmitting, setFieldValue, touched, values }) => (
-              <Form>
-                <ModalBody>
-                  <Field name="config">
-                    {(w: any) => (
-                      <FormControl>
-                        <FormLabel>Configuration</FormLabel>
-                        <Textarea
-                          {...w.field}
-                          fontFamily={"monospace"}
-                          fontSize={"sm"}
-                          rows={10}
-                        >
-                        </Textarea>
-                        <FormHelperText>Any configuration that the plugin expects. Refer to the documentation of the plugin.</FormHelperText>
-                      </FormControl>
-                    )}
-                  </Field>
-                </ModalBody>
-                <ModalFooter>
-                  <Button
-                    colorScheme={"purple"}
-                    type={"submit"}
-                  >
-                    Save
-                  </Button>
-                </ModalFooter>
-              </Form>
-            )}
-          </Formik>
-        </ModalContent>
+        { showConfigure
+          && configurePlugin
+          && <PluginConfigureContent
+               name={configurePlugin}
+               onClose={() => {
+                setConfigurePlugin(undefined);
+                setShowConfigure(false);
+              }} /> }
       </Modal>
 
       <HStack m={3}>
@@ -212,7 +271,10 @@ export default function Plugins() {
                   <MenuList>
                     <MenuItem
                       icon={<MdSettings />}
-                      onClick={() => setShowConfigure(true)}
+                      onClick={() => {
+                        setConfigurePlugin(p.name);
+                        setShowConfigure(true);
+                      }}
                     >
                       Configure
                     </MenuItem>
@@ -220,10 +282,7 @@ export default function Plugins() {
                     <MenuItem
                       icon={<MdExtensionOff />}
                       onClick={async () => {
-                        await uninstallPlugin({
-                          name: p.name
-                        });
-
+                        await uninstallPlugin({ name: p.name });
                         await mutate();
                       }}
                     >

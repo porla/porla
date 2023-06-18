@@ -64,7 +64,6 @@ void PluginsGet::Invoke(const PluginsGetReq& req, WriteCb<PluginsGetRes> cb)
 
         for (int i = 0; i < refs.count; i++)
         {
-            BOOST_LOG_TRIVIAL(info) << refs.strings[i];
         }
 
         git_strarray_free(&refs);
