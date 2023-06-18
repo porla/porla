@@ -13,16 +13,22 @@ namespace porla::Lua::Plugins
 
 namespace porla::Methods
 {
+    struct PluginsUpdateOptions
+    {
+        boost::asio::io_context&           io;
+        porla::Lua::Plugins::PluginEngine& plugin_engine;
+    };
+
     class PluginsUpdate : public Method<PluginsUpdateReq, PluginsUpdateRes>
     {
     public:
-        explicit PluginsUpdate(porla::Lua::Plugins::PluginEngine& plugin_engine);
+        explicit PluginsUpdate(const PluginsUpdateOptions& options);
 
     protected:
         void Invoke(const PluginsUpdateReq& req, WriteCb<PluginsUpdateRes> cb) override;
 
     private:
-        porla::Lua::Plugins::PluginEngine& m_plugin_engine;
+        PluginsUpdateOptions m_options;
         std::map<std::string, std::shared_ptr<std::thread>> m_running_updates;
     };
 }

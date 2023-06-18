@@ -45,8 +45,52 @@ int FetchHeadForEachCallback(
 
 struct UpdatePluginOptions
 {
-    fs::path path;
+    porla::Methods::WriteCb<PluginsUpdateRes>            callback;
+    boost::asio::io_context&                             io;
+    fs::path                                             path;
+    PluginEngine&                                        plugin_engine;
+    std::string                                          plugin_name;
+    std::map<std::string, std::shared_ptr<std::thread>>& running_updates;
 };
+
+static void UpdatePluginEnd(
+    const std::shared_ptr<UpdatePluginOptions>& opts,
+    std::thread::id update_thread_id,
+    bool is_error,
+    const std::string& error = "")
+{
+    auto update_thread = std::find_if(
+        opts->running_updates.begin(),
+        opts->running_updates.end(),
+        [update_thread_id](const auto& pair)
+        {
+            return pair.second->get_id() == update_thread_id;
+        });
+
+    if (update_thread == opts->running_updates.end())
+    {
+        BOOST_LOG_TRIVIAL(warning) << "Could not find update thread";
+    }
+    else
+    {
+        if (update_thread->second->joinable())
+        {
+            update_thread->second->join();
+        }
+
+        opts->running_updates.erase(update_thread);
+    }
+
+    if (is_error)
+    {
+        BOOST_LOG_TRIVIAL(error) << error;
+        return opts->callback.Error(-10, error);
+    }
+
+    opts->plugin_engine.Reload(opts->plugin_name);
+
+    opts->callback.Ok({});
+}
 
 static void UpdatePlugin(const std::shared_ptr<UpdatePluginOptions>& opts)
 {
@@ -54,7 +98,12 @@ static void UpdatePlugin(const std::shared_ptr<UpdatePluginOptions>& opts)
 
     const auto error = [](const std::shared_ptr<UpdatePluginOptions>& opts, const std::string& error)
     {
-
+        boost::asio::post(
+            opts->io,
+            [o = opts, err = error, tid = std::this_thread::get_id()]()
+            {
+                UpdatePluginEnd(o, tid, true, err);
+            });
     };
 
     git_repository* repo;
@@ -191,21 +240,28 @@ static void UpdatePlugin(const std::shared_ptr<UpdatePluginOptions>& opts)
     }
 
     git_reference_free(head);
-    git_repository_state_cleanup(repo);
     git_annotated_commit_free(their_heads[0]);
+    git_repository_state_cleanup(repo);
     git_repository_free(repo);
+
+    boost::asio::post(
+        opts->io,
+        [o = opts, tid = std::this_thread::get_id()]()
+        {
+            UpdatePluginEnd(o, tid, false);
+        });
 }
 
-PluginsUpdate::PluginsUpdate(PluginEngine& plugin_engine)
-    : m_plugin_engine(plugin_engine)
+PluginsUpdate::PluginsUpdate(const PluginsUpdateOptions& options)
+    : m_options(options)
 {
 }
 
 void PluginsUpdate::Invoke(const PluginsUpdateReq& req, WriteCb<PluginsUpdateRes> cb)
 {
-    const auto plugin_state = m_plugin_engine.Plugins().find(req.name);
+    const auto plugin_state = m_options.plugin_engine.Plugins().find(req.name);
 
-    if (plugin_state == m_plugin_engine.Plugins().end())
+    if (plugin_state == m_options.plugin_engine.Plugins().end())
     {
         return cb.Error(-1, "Plugin not found");
     }
@@ -227,11 +283,14 @@ void PluginsUpdate::Invoke(const PluginsUpdateReq& req, WriteCb<PluginsUpdateRes
     }
 
     auto options = std::make_shared<UpdatePluginOptions>(UpdatePluginOptions{
-        .path = plugin_state->second.path
+        .callback        = std::move(cb),
+        .io              = m_options.io,
+        .path            = plugin_state->second.path,
+        .plugin_engine   = m_options.plugin_engine,
+        .plugin_name     = req.name,
+        .running_updates = m_running_updates
     });
 
     m_running_updates.insert(
         { req.name, std::make_shared<std::thread>([o = std::move(options)]() { UpdatePlugin(o); })});
-
-    cb.Ok({});
 }

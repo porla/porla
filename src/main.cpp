@@ -144,6 +144,11 @@ int main(int argc, char* argv[])
             .plugin_engine = plugin_engine
         };
 
+        const porla::Methods::PluginsUpdateOptions plugins_update_options{
+            .io            = io,
+            .plugin_engine = plugin_engine
+        };
+
         porla::JsonRpcHandler rpc({
             {"fs.space", porla::Methods::FsSpace()},
             {"plugins.configure", porla::Methods::PluginsConfigure(plugin_engine)},
@@ -151,7 +156,7 @@ int main(int argc, char* argv[])
             {"plugins.install", porla::Methods::PluginsInstall(plugins_install_options)},
             {"plugins.list", porla::Methods::PluginsList(plugin_engine)},
             {"plugins.uninstall", porla::Methods::PluginsUninstall(plugin_engine)},
-            {"plugins.update", porla::Methods::PluginsUpdate(plugin_engine)},
+            {"plugins.update", porla::Methods::PluginsUpdate(plugins_update_options)},
             {"presets.list", porla::Methods::PresetsList(cfg->presets)},
             {"session.pause", porla::Methods::SessionPause(session)},
             {"session.resume", porla::Methods::SessionResume(session)},

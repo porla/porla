@@ -50,6 +50,7 @@ namespace porla::Lua::Plugins
         void Configure(const std::string& name, const std::optional<std::string>& config);
         void Install(const PluginInstallOptions& options, std::error_code& ec);
         std::map<std::string, PluginState>& Plugins();
+        void Reload(const std::string& name);
         void Uninstall(const std::string& name, std::error_code& ec);
 
         void UnloadAll();

@@ -135,6 +135,34 @@ std::map<std::string, PluginState> &PluginEngine::Plugins()
     return m_plugins;
 }
 
+void PluginEngine::Reload(const std::string& name)
+{
+    auto state = m_plugins.find(name);
+
+    if (state == m_plugins.end())
+    {
+        return;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "Reloading plugin " << name;
+
+    if (state->second.plugin != nullptr)
+    {
+        state->second.plugin.reset();
+        state->second.plugin = nullptr;
+    }
+
+    const PluginLoadOptions plugin_load_options{
+        .config        = m_options.config,
+        .dir           = state->second.path,
+        .io            = m_options.io,
+        .plugin_config = state->second.config,
+        .session       = m_options.session
+    };
+
+    state->second.plugin = Plugin::Load(plugin_load_options);
+}
+
 void PluginEngine::Uninstall(const std::string& name, std::error_code& ec)
 {
     BOOST_LOG_TRIVIAL(info) << "Uninstalling plugin " << name;
