@@ -13,6 +13,7 @@
     "curl",
     "gtest",
     "jwt-cpp",
+    "libgit2",
     "libsodium",
     "libtorrent",
     "libzip",

@@ -17,6 +17,7 @@ find_package(LibtorrentRasterbar CONFIG REQUIRED)
 find_package(Lua                        REQUIRED)
 find_package(nlohmann_json       CONFIG REQUIRED)
 find_package(tomlplusplus        CONFIG REQUIRED)
+find_package(unofficial-git2  CONFIG REQUIRED)
 find_package(unofficial-sodium   CONFIG REQUIRED)
 find_package(unofficial-sqlite3  CONFIG REQUIRED)
 find_package(uriparser           CONFIG REQUIRED)
@@ -101,11 +102,22 @@ add_library(
     src/data/migrations/0005_metadata.cpp
     src/data/migrations/0006_clientdata.cpp
     src/data/migrations/0007_removesessionsettings.cpp
+    src/data/migrations/0008_plugins.cpp
     src/data/models/addtorrentparams.cpp
     src/data/models/users.cpp
     src/data/statement.cpp
 
+    src/lua/packages/config.cpp
+    src/lua/packages/cron.cpp
+    src/lua/packages/filesystem.cpp
+    src/lua/packages/log.cpp
+    src/lua/packages/process.cpp
+    src/lua/packages/sqlite.cpp
+    src/lua/packages/torrents.cpp
+    src/lua/plugins/plugin.cpp
+    src/lua/plugins/pluginengine.cpp
     src/lua/usertypes/lttorrenthandle.cpp
+    src/lua/usertypes/session.cpp
     src/lua/usertypes/torrent.cpp
     src/lua/usertypes/workflow.cpp
     src/lua/usertypes/workflowactionexec.cpp
@@ -146,6 +158,13 @@ add_library(
     src/lua/workflows/triggers/torrentmoved.cpp
 
     src/methods/fsspace.cpp
+    src/methods/plugins/pluginsconfigure.cpp
+    src/methods/plugins/pluginsget.cpp
+    src/methods/plugins/pluginsinstall.cpp
+    src/methods/plugins/pluginslist.cpp
+    src/methods/plugins/pluginsreload.cpp
+    src/methods/plugins/pluginsuninstall.cpp
+    src/methods/plugins/pluginsupdate.cpp
     src/methods/presetslist.cpp
     src/methods/sessionpause.cpp
     src/methods/sessionresume.cpp
@@ -202,6 +221,7 @@ target_link_libraries(
     LibtorrentRasterbar::torrent-rasterbar
     unofficial-sodium::sodium
     unofficial-sodium::sodium_config_public
+    unofficial::git2::libgit2package
     unofficial::sqlite3::sqlite3
     uriparser::uriparser
 )
