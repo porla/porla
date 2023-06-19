@@ -1,4 +1,4 @@
-import { Box, Button, Checkbox, FormControl, FormErrorMessage, FormHelperText, FormLabel, HStack, Heading, IconButton, Input, Menu, MenuButton, MenuDivider, MenuItem, MenuList, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Select, Table, Tbody, Td, Textarea, Th, Thead, Tr } from "@chakra-ui/react";
+import { Box, Button, Checkbox, Flex, FormControl, FormErrorMessage, FormHelperText, FormLabel, HStack, Heading, IconButton, Input, Menu, MenuButton, MenuDivider, MenuItem, MenuList, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Select, Spacer, Table, Tbody, Td, Text, Textarea, Th, Thead, Tr } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
 import { useEffect, useState } from "react";
 import { useInvoker, useRPC } from "../services/jsonrpc";
@@ -36,6 +36,9 @@ type PluginConfigureContentFormProps = {
 
 function PluginConfigureContentForm(props: PluginConfigureContentFormProps) {
   const configurePlugin = useInvoker<any>("plugins.configure");
+  const reloadPlugin = useInvoker<any>("plugins.reload");
+  const updatePlugin = useInvoker<any>("plugins.update");
+  const [ working, setWorking ] = useState(false);
 
   return (
     <Formik
@@ -70,13 +73,51 @@ function PluginConfigureContentForm(props: PluginConfigureContentFormProps) {
               )}
             </Field>
           </ModalBody>
-          <ModalFooter>
-            <Button
-              colorScheme={"purple"}
-              type={"submit"}
-            >
-              Save
-            </Button>
+          <ModalFooter justifyContent={"space-between"}>
+            <HStack>
+              <Button
+                disabled={working}
+                size={"sm"}
+                variant={"outline"}
+                onClick={async () => {
+                  setWorking(true);
+
+                  await reloadPlugin({
+                    name: props.name
+                  });
+
+                  setWorking(false);
+                }}
+              >
+                Reload
+              </Button>
+
+              <Button
+                disabled={working}
+                size={"sm"}
+                variant={"outline"}
+                onClick={async () => {
+                  setWorking(true);
+
+                  await updatePlugin({
+                    name: props.name
+                  });
+
+                  setWorking(false);
+                }}
+              >
+                Update
+              </Button>
+            </HStack>
+
+            <Box>
+              <Button
+                colorScheme={"purple"}
+                type={"submit"}
+              >
+                Save
+              </Button>
+            </Box>
           </ModalFooter>
         </Form>
       )}
@@ -95,7 +136,7 @@ function PluginConfigureContent(props: PluginConfigureContentProps) {
 
   return (
     <ModalContent>
-      <ModalHeader>Configure plugin</ModalHeader>
+      <ModalHeader>Configure {props.name}</ModalHeader>
       <PluginConfigureContentForm
         data={data}
         name={props.name}

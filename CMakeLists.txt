@@ -162,6 +162,7 @@ add_library(
     src/methods/plugins/pluginsget.cpp
     src/methods/plugins/pluginsinstall.cpp
     src/methods/plugins/pluginslist.cpp
+    src/methods/plugins/pluginsreload.cpp
     src/methods/plugins/pluginsuninstall.cpp
     src/methods/plugins/pluginsupdate.cpp
     src/methods/presetslist.cpp

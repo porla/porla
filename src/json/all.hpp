@@ -9,6 +9,7 @@
 #include "pluginsget.hpp"
 #include "pluginsinstall.hpp"
 #include "pluginslist.hpp"
+#include "pluginsreload.hpp"
 #include "pluginsuninstall.hpp"
 #include "pluginsupdate.hpp"
 #include "presetslist.hpp"

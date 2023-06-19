@@ -29,6 +29,7 @@
 #include "methods/plugins/pluginsget.hpp"
 #include "methods/plugins/pluginsinstall.hpp"
 #include "methods/plugins/pluginslist.hpp"
+#include "methods/plugins/pluginsreload.hpp"
 #include "methods/plugins/pluginsuninstall.hpp"
 #include "methods/plugins/pluginsupdate.hpp"
 #include "methods/presetslist.hpp"
@@ -155,6 +156,7 @@ int main(int argc, char* argv[])
             {"plugins.get", porla::Methods::PluginsGet(plugin_engine)},
             {"plugins.install", porla::Methods::PluginsInstall(plugins_install_options)},
             {"plugins.list", porla::Methods::PluginsList(plugin_engine)},
+            {"plugins.reload", porla::Methods::PluginsReload(plugin_engine)},
             {"plugins.uninstall", porla::Methods::PluginsUninstall(plugin_engine)},
             {"plugins.update", porla::Methods::PluginsUpdate(plugins_update_options)},
             {"presets.list", porla::Methods::PresetsList(cfg->presets)},
