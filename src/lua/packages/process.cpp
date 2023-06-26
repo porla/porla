@@ -40,7 +40,7 @@ static void Launch(sol::this_state s, const sol::table& args)
         bp::on_exit(
             [state](int exit_code, const boost::system::error_code& ec)
             {
-                state->callback(exit_code, state->std_out.get());
+                state->callback(exit_code, state->std_out.get(), state->std_err.get());
             }));
 
     std_in.close();

@@ -22,6 +22,7 @@ struct SignalConnection
 
     ~SignalConnection()
     {
+        BOOST_LOG_TRIVIAL(info) << "Disconnecting signal";
         connection.disconnect();
     }
 
@@ -52,6 +53,7 @@ void Torrents::Register(sol::state& lua)
         sol::no_constructor);
 
     torrent_status_type["current_tracker"] = sol::property([](const lt::torrent_status& ts) { return ts.current_tracker; });
+    torrent_status_type["info_hash"]       = sol::property([](const lt::torrent_status& ts) { return ts.info_hashes; });
     torrent_status_type["name"]            = sol::property([](const lt::torrent_status& ts) { return ts.name; });
     torrent_status_type["save_path"]       = sol::property([](const lt::torrent_status& ts) { return ts.save_path; });
 
@@ -113,6 +115,21 @@ void Torrents::Register(sol::state& lua)
             return false;
         };
 
+        torrents["list"] = [](sol::this_state s)
+        {
+            sol::state_view lua{s};
+            const auto options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
+
+            std::vector<lt::torrent_status> ret;
+
+            for (const auto& [ info_hash, handle ] : options.session.Torrents())
+            {
+                ret.emplace_back(handle.status());
+            }
+
+            return ret;
+        };
+
         torrents["on"] = [](sol::this_state s, const std::string& name, const sol::function& callback)
         {
             sol::state_view lua{s};
@@ -126,6 +143,24 @@ void Torrents::Register(sol::state& lua)
                         try
                         {
                             cb(ts);
+                        }
+                        catch (const sol::error& err)
+                        {
+                            BOOST_LOG_TRIVIAL(error) << "An error occurred in an event handler: " << err.what();
+                        }
+                    });
+
+                return std::make_shared<SignalConnection>(connection);
+            }
+
+            if (name == "removed")
+            {
+                auto connection = options.session.OnTorrentRemoved(
+                    [cb = callback](const lt::info_hash_t& ih)
+                    {
+                        try
+                        {
+                            cb(ih);
                         }
                         catch (const sol::error& err)
                         {
@@ -152,6 +187,17 @@ void Torrents::Register(sol::state& lua)
             }
 
             return std::make_shared<lt::torrent_info>(data);
+        };
+
+        torrents["remove"] = [](sol::this_state s, const lt::torrent_status& ts, const sol::table& args)
+        {
+            sol::state_view lua{s};
+            const auto options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
+
+            bool remove_files = false;
+            if (args["remove_files"].valid()) { remove_files = args["remove_files"].get<bool>(); }
+
+            options.session.Remove(ts.info_hashes, remove_files);
         };
 
         return torrents;

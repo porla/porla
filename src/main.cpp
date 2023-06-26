@@ -131,12 +131,6 @@ int main(int argc, char* argv[])
             return -1;
         }
 
-        porla::Lua::Workflows::WorkflowEngine workflow_engine{porla::Lua::Workflows::WorkflowEngineOptions{
-            .io           = io,
-            .session      = session,
-            .workflow_dir = cfg->workflow_dir.value_or(fs::path())
-        }};
-
         const fs::path default_plugin_install_dir = cfg->state_dir.value_or(fs::path()) / "installed_plugins";
 
         const porla::Methods::PluginsInstallOptions plugins_install_options{

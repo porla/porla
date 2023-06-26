@@ -17,8 +17,8 @@ namespace porla::Lua::Plugins
     struct PluginLoadOptions
     {
         Config&                    config;
-        std::filesystem::path      dir;
         boost::asio::io_context&   io;
+        std::filesystem::path      path;
         std::optional<std::string> plugin_config;
         porla::ISession&           session;
     };
@@ -29,6 +29,8 @@ namespace porla::Lua::Plugins
         static std::unique_ptr<Plugin> Load(const PluginLoadOptions& opts);
 
         virtual ~Plugin();
+
+        void GarbageCollect();
 
     private:
         class State;

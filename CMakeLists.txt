@@ -141,10 +141,12 @@ add_library(
     src/lua/packages/config.cpp
     src/lua/packages/cron.cpp
     src/lua/packages/filesystem.cpp
+    src/lua/packages/httpclient.cpp
     src/lua/packages/log.cpp
     src/lua/packages/process.cpp
     src/lua/packages/sqlite.cpp
     src/lua/packages/torrents.cpp
+    src/lua/packages/workflows.cpp
     src/lua/plugins/plugin.cpp
     src/lua/plugins/pluginengine.cpp
     src/lua/usertypes/lttorrenthandle.cpp
