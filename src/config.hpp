@@ -51,6 +51,7 @@ namespace porla
         std::string                           secret_key;
         std::optional<std::vector<lt_plugin>> session_extensions;
         libtorrent::settings_pack             session_settings;
+        std::optional<int>                    sodium_memlimit;
         std::optional<fs::path>               state_dir;
         std::optional<int>                    timer_dht_stats;
         std::optional<int>                    timer_session_stats;

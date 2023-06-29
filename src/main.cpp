@@ -3,6 +3,7 @@
 #include <boost/log/trivial.hpp>
 #include <curl/curl.h>
 #include <git2.h>
+#include <sodium.h>
 
 #include "authinithandler.hpp"
 #include "authloginhandler.hpp"
@@ -188,7 +189,7 @@ int main(int argc, char* argv[])
         porla::HttpEventStream eventStream(session);
         porla::MetricsHandler metrics(session);
 
-        porla::AuthInitHandler authInitHandler(io, cfg->db);
+        porla::AuthInitHandler authInitHandler(io, cfg->db, cfg->sodium_memlimit.value_or(crypto_pwhash_MEMLIMIT_MIN));
         porla::AuthLoginHandler authLoginHandler(io, porla::AuthLoginHandlerOptions{
             .db         = cfg->db,
             .secret_key = cfg->secret_key
