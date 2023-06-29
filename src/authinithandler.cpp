@@ -9,9 +9,10 @@
 
 using porla::AuthInitHandler;
 
-AuthInitHandler::AuthInitHandler(boost::asio::io_context& io, sqlite3* db)
+AuthInitHandler::AuthInitHandler(boost::asio::io_context& io, sqlite3* db, int memlimit)
     : m_io(io)
     , m_db(db)
+    , m_memlimit(memlimit)
 {
 }
 
@@ -33,7 +34,7 @@ void AuthInitHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
     auto const password = req["password"].get<std::string>();
 
     std::thread t(
-        [ctx = ctx, db = m_db, &io = m_io, username, password]()
+        [ctx = ctx, db = m_db, &io = m_io, mem = m_memlimit, username, password]()
         {
             std::string password_hashed;
             password_hashed.resize(crypto_pwhash_STRBYTES);
@@ -43,7 +44,7 @@ void AuthInitHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
                 password.c_str(),
                 password.size(),
                 crypto_pwhash_OPSLIMIT_SENSITIVE,
-                crypto_pwhash_MEMLIMIT_SENSITIVE);
+                mem);
 
             boost::asio::dispatch(
                 io,

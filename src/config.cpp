@@ -10,6 +10,7 @@
 #include <libtorrent/extensions/smart_ban.hpp>
 #include <libtorrent/fingerprint.hpp>
 #include <libtorrent/session.hpp>
+#include <sodium.h>
 #include <toml++/toml.h>
 
 #include "data/migrate.hpp"
@@ -96,6 +97,29 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         if (strcmp("default", val) == 0)               cfg->session_settings = lt::default_settings();
         if (strcmp("high_performance_seed", val) == 0) cfg->session_settings = lt::high_performance_seed();
         if (strcmp("min_memory_usage", val) == 0)      cfg->session_settings = lt::min_memory_usage();
+    }
+    if (auto val = std::getenv("PORLA_SODIUM_MEMLIMIT"))
+    {
+        if (strcmp("interactive", val) == 0) cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_INTERACTIVE;
+        if (strcmp("max", val) == 0)         cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_MAX;
+        if (strcmp("min", val) == 0)         cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_MIN;
+        if (strcmp("moderate", val) == 0)    cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_MODERATE;
+        if (strcmp("sensitive", val) == 0)   cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_SENSITIVE;
+
+        const std::string tmp = val;
+        const auto digits = std::all_of(tmp.begin(), tmp.end(), [](const auto item) { return std::isdigit(item); });
+
+        if (digits)
+        {
+            try
+            {
+                cfg->sodium_memlimit = std::stoi(tmp);
+            }
+            catch (const std::exception& err)
+            {
+                BOOST_LOG_TRIVIAL(error) << "Failed to parse " << tmp << " as integer: " << err.what();
+            }
+        }
     }
     if (auto val = std::getenv("PORLA_STATE_DIR"))             cfg->state_dir             = val;
     if (auto val = std::getenv("PORLA_TIMER_DHT_STATS"))       cfg->timer_dht_stats       = std::stoi(val);
@@ -332,6 +356,23 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
             if (auto val = config_file_tbl["state_dir"].value<std::string>())
                 cfg->state_dir = *val;
 
+            if (auto val = config_file_tbl["sodium_memlimit"])
+            {
+                if (auto memlimit_int = val.value<int>())
+                {
+                    cfg->sodium_memlimit = *memlimit_int;
+                }
+
+                if (auto memlimit_str = val.value<std::string>())
+                {
+                    if (*memlimit_str == "interactive") cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_INTERACTIVE;
+                    if (*memlimit_str == "max")         cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_MAX;
+                    if (*memlimit_str == "min")         cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_MIN;
+                    if (*memlimit_str == "moderate")    cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_MODERATE;
+                    if (*memlimit_str == "sensitive")   cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_SENSITIVE;
+                }
+            }
+
             if (auto val = config_file_tbl["timer"]["dht_stats"].value<int>())
                 cfg->timer_dht_stats = *val;
 
@@ -428,6 +469,11 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         BOOST_LOG_TRIVIAL(warning) << "Use './porla key:generate' to generate a secret key";
 
         cfg->secret_key = porla::Utils::SecretKey::New();
+    }
+
+    if (cfg->sodium_memlimit.has_value())
+    {
+        BOOST_LOG_TRIVIAL(info) << "Setting sodium memlimit to " << cfg->sodium_memlimit.value();
     }
 
     return std::move(cfg);
