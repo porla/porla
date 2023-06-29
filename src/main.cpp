@@ -5,6 +5,8 @@
 #include <git2.h>
 #include <sodium.h>
 
+#include "../vendor/uWebSockets/src/App.h"
+
 #include "authinithandler.hpp"
 #include "authloginhandler.hpp"
 #include "cmdargs.hpp"
@@ -24,6 +26,9 @@
 #include "tools/generatesecretkey.hpp"
 #include "tools/versionjson.hpp"
 #include "utils/secretkey.hpp"
+
+#include "http/authinithandler.hpp"
+#include "http/jwthandler.hpp"
 
 #include "methods/fsspace.hpp"
 #include "methods/plugins/pluginsconfigure.hpp"
@@ -229,6 +234,60 @@ int main(int argc, char* argv[])
         }
 
         http.Use(porla::HttpNotFound());
+
+        std::vector<uWS::HttpResponse<false>*> sse;
+
+        session.OnStateUpdate([&sse](const std::vector<lt::torrent_status>& ts)
+        {
+            for (auto s : sse)
+            {
+                nlohmann::json j = {
+                        {"n", ts.size()}
+                };
+
+                s->write("event: state_update\n");
+                s->write("data: ");
+                s->write(j.dump());
+                s->write("\n\n");
+            }
+        });
+
+        class ServerSentEventsHandler
+        {
+        public:
+            void operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
+            {
+                res->end("HEJ)"")");
+            }
+        };
+
+        uWS::Loop::get(&io);
+
+        uWS::App uws_app;
+
+        uws_app.post("/api/v1/auth/init", porla::Http::AuthInitHandler(io, cfg->db));
+        uws_app.get("/api/v1/events", porla::Http::JwtHandler(cfg->secret_key, ServerSentEventsHandler()));
+
+        uws_app.get("/api/v1/events2", [&sse](uWS::HttpResponse<false>* res, auto *req)
+        {
+            res->onAborted([&sse]()
+            {
+                BOOST_LOG_TRIVIAL(info) << "req aborted";
+            });
+
+            res->writeStatus("200 OK");
+            res->writeHeader("Connection", "keep-alive");
+            res->writeHeader("Content-Type", "text/event-stream");
+            res->writeHeader("Cache-Control", "no-cache, no-transform");
+            res->write("event: hello\ndata: {}\n\n");
+
+            sse.push_back(res);
+        });
+
+        uws_app.listen(1338, [](auto* t)
+        {
+            BOOST_LOG_TRIVIAL(info) << "Http server listening";
+        });
 
         io.run();
 
