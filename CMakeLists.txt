@@ -10,6 +10,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 find_package(antlr4-runtime      CONFIG REQUIRED)
 find_package(Boost                      REQUIRED COMPONENTS log program_options system)
+find_package(unofficial-breakpad CONFIG REQUIRED)
 find_package(CURL                CONFIG REQUIRED)
 find_package(GTest               CONFIG REQUIRED)
 find_package(libzip              CONFIG REQUIRED)
@@ -217,6 +218,8 @@ target_link_libraries(
     LibtorrentRasterbar::torrent-rasterbar
     unofficial-sodium::sodium
     unofficial-sodium::sodium_config_public
+    unofficial::breakpad::libbreakpad
+    unofficial::breakpad::libbreakpad_client
     unofficial::git2::libgit2package
     unofficial::sqlite3::sqlite3
     uriparser::uriparser

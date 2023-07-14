@@ -5,6 +5,8 @@
 #include <git2.h>
 #include <sodium.h>
 
+#include <client/mac/handler/exception_handler.h>
+
 #include "cmdargs.hpp"
 #include "config.hpp"
 #include "logger.hpp"
@@ -52,8 +54,17 @@
 #include "methods/torrentspropertiesset.hpp"
 #include "methods/torrentstrackerslist.hpp"
 
+static bool dumpCallback(const char* dump_dir, const char* minidump_id, void* context, bool succeeded)
+{
+    BOOST_LOG_TRIVIAL(fatal) << "Kaboom";
+    printf("Dump path: %s/%s\n", dump_dir, minidump_id);
+    return succeeded;
+}
+
 int main(int argc, char* argv[])
 {
+    google_breakpad::ExceptionHandler eh("/tmp", nullptr, dumpCallback, nullptr, true, nullptr);
+
     static std::map<std::string, std::function<int(int, char**, std::unique_ptr<porla::Config>)>> subcommands =
     {
         {"auth:token", &porla::Tools::AuthToken},
