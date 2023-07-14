@@ -11,6 +11,7 @@ namespace porla::Methods
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsAddReq,
+        category,
         download_limit,
         http_seeds,
         magnet_uri,
@@ -20,6 +21,7 @@ namespace porla::Methods
         name,
         preset,
         save_path,
+        tags,
         ti,
         trackers,
         upload_limit,
