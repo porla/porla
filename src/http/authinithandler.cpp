@@ -10,9 +10,10 @@
 
 using porla::Http::AuthInitHandler;
 
-AuthInitHandler::AuthInitHandler(boost::asio::io_context& io, sqlite3* db)
+AuthInitHandler::AuthInitHandler(boost::asio::io_context& io, sqlite3* db, int memlimit)
     : m_io(io)
     , m_db(db)
+    , m_memlimit(memlimit)
 {
 }
 

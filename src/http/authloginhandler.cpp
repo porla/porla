@@ -2,10 +2,12 @@
 
 #include <boost/log/trivial.hpp>
 #include <jwt-cpp/jwt.h>
+#include <nlohmann/json.hpp>
 #include <sodium.h>
 
 #include "../data/models/users.hpp"
 
+using json = nlohmann::json;
 using porla::Data::Models::Users;
 using porla::Http::AuthLoginHandler;
 using porla::Http::AuthLoginHandlerOptions;
@@ -24,6 +26,14 @@ AuthLoginHandler::AuthLoginHandler(const AuthLoginHandlerOptions& opts)
     });
 }
 
+AuthLoginHandler::~AuthLoginHandler()
+{
+    for (auto& thread : m_state->threads)
+    {
+        if (thread.joinable()) thread.join();
+    }
+}
+
 void AuthLoginHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
 {
     if (m_state->threads.size() >= 5)
@@ -31,29 +41,46 @@ void AuthLoginHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpReques
         return res->writeStatus("400 Bad Request")->end("Too many attempts");
     }
 
-    const auto req = nlohmann::json::parse(ctx->Request().body());
+    res->onAborted([](){});
 
-    if (!req.contains("username") || !req.contains("password"))
+    std::string buffer;
+    res->onData([res, state = m_state, buffer = std::move(buffer)](std::string_view d, bool last) mutable
     {
-        return ctx->Write("Invalid request");
-    }
+        buffer.append(d.data(), d.length());
+        if (!last) return;
 
-    auto const username = req["username"].get<std::string>();
-    auto const password = req["password"].get<std::string>();
+        nlohmann::json body;
 
-    auto const user = Users::GetByUsername(m_db, username);
+        try
+        {
+            body = nlohmann::json::parse(buffer);
+        }
+        catch (const std::exception& err)
+        {
+            return res->writeStatus("400 Bad Request")->end(err.what());
+        }
 
-    m_threads.emplace_back(
-            [ctx, &io = m_io, password, secret_key = m_secret_key, &threads = m_threads, user]()
+        if (!body.contains("username") || !body.contains("password"))
+        {
+            return res->writeStatus("400 Bad Request")->end("Invalid request");
+        }
+
+        const auto username = body["username"].get<std::string>();
+        const auto password = body["password"].get<std::string>();
+
+        const auto user = Users::GetByUsername(state->options.db, username);
+
+        state->threads.emplace_back(
+            [state, res, password, user]()
             {
                 int result = -1;
 
                 if (user)
                 {
                     result = crypto_pwhash_str_verify(
-                            user->password_hashed.c_str(),
-                            password.c_str(),
-                            password.size());
+                        user->password_hashed.c_str(),
+                        password.c_str(),
+                        password.size());
                 }
                 else
                 {
@@ -62,56 +89,57 @@ void AuthLoginHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpReques
                     // just 'hunter2'.
 
                     (void) crypto_pwhash_str_verify(
-                            "$argon2id$v=19$m=1048576,t=4,p=1$MNy6/sqw4+WlGyeRDxiFdw$+FnYmB7Qfz+JKQeCzpjQW7rmpW/uqZxwGqDRDweBQRE",
-                            "hunter2",
-                            7);
+                        "$argon2id$v=19$m=1048576,t=4,p=1$MNy6/sqw4+WlGyeRDxiFdw$+FnYmB7Qfz+JKQeCzpjQW7rmpW/uqZxwGqDRDweBQRE",
+                        "hunter2",
+                        7);
                 }
 
                 boost::asio::dispatch(
-                        io,
-                        [ctx, result, secret_key, thread_id = std::this_thread::get_id(), &threads, username = user->username]()
+                    state->options.io,
+                    [state, res, result, thread_id = std::this_thread::get_id(), username = user->username]()
+                    {
+                        auto thread = std::find_if(
+                            state->threads.begin(),
+                            state->threads.end(),
+                            [&thread_id](auto const& t) { return t.get_id() == thread_id; });
+
+                        if (thread == state->threads.end())
                         {
-                            auto thread = std::find_if(
-                                    threads.begin(),
-                                    threads.end(),
-                                    [&thread_id](auto const& t) { return t.get_id() == thread_id; });
+                            // This really shouldn't happen.
+                            BOOST_LOG_TRIVIAL(error) << "Could not find thread";
+                        }
+                        else
+                        {
+                            BOOST_LOG_TRIVIAL(debug) << "Erasing worker thread " << thread_id;
 
-                            if (thread == threads.end())
+                            if (thread->joinable())
                             {
-                                // This really shouldn't happen.
-                                BOOST_LOG_TRIVIAL(error) << "Could not find thread";
-                            }
-                            else
-                            {
-                                BOOST_LOG_TRIVIAL(debug) << "Erasing worker thread " << thread_id;
-
-                                if (thread->joinable())
-                                {
-                                    thread->join();
-                                }
-
-                                threads.erase(thread);
+                                thread->join();
                             }
 
-                            if (result != 0)
-                            {
-                                return ctx->WriteJson({
-                                                              {"error", "invalid_auth"}
-                                                      });
-                            }
+                            state->threads.erase(thread);
+                        }
 
-                            // Issue a JWT valid for 1 day. This should be enough for most users.
-                            auto token = jwt::create()
-                                    .set_expires_at(std::chrono::system_clock::now() + std::chrono::days{1})
-                                    .set_issuer("porla")
-                                    .set_issued_at(std::chrono::system_clock::now())
-                                    .set_subject(username)
-                                    .set_type("JWS")
-                                    .sign(jwt::algorithm::hs256(secret_key));
+                        if (result != 0)
+                        {
+                            return res->end(json({
+                                {"error", "invalid_auth"}
+                            }).dump());
+                        }
 
-                            ctx->WriteJson({
-                                                   {"token", token}
-                                           });
-                        });
+                        // Issue a JWT valid for 1 day. This should be enough for most users.
+                        auto token = jwt::create()
+                            .set_expires_at(std::chrono::system_clock::now() + std::chrono::days{1})
+                            .set_issuer("porla")
+                            .set_issued_at(std::chrono::system_clock::now())
+                            .set_subject(username)
+                            .set_type("JWS")
+                            .sign(jwt::algorithm::hs256(state->options.secret_key));
+
+                        res->end(json({
+                            {"token", token}
+                        }).dump());
+                    });
             });
+    });
 }

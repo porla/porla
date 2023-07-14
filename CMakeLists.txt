@@ -105,12 +105,9 @@ add_library(
     ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/webui.cpp
 
-    src/authinithandler.cpp
-    src/authloginhandler.cpp
     src/buildinfo.cpp
     src/cmdargs.cpp
     src/config.cpp
-    src/embeddedwebuihandler.cpp
     src/logger.cpp
     src/httpclient.cpp
     src/httpeventstream.cpp
@@ -120,7 +117,6 @@ add_library(
     src/jsonrpchandler.cpp
     src/metricshandler.cpp
     src/session.cpp
-    src/systemhandler.cpp
     src/uri.cpp
     src/utils/eta.cpp
     src/utils/secretkey.cpp
@@ -140,7 +136,10 @@ add_library(
     src/data/statement.cpp
 
     src/http/authinithandler.cpp
+    src/http/authloginhandler.cpp
     src/http/jwthandler.cpp
+    src/http/systemhandler.cpp
+    src/http/webuihandler.cpp
 
     src/lua/packages/config.cpp
     src/lua/packages/cron.cpp
