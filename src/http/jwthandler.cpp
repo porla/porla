@@ -13,11 +13,11 @@ JwtHandler::JwtHandler(const std::string &secret_key, Handler next)
 
 void JwtHandler::operator()(uWS::HttpResponse<false> *res, uWS::HttpRequest *req)
 {
-    static const std::string AltAuthHeader = "X-Porla-Token";
+    static const std::string AltAuthHeader = "x-porla-token";
 
     const auto header_finder = [&req](const std::string& header)
     {
-        auto const auth_header = req->getHeader(header);
+        const auto& auth_header = req->getHeader(header);
 
         // No Authorization header
         if (auth_header.empty())
@@ -31,7 +31,7 @@ void JwtHandler::operator()(uWS::HttpResponse<false> *res, uWS::HttpRequest *req
             return std::optional<std::string>();
         }
 
-        return std::optional<std::string>(header.substr(7));
+        return std::optional<std::string>(auth_header.substr(7));
     };
 
     std::optional<std::string> bearer_token = header_finder(AltAuthHeader);
@@ -49,9 +49,9 @@ void JwtHandler::operator()(uWS::HttpResponse<false> *res, uWS::HttpRequest *req
 
     try
     {
-        auto decoded_token = jwt::decode(bearer_token.value());
+        const auto decoded_token = jwt::decode(bearer_token.value());
 
-        auto verifier = jwt::verify()
+        const auto verifier = jwt::verify()
             .allow_algorithm(jwt::algorithm::hs256(m_secret_key))
             .with_issuer("porla");
 
