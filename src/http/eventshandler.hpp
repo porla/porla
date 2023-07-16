@@ -11,11 +11,11 @@ namespace porla
 
 namespace porla::Http
 {
-    class MetricsHandler
+    class EventsHandler
     {
     public:
-        explicit MetricsHandler(ISession& session);
-        ~MetricsHandler();
+        explicit EventsHandler(ISession& session);
+        ~EventsHandler();
 
         void operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
 

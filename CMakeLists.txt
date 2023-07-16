@@ -53,21 +53,21 @@ add_library(
 
 target_compile_definitions(
     uSockets
-        PRIVATE
-        -DLIBUS_NO_SSL
-        -DLIBUS_USE_ASIO
+    PRIVATE
+    -DLIBUS_NO_SSL
+    -DLIBUS_USE_ASIO
 )
 
 target_include_directories(
     uSockets
-        PUBLIC
+    PUBLIC
     vendor/uWebSockets/uSockets/src
 )
 
 target_link_libraries(
-        uSockets
-        PRIVATE
-        Boost::boost
+    uSockets
+    PRIVATE
+    Boost::boost
 )
 
 add_library(
@@ -110,12 +110,6 @@ add_library(
     src/config.cpp
     src/logger.cpp
     src/httpclient.cpp
-    src/httpeventstream.cpp
-    src/httpjwtauth.cpp
-    src/httpserver.cpp
-    src/httpsession.cpp
-    src/jsonrpchandler.cpp
-    src/metricshandler.cpp
     src/session.cpp
     src/uri.cpp
     src/utils/eta.cpp
@@ -137,7 +131,10 @@ add_library(
 
     src/http/authinithandler.cpp
     src/http/authloginhandler.cpp
+    src/http/eventshandler.cpp
+    src/http/jsonrpchandler.cpp
     src/http/jwthandler.cpp
+    src/http/metricshandler.cpp
     src/http/systemhandler.cpp
     src/http/webuihandler.cpp
 
