@@ -155,12 +155,14 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
         }
 
         torrents.emplace_back(TorrentsListRes::Item{
+            .active_duration   = ts.active_duration.count(),
             .all_time_download = ts.all_time_download,
             .all_time_upload   = ts.all_time_upload,
             .category          = client_data->category,
             .download_rate     = ts.download_rate,
             .error             = ts.errc,
             .eta               = porla::Utils::ETA(ts).count(),
+            .finished_duration = ts.finished_duration.count(),
             .flags             = static_cast<std::uint64_t>(ts.flags),
             .info_hash         = ts.info_hashes,
             .list_peers        = ts.list_peers,
@@ -174,6 +176,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             .queue_position    = static_cast<int>(ts.queue_position),
             .ratio             = porla::Utils::Ratio(ts),
             .save_path         = ts.save_path,
+            .seeding_duration  = ts.seeding_duration.count(),
             .size              = size,
             .state             = ts.state,
             .tags              = client_data->tags.value_or(std::unordered_set<std::string>()),
