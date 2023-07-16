@@ -6,7 +6,7 @@
 #include <nlohmann/json.hpp>
 
 #include "../json/all.hpp"
-#include "../httpcontext.hpp"
+#include "../http/handler.hpp"
 
 using json = nlohmann::json;
 
@@ -16,9 +16,9 @@ namespace porla::Methods
     class WriteCb
     {
     public:
-        explicit WriteCb(nlohmann::json id, std::shared_ptr<porla::HttpContext> ctx)
+        explicit WriteCb(nlohmann::json id, uWS::HttpResponse<false>* res)
             : m_id(std::move(id))
-            , m_ctx(std::move(ctx))
+            , m_res(res)
         {
         }
 
@@ -35,7 +35,7 @@ namespace porla::Methods
 
         void Error(int code, const std::string_view& message, const json& data = {})
         {
-            m_ctx->WriteJson({
+            m_res->end(json({
                 {"jsonrpc", "2.0"},
                 {"id", m_id},
                 {"error", {
@@ -43,30 +43,30 @@ namespace porla::Methods
                     {"message", message},
                     {"data", data}
                 }}
-            });
+            }).dump());
         }
 
         void Ok(const json& result)
         {
-            m_ctx->WriteJson({
+            m_res->end(json({
                 {"jsonrpc", "2.0"},
                 {"id", m_id},
                 {"result", result}
-            });
+            }).dump());
         }
 
     private:
         nlohmann::json m_id;
-        std::shared_ptr<porla::HttpContext> m_ctx;
+        uWS::HttpResponse<false>* m_res;
     };
 
     template<typename TReq, typename TRes>
     class Method
     {
     public:
-        void operator()(const nlohmann::json& id, const nlohmann::json& body, std::shared_ptr<porla::HttpContext> ctx)
+        void operator()(const nlohmann::json& id, const nlohmann::json& body, uWS::HttpResponse<false>* res)
         {
-            Invoke(body.get<TReq>(), WriteCb<TRes>(id, std::move(ctx)));
+            Invoke(body.get<TReq>(), WriteCb<TRes>(id, res));
         }
 
     protected:

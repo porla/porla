@@ -2,15 +2,16 @@
 
 #include <sqlite3.h>
 
-#include "httpcontext.hpp"
+#include "handler.hpp"
 
-namespace porla
+namespace porla::Http
 {
     class SystemHandler
     {
     public:
         explicit SystemHandler(sqlite3* db);
-        void operator()(const std::shared_ptr<HttpContext>&);
+
+        void operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
 
     private:
         sqlite3* m_db;

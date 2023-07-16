@@ -5,25 +5,25 @@
 #include <git2.h>
 #include <sodium.h>
 
-#include "authinithandler.hpp"
-#include "authloginhandler.hpp"
 #include "cmdargs.hpp"
 #include "config.hpp"
-#include "embeddedwebuihandler.hpp"
-#include "httpeventstream.hpp"
-#include "httpjwtauth.hpp"
-#include "httpserver.hpp"
-#include "jsonrpchandler.hpp"
 #include "logger.hpp"
 #include "lua/plugins/pluginengine.hpp"
 #include "lua/workflows/workflowengine.hpp"
-#include "metricshandler.hpp"
 #include "session.hpp"
-#include "systemhandler.hpp"
 #include "tools/authtoken.hpp"
 #include "tools/generatesecretkey.hpp"
 #include "tools/versionjson.hpp"
 #include "utils/secretkey.hpp"
+
+#include "http/authinithandler.hpp"
+#include "http/authloginhandler.hpp"
+#include "http/eventshandler.hpp"
+#include "http/jsonrpchandler.hpp"
+#include "http/jwthandler.hpp"
+#include "http/metricshandler.hpp"
+#include "http/systemhandler.hpp"
+#include "http/webuihandler.hpp"
 
 #include "methods/fsspace.hpp"
 #include "methods/plugins/pluginsconfigure.hpp"
@@ -151,7 +151,7 @@ int main(int argc, char* argv[])
             .plugin_engine = plugin_engine
         };
 
-        porla::JsonRpcHandler rpc({
+        porla::Http::JsonRpcHandler rpc({
             {"fs.space", porla::Methods::FsSpace()},
             {"plugins.configure", porla::Methods::PluginsConfigure(plugin_engine)},
             {"plugins.get", porla::Methods::PluginsGet(plugin_engine)},
@@ -181,54 +181,52 @@ int main(int argc, char* argv[])
             {"torrents.trackers.list", porla::Methods::TorrentsTrackersList(session)}
         });
 
-        porla::HttpServer http(io, porla::HttpServerOptions{
-            .host = cfg->http_host.value_or("127.0.0.1"),
-            .port = cfg->http_port.value_or(1337)
-        });
-
-        porla::HttpEventStream eventStream(session);
-        porla::MetricsHandler metrics(session);
-
-        porla::AuthInitHandler authInitHandler(io, cfg->db, cfg->sodium_memlimit.value_or(crypto_pwhash_MEMLIMIT_MIN));
-        porla::AuthLoginHandler authLoginHandler(io, porla::AuthLoginHandlerOptions{
-            .db         = cfg->db,
-            .secret_key = cfg->secret_key
-        });
-
         std::string http_base_path = cfg->http_base_path.value_or("/");
         if (http_base_path.empty())        http_base_path = "/";
         if (http_base_path[0] != '/')      http_base_path = "/" + http_base_path;
         if (http_base_path.ends_with("/")) http_base_path = http_base_path.substr(0, http_base_path.size() - 1);
 
-        http.Use(porla::HttpPost(http_base_path + "/api/v1/auth/init",  [&authInitHandler](auto const& ctx) { authInitHandler(ctx); }));
-        http.Use(porla::HttpPost(http_base_path + "/api/v1/auth/login", [&authLoginHandler](auto const& ctx) { authLoginHandler(ctx); }));
-        http.Use(porla::HttpGet(http_base_path +  "/api/v1/system",     porla::SystemHandler(cfg->db)));
+        uWS::Loop::get(&io);
 
-        http.Use(
-            porla::HttpPost(http_base_path + "/api/v1/jsonrpc",
-                cfg->http_auth_enabled.value_or(true)
-                    ? static_cast<porla::HttpMiddleware>(porla::HttpJwtAuth(cfg->secret_key, [&rpc](auto const& ctx) { rpc(ctx); }))
-                    : static_cast<porla::HttpMiddleware>([&rpc](auto const& ctx) { rpc(ctx); })));
+        uWS::App http_server;
+        http_server.post(http_base_path + "/api/v1/auth/init", porla::Http::AuthInitHandler(io, cfg->db, cfg->sodium_memlimit.value_or(crypto_pwhash_MEMLIMIT_MIN)));
+        http_server.post(http_base_path + "/api/v1/auth/login", porla::Http::AuthLoginHandler(porla::Http::AuthLoginHandlerOptions{
+            .db         = cfg->db,
+            .io         = io,
+            .secret_key = cfg->secret_key
+        }));
 
-        http.Use(
-            porla::HttpGet(http_base_path + "/api/v1/events",
-                cfg->http_auth_enabled.value_or(true)
-                    ? static_cast<porla::HttpMiddleware>(porla::HttpJwtAuth(cfg->secret_key, [&eventStream](auto const& ctx) { eventStream(ctx); }))
-                    : static_cast<porla::HttpMiddleware>([&eventStream](auto const& ctx) { eventStream(ctx); })));
+        http_server.get(http_base_path + "/api/v1/events",
+            cfg->http_auth_enabled.value_or(true)
+                ? static_cast<porla::Http::Handler>(porla::Http::JwtHandler(cfg->secret_key, porla::Http::EventsHandler(session)))
+                : static_cast<porla::Http::Handler>(porla::Http::EventsHandler(session)));
+
+        http_server.post(http_base_path + "/api/v1/jsonrpc",
+            cfg->http_auth_enabled.value_or(true)
+                ? static_cast<porla::Http::Handler>(porla::Http::JwtHandler(cfg->secret_key, rpc))
+                : static_cast<porla::Http::Handler>(rpc));
+
+        http_server.get(http_base_path + "/api/v1/system", porla::Http::SystemHandler(cfg->db));
 
         if (cfg->http_metrics_enabled.value_or(true))
         {
             BOOST_LOG_TRIVIAL(info) << "Enabling HTTP metrics endpoint";
-            http.Use(porla::HttpGet(http_base_path + "/metrics", [&metrics](auto const &ctx) { metrics(ctx); }));
+            http_server.get(http_base_path + "/metrics", porla::Http::MetricsHandler(session));
         }
 
         if (cfg->http_webui_enabled.value_or(true))
         {
             BOOST_LOG_TRIVIAL(info) << "Enabling HTTP web UI";
-            http.Use(porla::EmbeddedWebUIHandler(http_base_path));
+            http_server.get(http_base_path + "/*", porla::Http::WebUIHandler(http_base_path));
         }
 
-        http.Use(porla::HttpNotFound());
+        http_server.listen(
+            cfg->http_host.value_or("127.0.0.1"),
+            cfg->http_port.value_or(1337),
+            [](const auto* t)
+            {
+                BOOST_LOG_TRIVIAL(info) << "HTTP server listening";
+            });
 
         io.run();
 

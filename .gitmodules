@@ -1,3 +1,6 @@
 [submodule "vendor/vcpkg"]
 	path = vendor/vcpkg
 	url = https://github.com/microsoft/vcpkg
+[submodule "vendor/uWebSockets"]
+	path = vendor/uWebSockets
+	url = https://github.com/uNetworking/uWebSockets

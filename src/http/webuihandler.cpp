@@ -1,4 +1,4 @@
-#include "embeddedwebuihandler.hpp"
+#include "webuihandler.hpp"
 
 #include <filesystem>
 #include <regex>
@@ -8,7 +8,7 @@
 #include <zip.h>
 
 namespace fs = std::filesystem;
-using porla::EmbeddedWebUIHandler;
+using porla::Http::WebUIHandler;
 
 extern "C"
 {
@@ -16,7 +16,8 @@ extern "C"
     extern const size_t webui_zip_size();
 }
 
-void str_replace_all(std::string& str, const std::string& from, const std::string& to)
+
+static void str_replace_all(std::string& str, const std::string& from, const std::string& to)
 {
     if (from.empty())
     {
@@ -32,7 +33,7 @@ void str_replace_all(std::string& str, const std::string& from, const std::strin
     }
 }
 
-EmbeddedWebUIHandler::EmbeddedWebUIHandler(std::string base_path)
+WebUIHandler::WebUIHandler(std::string base_path)
     : m_base_path(std::move(base_path))
 {
     if (webui_zip_size() == 0)
@@ -76,16 +77,14 @@ EmbeddedWebUIHandler::EmbeddedWebUIHandler(std::string base_path)
     }
 }
 
-void EmbeddedWebUIHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
+void WebUIHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
 {
-    // If files are empty (we have no embedded web UI) - return next middleware
-    // and ignore this request.
+    // If files are empty (we have no embedded web UI) - return 404.
     if (m_files.empty())
     {
-        return ctx->Next();
+        res->writeStatus("404 Not found")->end("Not found");
+        return;
     }
-
-    namespace http = boost::beast::http;
 
     const static std::map<std::string, std::string> MimeTypes =
     {
@@ -95,10 +94,8 @@ void EmbeddedWebUIHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
         {".svg", "image/svg+xml"}
     };
 
-    auto const respond_with_file = [&ctx, this](const fs::path& file)
+    auto const respond_with_file = [&res, this](const fs::path& file)
     {
-        namespace http = boost::beast::http;
-
         std::string mime_type = "text/plain";
 
         if (file.has_extension() && MimeTypes.contains(file.extension()))
@@ -120,26 +117,23 @@ void EmbeddedWebUIHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
             data = std::regex_replace(data, src_expression, "src=\"" + m_base_path + "/$2\"");
         }
 
-        http::response<http::string_body> res{http::status::ok, ctx->Request().version()};
-        res.set(http::field::server, "porla/1.0");
-        res.set(http::field::content_type, mime_type);
-        res.keep_alive(ctx->Request().keep_alive());
-        res.body() = data;
-        res.prepare_payload();
-        return res;
+        res->writeHeader("Content-Type", mime_type);
+        res->writeStatus("200 OK");
+        res->write(data);
+        res->end();
     };
 
-    std::string path = std::string(ctx->Request().target());
+    std::string path = std::string(req->getUrl());
 
     // If the path is shorter than our base path, do not handle this request.
     // For example,
     // path: /      base_path: /porla
     // Also check that the path is prefixed with the base path.
 
-    if (path.length() < m_base_path.length()
-        || path.substr(0, m_base_path.length()) != m_base_path)
+    if (path.length() < m_base_path.length() || path.substr(0, m_base_path.length()) != m_base_path)
     {
-        return ctx->Next();
+        res->writeStatus("404 Not found")->end("Not found");
+        return;
     }
 
     std::string rooted_path = path.substr(m_base_path.length());
@@ -148,5 +142,5 @@ void EmbeddedWebUIHandler::operator()(const std::shared_ptr<HttpContext>& ctx)
     if (rooted_path.empty())                               rooted_path = "index.html";
     if (!m_files.contains(rooted_path))                    rooted_path = "index.html";
 
-    ctx->Write(respond_with_file(rooted_path));
+    respond_with_file(rooted_path);
 }

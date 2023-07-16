@@ -17,7 +17,7 @@ find_package(LibtorrentRasterbar CONFIG REQUIRED)
 find_package(Lua                        REQUIRED)
 find_package(nlohmann_json       CONFIG REQUIRED)
 find_package(tomlplusplus        CONFIG REQUIRED)
-find_package(unofficial-git2  CONFIG REQUIRED)
+find_package(unofficial-git2     CONFIG REQUIRED)
 find_package(unofficial-sodium   CONFIG REQUIRED)
 find_package(unofficial-sqlite3  CONFIG REQUIRED)
 find_package(uriparser           CONFIG REQUIRED)
@@ -37,6 +37,38 @@ add_custom_command(
     ${CMAKE_CURRENT_BINARY_DIR}/_webui.cpp
     COMMAND ${CMAKE_COMMAND} -P
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FileEmbed.cmake)
+
+add_library(
+    uSockets
+    STATIC
+    vendor/uWebSockets/uSockets/src/crypto/openssl.c
+    vendor/uWebSockets/uSockets/src/eventing/asio.cpp
+    vendor/uWebSockets/uSockets/src/bsd.c
+    vendor/uWebSockets/uSockets/src/context.c
+    vendor/uWebSockets/uSockets/src/loop.c
+    vendor/uWebSockets/uSockets/src/quic.c
+    vendor/uWebSockets/uSockets/src/socket.c
+    vendor/uWebSockets/uSockets/src/udp.c
+)
+
+target_compile_definitions(
+    uSockets
+    PRIVATE
+    -DLIBUS_NO_SSL
+    -DLIBUS_USE_ASIO
+)
+
+target_include_directories(
+    uSockets
+    PUBLIC
+    vendor/uWebSockets/uSockets/src
+)
+
+target_link_libraries(
+    uSockets
+    PRIVATE
+    Boost::boost
+)
 
 add_library(
     ${PROJECT_NAME}_utils
@@ -73,22 +105,12 @@ add_library(
     ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/webui.cpp
 
-    src/authinithandler.cpp
-    src/authloginhandler.cpp
     src/buildinfo.cpp
     src/cmdargs.cpp
     src/config.cpp
-    src/embeddedwebuihandler.cpp
     src/logger.cpp
     src/httpclient.cpp
-    src/httpeventstream.cpp
-    src/httpjwtauth.cpp
-    src/httpserver.cpp
-    src/httpsession.cpp
-    src/jsonrpchandler.cpp
-    src/metricshandler.cpp
     src/session.cpp
-    src/systemhandler.cpp
     src/uri.cpp
     src/utils/eta.cpp
     src/utils/secretkey.cpp
@@ -106,6 +128,15 @@ add_library(
     src/data/models/addtorrentparams.cpp
     src/data/models/users.cpp
     src/data/statement.cpp
+
+    src/http/authinithandler.cpp
+    src/http/authloginhandler.cpp
+    src/http/eventshandler.cpp
+    src/http/jsonrpchandler.cpp
+    src/http/jwthandler.cpp
+    src/http/metricshandler.cpp
+    src/http/systemhandler.cpp
+    src/http/webuihandler.cpp
 
     src/lua/packages/config.cpp
     src/lua/packages/cron.cpp
@@ -224,6 +255,7 @@ target_link_libraries(
     unofficial::git2::libgit2package
     unofficial::sqlite3::sqlite3
     uriparser::uriparser
+    uSockets
 )
 
 add_executable(
@@ -234,6 +266,7 @@ add_executable(
 target_link_libraries(
     ${PROJECT_NAME}
     ${PROJECT_NAME}_core
+        uSockets
 )
 
 add_executable(

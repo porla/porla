@@ -4,16 +4,16 @@
 #include <string>
 #include <vector>
 
-#include "httpcontext.hpp"
+#include "handler.hpp"
 
-namespace porla
+namespace porla::Http
 {
-    class EmbeddedWebUIHandler
+    class WebUIHandler
     {
     public:
-        explicit EmbeddedWebUIHandler(std::string base_path);
+        explicit WebUIHandler(std::string base_path);
 
-        void operator()(const std::shared_ptr<HttpContext>&);
+        void operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
 
     private:
         std::string m_base_path;
