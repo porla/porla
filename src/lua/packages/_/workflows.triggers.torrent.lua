@@ -22,7 +22,7 @@ return {
 
             table.insert(signals, signal)
         end
-    end
+    end,
 
     moved = function()
         return function(callback)
