@@ -109,7 +109,6 @@ add_library(
     src/cmdargs.cpp
     src/config.cpp
     src/logger.cpp
-    src/httpclient.cpp
     src/session.cpp
     src/uri.cpp
     src/utils/eta.cpp
@@ -142,6 +141,7 @@ add_library(
     src/lua/packages/cron.cpp
     src/lua/packages/filesystem.cpp
     src/lua/packages/httpclient.cpp
+    src/lua/packages/json.cpp
     src/lua/packages/log.cpp
     src/lua/packages/process.cpp
     src/lua/packages/sqlite.cpp
@@ -153,11 +153,6 @@ add_library(
     src/lua/usertypes/session.cpp
     src/lua/usertypes/torrent.cpp
     src/lua/usertypes/workflow.cpp
-    src/lua/usertypes/workflowactionexec.cpp
-    src/lua/usertypes/workflowactionhttprequest.cpp
-    src/lua/usertypes/workflowactionlog.cpp
-    src/lua/usertypes/workflowactionpushdiscord.cpp
-    src/lua/usertypes/workflowactionpushntfy.cpp
     src/lua/usertypes/workflowactionsleep.cpp
     src/lua/usertypes/workflowactiontorrentflags.cpp
     src/lua/usertypes/workflowactiontorrentmove.cpp
@@ -172,12 +167,6 @@ add_library(
     src/lua/workflows/workflowengine.cpp
     src/lua/workflows/workflowfilter.cpp
     src/lua/workflows/workflowrunner.cpp
-    src/lua/workflows/actions/exec.cpp
-    src/lua/workflows/actions/function.cpp
-    src/lua/workflows/actions/httprequest.cpp
-    src/lua/workflows/actions/log.cpp
-    src/lua/workflows/actions/pushdiscord.cpp
-    src/lua/workflows/actions/pushntfy.cpp
     src/lua/workflows/actions/sleep.cpp
     src/lua/workflows/actions/torrentflags.cpp
     src/lua/workflows/actions/torrentmove.cpp

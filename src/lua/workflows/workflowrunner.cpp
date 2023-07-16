@@ -3,10 +3,8 @@
 #include <boost/log/trivial.hpp>
 
 #include "actionbuilder.hpp"
-#include "actions/function.hpp"
 
 using porla::Lua::Workflows::ActionBuilder;
-using porla::Lua::Workflows::Actions::Function;
 using porla::Lua::Workflows::WorkflowRunner;
 
 WorkflowRunner::WorkflowRunner(const WorkflowRunnerOptions& opts, sol::table ctx, std::vector<sol::object> actions)
@@ -92,27 +90,6 @@ void WorkflowRunner::RunOne()
         catch (const std::exception& ex)
         {
             BOOST_LOG_TRIVIAL(error) << "Error when invoking action: " << ex.what();
-        }
-    }
-    else if (current_action.is<sol::function>())
-    {
-        try
-        {
-            auto tbl = m_opts.lua.create_table();
-            tbl["function"] = current_action;
-
-            auto instance = std::make_shared<Function>(tbl);
-
-            porla::Lua::Workflows::ActionParams params{
-                .context = m_ctx,
-                .state   = m_opts.lua
-            };
-
-            instance->Invoke(params, shared_from_this());
-        }
-        catch (const std::exception& ex)
-        {
-            BOOST_LOG_TRIVIAL(error) << "Error when invoking free function: " << ex.what();
         }
     }
 }

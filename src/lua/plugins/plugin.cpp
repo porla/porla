@@ -7,6 +7,7 @@
 #include "../packages/cron.hpp"
 #include "../packages/filesystem.hpp"
 #include "../packages/httpclient.hpp"
+#include "../packages/json.hpp"
 #include "../packages/log.hpp"
 #include "../packages/process.hpp"
 #include "../packages/sqlite.hpp"
@@ -67,6 +68,7 @@ std::unique_ptr<Plugin> Plugin::Load(const PluginLoadOptions& opts)
     Packages::Cron::Register(state->lua);
     Packages::FileSystem::Register(state->lua);
     Packages::HttpClient::Register(state->lua);
+    Packages::Json::Register(state->lua);
     Packages::Log::Register(state->lua);
     Packages::Process::Register(state->lua);
     Packages::Sqlite::Register(state->lua);

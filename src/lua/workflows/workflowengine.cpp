@@ -6,11 +6,6 @@
 #include "../usertypes/lttorrenthandle.hpp"
 #include "../usertypes/torrent.hpp"
 #include "../usertypes/workflow.hpp"
-#include "../usertypes/workflowactionexec.hpp"
-#include "../usertypes/workflowactionhttprequest.hpp"
-#include "../usertypes/workflowactionlog.hpp"
-#include "../usertypes/workflowactionpushdiscord.hpp"
-#include "../usertypes/workflowactionpushntfy.hpp"
 #include "../usertypes/workflowactionsleep.hpp"
 #include "../usertypes/workflowactiontorrentflags.hpp"
 #include "../usertypes/workflowactiontorrentmove.hpp"
@@ -38,11 +33,6 @@ using porla::Lua::UserTypes::Workflow;
 
 using porla::Lua::UserTypes::LibtorrentTorrentHandle;
 using porla::Lua::UserTypes::Torrent;
-using porla::Lua::UserTypes::WorkflowActionExec;
-using porla::Lua::UserTypes::WorkflowActionHttpRequest;
-using porla::Lua::UserTypes::WorkflowActionLog;
-using porla::Lua::UserTypes::WorkflowActionPushDiscord;
-using porla::Lua::UserTypes::WorkflowActionPushNtfy;
 using porla::Lua::UserTypes::WorkflowActionSleep;
 using porla::Lua::UserTypes::WorkflowActionTorrentFlags;
 using porla::Lua::UserTypes::WorkflowActionTorrentMove;
@@ -111,21 +101,6 @@ public:
 
         m_lua.require("porla.Workflow", sol::c_call<decltype(&Workflow::Require), &Workflow::Require>);
 
-        m_lua.require("porla.actions.Exec",
-                             sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionExec>),
-                                 &OpenWorkflowActionT<WorkflowActionExec>>);
-        m_lua.require("porla.actions.HttpRequest",
-            sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionHttpRequest>),
-                &OpenWorkflowActionT<WorkflowActionHttpRequest>>);
-        m_lua.require("porla.actions.Log",
-                             sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionLog>),
-                                 &OpenWorkflowActionT<WorkflowActionLog>>);
-        m_lua.require("porla.actions.PushDiscord",
-                             sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionPushDiscord>),
-                                 &OpenWorkflowActionT<WorkflowActionPushDiscord>>);
-        m_lua.require("porla.actions.PushNtfy",
-                             sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionPushNtfy>),
-                                 &OpenWorkflowActionT<WorkflowActionPushNtfy>>);
         m_lua.require("porla.actions.Sleep",
                              sol::c_call<decltype(&OpenWorkflowActionT<WorkflowActionSleep>),
                                  &OpenWorkflowActionT<WorkflowActionSleep>>);

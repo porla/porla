@@ -54,7 +54,9 @@ void HttpClient::Register(sol::state& lua)
             auto state = std::make_shared<HttpRequestState>(HttpRequestState{
                 .body     = args["body"],
                 .callback = args["callback"],
-                .headers  = {},
+                .headers  = args["headers"].valid()
+                    ? args["headers"].get<std::map<std::string, std::string>>()
+                    : std::map<std::string, std::string>(),
                 .io       = options.io,
                 .method   = args["method"],
                 .url      = args["url"],

@@ -10,8 +10,16 @@ static const char workflows_actions_exec_lua[] =
 #include "_/workflows.actions.exec.lua"
 ;
 
+static const char workflows_actions_http_lua[] =
+#include "_/workflows.actions.http.lua"
+;
+
 static const char workflows_actions_log_lua[] =
 #include "_/workflows.actions.log.lua"
+;
+
+static const char workflows_actions_notify_lua[] =
+#include "_/workflows.actions.notify.lua"
 ;
 
 static const char workflows_actions_torrent_lua[] =
@@ -43,10 +51,22 @@ void Workflows::Register(sol::state& lua)
         return lua.script(workflows_actions_exec_lua, "workflows.actions.exec.lua");
     };
 
+    lua["package"]["preload"]["workflows.actions.http"] = [](sol::this_state s)
+    {
+        sol::state_view lua{s};
+        return lua.script(workflows_actions_http_lua, "workflows.actions.http.lua");
+    };
+
     lua["package"]["preload"]["workflows.actions.log"] = [](sol::this_state s)
     {
         sol::state_view lua{s};
         return lua.script(workflows_actions_log_lua, "workflows.actions.log.lua");
+    };
+
+    lua["package"]["preload"]["workflows.actions.notify"] = [](sol::this_state s)
+    {
+        sol::state_view lua{s};
+        return lua.script(workflows_actions_notify_lua, "workflows.actions.notify.lua");
     };
 
     lua["package"]["preload"]["workflows.actions.torrent"] = [](sol::this_state s)
