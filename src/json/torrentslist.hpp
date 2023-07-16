@@ -20,12 +20,14 @@ namespace porla::Methods
 
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsListRes::Item,
+        active_duration,
         all_time_download,
         all_time_upload,
         category,
         download_rate,
         error,
         eta,
+        finished_duration,
         flags,
         info_hash,
         list_peers,
@@ -39,6 +41,7 @@ namespace porla::Methods
         queue_position,
         ratio,
         save_path,
+        seeding_duration,
         size,
         state,
         tags,
