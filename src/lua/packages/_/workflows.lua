@@ -18,6 +18,26 @@ local function run(actions, index, ctx)
 end
 
 local function add(workflow)
+    if workflow == nil then
+        log.error "Workflow is nil"
+        return
+    end
+
+    if workflow.trigger == nil then
+        log.error "Workflow trigger is nil"
+        return
+    end
+
+    if workflow.actions == nil then
+        log.error "Workflow actions is nil"
+        return
+    end
+
+    if #(workflow.actions) == 0 then
+        log.error "Workflow actions is empty"
+        return
+    end
+
     log.info "Adding workflow"
 
     local pql_filter = nil
