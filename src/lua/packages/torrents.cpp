@@ -270,18 +270,11 @@ void Torrents::Register(sol::state& lua)
 
             int                    seconds = 0;
             int                    index   = -1;
-            lt::reannounce_flags_t flags   = {};
 
             if (args["seconds"].is<int>())       seconds = args["seconds"];
             if (args["tracker_index"].is<int>()) index   = args["tracker_index"];
 
-            if (args["ignore_min_interval"].is<bool>()
-                && args["ignore_min_interval"].get<bool>())
-            {
-                flags = lt::torrent_handle::ignore_min_interval;
-            }
-
-            ts.handle.force_reannounce(seconds, index, flags);
+            ts.handle.force_reannounce(seconds, index);
         };
 
         torrents["remove"] = [](sol::this_state s, const lt::torrent_status& ts, const sol::table& args)

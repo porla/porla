@@ -51,6 +51,7 @@ return {
             local current_tries = 0
             local interval      = 2
             local max_tries     = 5
+            local tracker_index = 0
 
             if args and type(args.interval) == "number" then
                 interval = args.interval
@@ -58,6 +59,10 @@ return {
 
             if args and type(args.max_tries) == "number" then
                 max_tries = args.max_tries
+            end
+
+            if args and type(args.tracker_index) == "number" then
+                tracker_index = args.tracker_index
             end
 
             tracker_reply_connection = events.on("torrent_tracker_reply", function(torrent)
@@ -99,7 +104,7 @@ return {
                             current_tries          = current_tries + 1
                             found_matching_failure = true
 
-                            if current_tries >= max_tries then
+                            if current_tries > max_tries then
                                 log.warning "Max tries reached for reannounce"
 
                                 tracker_reply_connection:disconnect()
@@ -116,9 +121,8 @@ return {
                             log.info(string.format("Reannouncing torrent %s (attempt %d of %d)", ctx.torrent.name, current_tries, max_tries))
 
                             torrents.reannounce(ctx.torrent, {
-                                seconds             = interval,
-                                tracker_index       = 0,
-                                ignore_min_interval = true
+                                seconds       = interval,
+                                tracker_index = tracker_index
                             })
                         end
                     end
@@ -138,9 +142,8 @@ return {
             end)
 
             torrents.reannounce(ctx.torrent, {
-                seconds             = interval,
-                tracker_index       = 0,
-                ignore_min_interval = true
+                seconds       = 0,
+                tracker_index = tracker_index
             })
         end
     end,
