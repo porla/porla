@@ -151,13 +151,6 @@ add_library(
     src/lua/packages/workflows.cpp
     src/lua/plugins/plugin.cpp
     src/lua/plugins/pluginengine.cpp
-    src/lua/usertypes/workflow.cpp
-    src/lua/usertypes/workflowactiontorrentflags.cpp
-    src/lua/usertypes/workflowactiontorrentreannounce.cpp
-    src/lua/workflows/workflowengine.cpp
-    src/lua/workflows/workflowfilter.cpp
-    src/lua/workflows/actions/torrentflags.cpp
-    src/lua/workflows/actions/torrentreannounce.cpp
 
     src/methods/fsspace.cpp
     src/methods/plugins/pluginsconfigure.cpp

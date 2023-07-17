@@ -14,7 +14,7 @@ public:
         : m_timer(io)
         , m_args(std::move(args))
     {
-
+        Next();
     }
 
     ~Timer()

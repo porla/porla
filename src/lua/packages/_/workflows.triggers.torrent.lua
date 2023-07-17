@@ -1,12 +1,12 @@
 R"luastring"--(
 
-local torrents = require "torrents"
+local events  = require "events"
 local signals = {}
 
 return {
     added = function()
         return function(callback)
-            local signal = torrents.on("torrent_added", function(torrent)
+            local signal = events.on("torrent_added", function(torrent)
                 callback(torrent)
             end)
     
@@ -16,7 +16,7 @@ return {
 
     finished = function()
         return function(callback)
-            local signal = torrents.on("torrent_finished", function(torrent)
+            local signal = events.on("torrent_finished", function(torrent)
                 callback(torrent)
             end)
 
@@ -26,7 +26,7 @@ return {
 
     moved = function()
         return function(callback)
-            local signal = torrents.on("torrent_moved", function(torrent)
+            local signal = events.on("torrent_moved", function(torrent)
                 callback(torrent)
             end)
 

@@ -130,6 +130,33 @@ void Torrents::Register(sol::state& lua)
             options.session.AddTorrent(p);
         };
 
+        torrents["errors"] = lua.create_table();
+        torrents["errors"]["tracker_failure"] = lt::errors::tracker_failure;
+
+        sol::table flags = lua.create_table();
+        flags["seed_mode"]             = static_cast<std::uint64_t>(lt::torrent_flags::seed_mode);
+        flags["upload_mode"]           = static_cast<std::uint64_t>(lt::torrent_flags::upload_mode);
+        flags["share_mode"]            = static_cast<std::uint64_t>(lt::torrent_flags::share_mode);
+        flags["apply_ip_filter"]       = static_cast<std::uint64_t>(lt::torrent_flags::apply_ip_filter);
+        flags["paused"]                = static_cast<std::uint64_t>(lt::torrent_flags::paused);
+        flags["auto_managed"]          = static_cast<std::uint64_t>(lt::torrent_flags::auto_managed);
+        flags["duplicate_is_error"]    = static_cast<std::uint64_t>(lt::torrent_flags::duplicate_is_error);
+        flags["update_subscribe"]      = static_cast<std::uint64_t>(lt::torrent_flags::update_subscribe);
+        flags["super_seeding"]         = static_cast<std::uint64_t>(lt::torrent_flags::super_seeding);
+        flags["sequential_download"]   = static_cast<std::uint64_t>(lt::torrent_flags::sequential_download);
+        flags["stop_when_ready"]       = static_cast<std::uint64_t>(lt::torrent_flags::stop_when_ready);
+        flags["override_trackers"]     = static_cast<std::uint64_t>(lt::torrent_flags::override_trackers);
+        flags["override_web_seeds"]    = static_cast<std::uint64_t>(lt::torrent_flags::override_web_seeds);
+        flags["need_save_resume"]      = static_cast<std::uint64_t>(lt::torrent_flags::need_save_resume);
+        flags["disable_dht"]           = static_cast<std::uint64_t>(lt::torrent_flags::disable_dht);
+        flags["disable_lsd"]           = static_cast<std::uint64_t>(lt::torrent_flags::disable_lsd);
+        flags["disable_pex"]           = static_cast<std::uint64_t>(lt::torrent_flags::disable_pex);
+        flags["no_verify_files"]       = static_cast<std::uint64_t>(lt::torrent_flags::no_verify_files);
+        flags["default_dont_download"] = static_cast<std::uint64_t>(lt::torrent_flags::default_dont_download);
+        flags["i2p_torrent"]           = static_cast<std::uint64_t>(lt::torrent_flags::i2p_torrent);
+        flags["all"]                   = static_cast<std::uint64_t>(lt::torrent_flags::all);
+        torrents["flags"] = flags;
+
         torrents["has"] = [](sol::this_state s, const sol::object& arg)
         {
             sol::state_view lua{s};
@@ -208,7 +235,7 @@ void Torrents::Register(sol::state& lua)
             sol::table p = lua.create_table();
 
             p["download_limit"]  = ts.handle.download_limit();
-            p["flags"]           = ts.handle.flags();
+            p["flags"]           = static_cast<std::uint64_t>(ts.handle.flags());
             p["max_connections"] = ts.handle.max_connections();
             p["max_uploads"]     = ts.handle.max_uploads();
             p["upload_limit"]    = ts.handle.upload_limit();
@@ -216,7 +243,46 @@ void Torrents::Register(sol::state& lua)
             return p;
         };
 
+        properties["set"] = [](sol::this_state s, const lt::torrent_status& ts, const sol::table& args)
+        {
+            if (!ts.handle.is_valid())
+            {
+                return;
+            }
+
+            BOOST_LOG_TRIVIAL(info) << args["flags"].get<std::uint64_t>();
+
+            if (args["download_limit"].valid())  ts.handle.set_download_limit(args["download_limit"]);
+            if (args["flags"].valid())           ts.handle.set_flags(static_cast<lt::torrent_flags_t>(args["flags"].get<std::uint64_t>(), lt::torrent_flags::all));
+            if (args["max_connections"].valid()) ts.handle.set_max_connections(args["max_connections"]);
+            if (args["max_uploads"].valid())     ts.handle.set_max_uploads(args["max_uploads"]);
+            if (args["upload_limit"].valid())    ts.handle.set_upload_limit(args["upload_limit"]);
+        };
+
         torrents["properties"] = properties;
+
+        torrents["reannounce"] = [](sol::this_state s, const lt::torrent_status& ts, const sol::table& args)
+        {
+            if (!ts.handle.is_valid())
+            {
+                return;
+            }
+
+            int                    seconds = 0;
+            int                    index   = -1;
+            lt::reannounce_flags_t flags   = {};
+
+            if (args["seconds"].is<int>())       seconds = args["seconds"];
+            if (args["tracker_index"].is<int>()) index   = args["tracker_index"];
+
+            if (args["ignore_min_interval"].is<bool>()
+                && args["ignore_min_interval"].get<bool>())
+            {
+                flags = lt::torrent_handle::ignore_min_interval;
+            }
+
+            ts.handle.force_reannounce(seconds, index, flags);
+        };
 
         torrents["remove"] = [](sol::this_state s, const lt::torrent_status& ts, const sol::table& args)
         {

@@ -1,6 +1,7 @@
 #include "events.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <libtorrent/alert_types.hpp>
 
 #include "../plugins/plugin.hpp"
 #include "../../session.hpp"
@@ -26,6 +27,15 @@ struct SignalConnection
 
 void Events::Register(sol::state& lua)
 {
+    auto type = lua.new_usertype<SignalConnection>(
+        "events.SignalConnection",
+        sol::no_constructor);
+
+    type["disconnect"] = [](const std::shared_ptr<SignalConnection>& c)
+    {
+        c->connection.disconnect();
+    };
+
     lua["package"]["preload"]["events"] = [](sol::this_state s)
     {
         sol::state_view lua{s};
@@ -134,6 +144,51 @@ void Events::Register(sol::state& lua)
                         try
                         {
                             cb(ts);
+                        }
+                        catch (const sol::error& err)
+                        {
+                            BOOST_LOG_TRIVIAL(error) << "An error occurred in an event handler: " << err.what();
+                        }
+                    });
+
+                return std::make_shared<SignalConnection>(connection);
+            }
+
+            if (name == "torrent_tracker_error")
+            {
+                auto connection = options.session.OnTorrentTrackerError(
+                    [s, cb = callback](const lt::tracker_error_alert* alert)
+                    {
+                        sol::state_view lua{s};
+
+                        sol::table a = lua.create_table();
+                        a["error"] = lua.create_table();
+                        a["error"]["message"] = alert->error.message();
+                        a["error"]["value"] = alert->error.value();
+                        a["failure_reason"] = alert->failure_reason();
+                        a["torrent"] = alert->handle.status();
+
+                        try
+                        {
+                            cb(a);
+                        }
+                        catch (const sol::error& err)
+                        {
+                            BOOST_LOG_TRIVIAL(error) << "An error occurred in an event handler: " << err.what();
+                        }
+                    });
+
+                return std::make_shared<SignalConnection>(connection);
+            }
+
+            if (name == "torrent_tracker_reply")
+            {
+                auto connection = options.session.OnTorrentTrackerReply(
+                    [cb = callback](const lt::torrent_handle& th)
+                    {
+                        try
+                        {
+                            cb(th.status());
                         }
                         catch (const sol::error& err)
                         {

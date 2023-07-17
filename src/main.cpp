@@ -9,7 +9,6 @@
 #include "config.hpp"
 #include "logger.hpp"
 #include "lua/plugins/pluginengine.hpp"
-#include "lua/workflows/workflowengine.hpp"
 #include "session.hpp"
 #include "tools/authtoken.hpp"
 #include "tools/generatesecretkey.hpp"
