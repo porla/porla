@@ -33,7 +33,7 @@ namespace porla::Query
         struct Filter
         {
             virtual ~Filter() = default;
-            virtual bool Includes(const libtorrent::torrent_status& ts) = 0;
+            [[nodiscard]] virtual bool Includes(const libtorrent::torrent_status& ts) const = 0;
         };
 
         static std::unique_ptr<Filter> Parse(const std::string_view& input);

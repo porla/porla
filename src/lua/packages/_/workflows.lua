@@ -1,6 +1,7 @@
 R"luastring"--(
 
 local log = require "log"
+local pql = require "pql"
 
 local function run(actions, index, ctx)
     if index > #actions then
@@ -19,6 +20,12 @@ end
 local function add(workflow)
     log.info "Adding workflow"
 
+    local pql_filter = nil
+
+    if type(workflow.filter) == "string" then
+        pql_filter = pql.parse(workflow.filter)
+    end
+
     workflow.trigger(function(torrent)
         local ctx = {
             steps   = {},
@@ -29,6 +36,8 @@ local function add(workflow)
 
         if type(workflow.filter) == "function" then
             should_execute = workflow.filter(ctx)
+        elseif type(workflow.filter) == "string" then
+            should_execute = pql_filter:includes(torrent)
         end
 
         if not should_execute then

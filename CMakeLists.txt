@@ -144,6 +144,7 @@ add_library(
     src/lua/packages/httpclient.cpp
     src/lua/packages/json.cpp
     src/lua/packages/log.cpp
+    src/lua/packages/pql.cpp
     src/lua/packages/process.cpp
     src/lua/packages/sqlite.cpp
     src/lua/packages/timers.cpp

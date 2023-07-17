@@ -10,6 +10,7 @@
 #include "../packages/httpclient.hpp"
 #include "../packages/json.hpp"
 #include "../packages/log.hpp"
+#include "../packages/pql.hpp"
 #include "../packages/process.hpp"
 #include "../packages/sqlite.hpp"
 #include "../packages/timers.hpp"
@@ -73,6 +74,7 @@ std::unique_ptr<Plugin> Plugin::Load(const PluginLoadOptions& opts)
     Packages::HttpClient::Register(state->lua);
     Packages::Json::Register(state->lua);
     Packages::Log::Register(state->lua);
+    Packages::PQL::Register(state->lua);
     Packages::Process::Register(state->lua);
     Packages::Sqlite::Register(state->lua);
     Packages::Timers::Register(state->lua);
