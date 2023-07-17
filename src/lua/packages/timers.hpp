@@ -1,12 +1,12 @@
 #pragma once
 
-#include <libtorrent/fwd.hpp>
 #include <sol/sol.hpp>
 
-namespace porla::Lua::UserTypes
+namespace porla::Lua::Packages
 {
-    struct LibtorrentTorrentHandle
+    class Timers
     {
+    public:
         static void Register(sol::state& lua);
     };
 }

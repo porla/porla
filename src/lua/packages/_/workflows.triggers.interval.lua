@@ -1,14 +1,14 @@
 R"luastring"--(
-local cron     = require "cron"
+local timers   = require "timers"
 local torrents = require "torrents"
 
 local signals = {}
 
-return function(expression)
+return function(interval)
     return function(callback)
-        local signal = cron.schedule({
-            expression = expression,
-            callback   = function()
+        local signal = timers.new({
+            interval = interval,
+            callback = function()
                 for _, torrent in pairs(torrents.list()) do
                     callback(torrent)
                 end
@@ -18,4 +18,5 @@ return function(expression)
         table.insert(signals, signal)
     end
 end
+
 --)luastring"--"

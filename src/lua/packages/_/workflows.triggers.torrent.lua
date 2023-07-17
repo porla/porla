@@ -6,7 +6,7 @@ local signals = {}
 return {
     added = function()
         return function(callback)
-            local signal = torrents.on("added", function(torrent)
+            local signal = torrents.on("torrent_added", function(torrent)
                 callback(torrent)
             end)
     
@@ -16,7 +16,7 @@ return {
 
     finished = function()
         return function(callback)
-            local signal = torrents.on("finished", function(torrent)
+            local signal = torrents.on("torrent_finished", function(torrent)
                 callback(torrent)
             end)
 
@@ -26,7 +26,7 @@ return {
 
     moved = function()
         return function(callback)
-            local signal = torrents.on("moved", function(torrent)
+            local signal = torrents.on("torrent_moved", function(torrent)
                 callback(torrent)
             end)
 

@@ -22,12 +22,21 @@ static const char workflows_actions_notify_lua[] =
 #include "_/workflows.actions.notify.lua"
 ;
 
+static const char workflows_actions_sleep_lua[] =
+#include "_/workflows.actions.sleep.lua"
+;
+
+
 static const char workflows_actions_torrent_lua[] =
 #include "_/workflows.actions.torrent.lua"
 ;
 
 static const char workflows_triggers_cron_lua[] =
 #include "_/workflows.triggers.cron.lua"
+;
+
+static const char workflows_triggers_interval_lua[] =
+#include "_/workflows.triggers.interval.lua"
 ;
 
 static const char workflows_triggers_torrent_lua[] =
@@ -69,6 +78,12 @@ void Workflows::Register(sol::state& lua)
         return lua.script(workflows_actions_notify_lua, "workflows.actions.notify.lua");
     };
 
+    lua["package"]["preload"]["workflows.actions.sleep"] = [](sol::this_state s)
+    {
+        sol::state_view lua{s};
+        return lua.script(workflows_actions_sleep_lua, "workflows.actions.sleep.lua");
+    };
+
     lua["package"]["preload"]["workflows.actions.torrent"] = [](sol::this_state s)
     {
         sol::state_view lua{s};
@@ -79,6 +94,12 @@ void Workflows::Register(sol::state& lua)
     {
         sol::state_view lua{s};
         return lua.script(workflows_triggers_cron_lua, "workflows.triggers.cron.lua");
+    };
+
+    lua["package"]["preload"]["workflows.triggers.interval"] = [](sol::this_state s)
+    {
+        sol::state_view lua{s};
+        return lua.script(workflows_triggers_interval_lua, "workflows.triggers.interval.lua");
     };
 
     lua["package"]["preload"]["workflows.triggers.torrent"] = [](sol::this_state s)

@@ -139,45 +139,25 @@ add_library(
 
     src/lua/packages/config.cpp
     src/lua/packages/cron.cpp
+    src/lua/packages/events.cpp
     src/lua/packages/filesystem.cpp
     src/lua/packages/httpclient.cpp
     src/lua/packages/json.cpp
     src/lua/packages/log.cpp
     src/lua/packages/process.cpp
     src/lua/packages/sqlite.cpp
+    src/lua/packages/timers.cpp
     src/lua/packages/torrents.cpp
     src/lua/packages/workflows.cpp
     src/lua/plugins/plugin.cpp
     src/lua/plugins/pluginengine.cpp
-    src/lua/usertypes/lttorrenthandle.cpp
-    src/lua/usertypes/session.cpp
-    src/lua/usertypes/torrent.cpp
     src/lua/usertypes/workflow.cpp
-    src/lua/usertypes/workflowactionsleep.cpp
     src/lua/usertypes/workflowactiontorrentflags.cpp
-    src/lua/usertypes/workflowactiontorrentmove.cpp
-    src/lua/usertypes/workflowactiontorrentpause.cpp
     src/lua/usertypes/workflowactiontorrentreannounce.cpp
-    src/lua/usertypes/workflowactiontorrentremove.cpp
-    src/lua/usertypes/workflowtriggercron.cpp
-    src/lua/usertypes/workflowtriggerinterval.cpp
-    src/lua/usertypes/workflowtriggertorrentadded.cpp
-    src/lua/usertypes/workflowtriggertorrentfinished.cpp
-    src/lua/usertypes/workflowtriggertorrentmoved.cpp
     src/lua/workflows/workflowengine.cpp
     src/lua/workflows/workflowfilter.cpp
-    src/lua/workflows/workflowrunner.cpp
-    src/lua/workflows/actions/sleep.cpp
     src/lua/workflows/actions/torrentflags.cpp
-    src/lua/workflows/actions/torrentmove.cpp
-    src/lua/workflows/actions/torrentpause.cpp
     src/lua/workflows/actions/torrentreannounce.cpp
-    src/lua/workflows/actions/torrentremove.cpp
-    src/lua/workflows/triggers/cron.cpp
-    src/lua/workflows/triggers/interval.cpp
-    src/lua/workflows/triggers/torrentadded.cpp
-    src/lua/workflows/triggers/torrentfinished.cpp
-    src/lua/workflows/triggers/torrentmoved.cpp
 
     src/methods/fsspace.cpp
     src/methods/plugins/pluginsconfigure.cpp

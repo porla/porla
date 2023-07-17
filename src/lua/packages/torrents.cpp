@@ -4,30 +4,14 @@
 #include <libtorrent/magnet_uri.hpp>
 #include <libtorrent/torrent_info.hpp>
 #include <libtorrent/torrent_status.hpp>
-#include <utility>
 
 #include "../plugins/plugin.hpp"
 #include "../../config.hpp"
 #include "../../session.hpp"
 #include "../../torrentclientdata.hpp"
+#include "../../utils/ratio.hpp"
 
 using porla::Lua::Packages::Torrents;
-
-struct SignalConnection
-{
-    explicit SignalConnection(boost::signals2::connection c)
-        : connection(std::move(c))
-    {
-    }
-
-    ~SignalConnection()
-    {
-        BOOST_LOG_TRIVIAL(info) << "Disconnecting signal";
-        connection.disconnect();
-    }
-
-    boost::signals2::connection connection;
-};
 
 static void ApplyPreset(lt::add_torrent_params& p, const porla::Config::Preset& preset)
 {
@@ -52,10 +36,55 @@ void Torrents::Register(sol::state& lua)
         "lt.TorrentStatus",
         sol::no_constructor);
 
-    torrent_status_type["current_tracker"] = sol::property([](const lt::torrent_status& ts) { return ts.current_tracker; });
-    torrent_status_type["info_hash"]       = sol::property([](const lt::torrent_status& ts) { return ts.info_hashes; });
-    torrent_status_type["name"]            = sol::property([](const lt::torrent_status& ts) { return ts.name; });
-    torrent_status_type["save_path"]       = sol::property([](const lt::torrent_status& ts) { return ts.save_path; });
+    torrent_status_type["category"] = sol::property(
+        [](const lt::torrent_status& ts)
+        {
+            const TorrentClientData* client_data = ts.handle.userdata().get<TorrentClientData>();
+            return client_data->category;
+        });
+
+    torrent_status_type["active_duration"]   = sol::property([](const lt::torrent_status& ts) { return ts.active_duration.count(); });
+    torrent_status_type["current_tracker"]   = sol::property([](const lt::torrent_status& ts) { return ts.current_tracker; });
+    torrent_status_type["finished_duration"] = sol::property([](const lt::torrent_status& ts) { return ts.finished_duration.count(); });
+    torrent_status_type["info_hash"]         = sol::property([](const lt::torrent_status& ts) { return ts.info_hashes; });
+    torrent_status_type["is_downloading"]    = sol::property([](const lt::torrent_status& ts) { return ts.state == lt::torrent_status::downloading; });
+    torrent_status_type["is_finished"]       = sol::property([](const lt::torrent_status& ts) { return ts.state == lt::torrent_status::finished; });
+    torrent_status_type["is_moving"]         = sol::property([](const lt::torrent_status& ts) { return ts.moving_storage; });
+    torrent_status_type["is_paused"]         = sol::property([](const lt::torrent_status& ts) { return (ts.flags & lt::torrent_flags::paused) == lt::torrent_flags::paused; });
+    torrent_status_type["is_seeding"]        = sol::property([](const lt::torrent_status& ts) { return ts.state == lt::torrent_status::seeding; });
+    torrent_status_type["name"]              = sol::property([](const lt::torrent_status& ts) { return ts.name; });
+    torrent_status_type["ratio"]             = sol::property([](const lt::torrent_status& ts) { return porla::Utils::Ratio(ts); });
+    torrent_status_type["save_path"]         = sol::property([](const lt::torrent_status& ts) { return ts.save_path; });
+    torrent_status_type["seeding_duration"]  = sol::property([](const lt::torrent_status& ts) { return ts.seeding_duration.count(); });
+
+    torrent_status_type["size"] = sol::property(
+        [](const lt::torrent_status& ts) -> std::optional<std::int64_t>
+        {
+            if (const auto tf = ts.torrent_file.lock())
+            {
+                return tf->total_size();
+            }
+
+            return std::nullopt;
+        });
+
+    torrent_status_type["tags"] = sol::property(
+        [](const lt::torrent_status& ts)
+        {
+            auto client_data = ts.handle.userdata().get<TorrentClientData>();
+
+            if (!client_data->tags.has_value())
+            {
+                client_data->tags = std::unordered_set<std::string>();
+            }
+
+            return *client_data->tags;
+        },
+        [](lt::torrent_status& ts, const std::unordered_set<std::string>& value)
+        {
+            auto client_data = ts.handle.userdata().get<TorrentClientData>();
+            client_data->tags = value;
+        });
 
     lua["package"]["preload"]["torrents"] = [](sol::this_state s)
     {
@@ -130,48 +159,12 @@ void Torrents::Register(sol::state& lua)
             return ret;
         };
 
-        torrents["on"] = [](sol::this_state s, const std::string& name, const sol::function& callback)
+        torrents["move"] = [](const lt::torrent_status& t, const sol::table& args)
         {
-            sol::state_view lua{s};
-            const auto options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
-
-            if (name == "added")
+            if (t.handle.is_valid())
             {
-                auto connection = options.session.OnTorrentAdded(
-                    [cb = callback](const lt::torrent_status& ts)
-                    {
-                        try
-                        {
-                            cb(ts);
-                        }
-                        catch (const sol::error& err)
-                        {
-                            BOOST_LOG_TRIVIAL(error) << "An error occurred in an event handler: " << err.what();
-                        }
-                    });
-
-                return std::make_shared<SignalConnection>(connection);
+                t.handle.move_storage(args["path"]);
             }
-
-            if (name == "removed")
-            {
-                auto connection = options.session.OnTorrentRemoved(
-                    [cb = callback](const lt::info_hash_t& ih)
-                    {
-                        try
-                        {
-                            cb(ih);
-                        }
-                        catch (const sol::error& err)
-                        {
-                            BOOST_LOG_TRIVIAL(error) << "An error occurred in an event handler: " << err.what();
-                        }
-                    });
-
-                return std::make_shared<SignalConnection>(connection);
-            }
-
-            return std::shared_ptr<SignalConnection>();
         };
 
         torrents["parse"] = [](const std::string& data, const std::string& type)
@@ -189,6 +182,42 @@ void Torrents::Register(sol::state& lua)
             return std::make_shared<lt::torrent_info>(data);
         };
 
+        torrents["pause"] = [](sol::this_state s, const lt::torrent_status& ts)
+        {
+            sol::state_view lua{s};
+
+            if (ts.handle.is_valid())
+            {
+                ts.handle.pause();
+            }
+            else
+            {
+                BOOST_LOG_TRIVIAL(error) << "Torrent not valid";
+            }
+        };
+
+        sol::table properties = lua.create_table();
+        properties["get"] = [](sol::this_state s, const lt::torrent_status& ts) -> sol::reference
+        {
+            if (!ts.handle.is_valid())
+            {
+                return sol::nil;
+            }
+
+            sol::state_view lua{s};
+            sol::table p = lua.create_table();
+
+            p["download_limit"]  = ts.handle.download_limit();
+            p["flags"]           = ts.handle.flags();
+            p["max_connections"] = ts.handle.max_connections();
+            p["max_uploads"]     = ts.handle.max_uploads();
+            p["upload_limit"]    = ts.handle.upload_limit();
+
+            return p;
+        };
+
+        torrents["properties"] = properties;
+
         torrents["remove"] = [](sol::this_state s, const lt::torrent_status& ts, const sol::table& args)
         {
             sol::state_view lua{s};
@@ -198,6 +227,20 @@ void Torrents::Register(sol::state& lua)
             if (args["remove_files"].valid()) { remove_files = args["remove_files"].get<bool>(); }
 
             options.session.Remove(ts.info_hashes, remove_files);
+        };
+
+        torrents["resume"] = [](sol::this_state s, const lt::torrent_status& ts)
+        {
+            sol::state_view lua{s};
+
+            if (ts.handle.is_valid())
+            {
+                ts.handle.resume();
+            }
+            else
+            {
+                BOOST_LOG_TRIVIAL(error) << "Torrent not valid";
+            }
         };
 
         return torrents;
