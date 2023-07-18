@@ -7,6 +7,7 @@
 
 #include "plugin.hpp"
 
+#include "../../config.hpp"
 #include "../../data/statement.hpp"
 
 using porla::Data::Statement;
@@ -18,6 +19,7 @@ using porla::Lua::Plugins::PluginState;
 
 PluginEngine::PluginEngine(PluginEngineOptions options)
     : m_options(options)
+    , m_gc_timer(options.io)
 {
     auto stmt = Statement::Prepare(m_options.db, "SELECT enabled,name,path,config FROM plugins");
     stmt.Step(
@@ -25,15 +27,15 @@ PluginEngine::PluginEngine(PluginEngineOptions options)
         {
             const PluginLoadOptions plugin_load_options{
                 .config        = m_options.config,
-                .dir           = row.GetStdString(2),
                 .io            = m_options.io,
+                .path          = row.GetStdString(2),
                 .plugin_config = row.GetStdString(3),
                 .session       = m_options.session
             };
 
             PluginState plugin_state{
                 .config = plugin_load_options.plugin_config,
-                .path   = plugin_load_options.dir,
+                .path   = plugin_load_options.path,
                 .plugin = row.GetInt32(0) > 0
                     ? Plugin::Load(plugin_load_options)
                     : nullptr
@@ -43,6 +45,28 @@ PluginEngine::PluginEngine(PluginEngineOptions options)
 
             return SQLITE_OK;
         });
+
+    const auto& workflow_dir = m_options.config.workflow_dir;
+
+    if (workflow_dir.has_value() && fs::exists(workflow_dir.value()))
+    {
+        for (const auto& file: fs::directory_iterator(workflow_dir.value()))
+        {
+            BOOST_LOG_TRIVIAL(info) << "Loading workflow " << file.path().stem();
+
+            const PluginLoadOptions plugin_load_options{
+                .config        = m_options.config,
+                .io            = m_options.io,
+                .path          = file,
+                .plugin_config = std::nullopt,
+                .session       = m_options.session
+            };
+
+            m_workflows.emplace_back(Plugin::Load(plugin_load_options));
+        }
+    }
+
+    NextGc();
 }
 
 PluginEngine::~PluginEngine() = default;
@@ -69,8 +93,8 @@ void PluginEngine::Configure(const std::string& name, const std::optional<std::s
 
     const PluginLoadOptions plugin_load_options{
         .config        = m_options.config,
-        .dir           = state->second.path,
         .io            = m_options.io,
+        .path          = state->second.path,
         .plugin_config = config,
         .session       = m_options.session
     };
@@ -119,8 +143,8 @@ void PluginEngine::Install(const PluginInstallOptions& options, std::error_code&
 
             const PluginLoadOptions plugin_load_options{
                 .config        = m_options.config,
-                .dir           = options.path,
                 .io            = m_options.io,
+                .path          = options.path,
                 .plugin_config = options.config,
                 .session       = m_options.session
             };
@@ -154,8 +178,8 @@ void PluginEngine::Reload(const std::string& name)
 
     const PluginLoadOptions plugin_load_options{
         .config        = m_options.config,
-        .dir           = state->second.path,
         .io            = m_options.io,
+        .path          = state->second.path,
         .plugin_config = state->second.config,
         .session       = m_options.session
     };
@@ -190,4 +214,25 @@ void PluginEngine::Uninstall(const std::string& name, std::error_code& ec)
 void PluginEngine::UnloadAll()
 {
     m_plugins.clear();
+}
+
+void PluginEngine::NextGc()
+{
+    m_gc_timer.expires_from_now(boost::posix_time::seconds(2));
+    m_gc_timer.async_wait([this](auto &&PH1) { OnGcExpired(std::forward<decltype(PH1)>(PH1)); });
+}
+
+void PluginEngine::OnGcExpired(const boost::system::error_code &ec)
+{
+    for (const auto& plugin_state : m_plugins)
+    {
+        (*plugin_state.second.plugin).GarbageCollect();
+    }
+
+    for (const auto& workflow : m_workflows)
+    {
+        workflow->GarbageCollect();
+    }
+
+    NextGc();
 }

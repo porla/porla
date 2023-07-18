@@ -444,7 +444,7 @@ struct PqlFilter : public PQL::Filter
     {
     }
 
-    bool Includes(const libtorrent::torrent_status& ts) override
+    [[nodiscard]] bool Includes(const libtorrent::torrent_status& ts) const override
     {
         return m_filter(ts);
     }

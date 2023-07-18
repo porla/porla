@@ -5,11 +5,17 @@
 
 #include "../packages/config.hpp"
 #include "../packages/cron.hpp"
+#include "../packages/events.hpp"
 #include "../packages/filesystem.hpp"
+#include "../packages/httpclient.hpp"
+#include "../packages/json.hpp"
 #include "../packages/log.hpp"
+#include "../packages/pql.hpp"
 #include "../packages/process.hpp"
 #include "../packages/sqlite.hpp"
+#include "../packages/timers.hpp"
 #include "../packages/torrents.hpp"
+#include "../packages/workflows.hpp"
 
 namespace fs = std::filesystem;
 using porla::Lua::Plugins::Plugin;
@@ -23,17 +29,19 @@ struct Plugin::State
 
 std::unique_ptr<Plugin> Plugin::Load(const PluginLoadOptions& opts)
 {
-    if (!fs::exists(opts.dir))
+    if (!fs::exists(opts.path))
     {
-        BOOST_LOG_TRIVIAL(error) << "Plugin directory does not exist - " << opts.dir;
+        BOOST_LOG_TRIVIAL(error) << "Plugin path does not exist - " << opts.path;
         return nullptr;
     }
 
-    const auto plugin_main = opts.dir / "plugin.lua";
+    const auto plugin_main = fs::is_regular_file(opts.path)
+        ? opts.path
+        : opts.path / "plugin.lua";
 
     if (!fs::exists(plugin_main))
     {
-        BOOST_LOG_TRIVIAL(error) << "No 'plugin.lua' found in directory - " << opts.dir;
+        BOOST_LOG_TRIVIAL(error) << "Plugin entry point not found - " << plugin_main;
         return nullptr;
     }
 
@@ -50,19 +58,28 @@ std::unique_ptr<Plugin> Plugin::Load(const PluginLoadOptions& opts)
         sol::lib::table);
 
     // Put the plugin directory path in the Lua package path
-    const std::string package_path = state->lua["package"]["path"];
-    state->lua["package"]["path"] = package_path + (!package_path.empty() ? ";" : "") + opts.dir.string() + "/?.lua";
+    if (fs::is_directory(opts.path))
+    {
+        const std::string package_path = state->lua["package"]["path"];
+        state->lua["package"]["path"] = package_path + (!package_path.empty() ? ";" : "") + opts.path.string() + "/?.lua";
+    }
 
     state->lua.globals()["__load_opts"] = state->load_options;
     state->lua.globals()["porla"]       = state->lua.create_table();
 
     Packages::Config::Register(state->lua);
     Packages::Cron::Register(state->lua);
+    Packages::Events::Register(state->lua);
     Packages::FileSystem::Register(state->lua);
+    Packages::HttpClient::Register(state->lua);
+    Packages::Json::Register(state->lua);
     Packages::Log::Register(state->lua);
+    Packages::PQL::Register(state->lua);
     Packages::Process::Register(state->lua);
     Packages::Sqlite::Register(state->lua);
+    Packages::Timers::Register(state->lua);
     Packages::Torrents::Register(state->lua);
+    Packages::Workflows::Register(state->lua);
 
     try
     {
@@ -95,5 +112,10 @@ Plugin::~Plugin()
         m_state->lua.globals()["porla"]["destroy"]();
     }
 
+    m_state->lua.collect_garbage();
+}
+
+void Plugin::GarbageCollect()
+{
     m_state->lua.collect_garbage();
 }

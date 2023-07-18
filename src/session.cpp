@@ -560,6 +560,7 @@ void Session::ReadAlerts()
         }
         case lt::torrent_paused_alert::alert_type:
         {
+            BOOST_LOG_TRIVIAL(info) << "Torrent paused alert";
             auto tpa = lt::alert_cast<lt::torrent_paused_alert>(alert);
             m_torrentPaused(tpa->handle);
             break;

@@ -9,7 +9,6 @@
 #include "config.hpp"
 #include "logger.hpp"
 #include "lua/plugins/pluginengine.hpp"
-#include "lua/workflows/workflowengine.hpp"
 #include "session.hpp"
 #include "tools/authtoken.hpp"
 #include "tools/generatesecretkey.hpp"
@@ -130,12 +129,6 @@ int main(int argc, char* argv[])
             BOOST_LOG_TRIVIAL(fatal) << "Failed to load torrents: " << ex.what();
             return -1;
         }
-
-        porla::Lua::Workflows::WorkflowEngine workflow_engine{porla::Lua::Workflows::WorkflowEngineOptions{
-            .io           = io,
-            .session      = session,
-            .workflow_dir = cfg->workflow_dir.value_or(fs::path())
-        }};
 
         const fs::path default_plugin_install_dir = cfg->state_dir.value_or(fs::path()) / "installed_plugins";
 

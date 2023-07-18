@@ -4,7 +4,6 @@
   "version-string": "1",
   "dependencies": [
     "antlr4",
-    "boost-beast",
     "boost-log",
     "boost-process",
     "boost-program-options",

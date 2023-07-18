@@ -56,7 +56,12 @@ namespace porla::Lua::Plugins
         void UnloadAll();
 
     private:
+        void NextGc();
+        void OnGcExpired(const boost::system::error_code& ec);
+
         PluginEngineOptions m_options;
+        boost::asio::deadline_timer m_gc_timer;
         std::map<std::string, PluginState> m_plugins;
+        std::vector<std::unique_ptr<Plugin>> m_workflows;
     };
 }
