@@ -19,8 +19,7 @@ RUN apt-get update -y \
     && apt-get install -y bsdmainutils ccache \
     && cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
     && cmake --build build \
-    && ccache -s -v \
-    && strip build/porla
+    && ccache -s -v
 
 # -- runtime layer
 FROM ghcr.io/porla/alpine:3.18.0 AS runtime
