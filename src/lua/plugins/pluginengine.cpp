@@ -50,8 +50,16 @@ PluginEngine::PluginEngine(PluginEngineOptions options)
 
     if (workflow_dir.has_value() && fs::exists(workflow_dir.value()))
     {
+        BOOST_LOG_TRIVIAL(debug) << "Loading all workflow files in " << workflow_dir.value();
+
         for (const auto& file: fs::directory_iterator(workflow_dir.value()))
         {
+            if (file.path().extension() != ".lua")
+            {
+                BOOST_LOG_TRIVIAL(debug) << "Skipping " << file.path() << ", wrong file extension";
+                continue;
+            }
+
             BOOST_LOG_TRIVIAL(info) << "Loading workflow " << file.path().stem();
 
             const PluginLoadOptions plugin_load_options{

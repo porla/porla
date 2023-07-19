@@ -4,6 +4,14 @@ local events   = require "events"
 local log      = require "log"
 local torrents = require "torrents"
 
+local function resolve(arg, ctx)
+    if type(arg) == "function" then
+        return arg(ctx)
+    end
+
+    return arg
+end
+
 return {
     move = function(args)
         return function(ctx, callback)
@@ -16,7 +24,9 @@ return {
                 end
             end)
 
-            torrents.move(ctx.torrent, args)
+            torrents.move(ctx.torrent, {
+                path = resolve(args.path, ctx)
+            })
         end
     end,
 
