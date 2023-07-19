@@ -159,7 +159,7 @@ return {
                 end
             end)
 
-            torrents.remove(ctx.torrent)
+            torrents.remove(ctx.torrent, args)
         end
     end,
 
