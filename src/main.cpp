@@ -1,6 +1,7 @@
 #include <boost/asio.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/stacktrace.hpp>
 #include <curl/curl.h>
 #include <git2.h>
 #include <sodium.h>
@@ -53,8 +54,13 @@
 #include "methods/torrentspropertiesset.hpp"
 #include "methods/torrentstrackerslist.hpp"
 
+static void OnUnhandledSignal(const int sig);
+
 int main(int argc, char* argv[])
 {
+    signal(SIGABRT, OnUnhandledSignal);
+    signal(SIGSEGV, OnUnhandledSignal);
+
     static std::map<std::string, std::function<int(int, char**, std::unique_ptr<porla::Config>)>> subcommands =
     {
         {"auth:token", &porla::Tools::AuthToken},
@@ -245,4 +251,14 @@ int main(int argc, char* argv[])
     curl_global_cleanup();
 
     return 0;
+}
+
+void OnUnhandledSignal(int sig)
+{
+    const std::string stacktrace  = boost::stacktrace::to_string(boost::stacktrace::stacktrace());
+
+    BOOST_LOG_TRIVIAL(fatal) << "Uh-oh - Porla crashed (" << sig << "). Stacktrace:\n\n" << stacktrace;
+
+    signal(sig, SIG_DFL);
+    raise(sig);
 }

@@ -8,6 +8,7 @@
     "boost-process",
     "boost-program-options",
     "boost-signals2",
+    "boost-stacktrace",
     "boost-system",
     "curl",
     "gtest",
