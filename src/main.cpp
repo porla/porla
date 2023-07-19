@@ -5,7 +5,11 @@
 #include <git2.h>
 #include <sodium.h>
 
+#if __APPLE__
 #include <client/mac/handler/exception_handler.h>
+#elif __linux__
+#include <client/linux/handler/exception_handler.h>
+#endif
 
 #include "cmdargs.hpp"
 #include "config.hpp"
@@ -56,14 +60,19 @@
 
 static bool dumpCallback(const char* dump_dir, const char* minidump_id, void* context, bool succeeded)
 {
-    BOOST_LOG_TRIVIAL(fatal) << "Kaboom";
-    printf("Dump path: %s/%s\n", dump_dir, minidump_id);
+    std::string mdmp = minidump_id;
+    mdmp += ".dmp";
+
+    const auto dump = fs::path(dump_dir) / mdmp;
+
+    BOOST_LOG_TRIVIAL(fatal) << "Fatal crash. Crash dump generated at " << dump;
+
     return succeeded;
 }
 
 int main(int argc, char* argv[])
 {
-    google_breakpad::ExceptionHandler eh("/tmp", nullptr, dumpCallback, nullptr, true, nullptr);
+    google_breakpad::ExceptionHandler eh(fs::temp_directory_path(), nullptr, dumpCallback, nullptr, true, nullptr);
 
     static std::map<std::string, std::function<int(int, char**, std::unique_ptr<porla::Config>)>> subcommands =
     {
