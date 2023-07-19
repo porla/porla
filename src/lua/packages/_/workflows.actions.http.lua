@@ -11,6 +11,14 @@ end
 
 return function(args)
     return function(ctx, callback)
+        local resolved_headers = {}
+
+        if args.headers ~= nil then
+            for key, val in pairs(args.headers) do
+                resolved_headers[key] = resolve(val, ctx)
+            end
+        end
+
         http.request({
             body     = args.body,
             method   = resolve(args.method, ctx),

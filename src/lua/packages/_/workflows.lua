@@ -12,7 +12,7 @@ local function run(actions, index, ctx)
     log.debug(string.format("Running action %d of %d in workflow", index, #actions))
 
     actions[index](ctx, function(output)
-        ctx.steps[index] = output
+        ctx.actions[index] = output
         run(actions, index + 1, ctx)
     end)
 end
@@ -48,7 +48,7 @@ local function add(workflow)
 
     workflow.trigger(function(torrent)
         local ctx = {
-            steps   = {},
+            actions = {},
             torrent = torrent
         }
 

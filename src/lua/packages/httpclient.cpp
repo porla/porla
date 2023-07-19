@@ -9,16 +9,6 @@
 
 #include "../plugins/plugin.hpp"
 
-#define RESOLVE_STRING(output, input, context)       \
-    if (input.is<sol::function>())                   \
-    {                                                \
-        output = input.as<sol::function>()(context); \
-    }                                                \
-    else                                             \
-    {                                                \
-        output = input.as<std::string>();            \
-    }
-
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* user)
 {
     auto buffer = reinterpret_cast<std::string*>(user);
