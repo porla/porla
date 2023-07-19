@@ -250,10 +250,8 @@ void Torrents::Register(sol::state& lua)
                 return;
             }
 
-            BOOST_LOG_TRIVIAL(info) << args["flags"].get<std::uint64_t>();
-
             if (args["download_limit"].valid())  ts.handle.set_download_limit(args["download_limit"]);
-            if (args["flags"].valid())           ts.handle.set_flags(static_cast<lt::torrent_flags_t>(args["flags"].get<std::uint64_t>(), lt::torrent_flags::all));
+            if (args["flags"].valid())           ts.handle.set_flags(static_cast<lt::torrent_flags_t>(args["flags"].get<std::uint64_t>()));
             if (args["max_connections"].valid()) ts.handle.set_max_connections(args["max_connections"]);
             if (args["max_uploads"].valid())     ts.handle.set_max_uploads(args["max_uploads"]);
             if (args["upload_limit"].valid())    ts.handle.set_upload_limit(args["upload_limit"]);
