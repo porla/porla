@@ -95,6 +95,10 @@ void Torrents::Register(sol::state& lua)
     peer_info_type["total_download"] = sol::property([](const lt::peer_info& pi) { return pi.total_download; });
     peer_info_type["total_upload"] = sol::property([](const lt::peer_info& pi) { return pi.total_upload; });
 
+    auto torrent_handle_type = lua.new_usertype<lt::torrent_handle>(
+        "lt.TorrentHandle",
+        sol::no_constructor);
+
     auto torrent_status_type = lua.new_usertype<lt::torrent_status>(
         "lt.TorrentStatus",
         sol::no_constructor);
@@ -239,11 +243,11 @@ void Torrents::Register(sol::state& lua)
             sol::state_view lua{s};
             const auto options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
 
-            std::vector<lt::torrent_status> ret;
+            std::vector<lt::torrent_handle> ret;
 
             for (const auto& [ info_hash, handle ] : options.session.Torrents())
             {
-                ret.emplace_back(handle.status());
+                ret.emplace_back(handle);
             }
 
             return ret;
@@ -287,10 +291,17 @@ void Torrents::Register(sol::state& lua)
         };
 
         torrents["peers"] = lua.create_table();
-        torrents["peers"]["list"] = [](const lt::torrent_status& ts)
+        torrents["peers"]["list"] = [](const lt::torrent_handle& th)
         {
+            BOOST_LOG_TRIVIAL(info) << "torrents.peers.list";
+
+            if (!th.is_valid())
+            {
+                BOOST_LOG_TRIVIAL(error) << "Invalid torrent handle";
+            }
+
             std::vector<lt::peer_info> peers;
-            ts.handle.get_peer_info(peers);
+            th.get_peer_info(peers);
             return peers;
         };
 
@@ -371,13 +382,18 @@ void Torrents::Register(sol::state& lua)
             }
         };
 
-        sol::table trackers = lua.create_table();
-        trackers["list"] = [](sol::this_state s, const lt::torrent_status& ts)
+        torrents["trackers"] = lua.create_table();
+        torrents["trackers"]["list"] = [](const lt::torrent_handle& th)
         {
-            return ts.handle.trackers();
-        };
+            BOOST_LOG_TRIVIAL(info) << "torrents.trackers.list";
 
-        torrents["trackers"] = trackers;
+            if (!th.is_valid())
+            {
+                BOOST_LOG_TRIVIAL(error) << "Invalid torrent handle";
+            }
+
+            return th.trackers();
+        };
 
         return torrents;
     };
