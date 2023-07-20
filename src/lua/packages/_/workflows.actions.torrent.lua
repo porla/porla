@@ -43,7 +43,6 @@ return {
             local signal_connection = nil
 
             signal_connection = events.on("torrent_paused", function(torrent)
-                print(torrent.info_hash, ctx.torrent.info_hash)
                 if torrent.info_hash == ctx.torrent.info_hash then
                     signal_connection = nil
                     callback()
@@ -78,13 +77,7 @@ return {
 
             if #(peers) > 0 then
                 log.info(string.format("Torrent has %d peer(s) - skipping reannounce", #(peers)))
-
-                for _, peer in ipairs(peers) do
-                    print(peer.client)
-                end
-
-                callback()
-                return
+                return callback()
             end
 
             reannounce_timer = timers.new({
