@@ -70,7 +70,14 @@ PluginEngine::PluginEngine(PluginEngineOptions options)
                 .session       = m_options.session
             };
 
-            m_workflows.emplace_back(Plugin::Load(plugin_load_options));
+            auto workflow_plugin = Plugin::Load(plugin_load_options);
+
+            if (workflow_plugin == nullptr)
+            {
+                continue;
+            }
+
+            m_workflows.emplace_back(std::move(workflow_plugin));
         }
     }
 
