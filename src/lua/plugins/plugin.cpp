@@ -111,11 +111,4 @@ Plugin::~Plugin()
     {
         m_state->lua.globals()["porla"]["destroy"]();
     }
-
-    m_state->lua.collect_garbage();
-}
-
-void Plugin::GarbageCollect()
-{
-    m_state->lua.collect_garbage();
 }

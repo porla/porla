@@ -142,7 +142,7 @@ return {
                     end
 
                     if found_matching_failure then
-                        log.info(string.format("Sending reannounce attempt %d of %d", current_tries + 1, max_tries))
+                        log.info(string.format("Sending reannounce attempt %d of %d for %s", current_tries + 1, max_tries, ctx.torrent.name))
 
                         torrents.reannounce(ctx.torrent, {
                             seconds       = 0,
@@ -161,7 +161,7 @@ return {
                 end
             })
 
-            log.info(string.format("Sending reannounce attempt %d of %d", current_tries + 1, max_tries))
+            log.info(string.format("Sending reannounce attempt %d of %d for %s", current_tries + 1, max_tries, ctx.torrent.name))
 
             torrents.reannounce(ctx.torrent, {
                 seconds       = 0,

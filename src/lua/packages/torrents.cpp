@@ -95,10 +95,6 @@ void Torrents::Register(sol::state& lua)
     peer_info_type["total_download"] = sol::property([](const lt::peer_info& pi) { return pi.total_download; });
     peer_info_type["total_upload"] = sol::property([](const lt::peer_info& pi) { return pi.total_upload; });
 
-    auto torrent_handle_type = lua.new_usertype<lt::torrent_handle>(
-        "lt.TorrentHandle",
-        sol::no_constructor);
-
     auto torrent_status_type = lua.new_usertype<lt::torrent_status>(
         "lt.TorrentStatus",
         sol::no_constructor);
@@ -243,11 +239,11 @@ void Torrents::Register(sol::state& lua)
             sol::state_view lua{s};
             const auto options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
 
-            std::vector<lt::torrent_handle> ret;
+            std::vector<lt::torrent_status> ret;
 
             for (const auto& [ info_hash, handle ] : options.session.Torrents())
             {
-                ret.emplace_back(handle);
+                ret.emplace_back(handle.status());
             }
 
             return ret;
@@ -276,10 +272,8 @@ void Torrents::Register(sol::state& lua)
             return std::make_shared<lt::torrent_info>(data);
         };
 
-        torrents["pause"] = [](sol::this_state s, const lt::torrent_status& ts)
+        torrents["pause"] = [](const lt::torrent_status& ts)
         {
-            sol::state_view lua{s};
-
             if (ts.handle.is_valid())
             {
                 ts.handle.pause();
@@ -291,22 +285,20 @@ void Torrents::Register(sol::state& lua)
         };
 
         torrents["peers"] = lua.create_table();
-        torrents["peers"]["list"] = [](const lt::torrent_handle& th)
+        torrents["peers"]["list"] = [](const lt::torrent_status& ts)
         {
-            BOOST_LOG_TRIVIAL(info) << "torrents.peers.list";
-
-            if (!th.is_valid())
+            if (!ts.handle.is_valid())
             {
                 BOOST_LOG_TRIVIAL(error) << "Invalid torrent handle";
             }
 
             std::vector<lt::peer_info> peers;
-            th.get_peer_info(peers);
+            ts.handle.get_peer_info(peers);
             return peers;
         };
 
-        sol::table properties = lua.create_table();
-        properties["get"] = [](sol::this_state s, const lt::torrent_status& ts) -> sol::reference
+        torrents["properties"] = lua.create_table();
+        torrents["properties"]["get"] = [](sol::this_state s, const lt::torrent_status& ts) -> sol::reference
         {
             if (!ts.handle.is_valid())
             {
@@ -325,7 +317,7 @@ void Torrents::Register(sol::state& lua)
             return p;
         };
 
-        properties["set"] = [](sol::this_state s, const lt::torrent_status& ts, const sol::table& args)
+        torrents["properties"]["set"] = [](sol::this_state s, const lt::torrent_status& ts, const sol::table& args)
         {
             if (!ts.handle.is_valid())
             {
@@ -338,8 +330,6 @@ void Torrents::Register(sol::state& lua)
             if (args["max_uploads"].valid())     ts.handle.set_max_uploads(args["max_uploads"]);
             if (args["upload_limit"].valid())    ts.handle.set_upload_limit(args["upload_limit"]);
         };
-
-        torrents["properties"] = properties;
 
         torrents["reannounce"] = [](sol::this_state s, const lt::torrent_status& ts, const sol::table& args)
         {
@@ -383,16 +373,14 @@ void Torrents::Register(sol::state& lua)
         };
 
         torrents["trackers"] = lua.create_table();
-        torrents["trackers"]["list"] = [](const lt::torrent_handle& th)
+        torrents["trackers"]["list"] = [](const lt::torrent_status& ts)
         {
-            BOOST_LOG_TRIVIAL(info) << "torrents.trackers.list";
-
-            if (!th.is_valid())
+            if (!ts.handle.is_valid())
             {
                 BOOST_LOG_TRIVIAL(error) << "Invalid torrent handle";
             }
 
-            return th.trackers();
+            return ts.handle.trackers();
         };
 
         return torrents;
