@@ -17,13 +17,20 @@ public:
         Next();
     }
 
+    Timer(const Timer&) = delete;
+    Timer(Timer&&) = delete;
+    Timer& operator=(const Timer&) = delete;
+    Timer& operator=(Timer&&) = delete;
+
     ~Timer()
     {
+        m_should_cancel = true;
         m_timer.cancel();
     }
 
     void Cancel()
     {
+        m_should_cancel = true;
         m_timer.cancel();
     }
 
@@ -62,23 +69,20 @@ private:
             }
         }
 
-        Next();
+        if (!m_should_cancel) Next();
     }
 
     boost::asio::deadline_timer m_timer;
     sol::table m_args;
+    bool m_should_cancel;
 };
 
 void Timers::Register(sol::state& lua)
 {
     auto timer_type = lua.new_usertype<Timer>(
         "porla.Timer",
-        sol::no_constructor);
-
-    timer_type["cancel"] = [](const std::shared_ptr<Timer>& self)
-    {
-        self->Cancel();
-    };
+        sol::no_constructor,
+        "cancel", &Timer::Cancel);
 
     lua["package"]["preload"]["timers"] = [](sol::this_state s)
     {
@@ -89,7 +93,7 @@ void Timers::Register(sol::state& lua)
         {
             sol::state_view lua{s};
             const auto& options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
-            return std::make_shared<Timer>(options.io, args);
+            return std::make_unique<Timer>(options.io, args);
         };
 
         return timers;

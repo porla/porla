@@ -19,7 +19,6 @@ using porla::Lua::Plugins::PluginState;
 
 PluginEngine::PluginEngine(PluginEngineOptions options)
     : m_options(options)
-    , m_gc_timer(options.io)
 {
     auto stmt = Statement::Prepare(m_options.db, "SELECT enabled,name,path,config FROM plugins");
     stmt.Step(
@@ -80,8 +79,6 @@ PluginEngine::PluginEngine(PluginEngineOptions options)
             m_workflows.emplace_back(std::move(workflow_plugin));
         }
     }
-
-    NextGc();
 }
 
 PluginEngine::~PluginEngine() = default;
@@ -229,25 +226,4 @@ void PluginEngine::Uninstall(const std::string& name, std::error_code& ec)
 void PluginEngine::UnloadAll()
 {
     m_plugins.clear();
-}
-
-void PluginEngine::NextGc()
-{
-    m_gc_timer.expires_from_now(boost::posix_time::seconds(2));
-    m_gc_timer.async_wait([this](auto &&PH1) { OnGcExpired(std::forward<decltype(PH1)>(PH1)); });
-}
-
-void PluginEngine::OnGcExpired(const boost::system::error_code &ec)
-{
-    for (const auto& plugin_state : m_plugins)
-    {
-        (*plugin_state.second.plugin).GarbageCollect();
-    }
-
-    for (const auto& workflow : m_workflows)
-    {
-        workflow->GarbageCollect();
-    }
-
-    NextGc();
 }

@@ -2,6 +2,7 @@ R"luastring"--(
 
 local events   = require "events"
 local log      = require "log"
+local timers   = require "timers"
 local torrents = require "torrents"
 
 local function resolve(arg, ctx)
@@ -42,7 +43,6 @@ return {
             local signal_connection = nil
 
             signal_connection = events.on("torrent_paused", function(torrent)
-                print(torrent.info_hash, ctx.torrent.info_hash)
                 if torrent.info_hash == ctx.torrent.info_hash then
                     signal_connection = nil
                     callback()
@@ -55,13 +55,11 @@ return {
 
     reannounce = function(args)
         return function(ctx, callback)
-            local tracker_reply_connection = nil
-            local tracker_error_connection = nil
-
-            local current_tries = 0
-            local interval      = 2
-            local max_tries     = 5
-            local tracker_index = 0
+            local current_tries    = 0
+            local interval         = 2
+            local max_tries        = 5
+            local tracker_index    = 0
+            local reannounce_timer = nil
 
             if args and type(args.interval) == "number" then
                 interval = args.interval
@@ -75,28 +73,38 @@ return {
                 tracker_index = args.tracker_index
             end
 
-            tracker_reply_connection = events.on("torrent_tracker_reply", function(torrent)
-                if torrent.info_hash ~= ctx.torrent.info_hash then
-                    return
-                end
+            local peers = torrents.peers.list(ctx.torrent)
 
-                log.info("Torrent successfully reannounced")
+            if #(peers) > 0 then
+                log.info(string.format("Torrent has %d peer(s) - skipping reannounce", #(peers)))
+                return callback()
+            end
 
-                tracker_reply_connection:disconnect()
-                tracker_reply_connection = nil
+            reannounce_timer = timers.new({
+                interval = interval * 1000,
+                callback = function()
+                    local peers = torrents.peers.list(ctx.torrent)
 
-                tracker_error_connection:disconnect()
-                tracker_error_connection = nil
+                    if #(peers) > 0 then
+                        log.info("Torrent now has peers - finishing")
 
-                callback()
-            end)
+                        reannounce_timer:cancel()
+                        reannounce_timer = nil
 
-            tracker_error_connection = events.on("torrent_tracker_error", function(ev)
-                if ev.torrent.info_hash ~= ctx.torrent.info_hash then
-                    return
-                end
+                        return callback()
+                    end
 
-                if ev.error ~= nil and ev.error.value == torrents.errors.tracker_failure then
+                    current_tries = current_tries + 1
+
+                    if current_tries >= max_tries then
+                        log.warning(string.format("Max reannounce tries reached for %s", ctx.torrent.name))
+
+                        reannounce_timer:cancel()
+                        reannounce_timer = nil
+
+                        return callback()
+                    end
+
                     local match_failures = {
                         "not exist",
                         "not found",
@@ -105,51 +113,48 @@ return {
                         "not authorized"
                     }
 
+                    local trackers = torrents.trackers.list(ctx.torrent)
                     local found_matching_failure = false
 
-                    for _, message in ipairs(match_failures) do
-                        local i, j = string.find(ev.failure_reason, message)
+                    for _, tracker in ipairs(trackers) do
+                        for _, endpoint in ipairs(tracker.endpoints) do
+                            for _, aih in ipairs(endpoint.info_hashes) do
+                                for _, message in ipairs(match_failures) do
+                                    local i, j = string.find(aih.message, message)
 
-                        if i and i > 0 then
-                            current_tries          = current_tries + 1
-                            found_matching_failure = true
+                                    if i == nil or j == nil then
+                                        goto next_message
+                                    end
 
-                            if current_tries > max_tries then
-                                log.warning "Max tries reached for reannounce"
+                                    found_matching_failure = true
 
-                                tracker_reply_connection:disconnect()
-                                tracker_reply_connection = nil
-
-                                tracker_error_connection:disconnect()
-                                tracker_error_connection = nil
-
-                                callback()
-
-                                return
+                                    ::next_message::
+                                end
                             end
-
-                            log.info(string.format("Reannouncing torrent %s (attempt %d of %d)", ctx.torrent.name, current_tries, max_tries))
-
-                            torrents.reannounce(ctx.torrent, {
-                                seconds       = interval,
-                                tracker_index = tracker_index
-                            })
                         end
                     end
 
-                    if not found_matching_failure then
-                        log.warning("No matching failure reason found - skipping reannounce logic")
+                    if found_matching_failure then
+                        log.info(string.format("Sending reannounce attempt %d of %d for %s", current_tries + 1, max_tries, ctx.torrent.name))
 
-                        tracker_reply_connection:disconnect()
-                        tracker_reply_connection = nil
+                        torrents.reannounce(ctx.torrent, {
+                            seconds       = 0,
+                            tracker_index = tracker_index
+                        })
 
-                        tracker_error_connection:disconnect()
-                        tracker_error_connection = nil
-
-                        callback()
+                        return
                     end
+
+                    log.warning("No tracker matches any known failure - skipping reannounce")
+
+                    reannounce_timer:cancel()
+                    reannounce_timer = nil
+
+                    return callback()
                 end
-            end)
+            })
+
+            log.info(string.format("Sending reannounce attempt %d of %d for %s", current_tries + 1, max_tries, ctx.torrent.name))
 
             torrents.reannounce(ctx.torrent, {
                 seconds       = 0,

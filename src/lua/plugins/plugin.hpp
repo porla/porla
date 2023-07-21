@@ -30,8 +30,6 @@ namespace porla::Lua::Plugins
 
         virtual ~Plugin();
 
-        void GarbageCollect();
-
     private:
         class State;
 

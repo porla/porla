@@ -32,6 +32,69 @@ static void ApplyPreset(lt::add_torrent_params& p, const porla::Config::Preset& 
 
 void Torrents::Register(sol::state& lua)
 {
+    auto announce_infohash_type = lua.new_usertype<lt::announce_infohash>(
+        "lt.AnnounceInfoHash",
+        sol::no_constructor);
+
+    announce_infohash_type["complete_sent"] = sol::property([](const lt::announce_infohash& aih) { return aih.complete_sent; });
+    announce_infohash_type["fails"] = sol::property([](const lt::announce_infohash& aih) { return aih.fails; });
+    announce_infohash_type["last_error"] = sol::property([](const lt::announce_infohash& aih) { return aih.last_error; });
+    announce_infohash_type["message"] = sol::property([](const lt::announce_infohash& aih) { return aih.message; });
+    announce_infohash_type["min_announce"] = sol::property([](const lt::announce_infohash& aih) { return aih.min_announce.time_since_epoch().count(); });
+    announce_infohash_type["next_announce"] = sol::property([](const lt::announce_infohash& aih) { return aih.next_announce.time_since_epoch().count(); });
+    announce_infohash_type["scrape_complete"] = sol::property([](const lt::announce_infohash& aih) { return aih.scrape_complete; });
+    announce_infohash_type["scrape_downloaded"] = sol::property([](const lt::announce_infohash& aih) { return aih.scrape_downloaded; });
+    announce_infohash_type["scrape_incomplete"] = sol::property([](const lt::announce_infohash& aih) { return aih.scrape_incomplete; });
+    announce_infohash_type["start_sent"] = sol::property([](const lt::announce_infohash& aih) { return aih.start_sent; });
+    announce_infohash_type["updating"] = sol::property([](const lt::announce_infohash& aih) { return aih.updating; });
+
+    auto announce_endpoint_type = lua.new_usertype<lt::announce_endpoint>(
+        "lt.AnnounceEndpoint",
+        sol::no_constructor);
+
+    announce_endpoint_type["enabled"] = sol::property([](const lt::announce_endpoint& ae) { return ae.enabled; });
+    announce_endpoint_type["info_hashes"] = sol::property([](const lt::announce_endpoint& ae) { return ae.info_hashes; });
+    announce_endpoint_type["local_endpoint"] = [](const lt::announce_endpoint& ae)
+    {
+        return std::make_tuple(
+            ae.local_endpoint.address().to_string(),
+            ae.local_endpoint.port());
+    };
+
+    auto announce_entry_type = lua.new_usertype<lt::announce_entry>(
+        "lt.AnnounceEntry",
+        sol::no_constructor);
+
+    announce_entry_type["endpoints"] = sol::property([](const lt::announce_entry& ae) { return ae.endpoints; });
+    announce_entry_type["fail_limit"] = sol::property([](const lt::announce_entry& ae) { return ae.fail_limit; });
+    announce_entry_type["source"] = sol::property([](const lt::announce_entry& ae) { return ae.source; });
+    announce_entry_type["tier"] = sol::property([](const lt::announce_entry& ae) { return ae.tier; });
+    announce_entry_type["trackerid"] = sol::property([](const lt::announce_entry& ae) { return ae.trackerid; });
+    announce_entry_type["url"] = sol::property([](const lt::announce_entry& ae) { return ae.url; });
+    announce_entry_type["verified"] = sol::property([](const lt::announce_entry& ae) { return ae.verified; });
+
+    auto peer_info_type = lua.new_usertype<lt::peer_info>(
+        "lt.PeerInfo",
+        sol::no_constructor);
+
+    peer_info_type["busy_requests"] = sol::property([](const lt::peer_info& pi) { return pi.busy_requests; });
+    peer_info_type["client"] = sol::property([](const lt::peer_info& pi) { return pi.client; });
+    peer_info_type["connection_type"] = sol::property([](const lt::peer_info& pi) { return pi.connection_type; });
+    peer_info_type["down_speed"] = sol::property([](const lt::peer_info& pi) { return pi.down_speed; });
+    peer_info_type["up_speed"] = sol::property([](const lt::peer_info& pi) { return pi.up_speed; });
+    peer_info_type["download_queue_length"] = sol::property([](const lt::peer_info& pi) { return pi.download_queue_length; });
+    peer_info_type["download_queue_time"] = sol::property([](const lt::peer_info& pi) { return pi.download_queue_time.count(); });
+    peer_info_type["flags"] = sol::property([](const lt::peer_info& pi) { return pi.flags; });
+    // peer_info_type["flags"] = sol::property([](const lt::peer_info& pi) { return pi.flags; });
+    peer_info_type["last_active"] = sol::property([](const lt::peer_info& pi) { return pi.last_active.count(); });
+    peer_info_type["last_request"] = sol::property([](const lt::peer_info& pi) { return pi.last_request.count(); });
+    // local endpoint peer_info_type["last_request"] = sol::property([](const lt::peer_info& pi) { return pi.last_request.count(); });
+    peer_info_type["progress"] = sol::property([](const lt::peer_info& pi) { return pi.progress; });
+    peer_info_type["rtt"] = sol::property([](const lt::peer_info& pi) { return pi.rtt; });
+    peer_info_type["source"] = sol::property([](const lt::peer_info& pi) { return pi.source; });
+    peer_info_type["total_download"] = sol::property([](const lt::peer_info& pi) { return pi.total_download; });
+    peer_info_type["total_upload"] = sol::property([](const lt::peer_info& pi) { return pi.total_upload; });
+
     auto torrent_status_type = lua.new_usertype<lt::torrent_status>(
         "lt.TorrentStatus",
         sol::no_constructor);
@@ -209,10 +272,8 @@ void Torrents::Register(sol::state& lua)
             return std::make_shared<lt::torrent_info>(data);
         };
 
-        torrents["pause"] = [](sol::this_state s, const lt::torrent_status& ts)
+        torrents["pause"] = [](const lt::torrent_status& ts)
         {
-            sol::state_view lua{s};
-
             if (ts.handle.is_valid())
             {
                 ts.handle.pause();
@@ -223,8 +284,21 @@ void Torrents::Register(sol::state& lua)
             }
         };
 
-        sol::table properties = lua.create_table();
-        properties["get"] = [](sol::this_state s, const lt::torrent_status& ts) -> sol::reference
+        torrents["peers"] = lua.create_table();
+        torrents["peers"]["list"] = [](const lt::torrent_status& ts)
+        {
+            if (!ts.handle.is_valid())
+            {
+                BOOST_LOG_TRIVIAL(error) << "Invalid torrent handle";
+            }
+
+            std::vector<lt::peer_info> peers;
+            ts.handle.get_peer_info(peers);
+            return peers;
+        };
+
+        torrents["properties"] = lua.create_table();
+        torrents["properties"]["get"] = [](sol::this_state s, const lt::torrent_status& ts) -> sol::reference
         {
             if (!ts.handle.is_valid())
             {
@@ -243,7 +317,7 @@ void Torrents::Register(sol::state& lua)
             return p;
         };
 
-        properties["set"] = [](sol::this_state s, const lt::torrent_status& ts, const sol::table& args)
+        torrents["properties"]["set"] = [](sol::this_state s, const lt::torrent_status& ts, const sol::table& args)
         {
             if (!ts.handle.is_valid())
             {
@@ -256,8 +330,6 @@ void Torrents::Register(sol::state& lua)
             if (args["max_uploads"].valid())     ts.handle.set_max_uploads(args["max_uploads"]);
             if (args["upload_limit"].valid())    ts.handle.set_upload_limit(args["upload_limit"]);
         };
-
-        torrents["properties"] = properties;
 
         torrents["reannounce"] = [](sol::this_state s, const lt::torrent_status& ts, const sol::table& args)
         {
@@ -298,6 +370,17 @@ void Torrents::Register(sol::state& lua)
             {
                 BOOST_LOG_TRIVIAL(error) << "Torrent not valid";
             }
+        };
+
+        torrents["trackers"] = lua.create_table();
+        torrents["trackers"]["list"] = [](const lt::torrent_status& ts)
+        {
+            if (!ts.handle.is_valid())
+            {
+                BOOST_LOG_TRIVIAL(error) << "Invalid torrent handle";
+            }
+
+            return ts.handle.trackers();
         };
 
         return torrents;
