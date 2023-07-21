@@ -188,7 +188,38 @@ void Torrents::Register(sol::state& lua)
             if (args["ti"].is<std::shared_ptr<lt::torrent_info>>())
             {
                 p.ti = args["ti"].get<std::shared_ptr<lt::torrent_info>>();
+
+                if (options.session.Torrents().find(p.ti->info_hashes()) != options.session.Torrents().end())
+                {
+                    BOOST_LOG_TRIVIAL(error) << "Torrent already in session";
+                    return;
+                }
             }
+            else if (args["magnet_uri"].is<std::string>())
+            {
+                lt::error_code ec;
+                lt::parse_magnet_uri(args["magnet_uri"].get<std::string>(), p, ec);
+
+                if (ec)
+                {
+                    BOOST_LOG_TRIVIAL(error) << "Failed to parse magnet uri: " << ec.message();
+                    return;
+                }
+            }
+
+            if (args["download_limit"].valid())  p.download_limit  = args["download_limit"].get<int>();
+            if (args["http_seeds"].valid())      p.http_seeds      = args["http_seeds"].get<std::vector<std::string>>();
+            if (args["max_connections"].valid()) p.max_connections = args["max_connections"].get<int>();
+            if (args["max_uploads"].valid())     p.max_uploads     = args["max_uploads"].get<int>();
+            if (args["name"].valid())            p.name            = args["name"].get<std::string>();
+            if (args["save_path"].valid())       p.save_path       = args["save_path"].get<std::string>();
+            if (args["trackers"].valid())        p.trackers        = args["trackers"].get<std::vector<std::string>>();
+            if (args["upload_limit"].valid())    p.upload_limit    = args["upload_limit"].get<int>();
+            if (args["url_seeds"].valid())       p.url_seeds       = args["url_seeds"].get<std::vector<std::string>>();
+
+            // userdata values
+            if (args["category"].valid())        p.userdata.get<TorrentClientData>()->category = args["category"].get<std::string>();
+            if (args["tags"].valid())            p.userdata.get<TorrentClientData>()->tags     = args["tags"].get<std::unordered_set<std::string>>();
 
             options.session.AddTorrent(p);
         };
