@@ -297,6 +297,8 @@ void Session::Load()
         {
             current++;
 
+            params.userdata.get<TorrentClientData>()->ignore_alert = true;
+
             lt::torrent_handle th = m_session->add_torrent(params);
             m_torrents.insert({ th.info_hashes(), th });
 
@@ -432,6 +434,13 @@ void Session::ReadAlerts()
                 continue;
             }
 
+            const auto client_data = ata->handle.userdata().get<TorrentClientData>();
+
+            if (client_data != nullptr && client_data->ignore_alert)
+            {
+                continue;
+            }
+
             m_torrents.insert({ ata->handle.info_hashes(), ata->handle });
 
             const auto status = ata->handle.status();
@@ -485,7 +494,7 @@ void Session::ReadAlerts()
                 .save_path      = status.save_path
             });
 
-            BOOST_LOG_TRIVIAL(info) << "Resume data saved for " << status.name;
+            BOOST_LOG_TRIVIAL(debug) << "Resume data saved for " << status.name;
 
             break;
         }
@@ -501,7 +510,7 @@ void Session::ReadAlerts()
                 metrics.insert({ stats.name, counters[stats.value_index] });
             }
 
-            m_sessionStats(metrics);
+            boost::asio::post(m_io, [this, metrics](){ m_sessionStats(metrics); });
 
             break;
         }
@@ -509,7 +518,7 @@ void Session::ReadAlerts()
         {
             auto sua = lt::alert_cast<lt::state_update_alert>(alert);
 
-            m_stateUpdate(sua->status);
+            boost::asio::post(m_io, [this, status = sua->status](){ m_stateUpdate(status); });
 
             break;
         }
@@ -526,7 +535,7 @@ void Session::ReadAlerts()
                                              | lt::torrent_handle::only_if_modified);
             }
 
-            m_storageMoved(sma->handle);
+            boost::asio::post(m_io, [this, th = sma->handle](){ m_storageMoved(th); });
 
             break;
         }
@@ -557,7 +566,8 @@ void Session::ReadAlerts()
             {
                 // Only emit this event if we have downloaded any data this session
                 BOOST_LOG_TRIVIAL(info) << "Torrent " << status.name << " finished";
-                m_torrentFinished(status);
+
+                boost::asio::post(m_io, [this, status](){ m_torrentFinished(status); });
             }
 
             if (status.need_save_resume)
@@ -571,9 +581,12 @@ void Session::ReadAlerts()
         }
         case lt::torrent_paused_alert::alert_type:
         {
-            BOOST_LOG_TRIVIAL(info) << "Torrent paused alert";
             auto tpa = lt::alert_cast<lt::torrent_paused_alert>(alert);
-            m_torrentPaused(tpa->handle);
+
+            BOOST_LOG_TRIVIAL(debug) << "Torrent " << tpa->torrent_name() << " paused";
+
+            boost::asio::post(m_io, [this, th = tpa->handle](){ m_torrentPaused(th); });
+
             break;
         }
         case lt::torrent_removed_alert::alert_type:
@@ -583,9 +596,10 @@ void Session::ReadAlerts()
             AddTorrentParams::Remove(m_db, tra->info_hashes);
 
             m_torrents.erase(tra->info_hashes);
-            m_torrentRemoved(tra->info_hashes);
 
             BOOST_LOG_TRIVIAL(info) << "Torrent " << tra->torrent_name() << " removed";
+
+            boost::asio::post(m_io, [this, hash = tra->info_hashes](){ m_torrentRemoved(hash); });
 
             break;
         }
@@ -596,7 +610,7 @@ void Session::ReadAlerts()
 
             BOOST_LOG_TRIVIAL(debug) << "Torrent " << status.name << " resumed";
 
-            m_torrentResumed(status);
+            boost::asio::post(m_io, [this, status](){ m_torrentResumed(status); });
 
             break;
         }
