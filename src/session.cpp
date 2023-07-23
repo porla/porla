@@ -314,34 +314,14 @@ void Session::Load()
 
 lt::info_hash_t Session::AddTorrent(lt::add_torrent_params const& p)
 {
-    lt::error_code ec;
-    lt::torrent_handle th = m_session->add_torrent(p, ec);
+    m_session->async_add_torrent(p);
 
-    if (ec)
+    if (p.ti)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to add torrent: " << ec;
-        return {};
+        return p.ti->info_hashes();
     }
 
-    lt::torrent_status ts = th.status();
-
-    AddTorrentParams::Insert(m_db, ts.info_hashes, AddTorrentParams{
-        .client_data    = p.userdata.get<TorrentClientData>(),
-        .name           = ts.name,
-        .params         = p,
-        .queue_position = static_cast<int>(ts.queue_position),
-        .save_path      = ts.save_path,
-    });
-
-    th.save_resume_data(
-        lt::torrent_handle::flush_disk_cache
-        | lt::torrent_handle::save_info_dict
-        | lt::torrent_handle::only_if_modified);
-
-    m_torrents.insert({ ts.info_hashes, th });
-    m_torrentAdded(ts);
-
-    return ts.info_hashes;
+    return p.info_hashes;
 }
 
 void Session::ApplySettings(const libtorrent::settings_pack& settings)
@@ -442,6 +422,37 @@ void Session::ReadAlerts()
 
         switch (alert->type())
         {
+        case lt::add_torrent_alert::alert_type:
+        {
+            const auto ata = lt::alert_cast<lt::add_torrent_alert>(alert);
+
+            if (ata->error)
+            {
+                BOOST_LOG_TRIVIAL(error) << "Failed to add torrent " << ata->torrent_name() << ": " << ata->error.what();
+                continue;
+            }
+
+            m_torrents.insert({ ata->handle.info_hashes(), ata->handle });
+
+            const auto status = ata->handle.status();
+
+            AddTorrentParams::Insert(m_db, ata->handle.info_hashes(), AddTorrentParams{
+                .client_data    = ata->handle.userdata().get<TorrentClientData>(),
+                .name           = status.name,
+                .params         = ata->params,
+                .queue_position = static_cast<int>(status.queue_position),
+                .save_path      = status.save_path,
+            });
+
+            ata->handle.save_resume_data(
+                lt::torrent_handle::flush_disk_cache
+                | lt::torrent_handle::save_info_dict
+                | lt::torrent_handle::only_if_modified);
+
+            boost::asio::post(m_io, [this, status](){ m_torrentAdded(status); });
+
+            break;
+        }
         case lt::dht_stats_alert::alert_type:
         {
             auto dsa = lt::alert_cast<lt::dht_stats_alert>(alert);
