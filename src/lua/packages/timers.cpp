@@ -13,6 +13,7 @@ public:
     explicit Timer(boost::asio::io_context& io, sol::table args)
         : m_timer(io)
         , m_args(std::move(args))
+        , m_should_cancel(false)
     {
         Next();
     }
@@ -24,12 +25,16 @@ public:
 
     ~Timer()
     {
+        BOOST_LOG_TRIVIAL(debug) << "Destroying timer";
+
         m_should_cancel = true;
         m_timer.cancel();
     }
 
     void Cancel()
     {
+        BOOST_LOG_TRIVIAL(debug) << "Cancelling timer";
+
         m_should_cancel = true;
         m_timer.cancel();
     }
@@ -38,8 +43,11 @@ private:
     void Next()
     {
         const int milliseconds = m_args["interval"];
+        const auto expiry = boost::posix_time::milliseconds(milliseconds);
 
-        m_timer.expires_from_now(boost::posix_time::milliseconds(milliseconds));
+        BOOST_LOG_TRIVIAL(debug) << "Timer expiry in " << expiry.total_milliseconds() << " milliseconds";
+
+        m_timer.expires_from_now(expiry);
         m_timer.async_wait([&](const boost::system::error_code& ec) { OnTimerExpired(ec); });
     }
 
@@ -49,6 +57,7 @@ private:
         {
             if (ec == boost::system::errc::operation_canceled)
             {
+                BOOST_LOG_TRIVIAL(debug) << "Timer cancelled";
                 return;
             }
 
@@ -67,6 +76,11 @@ private:
             {
                 BOOST_LOG_TRIVIAL(error) << "Error when invoking callback: " << err.what();
             }
+        }
+        else
+        {
+            BOOST_LOG_TRIVIAL(warning) << "Callback is not a function";
+            return;
         }
 
         if (!m_should_cancel) Next();
