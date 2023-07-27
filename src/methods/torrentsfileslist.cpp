@@ -28,7 +28,8 @@ void TorrentsFilesList::Invoke(const TorrentsFilesListReq& req, WriteCb<Torrents
     if (auto tf = status.torrent_file.lock())
     {
         return cb.Ok(TorrentsFilesListRes{
-            .file_storage = tf->files()
+            .file_progress = handle->second.file_progress(),
+            .file_storage  = tf->files()
         });
     }
 
