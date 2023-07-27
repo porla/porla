@@ -110,6 +110,7 @@ add_library(
     src/config.cpp
     src/logger.cpp
     src/session.cpp
+    src/sessions.cpp
     src/uri.cpp
     src/utils/eta.cpp
     src/utils/secretkey.cpp

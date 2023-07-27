@@ -10,6 +10,7 @@
 #include "logger.hpp"
 #include "lua/plugins/pluginengine.hpp"
 #include "session.hpp"
+#include "sessions.hpp"
 #include "tools/authtoken.hpp"
 #include "tools/generatesecretkey.hpp"
 #include "tools/versionjson.hpp"
@@ -110,6 +111,11 @@ int main(int argc, char* argv[])
             .timer_dht_stats            = cfg->timer_dht_stats.value_or(5000),
             .timer_session_stats        = cfg->timer_session_stats.value_or(5000),
             .timer_torrent_updates      = cfg->timer_torrent_updates.value_or(1000)
+        });
+
+        porla::Sessions sessions(porla::SessionsOptions{
+            .db = cfg->db,
+            .io = io
         });
 
         // Load plugins before we load the torrents to give plugins a chance to run any hooks.
