@@ -23,6 +23,7 @@ return function(args)
             body     = args.body,
             method   = resolve(args.method, ctx),
             url      = resolve(args.url, ctx),
+            headers  = resolved_headers,
             callback = function(status_code, content)
                 callback({
                     content     = content,
