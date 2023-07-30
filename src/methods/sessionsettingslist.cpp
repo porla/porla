@@ -1,13 +1,13 @@
 #include "sessionsettingslist.hpp"
 
-#include "../session.hpp"
+#include "../sessions.hpp"
 
 using porla::Methods::SessionSettingsList;
 using porla::Methods::SessionSettingsListReq;
 using porla::Methods::SessionSettingsListRes;
 
-SessionSettingsList::SessionSettingsList(porla::ISession& session)
-    : m_session(session)
+SessionSettingsList::SessionSettingsList(porla::Sessions& sessions)
+    : m_sessions(sessions)
 {
 }
 
@@ -15,7 +15,7 @@ void SessionSettingsList::Invoke(const SessionSettingsListReq &req, WriteCb<Sess
 {
     SessionSettingsListRes res;
 
-    auto const settings = m_session.Settings();
+    auto const settings = m_sessions.Default()->session->get_settings();
 
     for (int i = lt::settings_pack::bool_type_base; i < lt::settings_pack::max_bool_setting_internal; i++)
     {

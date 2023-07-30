@@ -6,7 +6,7 @@
 
 namespace porla
 {
-    class ISession;
+    class Sessions;
 }
 
 namespace porla::Methods
@@ -14,12 +14,12 @@ namespace porla::Methods
     class TorrentsRemove : public Method<TorrentsRemoveReq, TorrentsRemoveRes>
     {
     public:
-        explicit TorrentsRemove(ISession& session);
+        explicit TorrentsRemove(Sessions& sessions);
 
     protected:
         void Invoke(const TorrentsRemoveReq& req, WriteCb<TorrentsRemoveRes> cb) override;
 
     private:
-        ISession& m_session;
+        Sessions& m_sessions;
     };
 }

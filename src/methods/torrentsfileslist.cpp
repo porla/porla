@@ -1,19 +1,19 @@
 #include "torrentsfileslist.hpp"
 
-#include "../session.hpp"
+#include "../sessions.hpp"
 
 using porla::Methods::TorrentsFilesList;
 using porla::Methods::TorrentsFilesListReq;
 using porla::Methods::TorrentsFilesListRes;
 
-TorrentsFilesList::TorrentsFilesList(porla::ISession &session)
-    : m_session(session)
+TorrentsFilesList::TorrentsFilesList(porla::Sessions& sessions)
+    : m_sessions(sessions)
 {
 }
 
 void TorrentsFilesList::Invoke(const TorrentsFilesListReq& req, WriteCb<TorrentsFilesListRes> cb)
 {
-    auto const& torrents = m_session.Torrents();
+    auto const& torrents = m_sessions.Default()->torrents;
     auto const handle = torrents.find(req.info_hash);
 
     if (handle == torrents.end())

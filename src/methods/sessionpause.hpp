@@ -5,7 +5,7 @@
 
 namespace porla
 {
-    class ISession;
+    class Sessions;
 }
 
 namespace porla::Methods
@@ -13,12 +13,12 @@ namespace porla::Methods
     class SessionPause : public Method<SessionPauseReq, SessionPauseRes>
     {
     public:
-        explicit SessionPause(ISession& session);
+        explicit SessionPause(Sessions& sessions);
 
     protected:
         void Invoke(const SessionPauseReq& req, WriteCb<SessionPauseRes> cb) override;
 
     private:
-        ISession& m_session;
+        Sessions& m_sessions;
     };
 }

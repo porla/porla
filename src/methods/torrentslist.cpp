@@ -1,16 +1,16 @@
 #include "torrentslist.hpp"
 
 #include "../query/pql.hpp"
-#include "../session.hpp"
+#include "../sessions.hpp"
 #include "../torrentclientdata.hpp"
 #include "../utils/eta.hpp"
 #include "../utils/ratio.hpp"
 
 using porla::Methods::TorrentsList;
 
-TorrentsList::TorrentsList(sqlite3* db, porla::ISession& session)
+TorrentsList::TorrentsList(sqlite3* db, porla::Sessions& sessions)
     : m_db(db)
-    , m_session(session)
+    , m_sessions(sessions)
 {
 }
 
@@ -77,9 +77,9 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
     }
 
     std::vector<TorrentsListRes::Item> torrents;
-    torrents.reserve(m_session.Torrents().size());
+    torrents.reserve(m_sessions.Default()->torrents.size());
 
-    for (auto const& [_, handle] : m_session.Torrents())
+    for (auto const& [_, handle] : m_sessions.Default()->torrents)
     {
         const auto client_data = handle.userdata().get<TorrentClientData>();
 
@@ -217,6 +217,6 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
         .page_size                 = req.page_size.value_or(50),
         .torrents                  = std::vector(torrents.begin() + page_beg, torrents.begin() + page_end),
         .torrents_total            = static_cast<int>(torrents.size()),
-        .torrents_total_unfiltered = static_cast<int>(m_session.Torrents().size())
+        .torrents_total_unfiltered = static_cast<int>(m_sessions.Default()->torrents.size())
     });
 }

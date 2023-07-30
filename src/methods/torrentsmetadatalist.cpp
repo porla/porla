@@ -1,21 +1,21 @@
 #include "torrentsmetadatalist.hpp"
 
-#include "../session.hpp"
+#include "../sessions.hpp"
 #include "../torrentclientdata.hpp"
 
 using porla::Methods::TorrentsMetadataList;
 using porla::Methods::TorrentsMetadataListReq;
 using porla::Methods::TorrentsMetadataListRes;
 
-TorrentsMetadataList::TorrentsMetadataList(sqlite3 *db, ISession &session)
+TorrentsMetadataList::TorrentsMetadataList(sqlite3 *db, Sessions& sessions)
     : m_db(db)
-    , m_session(session)
+    , m_sessions(sessions)
 {
 }
 
 void TorrentsMetadataList::Invoke(const TorrentsMetadataListReq& req, WriteCb<TorrentsMetadataListRes> cb)
 {
-    const auto& torrents = m_session.Torrents();
+    const auto& torrents = m_sessions.Default()->torrents;
     const auto handle = torrents.find(req.info_hash);
 
     if (handle == torrents.end())

@@ -5,7 +5,7 @@
 
 namespace porla
 {
-    class ISession;
+    class Sessions;
 }
 
 namespace porla::Methods
@@ -13,12 +13,12 @@ namespace porla::Methods
     class TorrentsFilesList : public Method<TorrentsFilesListReq, TorrentsFilesListRes>
     {
     public:
-        explicit TorrentsFilesList(ISession& session);
+        explicit TorrentsFilesList(Sessions& sessions);
 
     protected:
-        void Invoke(const TorrentsFilesListReq& req, WriteCb<TorrentsFilesListRes> cb);
+        void Invoke(const TorrentsFilesListReq& req, WriteCb<TorrentsFilesListRes> cb) override;
 
     private:
-        ISession& m_session;
+        Sessions& m_sessions;
     };
 }

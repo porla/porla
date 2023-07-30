@@ -7,7 +7,7 @@
 
 #include "../plugins/plugin.hpp"
 #include "../../config.hpp"
-#include "../../session.hpp"
+#include "../../sessions.hpp"
 #include "../../torrentclientdata.hpp"
 #include "../../utils/ratio.hpp"
 
@@ -189,7 +189,7 @@ void Torrents::Register(sol::state& lua)
             {
                 p.ti = args["ti"].get<std::shared_ptr<lt::torrent_info>>();
 
-                if (options.session.Torrents().find(p.ti->info_hashes()) != options.session.Torrents().end())
+                if (options.sessions.Default()->torrents.find(p.ti->info_hashes()) != options.sessions.Default()->torrents.end())
                 {
                     BOOST_LOG_TRIVIAL(error) << "Torrent already in session";
                     return;
@@ -221,7 +221,7 @@ void Torrents::Register(sol::state& lua)
             if (args["category"].valid())        p.userdata.get<TorrentClientData>()->category = args["category"].get<std::string>();
             if (args["tags"].valid())            p.userdata.get<TorrentClientData>()->tags     = args["tags"].get<std::unordered_set<std::string>>();
 
-            options.session.AddTorrent(p);
+            options.sessions.Default()->session->async_add_torrent(p);
         };
 
         torrents["errors"] = lua.create_table();
@@ -259,7 +259,7 @@ void Torrents::Register(sol::state& lua)
             if (arg.is<std::shared_ptr<lt::torrent_info>>())
             {
                 const auto ti = arg.as<std::shared_ptr<lt::torrent_info>>();
-                return options.session.Torrents().find(ti->info_hashes()) != options.session.Torrents().end();
+                return options.sessions.Default()->torrents.find(ti->info_hashes()) != options.sessions.Default()->torrents.end();
             }
 
             return false;
@@ -272,7 +272,7 @@ void Torrents::Register(sol::state& lua)
 
             std::vector<lt::torrent_status> ret;
 
-            for (const auto& [ info_hash, handle ] : options.session.Torrents())
+            for (const auto& [ info_hash, handle ] : options.sessions.Default()->torrents)
             {
                 ret.emplace_back(handle.status());
             }
@@ -386,7 +386,9 @@ void Torrents::Register(sol::state& lua)
             bool remove_files = false;
             if (args["remove_files"].valid()) { remove_files = args["remove_files"].get<bool>(); }
 
-            options.session.Remove(ts.info_hashes, remove_files);
+            options.sessions.Default()->session->remove_torrent(
+                ts.handle,
+                remove_files ? lt::session::delete_files : lt::remove_flags_t{});
         };
 
         torrents["resume"] = [](sol::this_state s, const lt::torrent_status& ts)

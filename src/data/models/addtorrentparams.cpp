@@ -21,22 +21,18 @@ static std::string ToString(const T &hash)
     return ss.str();
 }
 
-int AddTorrentParams::Count(sqlite3 *db)
+int AddTorrentParams::Count(sqlite3 *db, const std::string_view& session)
 {
     int count = 0;
 
-    sqlite3_exec(
-        db,
-        "SELECT COUNT(*) FROM addtorrentparams",
-        [](void* user,int,char** cols,char**)
+    auto stmt = Statement::Prepare(db, "SELECT COUNT(*) FROM addtorrentparams WHERE session_id = $1");
+    stmt.Bind(1, session);
+    stmt.Step(
+        [&](const Statement::IRow& row)
         {
-            int* c = reinterpret_cast<int*>(user);
-            *c = std::stoi(cols[0]);
-
+            count = row.GetInt32(0);
             return SQLITE_OK;
-        },
-        &count,
-        nullptr);
+        });
 
     return count;
 }

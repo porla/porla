@@ -14,6 +14,7 @@
 #include "migrations/0006_clientdata.hpp"
 #include "migrations/0007_removesessionsettings.hpp"
 #include "migrations/0008_plugins.hpp"
+#include "migrations/0009_multisessions.hpp"
 #include "statement.hpp"
 
 int GetUserVersion(sqlite3* db)
@@ -47,7 +48,8 @@ bool porla::Data::Migrate(sqlite3* db)
         &porla::Data::Migrations::TorrentsMetadata::Migrate,
         &porla::Data::Migrations::ClientData::Migrate,
         &porla::Data::Migrations::RemoveSessionSettings::Migrate,
-        &porla::Data::Migrations::Plugins::Migrate
+        &porla::Data::Migrations::Plugins::Migrate,
+        &porla::Data::Migrations::MultiSessions::Migrate
     };
 
     int user_version = GetUserVersion(db);

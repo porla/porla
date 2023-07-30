@@ -29,7 +29,7 @@ PluginEngine::PluginEngine(PluginEngineOptions options)
                 .io            = m_options.io,
                 .path          = row.GetStdString(2),
                 .plugin_config = row.GetStdString(3),
-                .session       = m_options.session
+                .sessions      = m_options.sessions
             };
 
             PluginState plugin_state{
@@ -66,7 +66,7 @@ PluginEngine::PluginEngine(PluginEngineOptions options)
                 .io            = m_options.io,
                 .path          = file,
                 .plugin_config = std::nullopt,
-                .session       = m_options.session
+                .sessions      = m_options.sessions
             };
 
             auto workflow_plugin = Plugin::Load(plugin_load_options);
@@ -108,7 +108,7 @@ void PluginEngine::Configure(const std::string& name, const std::optional<std::s
         .io            = m_options.io,
         .path          = state->second.path,
         .plugin_config = config,
-        .session       = m_options.session
+        .sessions      = m_options.sessions
     };
 
     state->second.config = config;
@@ -158,7 +158,7 @@ void PluginEngine::Install(const PluginInstallOptions& options, std::error_code&
                 .io            = m_options.io,
                 .path          = options.path,
                 .plugin_config = options.config,
-                .session       = m_options.session
+                .sessions      = m_options.sessions
             };
 
             state->second.plugin = Plugin::Load(plugin_load_options);
@@ -193,7 +193,7 @@ void PluginEngine::Reload(const std::string& name)
         .io            = m_options.io,
         .path          = state->second.path,
         .plugin_config = state->second.config,
-        .session       = m_options.session
+        .sessions      = m_options.sessions
     };
 
     state->second.plugin = Plugin::Load(plugin_load_options);

@@ -1,19 +1,19 @@
 #include "torrentsmove.hpp"
 
-#include "../session.hpp"
+#include "../sessions.hpp"
 
 using porla::Methods::TorrentsMove;
 using porla::Methods::TorrentsMoveReq;
 using porla::Methods::TorrentsMoveRes;
 
-TorrentsMove::TorrentsMove(porla::ISession &session)
-    : m_session(session)
+TorrentsMove::TorrentsMove(porla::Sessions &sessions)
+    : m_sessions(sessions)
 {
 }
 
 void TorrentsMove::Invoke(const TorrentsMoveReq &req, WriteCb<TorrentsMoveRes> cb)
 {
-    auto const& torrents = m_session.Torrents();
+    auto const& torrents = m_sessions.Default()->torrents;
     auto const& handle = torrents.find(req.info_hash);
 
     if (handle == torrents.end())

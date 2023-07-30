@@ -1,18 +1,18 @@
 #include "sessionresume.hpp"
 
-#include "../session.hpp"
+#include "../sessions.hpp"
 
 using porla::Methods::SessionResume;
 using porla::Methods::SessionResumeReq;
 using porla::Methods::SessionResumeRes;
 
-SessionResume::SessionResume(porla::ISession& session)
-    : m_session(session)
+SessionResume::SessionResume(porla::Sessions& sessions)
+    : m_sessions(sessions)
 {
 }
 
 void SessionResume::Invoke(const SessionResumeReq& req, WriteCb<SessionResumeRes> cb)
 {
-    m_session.Resume();
+    m_sessions.Default()->session->resume();
     cb.Ok(SessionResumeRes{});
 }

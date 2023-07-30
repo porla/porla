@@ -2,20 +2,20 @@
 
 #include <boost/log/trivial.hpp>
 
-#include "../session.hpp"
+#include "../sessions.hpp"
 
 using porla::Methods::TorrentsPeersAdd;
 using porla::Methods::TorrentsPeersAddReq;
 using porla::Methods::TorrentsPeersAddRes;
 
-TorrentsPeersAdd::TorrentsPeersAdd(porla::ISession& session)
-    : m_session(session)
+TorrentsPeersAdd::TorrentsPeersAdd(porla::Sessions& sessions)
+    : m_sessions(sessions)
 {
 }
 
 void TorrentsPeersAdd::Invoke(const TorrentsPeersAddReq& req, WriteCb<TorrentsPeersAddRes> cb)
 {
-    auto const& torrents = m_session.Torrents();
+    auto const& torrents = m_sessions.Default()->torrents;
     auto status = torrents.find(req.info_hash);
 
     if (status != torrents.end())

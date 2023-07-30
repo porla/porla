@@ -4,7 +4,7 @@
 #include <libtorrent/add_torrent_params.hpp>
 #include <libtorrent/magnet_uri.hpp>
 
-#include "../session.hpp"
+#include "../sessions.hpp"
 #include "../torrentclientdata.hpp"
 #include "../utils/base64.hpp"
 
@@ -30,9 +30,9 @@ static void ApplyPreset(lt::add_torrent_params& p, const porla::Config::Preset& 
         p.userdata.get<porla::TorrentClientData>()->tags = preset.tags;
 }
 
-TorrentsAdd::TorrentsAdd(sqlite3* db, ISession& session, const std::map<std::string, Config::Preset>& presets)
+TorrentsAdd::TorrentsAdd(sqlite3* db, Sessions& sessions, const std::map<std::string, Config::Preset>& presets)
     : m_db(db)
-    , m_session(session)
+    , m_sessions(sessions)
     , m_presets(presets)
 {
 }
@@ -84,7 +84,7 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
             return cb.Error(-2, "Failed to parse torrent_info from bdecoded data");
         }
 
-        if (m_session.Torrents().find(p.ti->info_hashes()) != m_session.Torrents().end())
+        if (m_sessions.Default()->torrents.find(p.ti->info_hashes()) != m_sessions.Default()->torrents.end())
         {
             return cb.Error(-3, "Torrent already in session");
         }
@@ -136,7 +136,8 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
 
     try
     {
-        hash = m_session.AddTorrent(p);
+        m_sessions.Default()->session->async_add_torrent(p);
+        hash = p.ti ? p.ti->info_hashes() : p.info_hashes;
     }
     catch (const std::exception& ex)
     {

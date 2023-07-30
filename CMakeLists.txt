@@ -125,6 +125,7 @@ add_library(
     src/data/migrations/0006_clientdata.cpp
     src/data/migrations/0007_removesessionsettings.cpp
     src/data/migrations/0008_plugins.cpp
+    src/data/migrations/0009_multisessions.cpp
     src/data/models/addtorrentparams.cpp
     src/data/models/users.cpp
     src/data/statement.cpp

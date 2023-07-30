@@ -50,8 +50,8 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     };
 
     auto cfg = std::unique_ptr<Config>(new Config());
-    cfg->http_auth_enabled         = true;
-    cfg->session_settings          = lt::default_settings();
+    cfg->http_auth_enabled = true;
+    cfg->sessions.insert({ "default", lt::default_settings() });
 
     // Check default locations for a config file.
     for (auto const& path : config_file_search_paths)
@@ -94,9 +94,9 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (auto val = std::getenv("PORLA_SECRET_KEY"))            cfg->secret_key      = val;
     if (auto val = std::getenv("PORLA_SESSION_SETTINGS_BASE"))
     {
-        if (strcmp("default", val) == 0)               cfg->session_settings = lt::default_settings();
-        if (strcmp("high_performance_seed", val) == 0) cfg->session_settings = lt::high_performance_seed();
-        if (strcmp("min_memory_usage", val) == 0)      cfg->session_settings = lt::min_memory_usage();
+        if (strcmp("default", val) == 0)               cfg->sessions.at("default") = lt::default_settings();
+        if (strcmp("high_performance_seed", val) == 0) cfg->sessions.at("default") = lt::high_performance_seed();
+        if (strcmp("min_memory_usage", val) == 0)      cfg->sessions.at("default") = lt::min_memory_usage();
     }
     if (auto val = std::getenv("PORLA_SODIUM_MEMLIMIT"))
     {
@@ -153,9 +153,9 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
             if (auto val = config_file_tbl["session_settings"]["base"].value<std::string>())
             {
-                if (*val == "default")               cfg->session_settings = lt::default_settings();
-                if (*val == "high_performance_seed") cfg->session_settings = lt::high_performance_seed();
-                if (*val == "min_memory_usage")      cfg->session_settings = lt::min_memory_usage();
+                if (*val == "default")               cfg->sessions.at("default") = lt::default_settings();
+                if (*val == "high_performance_seed") cfg->sessions.at("default") = lt::high_performance_seed();
+                if (*val == "min_memory_usage")      cfg->sessions.at("default") = lt::min_memory_usage();
             }
 
             if (auto val = config_file_tbl["db"].value<std::string>())
@@ -206,12 +206,12 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
                 if (!listen_val.empty())
                 {
-                    cfg->session_settings.set_str(lt::settings_pack::listen_interfaces, listen_val.substr(1));
+                    cfg->sessions.at("default").set_str(lt::settings_pack::listen_interfaces, listen_val.substr(1));
                 }
 
                 if (!outbound_val.empty())
                 {
-                    cfg->session_settings.set_str(lt::settings_pack::outgoing_interfaces, outbound_val.substr(1));
+                    cfg->sessions.at("default").set_str(lt::settings_pack::outgoing_interfaces, outbound_val.substr(1));
                 }
             }
 
@@ -296,28 +296,28 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
                 BOOST_LOG_TRIVIAL(info) << "Configuring session proxy";
 
                 if (const auto val = (*proxy_tbl)["host"].value<std::string>())
-                    cfg->session_settings.set_str(lt::settings_pack::proxy_hostname, *val);
+                    cfg->sessions.at("default").set_str(lt::settings_pack::proxy_hostname, *val);
 
                 if (const auto val = (*proxy_tbl)["port"].value<int>())
-                    cfg->session_settings.set_int(lt::settings_pack::proxy_port, *val);
+                    cfg->sessions.at("default").set_int(lt::settings_pack::proxy_port, *val);
 
                 if (const auto val = (*proxy_tbl)["type"].value<std::string>())
                 {
                     if (strcmp(val->c_str(), "socks4") == 0 || strcmp(val->c_str(), "SOCKS4") == 0)
-                        cfg->session_settings.set_int(lt::settings_pack::proxy_type, lt::settings_pack::socks4);
+                        cfg->sessions.at("default").set_int(lt::settings_pack::proxy_type, lt::settings_pack::socks4);
 
                     if (strcmp(val->c_str(), "socks5") == 0 || strcmp(val->c_str(), "SOCKS5") == 0)
-                        cfg->session_settings.set_int(lt::settings_pack::proxy_type, lt::settings_pack::socks5);
+                        cfg->sessions.at("default").set_int(lt::settings_pack::proxy_type, lt::settings_pack::socks5);
                 }
 
                 if (const auto val = (*proxy_tbl)["hostnames"].value<bool>())
-                    cfg->session_settings.set_bool(lt::settings_pack::proxy_hostnames, *val);
+                    cfg->sessions.at("default").set_bool(lt::settings_pack::proxy_hostnames, *val);
 
                 if (const auto val = (*proxy_tbl)["peer_connections"].value<bool>())
-                    cfg->session_settings.set_bool(lt::settings_pack::proxy_peer_connections, *val);
+                    cfg->sessions.at("default").set_bool(lt::settings_pack::proxy_peer_connections, *val);
 
                 if (const auto val = (*proxy_tbl)["tracker_connections"].value<bool>())
-                    cfg->session_settings.set_bool(lt::settings_pack::proxy_tracker_connections, *val);
+                    cfg->sessions.at("default").set_bool(lt::settings_pack::proxy_tracker_connections, *val);
             }
 
             if (auto val = config_file_tbl["secret_key"].value<std::string>())
@@ -347,11 +347,11 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
                     }
                 }
 
-                cfg->session_extensions = extensions;
+                // TODO: cfg->session_extensions = extensions;
             }
 
             if (auto session_settings_tbl = config_file_tbl["session_settings"].as_table())
-                ApplySettings(*session_settings_tbl, cfg->session_settings);
+                ApplySettings(*session_settings_tbl, cfg->sessions.at("default"));
 
             if (auto val = config_file_tbl["state_dir"].value<std::string>())
                 cfg->state_dir = *val;
@@ -409,9 +409,9 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     {
         auto val = cmd["session-settings-base"].as<std::string>();
 
-        if (val == "default")               cfg->session_settings = lt::default_settings();
-        if (val == "high_performance_seed") cfg->session_settings = lt::high_performance_seed();
-        if (val == "min_memory_usage")      cfg->session_settings = lt::min_memory_usage();
+        if (val == "default")               cfg->sessions.at("default") = lt::default_settings();
+        if (val == "high_performance_seed") cfg->sessions.at("default") = lt::high_performance_seed();
+        if (val == "min_memory_usage")      cfg->sessions.at("default") = lt::min_memory_usage();
     }
     if (cmd.count("state-dir"))             cfg->state_dir             = cmd["state-dir"].as<std::string>();
     if (cmd.count("timer-dht-stats"))       cfg->timer_dht_stats       = cmd["timer-dht-stats"].as<int>();
@@ -456,9 +456,9 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         | lt::alert::storage_notification
         | lt::alert::tracker_notification;
 
-    cfg->session_settings.set_int(lt::settings_pack::alert_mask, alerts);
-    cfg->session_settings.set_str(lt::settings_pack::peer_fingerprint, lt::generate_fingerprint("PO", 0, 1));
-    cfg->session_settings.set_str(lt::settings_pack::user_agent, "porla/1.0");
+    cfg->sessions.at("default").set_int(lt::settings_pack::alert_mask, alerts);
+    cfg->sessions.at("default").set_str(lt::settings_pack::peer_fingerprint, lt::generate_fingerprint("PO", 0, 1));
+    cfg->sessions.at("default").set_str(lt::settings_pack::user_agent, "porla/1.0");
 
     // If we get here without having a secret key, we must generate one. Also log a warning because
     // if the secret key changes, JWT's will not work if restarting.

@@ -9,8 +9,12 @@
 #include <libtorrent/extensions/ut_pex.hpp>
 #include <libtorrent/extensions/smart_ban.hpp>
 
+#include "data/models/addtorrentparams.hpp"
+#include "torrentclientdata.hpp"
+
 namespace fs = std::filesystem;
 
+using porla::Data::Models::AddTorrentParams;
 using porla::Sessions;
 using porla::SessionsLoadOptions;
 using porla::SessionsOptions;
@@ -74,6 +78,33 @@ void Sessions::Load(const SessionsLoadOptions& options)
         {
             boost::asio::post(m_options.io, [this, state] { ReadAlerts(state); });
         });
+
+    int count = AddTorrentParams::Count(m_options.db, options.name);
+    int current = 0;
+
+    BOOST_LOG_TRIVIAL(info) << "Loading " << count << " torrent(s) from storage";
+
+    AddTorrentParams::ForEach(
+        m_options.db,
+        [&count, &current, state](lt::add_torrent_params& params)
+        {
+            current++;
+
+            params.userdata.get<TorrentClientData>()->ignore_alert = true;
+
+            lt::torrent_handle th = state->session->add_torrent(params);
+            state->torrents.insert({ th.info_hashes(), th });
+
+            if (current % 1000 == 0 && current != count)
+            {
+                BOOST_LOG_TRIVIAL(info) << current << " torrents (of " << count << ") added";
+            }
+        });
+
+    if (count > 0)
+    {
+        BOOST_LOG_TRIVIAL(info) << "Added " << current << " (of " << count << ") torrent(s) to session";
+    }
 }
 
 void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)

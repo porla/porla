@@ -286,7 +286,7 @@ Session::~Session()
 
 void Session::Load()
 {
-    int count = AddTorrentParams::Count(m_db);
+    int count = AddTorrentParams::Count(m_db, "default");
     int current = 0;
 
     BOOST_LOG_TRIVIAL(info) << "Loading " << count << " torrent(s) from storage";
