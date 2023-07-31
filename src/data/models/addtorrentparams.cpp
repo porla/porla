@@ -37,14 +37,15 @@ int AddTorrentParams::Count(sqlite3 *db, const std::string_view& session)
     return count;
 }
 
-void AddTorrentParams::ForEach(sqlite3 *db, const std::function<void(lt::add_torrent_params&)>& cb)
+void AddTorrentParams::ForEach(sqlite3 *db, const std::string_view& session, const std::function<void(lt::add_torrent_params&)>& cb)
 {
     auto stmt = Statement::Prepare(db, "SELECT client_data,name,resume_data_buf,save_path FROM addtorrentparams\n"
+                                       "WHERE session_id = $1"
                                        "ORDER BY queue_position ASC");
+    stmt.Bind(1, session);
     stmt.Step(
         [&cb](const Statement::IRow& row)
         {
-
             libtorrent::error_code ec;
             auto atp = lt::read_resume_data(row.GetBuffer(2), ec);
 
@@ -72,15 +73,15 @@ void AddTorrentParams::ForEach(sqlite3 *db, const std::function<void(lt::add_tor
         });
 }
 
-void AddTorrentParams::Insert(sqlite3 *db, const libtorrent::info_hash_t& hash, const AddTorrentParams& params)
+void AddTorrentParams::Insert(sqlite3 *db, const std::string_view& session, const libtorrent::info_hash_t& hash, const AddTorrentParams& params)
 {
     std::vector<char> buf = lt::write_resume_data_buf(params.params);
 
     const std::string client_data_json = json(*params.client_data).dump();
 
     auto stmt = Statement::Prepare(db, "INSERT INTO addtorrentparams\n"
-                                       "    (info_hash_v1, info_hash_v2, client_data, name, queue_position, resume_data_buf, save_path)\n"
-                                       "VALUES ($1, $2, $3, $4, $5, $6, $7);");
+                                       "    (info_hash_v1, info_hash_v2, client_data, name, queue_position, resume_data_buf, save_path, session_id)\n"
+                                       "VALUES ($1, $2, $3, $4, $5, $6, $7, $8);");
     stmt
         .Bind(1, hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
         .Bind(2, hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
@@ -89,34 +90,38 @@ void AddTorrentParams::Insert(sqlite3 *db, const libtorrent::info_hash_t& hash, 
         .Bind(5, params.queue_position)
         .Bind(6, buf)
         .Bind(7, std::string_view(params.save_path))
+        .Bind(8, session)
         .Execute();
 }
 
-void AddTorrentParams::Remove(sqlite3 *db, const libtorrent::info_hash_t& hash)
+void AddTorrentParams::Remove(sqlite3 *db, const std::string_view& session, const libtorrent::info_hash_t& hash)
 {
     auto stmt = Statement::Prepare(
         db,
         "DELETE FROM addtorrentparams\n"
-        "WHERE (info_hash_v1 = $1 AND info_hash_v2 IS NULL)\n"
+        "WHERE ((info_hash_v1 = $1 AND info_hash_v2 IS NULL)\n"
         "   OR (info_hash_v1 IS NULL AND info_hash_v2 = $2)\n"
-        "   OR (info_hash_v1 = $1 AND info_hash_v2 = $2);");
+        "   OR (info_hash_v1 = $1 AND info_hash_v2 = $2))\n"
+        "AND session_id = $3;");
 
     stmt
         .Bind(1, hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
         .Bind(2, hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
+        .Bind(3, session)
         .Execute();
 }
 
-void AddTorrentParams::Update(sqlite3 *db, const libtorrent::info_hash_t& hash, const AddTorrentParams& params)
+void AddTorrentParams::Update(sqlite3 *db, const std::string_view& session, const libtorrent::info_hash_t& hash, const AddTorrentParams& params)
 {
     std::vector<char> buf = lt::write_resume_data_buf(params.params);
 
     const std::string client_data_json = json(*params.client_data).dump();
 
     auto stmt = Statement::Prepare(db, "UPDATE addtorrentparams SET client_data = $1, name = $2, resume_data_buf = $3, queue_position = $4, save_path = $5\n"
-                                       "WHERE (info_hash_v1 = $6 AND info_hash_v2 IS NULL)\n"
+                                       "WHERE ((info_hash_v1 = $6 AND info_hash_v2 IS NULL)\n"
                                        "   OR (info_hash_v1 IS NULL AND info_hash_v2 = $7)\n"
-                                       "   OR (info_hash_v1 = $6 AND info_hash_v2 = $7);");
+                                       "   OR (info_hash_v1 = $6 AND info_hash_v2 = $7))\n"
+                                       "AND session_id = $8;");
     stmt
         .Bind(1, std::string_view(client_data_json))
         .Bind(2, std::string_view(params.name))
@@ -125,5 +130,6 @@ void AddTorrentParams::Update(sqlite3 *db, const libtorrent::info_hash_t& hash, 
         .Bind(5, std::string_view(params.save_path))
         .Bind(6, hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
         .Bind(7, hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
+        .Bind(8, session)
         .Execute();
 }

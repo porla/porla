@@ -109,7 +109,6 @@ add_library(
     src/cmdargs.cpp
     src/config.cpp
     src/logger.cpp
-    src/session.cpp
     src/sessions.cpp
     src/uri.cpp
     src/utils/eta.cpp
@@ -238,7 +237,6 @@ target_link_libraries(
 
 add_executable(
     ${PROJECT_NAME}_tests
-    tests/inmemorysession.cpp
     tests/main.cpp
     tests/query/pql.cpp
     tests/utils/string.cpp
