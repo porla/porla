@@ -56,6 +56,7 @@ namespace porla
         explicit Sessions(const SessionsOptions& options);
         ~Sessions();
 
+        std::map<std::string, std::shared_ptr<SessionState>>& All();
         std::shared_ptr<SessionState> Default();
         std::shared_ptr<SessionState> Get(const std::string& name);
 

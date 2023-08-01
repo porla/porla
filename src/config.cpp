@@ -353,6 +353,17 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
             if (auto session_settings_tbl = config_file_tbl["session_settings"].as_table())
                 ApplySettings(*session_settings_tbl, cfg->sessions.at("default"));
 
+            // Load all sessions
+            if (const auto* sessions_tbl = config_file_tbl["sessions"].as_table())
+            {
+                for (const auto& [key, value] : *sessions_tbl)
+                {
+                    BOOST_LOG_TRIVIAL(debug) << "Loading configration for session " << key;
+
+                    cfg->sessions.insert({ key.data(), lt::default_settings() });
+                }
+            }
+
             if (auto val = config_file_tbl["state_dir"].value<std::string>())
                 cfg->state_dir = *val;
 

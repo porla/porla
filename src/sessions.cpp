@@ -306,6 +306,11 @@ Sessions::~Sessions()
     BOOST_LOG_TRIVIAL(info) << "All state saved";
 }
 
+std::map<std::string, std::shared_ptr<Sessions::SessionState>>& Sessions::All()
+{
+    return m_sessions;
+}
+
 std::shared_ptr<Sessions::SessionState> Sessions::Default()
 {
     return m_sessions.at("default");

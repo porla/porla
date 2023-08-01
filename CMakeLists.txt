@@ -162,10 +162,11 @@ add_library(
     src/methods/plugins/pluginsreload.cpp
     src/methods/plugins/pluginsuninstall.cpp
     src/methods/plugins/pluginsupdate.cpp
+    src/methods/sessions/sessionslist.cpp
+    src/methods/sessions/sessionspause.cpp
+    src/methods/sessions/sessionsresume.cpp
+    src/methods/sessions/sessionssettingslist.cpp
     src/methods/presetslist.cpp
-    src/methods/sessionpause.cpp
-    src/methods/sessionresume.cpp
-    src/methods/sessionsettingslist.cpp
     src/methods/sysversions.cpp
     src/methods/torrentsadd.cpp
     src/methods/torrentsfileslist.cpp

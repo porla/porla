@@ -33,9 +33,10 @@
 #include "methods/plugins/pluginsuninstall.hpp"
 #include "methods/plugins/pluginsupdate.hpp"
 #include "methods/presetslist.hpp"
-#include "methods/sessionpause.hpp"
-#include "methods/sessionresume.hpp"
-#include "methods/sessionsettingslist.hpp"
+#include "methods/sessions/sessionslist.hpp"
+#include "methods/sessions/sessionspause.hpp"
+#include "methods/sessions/sessionsresume.hpp"
+#include "methods/sessions/sessionssettingslist.hpp"
 #include "methods/sysversions.hpp"
 #include "methods/torrentsadd.hpp"
 #include "methods/torrentsfileslist.hpp"
@@ -167,9 +168,10 @@ int main(int argc, char* argv[])
             {"plugins.uninstall", porla::Methods::PluginsUninstall(plugin_engine)},
             {"plugins.update", porla::Methods::PluginsUpdate(plugins_update_options)},
             {"presets.list", porla::Methods::PresetsList(cfg->presets)},
-            {"session.pause", porla::Methods::SessionPause(sessions)},
-            {"session.resume", porla::Methods::SessionResume(sessions)},
-            {"session.settings.list", porla::Methods::SessionSettingsList(sessions)},
+            {"sessions.list", porla::Methods::SessionsList(sessions)},
+            {"sessions.pause", porla::Methods::SessionsPause(sessions)},
+            {"sessions.resume", porla::Methods::SessionsResume(sessions)},
+            {"sessions.settings.list", porla::Methods::SessionsSettingsList(sessions)},
             {"sys.versions", porla::Methods::SysVersions()},
             {"torrents.add", porla::Methods::TorrentsAdd(cfg->db, sessions, cfg->presets)},
             {"torrents.files.list", porla::Methods::TorrentsFilesList(sessions)},
