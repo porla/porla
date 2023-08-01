@@ -29,6 +29,7 @@ namespace porla
             std::optional<int>                        max_connections;
             std::optional<int>                        max_uploads;
             std::optional<std::string>                save_path;
+            std::optional<std::string>                session;
             std::optional<libtorrent::storage_mode_t> storage_mode;
             std::unordered_set<std::string>           tags;
             std::optional<int>                        upload_limit;

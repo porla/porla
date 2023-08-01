@@ -21,6 +21,7 @@ namespace porla::Methods
         name,
         preset,
         save_path,
+        session,
         tags,
         ti,
         trackers,

@@ -8,9 +8,8 @@
 
 using porla::Methods::TorrentsList;
 
-TorrentsList::TorrentsList(sqlite3* db, porla::Sessions& sessions)
-    : m_db(db)
-    , m_sessions(sessions)
+TorrentsList::TorrentsList(porla::Sessions& sessions)
+    : m_sessions(sessions)
 {
 }
 
@@ -76,120 +75,137 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
         return cb.Error(-1, "Invalid field in 'order_by'");
     }
 
+    const int global_total_torrents = std::accumulate(
+        m_sessions.All().begin(),
+        m_sessions.All().end(),
+        0,
+        [](int current, const auto& state)
+        {
+            return current + state.second->torrents.size();
+        });
+
     std::vector<TorrentsListRes::Item> torrents;
     torrents.reserve(m_sessions.Default()->torrents.size());
 
-    for (auto const& [_, handle] : m_sessions.Default()->torrents)
+    for (const auto& [ name, state] : m_sessions.All())
     {
-        const auto client_data = handle.userdata().get<TorrentClientData>();
-
-        std::map<std::string, json> metadata = {};
-        std::int64_t size                    = -1;
-
-        if (req.include_metadata.has_value())
+        for (auto const& [_, handle] : state->torrents)
         {
-            const auto metadata_keys   = req.include_metadata.value();
-            const auto metadata_client = client_data->metadata.value_or(std::map<std::string, nlohmann::json>());
+            const auto client_data = handle.userdata().get<TorrentClientData>();
 
-            // Include metadata for all the keys specified. If ["*"], include everything.
+            std::map<std::string, json> metadata = {};
+            std::int64_t size                    = -1;
 
-            if (metadata_keys.size() == 1 && metadata_keys.at(0) == "*")
+            if (req.include_metadata.has_value())
             {
-                metadata = metadata_client;
-            }
-            else
-            {
-                for (const auto& key : metadata_keys)
+                const auto metadata_keys   = req.include_metadata.value();
+                const auto metadata_client = client_data->metadata.value_or(std::map<std::string, nlohmann::json>());
+
+                // Include metadata for all the keys specified. If ["*"], include everything.
+
+                if (metadata_keys.size() == 1 && metadata_keys.at(0) == "*")
                 {
-                    if (!metadata_client.contains(key)) continue;
-                    metadata[key] = metadata_client.at(key);
+                    metadata = metadata_client;
                 }
-            }
-        }
-
-        auto const& ts = handle.status();
-
-        if (auto ti = ts.torrent_file.lock())
-            size = ti->total_size();
-
-        // Filter torrents here.
-        bool filter_includes_torrent = true;
-
-        if (const auto& filters = req.filters)
-        {
-            for (const auto& [filter_field, args] : filters.value())
-            {
-                if (filter_field == "category" && args.is_string())
+                else
                 {
-                    filter_includes_torrent = client_data->category == args.get<std::string>();
-                }
-                else if (filter_field == "query" && args.is_string() && !args.get<std::string>().empty())
-                {
-                    try
+                    for (const auto& key : metadata_keys)
                     {
-                        const auto filter = Query::PQL::Parse(args.get<std::string>());
-                        filter_includes_torrent = filter->Includes(ts);
-                    }
-                    catch (const Query::QueryError& qe)
-                    {
-                        return cb.Error(-1000, qe.what(), {{"pos", qe.pos()}});
+                        if (!metadata_client.contains(key)) continue;
+                        metadata[key] = metadata_client.at(key);
                     }
                 }
-                else if (filter_field == "save_path" && args.is_string())
-                {
-                    filter_includes_torrent = ts.save_path == args.get<std::string>();
-                }
-                else if (filter_field == "tags" && args.is_string())
-                {
-                    const auto& tag_value = args.get<std::string>();
-                    const auto  tags      = client_data->tags.value_or(std::unordered_set<std::string>());
+            }
 
-                    filter_includes_torrent = tags.find(tag_value) != tags.end();
+            auto const& ts = handle.status();
+
+            if (auto ti = ts.torrent_file.lock())
+                size = ti->total_size();
+
+            // Filter torrents here.
+            bool filter_includes_torrent = true;
+
+            if (const auto& filters = req.filters)
+            {
+                for (const auto& [filter_field, args] : filters.value())
+                {
+                    if (filter_field == "category" && args.is_string())
+                    {
+                        filter_includes_torrent = client_data->category == args.get<std::string>();
+                    }
+                    else if (filter_field == "query" && args.is_string() && !args.get<std::string>().empty())
+                    {
+                        try
+                        {
+                            const auto filter = Query::PQL::Parse(args.get<std::string>());
+                            filter_includes_torrent = filter->Includes(ts);
+                        }
+                        catch (const Query::QueryError& qe)
+                        {
+                            return cb.Error(-1000, qe.what(), {{"pos", qe.pos()}});
+                        }
+                    }
+                    else if (filter_field == "save_path" && args.is_string())
+                    {
+                        filter_includes_torrent = ts.save_path == args.get<std::string>();
+                    }
+                    else if (filter_field == "session" && args.is_string())
+                    {
+                        filter_includes_torrent = name == args.get<std::string>();
+                    }
+                    else if (filter_field == "tags" && args.is_string())
+                    {
+                        const auto& tag_value = args.get<std::string>();
+                        const auto  tags      = client_data->tags.value_or(std::unordered_set<std::string>());
+
+                        filter_includes_torrent = tags.find(tag_value) != tags.end();
+                    }
                 }
             }
-        }
 
-        if (!filter_includes_torrent)
-        {
-            continue;
-        }
+            if (!filter_includes_torrent)
+            {
+                continue;
+            }
 
-        torrents.emplace_back(TorrentsListRes::Item{
-            .active_duration   = ts.active_duration.count(),
-            .all_time_download = ts.all_time_download,
-            .all_time_upload   = ts.all_time_upload,
-            .category          = client_data->category,
-            .download_rate     = ts.download_rate,
-            .error             = ts.errc,
-            .eta               = porla::Utils::ETA(ts).count(),
-            .finished_duration = ts.finished_duration.count(),
-            .flags             = static_cast<std::uint64_t>(ts.flags),
-            .info_hash         = ts.info_hashes,
-            .last_download     = ts.last_download.time_since_epoch().count() > 0
-                ? lt::total_seconds(lt::clock_type::now() - ts.last_download)
-                : -1,
-            .last_upload       = ts.last_upload.time_since_epoch().count() > 0
-                ? lt::total_seconds(lt::clock_type::now() - ts.last_upload)
-                : -1,
-            .list_peers        = ts.list_peers,
-            .list_seeds        = ts.list_seeds,
-            .metadata          = metadata,
-            .moving_storage    = ts.moving_storage,
-            .name              = ts.name,
-            .num_peers         = ts.num_peers,
-            .num_seeds         = ts.num_seeds,
-            .progress          = ts.progress,
-            .queue_position    = static_cast<int>(ts.queue_position),
-            .ratio             = porla::Utils::Ratio(ts),
-            .save_path         = ts.save_path,
-            .seeding_duration  = ts.seeding_duration.count(),
-            .size              = size,
-            .state             = ts.state,
-            .tags              = client_data->tags.value_or(std::unordered_set<std::string>()),
-            .total             = ts.total,
-            .total_done        = ts.total_done,
-            .upload_rate       = ts.upload_rate,
-        });
+            torrents.emplace_back(TorrentsListRes::Item{
+                .active_duration   = ts.active_duration.count(),
+                .all_time_download = ts.all_time_download,
+                .all_time_upload   = ts.all_time_upload,
+                .category          = client_data->category,
+                .download_rate     = ts.download_rate,
+                .error             = ts.errc,
+                .eta               = porla::Utils::ETA(ts).count(),
+                .finished_duration = ts.finished_duration.count(),
+                .flags             = static_cast<std::uint64_t>(ts.flags),
+                .info_hash         = ts.info_hashes,
+                .last_download     = ts.last_download.time_since_epoch().count() > 0
+                    ? lt::total_seconds(lt::clock_type::now() - ts.last_download)
+                    : -1,
+                .last_upload       = ts.last_upload.time_since_epoch().count() > 0
+                    ? lt::total_seconds(lt::clock_type::now() - ts.last_upload)
+                    : -1,
+                .list_peers        = ts.list_peers,
+                .list_seeds        = ts.list_seeds,
+                .metadata          = metadata,
+                .moving_storage    = ts.moving_storage,
+                .name              = ts.name,
+                .num_peers         = ts.num_peers,
+                .num_seeds         = ts.num_seeds,
+                .progress          = ts.progress,
+                .queue_position    = static_cast<int>(ts.queue_position),
+                .ratio             = porla::Utils::Ratio(ts),
+                .save_path         = ts.save_path,
+                .seeding_duration  = ts.seeding_duration.count(),
+                .session           = name,
+                .size              = size,
+                .state             = ts.state,
+                .tags              = client_data->tags.value_or(std::unordered_set<std::string>()),
+                .total             = ts.total,
+                .total_done        = ts.total_done,
+                .upload_rate       = ts.upload_rate,
+            });
+        }
     }
 
     std::sort(
@@ -217,6 +233,6 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
         .page_size                 = req.page_size.value_or(50),
         .torrents                  = std::vector(torrents.begin() + page_beg, torrents.begin() + page_end),
         .torrents_total            = static_cast<int>(torrents.size()),
-        .torrents_total_unfiltered = static_cast<int>(m_sessions.Default()->torrents.size())
+        .torrents_total_unfiltered = static_cast<int>(global_total_torrents)
     });
 }

@@ -128,7 +128,7 @@ function SettingsForm(props: SettingsFormProps) {
 }
 
 export default function SettingsDrawer(props: SettingsDrawerProps) {
-  const { data, error, mutate } = useRPC<ISettingsList>("session.settings.list", {
+  const { data, error, mutate } = useRPC<ISettingsList>("sessions.settings.list", {
     keys: [
       "active_checking",
       "active_downloads",

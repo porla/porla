@@ -267,6 +267,9 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
                     if (auto val = value_tbl["save_path"].value<std::string>())
                         p.save_path = *val;
 
+                    if (auto val = value_tbl["session"].value<std::string>())
+                        p.session = *val;
+
                     if (auto val = value_tbl["storage_mode"].value<std::string>())
                     {
                         if (strcmp(val->c_str(), "allocate") == 0) p.storage_mode = lt::storage_mode_allocate;

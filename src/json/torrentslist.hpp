@@ -44,6 +44,7 @@ namespace porla::Methods
         ratio,
         save_path,
         seeding_duration,
+        session,
         size,
         state,
         tags,
