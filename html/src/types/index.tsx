@@ -26,6 +26,7 @@ export type Torrent = {
   progress: number;
   queue_position: number;
   save_path: string;
+  session: string;
   ratio: number;
   size: number;
   state: number;

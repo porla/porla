@@ -326,33 +326,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
             if (auto val = config_file_tbl["secret_key"].value<std::string>())
                 cfg->secret_key = *val;
 
-            if (auto val = config_file_tbl["session_settings"]["extensions"].as_array())
-            {
-                std::vector<lt_plugin> extensions;
-
-                for (auto const& item : *val)
-                {
-                    if (auto const item_value = item.value<std::string>())
-                    {
-                        if (*item_value == "smart_ban")
-                            extensions.emplace_back(&lt::create_smart_ban_plugin);
-
-                        if (*item_value == "ut_metadata")
-                            extensions.emplace_back(&lt::create_ut_metadata_plugin);
-
-                        if (*item_value == "ut_pex")
-                            extensions.emplace_back(&lt::create_ut_pex_plugin);
-                    }
-                    else
-                    {
-                        BOOST_LOG_TRIVIAL(warning)
-                            << "Item in session_extension array is not a string (" << item.type() << ")";
-                    }
-                }
-
-                // TODO: cfg->session_extensions = extensions;
-            }
-
             if (auto session_settings_tbl = config_file_tbl["session_settings"].as_table())
                 ApplySettings(*session_settings_tbl, cfg->sessions.at("default"));
 
@@ -361,9 +334,18 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
             {
                 for (const auto& [key, value] : *sessions_tbl)
                 {
-                    BOOST_LOG_TRIVIAL(debug) << "Loading configration for session " << key;
+                    BOOST_LOG_TRIVIAL(debug) << "Loading configuration for session " << key;
 
                     cfg->sessions.insert({ key.data(), lt::default_settings() });
+
+                    if (const auto* value_tbl = value.as_table())
+                    {
+                        if (const auto settings_tbl = (*value_tbl)["settings"].as_table())
+                        {
+                            BOOST_LOG_TRIVIAL(debug) << "Applying session settings for " << key;
+                            ApplySettings(*settings_tbl, cfg->sessions.at(key.data()));
+                        }
+                    }
                 }
             }
 
@@ -470,9 +452,12 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         | lt::alert::storage_notification
         | lt::alert::tracker_notification;
 
-    cfg->sessions.at("default").set_int(lt::settings_pack::alert_mask, alerts);
-    cfg->sessions.at("default").set_str(lt::settings_pack::peer_fingerprint, lt::generate_fingerprint("PO", 0, 1));
-    cfg->sessions.at("default").set_str(lt::settings_pack::user_agent, "porla/1.0");
+    for (auto& [ _, settings ] : cfg->sessions)
+    {
+        settings.set_int(lt::settings_pack::alert_mask, alerts);
+        settings.set_str(lt::settings_pack::peer_fingerprint, lt::generate_fingerprint("PO", 0, 1));
+        settings.set_str(lt::settings_pack::user_agent, "porla/1.0");
+    }
 
     // If we get here without having a secret key, we must generate one. Also log a warning because
     // if the secret key changes, JWT's will not work if restarting.
