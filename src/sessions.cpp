@@ -322,6 +322,9 @@ void Sessions::Load(const SessionsLoadOptions& options)
     params.settings = options.settings;
 
     auto state = std::make_shared<SessionState>();
+    m_sessions.insert({ options.name, state });
+
+    state->name = options.name;
     state->session = std::make_shared<lt::session>(std::move(params));
     state->session->add_extension(&lt::create_ut_metadata_plugin);
     state->session->add_extension(&lt::create_ut_pex_plugin);

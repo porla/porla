@@ -40,7 +40,7 @@ int AddTorrentParams::Count(sqlite3 *db, const std::string_view& session)
 void AddTorrentParams::ForEach(sqlite3 *db, const std::string_view& session, const std::function<void(lt::add_torrent_params&)>& cb)
 {
     auto stmt = Statement::Prepare(db, "SELECT client_data,name,resume_data_buf,save_path FROM addtorrentparams\n"
-                                       "WHERE session_id = $1"
+                                       "WHERE session_id = $1\n"
                                        "ORDER BY queue_position ASC");
     stmt.Bind(1, session);
     stmt.Step(
