@@ -356,6 +356,7 @@ void Sessions::Load(const SessionsLoadOptions& options)
             current++;
 
             params.userdata.get<TorrentClientData>()->ignore_alert = true;
+            params.userdata.get<TorrentClientData>()->state = state;
 
             lt::torrent_handle th = state->session->add_torrent(params);
             state->torrents.insert({ th.info_hashes(), th });

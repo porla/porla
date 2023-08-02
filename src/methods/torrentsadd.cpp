@@ -57,6 +57,7 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
 
     lt::add_torrent_params p;
     p.userdata = lt::client_data_t(new TorrentClientData());
+    p.userdata.get<TorrentClientData>()->state = state;
 
     // Apply the 'default' preset if it exists
     if (m_presets.find("default") != m_presets.end())
