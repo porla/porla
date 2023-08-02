@@ -165,6 +165,12 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             .finished_duration = ts.finished_duration.count(),
             .flags             = static_cast<std::uint64_t>(ts.flags),
             .info_hash         = ts.info_hashes,
+            .last_download     = ts.last_download.time_since_epoch().count() > 0
+                ? lt::total_seconds(lt::clock_type::now() - ts.last_download)
+                : -1,
+            .last_upload       = ts.last_upload.time_since_epoch().count() > 0
+                ? lt::total_seconds(lt::clock_type::now() - ts.last_upload)
+                : -1,
             .list_peers        = ts.list_peers,
             .list_seeds        = ts.list_seeds,
             .metadata          = metadata,

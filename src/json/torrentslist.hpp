@@ -30,6 +30,8 @@ namespace porla::Methods
         finished_duration,
         flags,
         info_hash,
+        last_download,
+        last_upload,
         list_peers,
         list_seeds,
         metadata,

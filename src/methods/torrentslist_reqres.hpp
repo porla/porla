@@ -32,6 +32,8 @@ namespace porla::Methods
             std::int64_t                    finished_duration;
             std::uint64_t                   flags;
             lt::info_hash_t                 info_hash;
+            std::int64_t                    last_download;
+            std::int64_t                    last_upload;
             int                             list_peers;
             int                             list_seeds;
             std::optional<json>             metadata;
