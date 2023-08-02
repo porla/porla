@@ -4,7 +4,7 @@
 #include <libtorrent/add_torrent_params.hpp>
 #include <libtorrent/magnet_uri.hpp>
 
-#include "../session.hpp"
+#include "../sessions.hpp"
 #include "../torrentclientdata.hpp"
 #include "../utils/base64.hpp"
 
@@ -30,25 +30,43 @@ static void ApplyPreset(lt::add_torrent_params& p, const porla::Config::Preset& 
         p.userdata.get<porla::TorrentClientData>()->tags = preset.tags;
 }
 
-TorrentsAdd::TorrentsAdd(sqlite3* db, ISession& session, const std::map<std::string, Config::Preset>& presets)
-    : m_db(db)
-    , m_session(session)
+TorrentsAdd::TorrentsAdd(Sessions& sessions, const std::map<std::string, Config::Preset>& presets)
+    : m_sessions(sessions)
     , m_presets(presets)
 {
 }
 
 void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
 {
+    const auto& state = req.preset.has_value()
+        ? m_presets.find(req.preset.value()) != m_presets.end()
+            ? m_presets.at(req.preset.value()).session.has_value()
+                ? m_sessions.Get(m_presets.at(req.preset.value()).session.value())
+                : m_sessions.Default()
+            : m_sessions.Default()
+        : m_presets.find("default") != m_presets.end()
+            ? m_presets.at("default").session.has_value()
+                ? m_sessions.Get(m_presets.at("default").session.value())
+                : m_sessions.Default()
+            : m_sessions.Default();
+
+    if (state == nullptr)
+    {
+        return cb.Error(-10, "Session not found");
+    }
+
     lt::add_torrent_params p;
     p.userdata = lt::client_data_t(new TorrentClientData());
+    p.userdata.get<TorrentClientData>()->state = state;
 
     // Apply the 'default' preset if it exists
     if (m_presets.find("default") != m_presets.end())
     {
+        BOOST_LOG_TRIVIAL(debug) << "Applying default preset";
         ApplyPreset(p, m_presets.at("default"));
     }
 
-    if (req.preset.has_value())
+    if (req.preset.has_value() && !req.preset.value().empty())
     {
         auto const preset_name = req.preset.value();
         auto const preset = m_presets.find(preset_name);
@@ -65,13 +83,15 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
         }
     }
 
-    if (req.ti.has_value()) {
+    if (req.ti.has_value())
+    {
         auto buffer = porla::Utils::Base64::Decode(req.ti.value());
 
         lt::error_code ec;
         lt::bdecode_node node = lt::bdecode(buffer, ec);
 
-        if (ec) {
+        if (ec)
+        {
             BOOST_LOG_TRIVIAL(error) << "Failed to decode torrent file: " << ec.message();
             return cb.Error(-1, "Failed to bdecode 'ti' parameter");
         }
@@ -84,9 +104,12 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
             return cb.Error(-2, "Failed to parse torrent_info from bdecoded data");
         }
 
-        if (m_session.Torrents().find(p.ti->info_hashes()) != m_session.Torrents().end())
+        for (const auto& [ name, s ]: m_sessions.All())
         {
-            return cb.Error(-3, "Torrent already in session");
+            if (s->torrents.find(p.ti->info_hashes()) != s->torrents.end())
+            {
+                return cb.Error(-3, "Torrent already in session '" + name + "'");
+            }
         }
     }
     else if (req.magnet_uri.has_value())
@@ -116,7 +139,6 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
     if (req.metadata.has_value())        p.userdata.get<TorrentClientData>()->metadata = req.metadata.value();
     if (req.tags.has_value())            p.userdata.get<TorrentClientData>()->tags     = req.tags.value();
 
-
     // Before passing our params to the session. Validate that we have at least
     // an info hash, or
     // a torrent info object, and
@@ -136,7 +158,8 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
 
     try
     {
-        hash = m_session.AddTorrent(p);
+        state->session->async_add_torrent(p);
+        hash = p.ti ? p.ti->info_hashes() : p.info_hashes;
     }
     catch (const std::exception& ex)
     {

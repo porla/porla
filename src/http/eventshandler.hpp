@@ -6,7 +6,7 @@
 
 namespace porla
 {
-    class ISession;
+    class Sessions;
 }
 
 namespace porla::Http
@@ -14,7 +14,7 @@ namespace porla::Http
     class EventsHandler
     {
     public:
-        explicit EventsHandler(ISession& session);
+        explicit EventsHandler(Sessions& sessions);
         ~EventsHandler();
 
         void operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);

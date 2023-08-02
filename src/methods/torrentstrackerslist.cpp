@@ -1,32 +1,39 @@
 #include "torrentstrackerslist.hpp"
 
-#include "../session.hpp"
+#include "../sessions.hpp"
 
 using porla::Methods::TorrentsTrackersList;
 using porla::Methods::TorrentsTrackersListReq;
 using porla::Methods::TorrentsTrackersListRes;
 
-TorrentsTrackersList::TorrentsTrackersList(porla::ISession& session)
-    : m_session(session)
+TorrentsTrackersList::TorrentsTrackersList(porla::Sessions& sessions)
+    : m_sessions(sessions)
 {
 }
 
 void TorrentsTrackersList::Invoke(const TorrentsTrackersListReq& req, WriteCb<TorrentsTrackersListRes> cb)
 {
-    auto const& torrents = m_session.Torrents();
-    auto const torrent = torrents.find(req.info_hash);
+    const auto& state = std::find_if(
+        m_sessions.All().begin(),
+        m_sessions.All().end(),
+        [hash = req.info_hash](const auto& state)
+        {
+            return state.second->torrents.find(hash) != state.second->torrents.end();
+        });
 
-    if (torrent == torrents.end())
+    if (state == m_sessions.All().end())
+    {
+        return cb.Error(-1, "Torrent not found in any session");
+    }
+
+    const auto& handle = state->second->torrents.find(req.info_hash);
+
+    if (handle == state->second->torrents.end())
     {
         return cb.Error(-1, "Torrent not found");
     }
 
-    if (!torrent->second.is_valid())
-    {
-        return cb.Error(-2, "Torrent not valid");
-    }
-
     cb.Ok(TorrentsTrackersListRes{
-        .trackers = torrent->second.trackers()
+        .trackers = handle->second.trackers()
     });
 }

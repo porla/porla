@@ -12,7 +12,7 @@
 namespace porla
 {
     class Config;
-    class ISession;
+    class Sessions;
 }
 
 namespace porla::Lua::Plugins
@@ -21,10 +21,10 @@ namespace porla::Lua::Plugins
 
     struct PluginEngineOptions
     {
-        Config&                            config;
-        sqlite3*                           db;
-        boost::asio::io_context&           io;
-        ISession&                          session;
+        Config&                  config;
+        sqlite3*                 db;
+        boost::asio::io_context& io;
+        Sessions&                sessions;
     };
 
     struct PluginState

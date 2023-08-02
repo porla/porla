@@ -7,7 +7,7 @@
 
 #include "../plugins/plugin.hpp"
 #include "../../config.hpp"
-#include "../../session.hpp"
+#include "../../sessions.hpp"
 #include "../../torrentclientdata.hpp"
 #include "../../utils/ratio.hpp"
 
@@ -119,6 +119,16 @@ void Torrents::Register(sol::state& lua)
     torrent_status_type["ratio"]             = sol::property([](const lt::torrent_status& ts) { return porla::Utils::Ratio(ts); });
     torrent_status_type["save_path"]         = sol::property([](const lt::torrent_status& ts) { return ts.save_path; });
     torrent_status_type["seeding_duration"]  = sol::property([](const lt::torrent_status& ts) { return ts.seeding_duration.count(); });
+    torrent_status_type["session"] = sol::property(
+        [](const lt::torrent_status& ts) -> std::optional<std::string>
+        {
+            if (const auto state = ts.handle.userdata().get<TorrentClientData>()->state.lock())
+            {
+                return state->name;
+            }
+
+            return {};
+        });
 
     torrent_status_type["size"] = sol::property(
         [](const lt::torrent_status& ts) -> std::optional<std::int64_t>
@@ -159,8 +169,21 @@ void Torrents::Register(sol::state& lua)
             sol::state_view lua{s};
             const auto options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
 
+            const auto& state = args["preset"].is<std::string>()
+                ? options.config.presets.find(args["preset"]) != options.config.presets.end()
+                  ? options.config.presets.at(args["preset"]).session.has_value()
+                    ? options.sessions.Get(options.config.presets.at(args["preset"]).session.value())
+                    : options.sessions.Default()
+                  : options.sessions.Default()
+                : options.config.presets.find("default") != options.config.presets.end()
+                  ? options.config.presets.at("default").session.has_value()
+                    ? options.sessions.Get(options.config.presets.at("default").session.value())
+                    : options.sessions.Default()
+                  : options.sessions.Default();
+
             lt::add_torrent_params p;
             p.userdata = lt::client_data_t(new TorrentClientData());
+            p.userdata.get<TorrentClientData>()->state = state;
 
             // Apply the 'default' preset if it exists
             if (options.config.presets.find("default") != options.config.presets.end())
@@ -189,10 +212,13 @@ void Torrents::Register(sol::state& lua)
             {
                 p.ti = args["ti"].get<std::shared_ptr<lt::torrent_info>>();
 
-                if (options.session.Torrents().find(p.ti->info_hashes()) != options.session.Torrents().end())
+                for (const auto& [ name, s ]: options.sessions.All())
                 {
-                    BOOST_LOG_TRIVIAL(error) << "Torrent already in session";
-                    return;
+                    if (s->torrents.find(p.ti->info_hashes()) != s->torrents.end())
+                    {
+                        BOOST_LOG_TRIVIAL(error) << "Torrent already in session";
+                        return;
+                    }
                 }
             }
             else if (args["magnet_uri"].is<std::string>())
@@ -221,7 +247,7 @@ void Torrents::Register(sol::state& lua)
             if (args["category"].valid())        p.userdata.get<TorrentClientData>()->category = args["category"].get<std::string>();
             if (args["tags"].valid())            p.userdata.get<TorrentClientData>()->tags     = args["tags"].get<std::unordered_set<std::string>>();
 
-            options.session.AddTorrent(p);
+            state->session->async_add_torrent(p);
         };
 
         torrents["errors"] = lua.create_table();
@@ -259,7 +285,14 @@ void Torrents::Register(sol::state& lua)
             if (arg.is<std::shared_ptr<lt::torrent_info>>())
             {
                 const auto ti = arg.as<std::shared_ptr<lt::torrent_info>>();
-                return options.session.Torrents().find(ti->info_hashes()) != options.session.Torrents().end();
+
+                return std::find_if(
+                    options.sessions.All().begin(),
+                    options.sessions.All().end(),
+                    [hash = ti->info_hashes()](const auto& state)
+                    {
+                        return state.second->torrents.find(hash) != state.second->torrents.end();
+                    }) != options.sessions.All().end();
             }
 
             return false;
@@ -272,9 +305,12 @@ void Torrents::Register(sol::state& lua)
 
             std::vector<lt::torrent_status> ret;
 
-            for (const auto& [ info_hash, handle ] : options.session.Torrents())
+            for (const auto& [ name, state ] : options.sessions.All())
             {
-                ret.emplace_back(handle.status());
+                for (const auto& [ hash, handle ]: state->torrents)
+                {
+                    ret.emplace_back(handle.status());
+                }
             }
 
             return ret;
@@ -382,11 +418,20 @@ void Torrents::Register(sol::state& lua)
         {
             sol::state_view lua{s};
             const auto options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
+            const auto& state  = std::find_if(
+                options.sessions.All().begin(),
+                options.sessions.All().end(),
+                [hash = ts.info_hashes](const auto& state)
+                {
+                    return state.second->torrents.find(hash) != state.second->torrents.end();
+                });
 
             bool remove_files = false;
             if (args["remove_files"].valid()) { remove_files = args["remove_files"].get<bool>(); }
 
-            options.session.Remove(ts.info_hashes, remove_files);
+            state->second->session->remove_torrent(
+                ts.handle,
+                remove_files ? lt::session::delete_files : lt::remove_flags_t{});
         };
 
         torrents["resume"] = [](sol::this_state s, const lt::torrent_status& ts)

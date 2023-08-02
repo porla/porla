@@ -1,4 +1,4 @@
-import { Box, CircularProgress, CircularProgressLabel, Flex, Grid, GridItem, HStack, Icon, IconButton, Link, Menu, MenuButton, MenuDivider, MenuGroup, MenuItem, MenuList, Text, textDecoration, useColorMode } from "@chakra-ui/react";
+import { Badge, Box, CircularProgress, CircularProgressLabel, Flex, Grid, GridItem, HStack, Icon, IconButton, Link, Menu, MenuButton, MenuDivider, MenuGroup, MenuItem, MenuList, Text, textDecoration, useColorMode } from "@chakra-ui/react";
 import { filesize } from "filesize";
 import { IconType } from "react-icons/lib";
 import { MdCheck, MdDelete, MdDriveFileMove, MdFileCopy, MdFolder, MdFolderOpen, MdLabel, MdOutlineMoreVert, MdOutlineReport, MdPause, MdPlayArrow, MdSchedule, MdSearch, MdTag, MdUpload, MdViewList } from "react-icons/md";
@@ -6,6 +6,18 @@ import { Torrent } from "../types"
 
 import useNinja from "../contexts/ninja";
 import useTorrentsFilter from "../contexts/TorrentsFilterContext";
+
+function hashCode(str: string) {
+  let hash = 0;
+  for (var i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return hash;
+}
+
+function pickColor(str: string) {
+  return `hsl(${hashCode(str) % 360}, 100%, 80%)`;
+}
 
 type TorrentsListItemProps = {
   index: number;
@@ -207,6 +219,12 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
             fontSize={"sm"}
             spacing={3}
           >
+            <Badge
+              color={pickColor(props.torrent.session)}
+            >
+              {props.torrent.session}
+            </Badge>
+
             <KeyValue
               key={"savepath"}
               icon={MdFolderOpen}

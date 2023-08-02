@@ -1,13 +1,13 @@
 #include "events.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <boost/signals2.hpp>
 #include <libtorrent/alert_types.hpp>
 
 #include "../plugins/plugin.hpp"
-#include "../../session.hpp"
+#include "../../sessions.hpp"
 
 using porla::Lua::Packages::Events;
-
 
 struct SignalConnection
 {
@@ -48,8 +48,8 @@ void Events::Register(sol::state& lua)
 
             if (name == "torrent_added")
             {
-                auto connection = options.session.OnTorrentAdded(
-                    [cb = callback](const lt::torrent_status& ts)
+                auto connection = options.sessions.OnTorrentAdded(
+                    [cb = callback](const std::string& session, const lt::torrent_status& ts)
                     {
                         try
                         {
@@ -66,8 +66,8 @@ void Events::Register(sol::state& lua)
 
             if (name == "torrent_finished")
             {
-                auto connection = options.session.OnTorrentFinished(
-                    [cb = callback](const lt::torrent_status& ts)
+                auto connection = options.sessions.OnTorrentFinished(
+                    [cb = callback](const std::string& session, const lt::torrent_status& ts)
                     {
                         try
                         {
@@ -84,8 +84,8 @@ void Events::Register(sol::state& lua)
 
             if (name == "torrent_moved")
             {
-                auto connection = options.session.OnStorageMoved(
-                    [cb = callback](const lt::torrent_handle& th)
+                auto connection = options.sessions.OnStorageMoved(
+                    [cb = callback](const std::string& session, const lt::torrent_handle& th)
                     {
                         try
                         {
@@ -102,8 +102,8 @@ void Events::Register(sol::state& lua)
 
             if (name == "torrent_paused")
             {
-                auto connection = options.session.OnTorrentPaused(
-                    [cb = callback](const lt::torrent_handle& th)
+                auto connection = options.sessions.OnTorrentPaused(
+                    [cb = callback](const std::string& session, const lt::torrent_handle& th)
                     {
                         try
                         {
@@ -120,8 +120,8 @@ void Events::Register(sol::state& lua)
 
             if (name == "torrent_removed")
             {
-                auto connection = options.session.OnTorrentRemoved(
-                    [cb = callback](const lt::info_hash_t& ih)
+                auto connection = options.sessions.OnTorrentRemoved(
+                    [cb = callback](const std::string& session, const lt::info_hash_t& ih)
                     {
                         try
                         {
@@ -138,57 +138,12 @@ void Events::Register(sol::state& lua)
 
             if (name == "torrent_resumed")
             {
-                auto connection = options.session.OnTorrentResumed(
-                    [cb = callback](const lt::torrent_status& ts)
+                auto connection = options.sessions.OnTorrentResumed(
+                    [cb = callback](const std::string& session, const lt::torrent_status& ts)
                     {
                         try
                         {
                             cb(ts);
-                        }
-                        catch (const sol::error& err)
-                        {
-                            BOOST_LOG_TRIVIAL(error) << "An error occurred in an event handler: " << err.what();
-                        }
-                    });
-
-                return std::make_shared<SignalConnection>(connection);
-            }
-
-            if (name == "torrent_tracker_error")
-            {
-                auto connection = options.session.OnTorrentTrackerError(
-                    [s, cb = callback](const lt::tracker_error_alert* alert)
-                    {
-                        sol::state_view lua{s};
-
-                        sol::table a = lua.create_table();
-                        a["error"] = lua.create_table();
-                        a["error"]["message"] = alert->error.message();
-                        a["error"]["value"] = alert->error.value();
-                        a["failure_reason"] = alert->failure_reason();
-                        a["torrent"] = alert->handle.status();
-
-                        try
-                        {
-                            cb(a);
-                        }
-                        catch (const sol::error& err)
-                        {
-                            BOOST_LOG_TRIVIAL(error) << "An error occurred in an event handler: " << err.what();
-                        }
-                    });
-
-                return std::make_shared<SignalConnection>(connection);
-            }
-
-            if (name == "torrent_tracker_reply")
-            {
-                auto connection = options.session.OnTorrentTrackerReply(
-                    [cb = callback](const lt::torrent_handle& th)
-                    {
-                        try
-                        {
-                            cb(th.status());
                         }
                         catch (const sol::error& err)
                         {

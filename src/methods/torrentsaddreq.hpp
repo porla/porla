@@ -17,6 +17,7 @@ namespace porla::Methods
         std::optional<std::string>                           name;
         std::optional<std::string>                           preset;
         std::optional<std::string>                           save_path;
+        std::optional<std::string>                           session;
         std::optional<std::unordered_set<std::string>>       tags;
         std::optional<std::string>                           ti;
         std::optional<std::vector<std::string>>              trackers;

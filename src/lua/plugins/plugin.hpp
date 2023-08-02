@@ -9,7 +9,7 @@
 namespace porla
 {
     class Config;
-    class ISession;
+    class Sessions;
 }
 
 namespace porla::Lua::Plugins
@@ -20,7 +20,7 @@ namespace porla::Lua::Plugins
         boost::asio::io_context&   io;
         std::filesystem::path      path;
         std::optional<std::string> plugin_config;
-        porla::ISession&           session;
+        porla::Sessions&           sessions;
     };
 
     class Plugin

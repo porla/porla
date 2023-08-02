@@ -8,12 +8,13 @@
 
 namespace porla::Methods
 {
-    struct SessionSettingsListReq
+    struct SessionsSettingsListReq
     {
+        std::optional<std::string>                     name;
         std::optional<std::unordered_set<std::string>> keys;
     };
 
-    struct SessionSettingsListRes
+    struct SessionsSettingsListRes
     {
         std::map<std::string, nlohmann::json> settings;
     };

@@ -6,7 +6,7 @@
 
 namespace porla
 {
-    class ISession;
+    class Sessions;
 }
 
 namespace porla::Http
@@ -14,7 +14,7 @@ namespace porla::Http
     class MetricsHandler
     {
     public:
-        explicit MetricsHandler(ISession& session);
+        explicit MetricsHandler(Sessions& sessions);
         ~MetricsHandler();
 
         void operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);

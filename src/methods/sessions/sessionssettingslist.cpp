@@ -1,21 +1,30 @@
-#include "sessionsettingslist.hpp"
+#include "sessionssettingslist.hpp"
 
-#include "../session.hpp"
+#include "../../sessions.hpp"
 
-using porla::Methods::SessionSettingsList;
-using porla::Methods::SessionSettingsListReq;
-using porla::Methods::SessionSettingsListRes;
+using porla::Methods::SessionsSettingsList;
+using porla::Methods::SessionsSettingsListReq;
+using porla::Methods::SessionsSettingsListRes;
 
-SessionSettingsList::SessionSettingsList(porla::ISession& session)
-    : m_session(session)
+SessionsSettingsList::SessionsSettingsList(porla::Sessions& sessions)
+    : m_sessions(sessions)
 {
 }
 
-void SessionSettingsList::Invoke(const SessionSettingsListReq &req, WriteCb<SessionSettingsListRes> cb)
+void SessionsSettingsList::Invoke(const SessionsSettingsListReq &req, WriteCb<SessionsSettingsListRes> cb)
 {
-    SessionSettingsListRes res;
+    SessionsSettingsListRes res;
 
-    auto const settings = m_session.Settings();
+    const auto& state = req.name.has_value()
+        ? m_sessions.Get(req.name.value())
+        : m_sessions.Default();
+
+    if (state == nullptr)
+    {
+        return cb.Error(-1, "Session not found");
+    }
+
+    const auto& settings = state->session->get_settings();
 
     for (int i = lt::settings_pack::bool_type_base; i < lt::settings_pack::max_bool_setting_internal; i++)
     {

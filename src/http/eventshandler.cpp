@@ -1,10 +1,11 @@
 #include "eventshandler.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <boost/signals2.hpp>
 #include <nlohmann/json.hpp>
 
 #include "../json/all.hpp"
-#include "../session.hpp"
+#include "../sessions.hpp"
 
 using json = nlohmann::json;
 using porla::Http::EventsHandler;
@@ -12,12 +13,12 @@ using porla::Http::EventsHandler;
 class EventsHandler::State
 {
 public:
-    explicit State(porla::ISession& session)
+    explicit State(porla::Sessions& sessions)
     {
-        m_state_update_connection = session.OnStateUpdate([this](auto s) { OnStateUpdate(s); });
-        m_torrent_paused_connection = session.OnTorrentPaused([this](auto s) { OnTorrentPaused(s); });
-        m_torrent_removed_connection = session.OnTorrentRemoved([this](auto s) { OnTorrentRemoved(s); });
-        m_torrent_resumed_connection = session.OnTorrentResumed([this](auto s) { OnTorrentResumed(s); });
+        m_state_update_connection = sessions.OnStateUpdate([this](auto && p1, auto && p2) { OnStateUpdate(p1, p2); });
+        m_torrent_paused_connection = sessions.OnTorrentPaused([this](auto && p1, auto && p2) { OnTorrentPaused(p1, p2); });
+        m_torrent_removed_connection = sessions.OnTorrentRemoved([this](auto && p1, auto && p2) { OnTorrentRemoved(p1, p2); });
+        m_torrent_resumed_connection = sessions.OnTorrentResumed([this](auto && p1, auto && p2) { OnTorrentResumed(p1, p2); });
     }
 
     ~State()
@@ -67,35 +68,43 @@ private:
         }
     }
 
-    void OnStateUpdate(const std::vector<libtorrent::torrent_status>& torrents)
+    void OnStateUpdate(const std::string& session, const std::vector<libtorrent::torrent_status>& torrents)
     {
         json state = json::array();
 
         for (const auto& status : torrents)
         {
-            json j = {
-                {"info_hash", status.info_hashes}
-            };
-
-            state.push_back(j);
+            state.push_back(status.info_hashes);
         }
 
-        Broadcast("state_update", state.dump());
+        Broadcast("state_update", json({
+            {"session", session},
+            {"info_hashes", state}
+        }).dump());
     }
 
-    void OnTorrentPaused(const libtorrent::torrent_handle& th)
+    void OnTorrentPaused(const std::string& session, const libtorrent::torrent_handle& th)
     {
-        Broadcast("torrent_paused", json({"info_hash", th.info_hashes()}).dump());
+        Broadcast("torrent_paused", json({
+            {"info_hash", th.info_hashes()},
+            {"session", session}
+        }).dump());
     }
 
-    void OnTorrentRemoved(const libtorrent::info_hash_t& hash)
+    void OnTorrentRemoved(const std::string& session, const libtorrent::info_hash_t& hash)
     {
-        Broadcast("torrent_removed", json({"info_hash", hash}).dump());
+        Broadcast("torrent_removed", json({
+            {"info_hash", hash},
+            {"session", session}
+        }).dump());
     }
 
-    void OnTorrentResumed(const libtorrent::torrent_status& status)
+    void OnTorrentResumed(const std::string& session, const libtorrent::torrent_status& status)
     {
-        Broadcast("torrent_resumed", json({"info_hash", status.info_hashes}).dump());
+        Broadcast("torrent_resumed", json({
+            {"info_hash", status.info_hashes},
+            {"session", session}
+        }).dump());
     }
 
     std::unordered_set<uWS::HttpResponse<false>*> m_responses;
@@ -106,8 +115,8 @@ private:
     boost::signals2::connection m_torrent_resumed_connection;
 };
 
-EventsHandler::EventsHandler(porla::ISession& session)
-    : m_state(std::make_shared<State>(session))
+EventsHandler::EventsHandler(porla::Sessions& sessions)
+    : m_state(std::make_shared<State>(sessions))
 {
 }
 

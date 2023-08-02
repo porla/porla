@@ -109,7 +109,7 @@ add_library(
     src/cmdargs.cpp
     src/config.cpp
     src/logger.cpp
-    src/session.cpp
+    src/sessions.cpp
     src/uri.cpp
     src/utils/eta.cpp
     src/utils/secretkey.cpp
@@ -124,6 +124,7 @@ add_library(
     src/data/migrations/0006_clientdata.cpp
     src/data/migrations/0007_removesessionsettings.cpp
     src/data/migrations/0008_plugins.cpp
+    src/data/migrations/0009_multisessions.cpp
     src/data/models/addtorrentparams.cpp
     src/data/models/users.cpp
     src/data/statement.cpp
@@ -161,10 +162,11 @@ add_library(
     src/methods/plugins/pluginsreload.cpp
     src/methods/plugins/pluginsuninstall.cpp
     src/methods/plugins/pluginsupdate.cpp
+    src/methods/sessions/sessionslist.cpp
+    src/methods/sessions/sessionspause.cpp
+    src/methods/sessions/sessionsresume.cpp
+    src/methods/sessions/sessionssettingslist.cpp
     src/methods/presetslist.cpp
-    src/methods/sessionpause.cpp
-    src/methods/sessionresume.cpp
-    src/methods/sessionsettingslist.cpp
     src/methods/sysversions.cpp
     src/methods/torrentsadd.cpp
     src/methods/torrentsfileslist.cpp
@@ -236,7 +238,6 @@ target_link_libraries(
 
 add_executable(
     ${PROJECT_NAME}_tests
-    tests/inmemorysession.cpp
     tests/main.cpp
     tests/query/pql.cpp
     tests/utils/string.cpp

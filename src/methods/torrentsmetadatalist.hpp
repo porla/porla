@@ -7,7 +7,7 @@
 
 namespace porla
 {
-    class ISession;
+    class Sessions;
 }
 
 namespace porla::Methods
@@ -15,13 +15,13 @@ namespace porla::Methods
     class TorrentsMetadataList : public Method<TorrentsMetadataListReq, TorrentsMetadataListRes>
     {
     public:
-        explicit TorrentsMetadataList(sqlite3* db, ISession& session);
+        explicit TorrentsMetadataList(sqlite3* db, Sessions& sessions);
 
     protected:
         void Invoke(const TorrentsMetadataListReq& req, WriteCb<TorrentsMetadataListRes> cb) override;
 
     private:
         sqlite3* m_db;
-        ISession& m_session;
+        Sessions& m_sessions;
     };
 }

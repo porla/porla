@@ -29,34 +29,33 @@ namespace porla
             std::optional<int>                        max_connections;
             std::optional<int>                        max_uploads;
             std::optional<std::string>                save_path;
+            std::optional<std::string>                session;
             std::optional<libtorrent::storage_mode_t> storage_mode;
             std::unordered_set<std::string>           tags;
             std::optional<int>                        upload_limit;
         };
 
-        std::optional<std::string>            config_file;
-        toml::table                           config_tbl;
-        sqlite3*                              db;
-        std::optional<std::string>            db_file;
-        std::optional<bool>                   http_auth_enabled;
-        std::optional<std::string>            http_base_path;
-        std::optional<std::string>            http_host;
-        std::optional<bool>                   http_metrics_enabled;
-        std::optional<uint16_t>               http_port;
-        std::optional<bool>                   http_webui_enabled;
-
-        std::optional<bool>                   plugins_allow_git;
-        std::optional<fs::path>               plugins_install_dir;
-        std::map<std::string, Preset>         presets;
-        std::string                           secret_key;
-        std::optional<std::vector<lt_plugin>> session_extensions;
-        libtorrent::settings_pack             session_settings;
-        std::optional<int>                    sodium_memlimit;
-        std::optional<fs::path>               state_dir;
-        std::optional<int>                    timer_dht_stats;
-        std::optional<int>                    timer_session_stats;
-        std::optional<int>                    timer_torrent_updates;
-        std::optional<fs::path>               workflow_dir;
+        std::optional<std::string>               config_file;
+        toml::table                              config_tbl;
+        sqlite3*                                 db;
+        std::optional<std::string>               db_file;
+        std::optional<bool>                      http_auth_enabled;
+        std::optional<std::string>               http_base_path;
+        std::optional<std::string>               http_host;
+        std::optional<bool>                      http_metrics_enabled;
+        std::optional<uint16_t>                  http_port;
+        std::optional<bool>                      http_webui_enabled;
+        std::optional<bool>                      plugins_allow_git;
+        std::optional<fs::path>                  plugins_install_dir;
+        std::map<std::string, Preset>            presets;
+        std::string                              secret_key;
+        std::map<std::string, lt::settings_pack> sessions;
+        std::optional<int>                       sodium_memlimit;
+        std::optional<fs::path>                  state_dir;
+        std::optional<int>                       timer_dht_stats;
+        std::optional<int>                       timer_session_stats;
+        std::optional<int>                       timer_torrent_updates;
+        std::optional<fs::path>                  workflow_dir;
 
         static std::unique_ptr<Config> Load(const boost::program_options::variables_map& cmd);
 
