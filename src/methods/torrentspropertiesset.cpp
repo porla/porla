@@ -13,33 +13,43 @@ TorrentsPropertiesSet::TorrentsPropertiesSet(porla::Sessions& sessions)
 
 void TorrentsPropertiesSet::Invoke(const TorrentsPropertiesSetReq& req, WriteCb<TorrentsPropertiesSetRes> cb)
 {
-    auto& torrents = m_sessions.Default()->torrents;
-    auto torrent = torrents.find(req.info_hash);
+    const auto& state = std::find_if(
+        m_sessions.All().begin(),
+        m_sessions.All().end(),
+        [hash = req.info_hash](const auto& state)
+        {
+            return state.second->torrents.find(hash) != state.second->torrents.end();
+        });
 
-    if (torrent == torrents.end())
+    if (state == m_sessions.All().end())
+    {
+        return cb.Error(-1, "Torrent not found in any session");
+    }
+
+    const auto& handle = state->second->torrents.find(req.info_hash);
+
+    if (handle == state->second->torrents.end())
     {
         return cb.Error(-1, "Torrent not found");
     }
 
-    auto& handle = torrent->second;
+    if (const auto val = req.download_limit)
+        handle->second.set_download_limit(*val);
 
-    if (auto val = req.download_limit)
-        handle.set_download_limit(*val);
+    if (const auto val = req.set_flags)
+        handle->second.set_flags(*val);
 
-    if (auto val = req.set_flags)
-        handle.set_flags(*val);
+    if (const auto val = req.max_connections)
+        handle->second.set_max_connections(*val);
 
-    if (auto val = req.max_connections)
-        handle.set_max_connections(*val);
+    if (const auto val = req.max_uploads)
+        handle->second.set_max_uploads(*val);
 
-    if (auto val = req.max_uploads)
-        handle.set_max_uploads(*val);
+    if (const auto val = req.upload_limit)
+        handle->second.set_upload_limit(*val);
 
-    if (auto val = req.upload_limit)
-        handle.set_upload_limit(*val);
-
-    if (auto val = req.unset_flags)
-        handle.unset_flags(*val);
+    if (const auto val = req.unset_flags)
+        handle->second.unset_flags(*val);
 
     cb.Ok({});
 }

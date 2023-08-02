@@ -13,15 +13,31 @@ TorrentsPropertiesGet::TorrentsPropertiesGet(porla::Sessions& sessions)
 
 void TorrentsPropertiesGet::Invoke(const TorrentsPropertiesGetReq& req, WriteCb<TorrentsPropertiesGetRes> cb)
 {
-    auto const& torrents = m_sessions.Default()->torrents;
-    auto const& torrent = torrents.find(req.info_hash);
-    auto const& handle = torrent->second;
+    const auto& state = std::find_if(
+        m_sessions.All().begin(),
+        m_sessions.All().end(),
+        [hash = req.info_hash](const auto& state)
+        {
+            return state.second->torrents.find(hash) != state.second->torrents.end();
+        });
+
+    if (state == m_sessions.All().end())
+    {
+        return cb.Error(-1, "Torrent not found in any session");
+    }
+
+    const auto& handle = state->second->torrents.find(req.info_hash);
+
+    if (handle == state->second->torrents.end())
+    {
+        return cb.Error(-1, "Torrent not found");
+    }
 
     cb.Ok(TorrentsPropertiesGetRes{
-        .download_limit  = handle.download_limit(),
-        .flags           = handle.flags(),
-        .max_connections = handle.max_connections(),
-        .max_uploads     = handle.max_uploads(),
-        .upload_limit    = handle.upload_limit()
+        .download_limit  = handle->second.download_limit(),
+        .flags           = handle->second.flags(),
+        .max_connections = handle->second.max_connections(),
+        .max_uploads     = handle->second.max_uploads(),
+        .upload_limit    = handle->second.upload_limit()
     });
 }

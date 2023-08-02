@@ -13,17 +13,30 @@ TorrentsRemove::TorrentsRemove(porla::Sessions& sessions)
 
 void TorrentsRemove::Invoke(const TorrentsRemoveReq &req, WriteCb<TorrentsRemoveRes> cb)
 {
-    auto session = m_sessions.Default();
-
-    for (auto const& hash : req.info_hashes)
+    for (const auto& hash : req.info_hashes)
     {
-        if (session->torrents.find(hash) == session->torrents.end())
+        const auto& state = std::find_if(
+            m_sessions.All().begin(),
+            m_sessions.All().end(),
+            [hash](const auto& state)
+            {
+                return state.second->torrents.find(hash) != state.second->torrents.end();
+            });
+
+        if (state == m_sessions.All().end())
         {
             continue;
         }
 
-        session->session->remove_torrent(
-            session->torrents.at(hash),
+        const auto& handle = state->second->torrents.find(hash);
+
+        if (handle == state->second->torrents.end())
+        {
+            continue;
+        }
+
+        state->second->session->remove_torrent(
+            handle->second,
             req.remove_data ? lt::session::delete_files : lt::remove_flags_t{});
     }
 
