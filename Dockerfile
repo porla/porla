@@ -22,7 +22,7 @@ RUN apk add --update bash ccache \
     && strip build/porla
 
 # -- runtime layer
-FROM alpine:3.18.0 AS runtime
+FROM ghcr.io/porla/alpine:3.18.0 AS runtime
 
 ENV PORLA_HTTP_HOST=0.0.0.0
 EXPOSE 1337
