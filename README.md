@@ -23,17 +23,23 @@ and _extensible_.
 
 ### Features
 
- * [User-defined workflows](https://porla.org/scripting/getting_started).
- * Support for both BitTorrent v1 and v2.
+ * Based on libtorrent with support for both BitTorrent v1 and v2.
+ * Lua API for writing [plugins and workflows](https://porla.org/plugins/getting_started).
+ * Supports multiple, distinct sessions with different settings.
  * Embedded query language to find torrents. Fast.
  * [HTTP API](https://porla.org/api/auth) with JWT auth.
  * Modern web UI.
 
-#### Workflows
+#### Plugins and workflows
 
-Workflows can be used to automate and integrate Porla with all types of
-applications and services, such as Discord and [ntfy.sh](https://ntfy.sh). They
-are inspired by GitHub Actions.
+The Lua API can be used to automate and integrate Porla with all types of
+applications and services, such as Discord and [ntfy.sh](https://ntfy.sh).
+
+#### Multiple sessions
+
+You can easily set up multiple sessions to separate your public torrents from
+your private torrents, for example. Each session binds to its own network
+device and port pair, and can have custom rate limits, queueing rules, etc.
 
 #### The Porla query language (PQL)
 
