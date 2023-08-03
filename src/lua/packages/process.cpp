@@ -13,8 +13,8 @@ struct LaunchState
 {
     bp::child c;
     sol::function callback;
-    std::future<std::string> std_err;
-    std::future<std::string> std_out;
+    bp::ipstream std_err;
+    bp::ipstream std_out;
 };
 
 static void Launch(sol::this_state s, const sol::table& args)
@@ -28,6 +28,7 @@ static void Launch(sol::this_state s, const sol::table& args)
 
     auto state = std::make_shared<LaunchState>();
     state->callback = args["done"];
+
     state->c = bp::child(
         options.io,
         args["file"].get<std::string>(),
@@ -40,7 +41,20 @@ static void Launch(sol::this_state s, const sol::table& args)
         bp::on_exit(
             [state](int exit_code, const boost::system::error_code& ec)
             {
-                state->callback(exit_code, state->std_out.get(), state->std_err.get());
+                std::stringstream std_out;
+                std_out << state->std_out.rdbuf();
+
+                std::stringstream std_err;
+                std_err << state->std_err.rdbuf();
+
+                try
+                {
+                    state->callback(exit_code, std_out.str(), std_err.str());
+                }
+                catch (const std::exception& err)
+                {
+                    BOOST_LOG_TRIVIAL(error) << "Error when invoking process callback: " << err.what();
+                }
             }));
 
     std_in.close();
