@@ -12,7 +12,7 @@ namespace porla::Methods
     struct TorrentsPropertiesGetRes
     {
         int download_limit;
-        libtorrent::torrent_flags_t flags;
+        std::map<std::string, bool> flags;
         int max_connections;
         int max_uploads;
         int upload_limit;

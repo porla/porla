@@ -15,9 +15,8 @@ namespace porla::Methods
         TorrentsPropertiesSetReq,
         info_hash,
         download_limit,
+        flags,
         max_connections,
         max_uploads,
-        set_flags,
-        unset_flags,
         upload_limit);
 }

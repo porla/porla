@@ -50,11 +50,11 @@ export default function TorrentPropertiesModal(props: TorrentPropertiesModalProp
         <ModalBody>
           <Formik
             initialValues={{
-              auto_managed: ((torrentProps.flags & (1<<5)) === 1<<5),
+              auto_managed: torrentProps.flags.auto_managed === true,
               download_limit: torrentProps.download_limit,
               max_connections: torrentProps.max_connections,
               max_uploads: torrentProps.max_uploads,
-              sequential_download: ((torrentProps.flags & (1<<9)) === 1<<9),
+              sequential_download: torrentProps.flags.sequential_download === true,
               upload_limit: torrentProps.upload_limit
             }}
             onSubmit={async (values) => {
@@ -68,8 +68,10 @@ export default function TorrentPropertiesModal(props: TorrentPropertiesModalProp
 
               await torrentsPropertiesSet({
                 info_hash: props.torrent?.info_hash,
-                set_flags,
-                unset_flags,
+                flags: {
+                  auto_managed: values.auto_managed,
+                  sequential_download: values.sequential_download
+                },
                 ...values
               });
 
