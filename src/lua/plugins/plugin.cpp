@@ -12,6 +12,7 @@
 #include "../packages/log.hpp"
 #include "../packages/pql.hpp"
 #include "../packages/process.hpp"
+#include "../packages/sessions.hpp"
 #include "../packages/sqlite.hpp"
 #include "../packages/timers.hpp"
 #include "../packages/torrents.hpp"
@@ -76,6 +77,7 @@ std::unique_ptr<Plugin> Plugin::Load(const PluginLoadOptions& opts)
     Packages::Log::Register(state->lua);
     Packages::PQL::Register(state->lua);
     Packages::Process::Register(state->lua);
+    Packages::Sessions::Register(state->lua);
     Packages::Sqlite::Register(state->lua);
     Packages::Timers::Register(state->lua);
     Packages::Torrents::Register(state->lua);

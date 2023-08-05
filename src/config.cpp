@@ -14,6 +14,7 @@
 #include <toml++/toml.h>
 
 #include "data/migrate.hpp"
+#include "sessions.hpp"
 #include "utils/secretkey.hpp"
 
 namespace fs = std::filesystem;
@@ -498,12 +499,6 @@ Config::~Config()
 
 static void ApplySettings(const toml::table& tbl, lt::settings_pack& settings)
 {
-    static const std::unordered_set<std::string> BlockedKeys =
-    {
-        "peer_fingerprint",
-        "user_agent"
-    };
-
     for (auto const& [key,value] : tbl)
     {
         const int type = lt::setting_by_name(key.data());
@@ -513,7 +508,7 @@ static void ApplySettings(const toml::table& tbl, lt::settings_pack& settings)
             continue;
         }
 
-        if (BlockedKeys.contains(key.data()))
+        if (porla::Sessions::DisallowedSetting(key.data()))
         {
             continue;
         }

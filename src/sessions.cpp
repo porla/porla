@@ -187,6 +187,17 @@ void Sessions::SessionState::Recheck(const lt::info_hash_t& hash)
     handle.force_recheck();
 }
 
+bool Sessions::DisallowedSetting(const std::string& name)
+{
+    static const std::unordered_set<std::string> blocked_keys =
+    {
+        "peer_fingerprint",
+        "user_agent"
+    };
+
+    return blocked_keys.contains(name);
+}
+
 Sessions::Sessions(const SessionsOptions &options)
     : m_options(options)
     , m_stats(lt::session_stats_metrics())
