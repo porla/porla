@@ -168,6 +168,30 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
                 continue;
             }
 
+#define INSERT_FLAG(name) if ((ts.flags & lt::torrent_flags:: name) == lt::torrent_flags:: name) flags.emplace_back(#name);
+
+            std::vector<std::string> flags;
+            INSERT_FLAG(seed_mode)
+            INSERT_FLAG(upload_mode)
+            INSERT_FLAG(share_mode)
+            INSERT_FLAG(apply_ip_filter)
+            INSERT_FLAG(paused)
+            INSERT_FLAG(auto_managed)
+            INSERT_FLAG(duplicate_is_error)
+            INSERT_FLAG(update_subscribe)
+            INSERT_FLAG(super_seeding)
+            INSERT_FLAG(sequential_download)
+            INSERT_FLAG(stop_when_ready)
+            INSERT_FLAG(override_trackers)
+            INSERT_FLAG(override_web_seeds)
+            INSERT_FLAG(need_save_resume)
+            INSERT_FLAG(disable_dht)
+            INSERT_FLAG(disable_lsd)
+            INSERT_FLAG(disable_pex)
+            INSERT_FLAG(no_verify_files)
+            INSERT_FLAG(default_dont_download)
+            INSERT_FLAG(i2p_torrent)
+
             torrents.emplace_back(TorrentsListRes::Item{
                 .active_duration   = ts.active_duration.count(),
                 .all_time_download = ts.all_time_download,
@@ -177,7 +201,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
                 .error             = ts.errc,
                 .eta               = porla::Utils::ETA(ts).count(),
                 .finished_duration = ts.finished_duration.count(),
-                .flags             = static_cast<std::uint64_t>(ts.flags),
+                .flags             = flags,
                 .info_hash         = ts.info_hashes,
                 .last_download     = ts.last_download.time_since_epoch().count() > 0
                     ? lt::total_seconds(lt::clock_type::now() - ts.last_download)

@@ -30,7 +30,7 @@ namespace porla::Methods
             libtorrent::error_code          error;
             std::int64_t                    eta;
             std::int64_t                    finished_duration;
-            std::uint64_t                   flags;
+            std::vector<std::string>        flags;
             lt::info_hash_t                 info_hash;
             std::int64_t                    last_download;
             std::int64_t                    last_upload;

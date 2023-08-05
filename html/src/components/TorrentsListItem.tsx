@@ -36,16 +36,12 @@ type KeyValueProps = {
   value: any;
 }
 
-function checkBit(flags: number, bit: number) {
-  return (flags & (1<<bit)) === 1<<bit;
+function isAutoManaged(flags: string[]) {
+  return flags.indexOf("auto_managed") >= 0;
 }
 
-function isAutoManaged(flags: number) {
-  return checkBit(flags, 5);
-}
-
-function isPaused(flags: number) {
-  return (flags & (1<<4)) === 1<<4;
+function isPaused(flags: string[]) {
+  return flags.indexOf("paused") >= 0;
 }
 
 function randomLinuxTorrent(index: number) {

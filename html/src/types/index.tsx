@@ -19,7 +19,7 @@ export type Torrent = {
   download_limit: number;
   error: any;
   eta: number;
-  flags: number;
+  flags: string[];
   info_hash: InfoHash;
   moving_storage: boolean;
   name: string;
@@ -34,9 +34,14 @@ export type Torrent = {
   upload_rate: number;
 }
 
+export type TorrentPropertiesFlags = {
+  auto_managed?: boolean;
+  sequential_download?: boolean;
+}
+
 export type TorrentProperties = {
   download_limit: number;
-  flags: number;
+  flags: TorrentPropertiesFlags;
   max_connections: number;
   max_uploads: number;
   upload_limit: number;

@@ -10,8 +10,7 @@ namespace porla::Methods
     {
         libtorrent::info_hash_t info_hash;
         std::optional<int> download_limit;
-        std::optional<libtorrent::torrent_flags_t> set_flags;
-        std::optional<libtorrent::torrent_flags_t> unset_flags;
+        std::optional<std::map<std::string, bool>> flags;
         std::optional<int> max_connections;
         std::optional<int> max_uploads;
         std::optional<int> upload_limit;
