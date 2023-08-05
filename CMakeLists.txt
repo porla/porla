@@ -147,6 +147,7 @@ add_library(
     src/lua/packages/log.cpp
     src/lua/packages/pql.cpp
     src/lua/packages/process.cpp
+    src/lua/packages/sessions.cpp
     src/lua/packages/sqlite.cpp
     src/lua/packages/timers.cpp
     src/lua/packages/torrents.cpp

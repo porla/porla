@@ -32,6 +32,8 @@ namespace porla
     class Sessions
     {
     public:
+        static bool DisallowedSetting(const std::string& name);
+
         struct SessionState
         {
             friend class Sessions;
