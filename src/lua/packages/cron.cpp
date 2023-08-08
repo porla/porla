@@ -12,15 +12,26 @@ class CronSchedule
 {
 public:
     CronSchedule(boost::asio::io_context &io, sol::table args)
-        : m_io(io)
-        , m_args(std::move(args))
+        : m_args(std::move(args))
         , m_timer(io)
+        , m_should_cancel(false)
     {
         Next();
     }
 
     ~CronSchedule()
     {
+        BOOST_LOG_TRIVIAL(debug) << "Destroying cron schedule";
+
+        m_should_cancel = true;
+        m_timer.cancel();
+    }
+
+    void Cancel()
+    {
+        BOOST_LOG_TRIVIAL(debug) << "Cancelling timer";
+
+        m_should_cancel = true;
         m_timer.cancel();
     }
 
@@ -76,11 +87,11 @@ private:
             }
         }
 
-        Next();
+        if (!m_should_cancel) Next();
     }
 
-    boost::asio::io_context& m_io;
     sol::table m_args;
+    bool m_should_cancel;
     boost::asio::deadline_timer m_timer;
 };
 
@@ -88,7 +99,8 @@ void Cron::Register(sol::state& lua)
 {
     auto type = lua.new_usertype<CronSchedule>(
         "cron.Schedule",
-        sol::no_constructor);
+        sol::no_constructor,
+        "cancel", &CronSchedule::Cancel);
 
     lua["package"]["preload"]["cron"] = [](sol::this_state s)
     {
