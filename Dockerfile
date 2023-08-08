@@ -16,7 +16,7 @@ ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
 ENV VCPKG_FORCE_SYSTEM_BINARIES="1"
 
 RUN apt-get update -y \
-    && apt-get install -y ccache \
+    && apt-get install -y bsdmainutils ccache \
     && cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
     && cmake --build build \
     && ccache -s -v \
