@@ -1,6 +1,12 @@
-FROM alpine:3.18.0 AS build-env
+FROM debian:12.1-slim AS build-env
+
 WORKDIR /src
+
 COPY . .
+
 ENV VCPKG_FORCE_SYSTEM_BINARIES="1"
-RUN apk add --update --no-cache cmake curl g++ git libc6-compat linux-headers make perl pkgconfig python3 unzip zip bash \
+
+RUN apt-get update -y \
+    && apt-get upgrade -y \
+    && apt-get install -y cmake curl g++ git make perl pkg-config python3 unzip wget zip \
     && bash builder-env.sh

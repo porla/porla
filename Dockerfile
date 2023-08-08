@@ -1,4 +1,4 @@
-FROM ghcr.io/porla/build-env:202306091551 AS build-env
+FROM ghcr.io/porla/build-env:202308081156 AS build-env
 
 WORKDIR /src
 
@@ -15,7 +15,8 @@ ENV CCACHE_REMOTE_STORAGE=${CCACHE_REMOTE_STORAGE}
 ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
 ENV VCPKG_FORCE_SYSTEM_BINARIES="1"
 
-RUN apk add --update bash ccache \
+RUN apt-get update -y \
+    && apt-get install -y ccache \
     && cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
     && cmake --build build \
     && ccache -s -v \
