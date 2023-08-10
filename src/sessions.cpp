@@ -8,7 +8,6 @@
 #include <libtorrent/extensions/ut_metadata.hpp>
 #include <libtorrent/extensions/ut_pex.hpp>
 #include <libtorrent/extensions/smart_ban.hpp>
-#include <libtorrent/session_stats.hpp>
 
 #include "data/models/addtorrentparams.hpp"
 #include "torrentclientdata.hpp"
@@ -200,7 +199,6 @@ bool Sessions::DisallowedSetting(const std::string& name)
 
 Sessions::Sessions(const SessionsOptions &options)
     : m_options(options)
-    , m_stats(lt::session_stats_metrics())
 {
     if (options.timer_dht_stats > 0)
         m_timers.emplace_back(options.io, options.timer_dht_stats, [&]() { PostDhtStats(); });
@@ -468,14 +466,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                 auto ssa = lt::alert_cast<lt::session_stats_alert>(alert);
                 auto const& counters = ssa->counters();
 
-                std::map<std::string, int64_t> metrics;
-
-                for (auto const& stats : m_stats)
-                {
-                    metrics.insert({ stats.name, counters[stats.value_index] });
-                }
-
-                boost::asio::post(m_options.io, [this, metrics, state](){ m_session_stats(state->name, metrics); });
+                boost::asio::post(m_options.io, [this, counters, state](){ m_session_stats(state->name, counters); });
 
                 break;
             }

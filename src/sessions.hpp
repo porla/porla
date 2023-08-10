@@ -50,7 +50,7 @@ namespace porla
         };
 
         typedef boost::signals2::signal<void(const std::string& session, const libtorrent::info_hash_t&)> InfoHashSignal;
-        typedef boost::signals2::signal<void(const std::string& session, const std::map<std::string, int64_t>&)> SessionStatsSignal;
+        typedef boost::signals2::signal<void(const std::string& session, const lt::span<const int64_t>&)> SessionStatsSignal;
         typedef boost::signals2::signal<void(const std::string& session, const libtorrent::torrent_handle&)> TorrentHandleSignal;
         typedef boost::signals2::signal<void(const std::string& session, const libtorrent::torrent_status&)> TorrentStatusSignal;
         typedef boost::signals2::signal<void(const std::string& session, const std::vector<libtorrent::torrent_status>&)> TorrentStatusListSignal;
@@ -115,7 +115,6 @@ namespace porla
 
         SessionsOptions m_options;
         std::map<std::string, std::shared_ptr<SessionState>> m_sessions;
-        std::vector<lt::stats_metric> m_stats;
         std::vector<Timer> m_timers;
 
         SessionStatsSignal m_session_stats;
