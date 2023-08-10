@@ -17,7 +17,7 @@ namespace porla::Http
         explicit MetricsHandler(Sessions& sessions);
         ~MetricsHandler();
 
-        void operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+        void operator()(uWS::HttpResponse<false>* res, [[maybe_unused]] uWS::HttpRequest* req);
 
     private:
         class State;
