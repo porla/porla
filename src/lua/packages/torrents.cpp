@@ -1,6 +1,7 @@
 #include "torrents.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <libtorrent/hex.hpp>
 #include <libtorrent/magnet_uri.hpp>
 #include <libtorrent/torrent_info.hpp>
 #include <libtorrent/torrent_status.hpp>
@@ -72,6 +73,22 @@ void Torrents::Register(sol::state& lua)
     announce_entry_type["trackerid"] = sol::property([](const lt::announce_entry& ae) { return ae.trackerid; });
     announce_entry_type["url"] = sol::property([](const lt::announce_entry& ae) { return ae.url; });
     announce_entry_type["verified"] = sol::property([](const lt::announce_entry& ae) { return ae.verified; });
+
+    auto info_hash_type = lua.new_usertype<lt::info_hash_t>(
+        "lt.InfoHash",
+        sol::no_constructor);
+
+    info_hash_type["v1"] = sol::property(
+        [](const lt::info_hash_t& ih) -> std::optional<std::string>
+        {
+            return ih.has_v1() ? std::optional(lt::aux::to_hex(ih.v1)) : std::nullopt;
+        });
+
+    info_hash_type["v2"] = sol::property(
+        [](const lt::info_hash_t& ih) -> std::optional<std::string>
+        {
+            return ih.has_v2() ? std::optional(lt::aux::to_hex(ih.v2)) : std::nullopt;
+        });
 
     auto peer_info_type = lua.new_usertype<lt::peer_info>(
         "lt.PeerInfo",
