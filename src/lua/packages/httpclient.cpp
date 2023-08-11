@@ -58,6 +58,7 @@ void HttpClient::Register(sol::state& lua)
                 {
                     CURL* curl = curl_easy_init();
 
+                    char errmsg[CURL_ERROR_SIZE];
                     std::string buffer;
                     long response_code = -1;
 
@@ -72,6 +73,7 @@ void HttpClient::Register(sol::state& lua)
                     }
 
                     curl_easy_setopt(curl, CURLOPT_URL, s->url.c_str());
+                    curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errmsg);
 
                     if (!s->body.empty())
                     {
@@ -95,7 +97,9 @@ void HttpClient::Register(sol::state& lua)
                     }
                     else
                     {
-                        BOOST_LOG_TRIVIAL(error) << "CURL error code: " << res;
+                        BOOST_LOG_TRIVIAL(error)
+                            << "cURL error (" << res << "): "
+                            << (strlen(errmsg) > 0 ? std::string(errmsg) : curl_easy_strerror(res));
                     }
 
                     curl_slist_free_all(headers_list);
