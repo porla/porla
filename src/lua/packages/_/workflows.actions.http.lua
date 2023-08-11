@@ -20,7 +20,7 @@ return function(args)
         end
 
         http.request({
-            body     = args.body,
+            body     = resolve(args.body, ctx),
             method   = resolve(args.method, ctx),
             url      = resolve(args.url, ctx),
             headers  = resolved_headers,
