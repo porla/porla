@@ -518,10 +518,26 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
             {
                 const auto tfa          = lt::alert_cast<lt::torrent_finished_alert>(alert);
                 const auto& status      = tfa->handle.status();
-                const auto& client_data = tfa->handle.userdata().get<TorrentClientData>();
+                      auto  client_data = tfa->handle.userdata().get<TorrentClientData>();
 
-                if (status.total_download > 0)
+                const auto contains_signaled_finished = client_data->metadata.value_or(
+                    std::map<std::string, nlohmann::json>()).contains("signal:finished");
+
+                const auto has_signaled_finished = contains_signaled_finished
+                    && client_data->metadata.value()["signal:finished"] == true;
+
+                // A torrent finished signal should only be emitted once per
+                // torrent. If we emit this signal, store it in the torrent metadata.
+
+                if (status.total_download > 0 && !has_signaled_finished)
                 {
+                    if (!client_data->metadata)
+                    {
+                        client_data->metadata = std::map<std::string, nlohmann::json>();
+                    }
+
+                    client_data->metadata->insert({ "signal:finished", true });
+
                     // Only emit this event if we have downloaded any data this session
                     BOOST_LOG_TRIVIAL(info) << "Torrent " << status.name << " finished";
 
