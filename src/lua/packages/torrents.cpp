@@ -257,6 +257,7 @@ void Torrents::Register(sol::state& lua)
         "set_upload_limit",        &lt::torrent_handle::set_upload_limit,
         "status",                  [](const lt::torrent_handle& th) { return th.status(); },
         "trackers",                &lt::torrent_handle::trackers,
+        "torrent_file",            &lt::torrent_handle::torrent_file,
         "upload_limit",            &lt::torrent_handle::upload_limit,
         "userdata",                [](const lt::torrent_handle& th) { return th.userdata().get<TorrentClientData>(); });
 
