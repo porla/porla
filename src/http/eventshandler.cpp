@@ -99,10 +99,10 @@ private:
         }).dump());
     }
 
-    void OnTorrentResumed(const std::string& session, const libtorrent::torrent_status& status)
+    void OnTorrentResumed(const std::string& session, const libtorrent::torrent_handle& th)
     {
         Broadcast("torrent_resumed", json({
-            {"info_hash", status.info_hashes},
+            {"info_hash", th.info_hashes()},
             {"session", session}
         }).dump());
     }

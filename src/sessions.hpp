@@ -52,7 +52,6 @@ namespace porla
         typedef boost::signals2::signal<void(const std::string& session, const libtorrent::info_hash_t&)> InfoHashSignal;
         typedef boost::signals2::signal<void(const std::string& session, const lt::span<const int64_t>&)> SessionStatsSignal;
         typedef boost::signals2::signal<void(const std::string& session, const libtorrent::torrent_handle&)> TorrentHandleSignal;
-        typedef boost::signals2::signal<void(const std::string& session, const libtorrent::torrent_status&)> TorrentStatusSignal;
         typedef boost::signals2::signal<void(const std::string& session, const std::vector<libtorrent::torrent_status>&)> TorrentStatusListSignal;
 
         explicit Sessions(const SessionsOptions& options);
@@ -79,12 +78,12 @@ namespace porla
             return m_storage_moved.connect(subscriber);
         }
 
-        boost::signals2::connection OnTorrentAdded(const TorrentStatusSignal::slot_type& subscriber)
+        boost::signals2::connection OnTorrentAdded(const TorrentHandleSignal::slot_type& subscriber)
         {
             return m_torrent_added.connect(subscriber);
         }
 
-        boost::signals2::connection OnTorrentFinished(const TorrentStatusSignal::slot_type& subscriber)
+        boost::signals2::connection OnTorrentFinished(const TorrentHandleSignal::slot_type& subscriber)
         {
             return m_torrent_finished.connect(subscriber);
         }
@@ -99,7 +98,7 @@ namespace porla
             return m_torrent_removed.connect(subscriber);
         }
 
-        boost::signals2::connection OnTorrentResumed(const TorrentStatusSignal::slot_type& subscriber)
+        boost::signals2::connection OnTorrentResumed(const TorrentHandleSignal::slot_type& subscriber)
         {
             return m_torrent_resumed.connect(subscriber);
         }
@@ -120,10 +119,10 @@ namespace porla
         SessionStatsSignal m_session_stats;
         TorrentStatusListSignal m_state_update;
         TorrentHandleSignal m_storage_moved;
-        TorrentStatusSignal m_torrent_added;
-        TorrentStatusSignal m_torrent_finished;
+        TorrentHandleSignal m_torrent_added;
+        TorrentHandleSignal m_torrent_finished;
         TorrentHandleSignal m_torrent_paused;
         InfoHashSignal m_torrent_removed;
-        TorrentStatusSignal m_torrent_resumed;
+        TorrentHandleSignal m_torrent_resumed;
     };
 }

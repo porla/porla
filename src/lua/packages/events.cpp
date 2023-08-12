@@ -49,11 +49,11 @@ void Events::Register(sol::state& lua)
             if (name == "torrent_added")
             {
                 auto connection = options.sessions.OnTorrentAdded(
-                    [cb = callback](const std::string& session, const lt::torrent_status& ts)
+                    [cb = callback](const std::string& session, const lt::torrent_handle& th)
                     {
                         try
                         {
-                            cb(ts);
+                            cb(th);
                         }
                         catch (const sol::error& err)
                         {
@@ -67,11 +67,11 @@ void Events::Register(sol::state& lua)
             if (name == "torrent_finished")
             {
                 auto connection = options.sessions.OnTorrentFinished(
-                    [cb = callback](const std::string& session, const lt::torrent_status& ts)
+                    [cb = callback](const std::string& session, const lt::torrent_handle& th)
                     {
                         try
                         {
-                            cb(ts);
+                            cb(th);
                         }
                         catch (const sol::error& err)
                         {
@@ -139,11 +139,11 @@ void Events::Register(sol::state& lua)
             if (name == "torrent_resumed")
             {
                 auto connection = options.sessions.OnTorrentResumed(
-                    [cb = callback](const std::string& session, const lt::torrent_status& ts)
+                    [cb = callback](const std::string& session, const lt::torrent_handle& th)
                     {
                         try
                         {
-                            cb(ts);
+                            cb(th);
                         }
                         catch (const sol::error& err)
                         {
