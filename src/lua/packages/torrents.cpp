@@ -112,6 +112,20 @@ void Torrents::Register(sol::state& lua)
     peer_info_type["total_download"] = sol::property([](const lt::peer_info& pi) { return pi.total_download; });
     peer_info_type["total_upload"] = sol::property([](const lt::peer_info& pi) { return pi.total_upload; });
 
+    auto torrent_info_type = lua.new_usertype<lt::torrent_info>(
+        "lt.TorrentInfo",
+        sol::no_constructor);
+
+    torrent_info_type["comment"]    = sol::property([](const lt::torrent_info& ti) { return ti.comment(); });
+    torrent_info_type["creator"]    = sol::property([](const lt::torrent_info& ti) { return ti.creator(); });
+    torrent_info_type["info_hash"]  = sol::property([](const lt::torrent_info& ti) { return ti.info_hashes(); });
+    torrent_info_type["name"]       = sol::property([](const lt::torrent_info& ti) { return ti.name(); });
+    torrent_info_type["num_files"]  = sol::property([](const lt::torrent_info& ti) { return ti.num_files(); });
+    torrent_info_type["num_pieces"] = sol::property([](const lt::torrent_info& ti) { return ti.num_pieces(); });
+    torrent_info_type["priv"]       = sol::property([](const lt::torrent_info& ti) { return ti.priv(); });
+    torrent_info_type["trackers"]   = sol::property([](const lt::torrent_info& ti) { return ti.trackers(); });
+    torrent_info_type["total_size"] = sol::property([](const lt::torrent_info& ti) { return ti.total_size(); });
+
     auto torrent_status_type = lua.new_usertype<lt::torrent_status>(
         "lt.TorrentStatus",
         sol::no_constructor);
