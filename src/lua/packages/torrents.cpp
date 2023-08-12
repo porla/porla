@@ -264,7 +264,7 @@ void Torrents::Register(sol::state& lua)
     auto torrent_status_type = lua.new_usertype<lt::torrent_status>(
         "lt.TorrentStatus",
         sol::no_constructor,
-        // active duration
+        "active_duration",        sol::property([](const lt::torrent_status& ts) { return ts.active_duration.count(); }),
         // added time
         "all_time_download",      sol::readonly(&lt::torrent_status::all_time_download),
         "all_time_upload",        sol::readonly(&lt::torrent_status::all_time_upload),
@@ -282,7 +282,7 @@ void Torrents::Register(sol::state& lua)
         "download_rate",          sol::readonly(&lt::torrent_status::download_rate),
         // errc
         // error_file
-        // finished duration
+        "finished_duration",      sol::property([](const lt::torrent_status& ts) { return ts.finished_duration.count(); }),
         "flags",                  sol::property([](const lt::torrent_status& ts) { return FlagsToMap(ts.flags); }),
         "info_hash",              sol::readonly(&lt::torrent_status::info_hashes),
         "is_finished",            sol::readonly(&lt::torrent_status::is_finished),
@@ -311,10 +311,14 @@ void Torrents::Register(sol::state& lua)
         "queue_position",         sol::readonly(&lt::torrent_status::queue_position),
         "save_path",              sol::readonly(&lt::torrent_status::save_path),
         "seed_rank",              sol::readonly(&lt::torrent_status::seed_rank),
-        // seeding duration
+        "seeding_duration",       sol::property([](const lt::torrent_status& ts) { return ts.seeding_duration.count(); }),
         // state
         // storage mode
-        "torrent_file",           sol::readonly(&lt::torrent_status::torrent_file),
+        "torrent_file",           sol::property([](const lt::torrent_status& ts) -> std::shared_ptr<const lt::torrent_info>
+                                  {
+                                      if (auto tf = ts.torrent_file.lock()) return tf;
+                                      return nullptr;
+                                  }),
         "total",                  sol::readonly(&lt::torrent_status::total),
         "total_done",             sol::readonly(&lt::torrent_status::total_done),
         "total_download",         sol::readonly(&lt::torrent_status::total_download),
