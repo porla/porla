@@ -31,6 +31,81 @@ static void ApplyPreset(lt::add_torrent_params& p, const porla::Config::Preset& 
         p.userdata.get<porla::TorrentClientData>()->tags = preset.tags;
 }
 
+static std::map<std::string, bool> FlagsToMap(const lt::torrent_flags_t& flags)
+{
+#define SET_INSERT_FLAG(name) \
+    if ((flags & lt::torrent_flags:: name) == lt::torrent_flags:: name) \
+    { \
+        result_flags.insert({#name, true}); \
+    } \
+    else \
+    { \
+        result_flags.insert({#name, false}); \
+    } \
+
+    std::map<std::string, bool> result_flags;
+    SET_INSERT_FLAG(seed_mode)
+    SET_INSERT_FLAG(upload_mode)
+    SET_INSERT_FLAG(share_mode)
+    SET_INSERT_FLAG(apply_ip_filter)
+    SET_INSERT_FLAG(paused)
+    SET_INSERT_FLAG(auto_managed)
+    SET_INSERT_FLAG(duplicate_is_error)
+    SET_INSERT_FLAG(update_subscribe)
+    SET_INSERT_FLAG(super_seeding)
+    SET_INSERT_FLAG(sequential_download)
+    SET_INSERT_FLAG(stop_when_ready)
+    SET_INSERT_FLAG(override_trackers)
+    SET_INSERT_FLAG(override_web_seeds)
+    SET_INSERT_FLAG(need_save_resume)
+    SET_INSERT_FLAG(disable_dht)
+    SET_INSERT_FLAG(disable_lsd)
+    SET_INSERT_FLAG(disable_pex)
+    SET_INSERT_FLAG(no_verify_files)
+    SET_INSERT_FLAG(default_dont_download)
+    SET_INSERT_FLAG(i2p_torrent)
+    return result_flags;
+}
+
+static void SetHandleFlags(const lt::torrent_handle& th, const sol::table& flags_tbl)
+{
+    lt::torrent_flags_t flags;
+    lt::torrent_flags_t mask;
+
+#define SET_FLAG(name) \
+    if (flags_tbl[#name].valid()) \
+    { \
+        mask |= lt::torrent_flags:: name; \
+        if (flags_tbl[#name].get<bool>()) \
+        { \
+            flags |= lt::torrent_flags:: name; \
+        } \
+    }
+
+    SET_FLAG(seed_mode)
+    SET_FLAG(upload_mode)
+    SET_FLAG(share_mode)
+    SET_FLAG(apply_ip_filter)
+    SET_FLAG(paused)
+    SET_FLAG(auto_managed)
+    SET_FLAG(duplicate_is_error)
+    SET_FLAG(update_subscribe)
+    SET_FLAG(super_seeding)
+    SET_FLAG(sequential_download)
+    SET_FLAG(stop_when_ready)
+    SET_FLAG(override_trackers)
+    SET_FLAG(override_web_seeds)
+    SET_FLAG(need_save_resume)
+    SET_FLAG(disable_dht)
+    SET_FLAG(disable_lsd)
+    SET_FLAG(disable_pex)
+    SET_FLAG(no_verify_files)
+    SET_FLAG(default_dont_download)
+    SET_FLAG(i2p_torrent)
+
+    th.set_flags(flags, mask);
+}
+
 void Torrents::Register(sol::state& lua)
 {
     auto announce_infohash_type = lua.new_usertype<lt::announce_infohash>(
@@ -135,6 +210,10 @@ void Torrents::Register(sol::state& lua)
         "clear_error",             &lt::torrent_handle::clear_error,
         "clear_peers",             &lt::torrent_handle::clear_peers,
         "download_limit",          &lt::torrent_handle::download_limit,
+        "flags",                   [](const lt::torrent_handle& th)
+                                   {
+                                       return FlagsToMap(th.flags());
+                                   },
         "flush_cache",             &lt::torrent_handle::flush_cache,
         "force_reannounce",        [](const lt::torrent_handle& th, const sol::table& args)
                                    {
@@ -159,6 +238,8 @@ void Torrents::Register(sol::state& lua)
                                        th.get_peer_info(peers);
                                        return peers;
                                    },
+        "post_download_queue",     &lt::torrent_handle::post_download_queue,
+        "post_file_progress",      [](const lt::torrent_handle& th) { return th.post_file_progress(lt::torrent_handle::piece_granularity); },
         "post_peer_info",          &lt::torrent_handle::post_peer_info,
         "post_piece_availability", &lt::torrent_handle::post_piece_availability,
         "post_status",             [](const lt::torrent_handle& th) { return th.post_status(); },
@@ -170,6 +251,7 @@ void Torrents::Register(sol::state& lua)
         "queue_position_up",       &lt::torrent_handle::queue_position_up,
         "resume",                  &lt::torrent_handle::resume,
         "set_download_limit",      &lt::torrent_handle::set_download_limit,
+        "set_flags",               [](const lt::torrent_handle& th, const sol::table& flags) { SetHandleFlags(th, flags); },
         "set_max_connections",     &lt::torrent_handle::set_max_connections,
         "set_max_uploads",         &lt::torrent_handle::set_max_uploads,
         "set_upload_limit",        &lt::torrent_handle::set_upload_limit,
@@ -200,7 +282,7 @@ void Torrents::Register(sol::state& lua)
         // errc
         // error_file
         // finished duration
-        // flags
+        "flags",                  sol::property([](const lt::torrent_status& ts) { return FlagsToMap(ts.flags); }),
         "info_hash",              sol::readonly(&lt::torrent_status::info_hashes),
         "is_finished",            sol::readonly(&lt::torrent_status::is_finished),
         "is_seeding",             sol::readonly(&lt::torrent_status::is_seeding),
@@ -247,133 +329,10 @@ void Torrents::Register(sol::state& lua)
         // verified pieces
         );
 
-    torrent_status_type["category"] = sol::property(
-        [](const lt::torrent_status& ts)
-        {
-            const TorrentClientData* client_data = ts.handle.userdata().get<TorrentClientData>();
-            return client_data->category;
-        });
-
-    torrent_status_type["flags"] = sol::property(
-        [](const lt::torrent_status& ts)
-        {
-#define SET_INSERT_FLAG(name) if ((ts.flags & lt::torrent_flags:: name) == lt::torrent_flags:: name) flags.insert(#name);
-
-            std::set<std::string> flags;
-            SET_INSERT_FLAG(seed_mode)
-            SET_INSERT_FLAG(upload_mode)
-            SET_INSERT_FLAG(share_mode)
-            SET_INSERT_FLAG(apply_ip_filter)
-            SET_INSERT_FLAG(paused)
-            SET_INSERT_FLAG(auto_managed)
-            SET_INSERT_FLAG(duplicate_is_error)
-            SET_INSERT_FLAG(update_subscribe)
-            SET_INSERT_FLAG(super_seeding)
-            SET_INSERT_FLAG(sequential_download)
-            SET_INSERT_FLAG(stop_when_ready)
-            SET_INSERT_FLAG(override_trackers)
-            SET_INSERT_FLAG(override_web_seeds)
-            SET_INSERT_FLAG(need_save_resume)
-            SET_INSERT_FLAG(disable_dht)
-            SET_INSERT_FLAG(disable_lsd)
-            SET_INSERT_FLAG(disable_pex)
-            SET_INSERT_FLAG(no_verify_files)
-            SET_INSERT_FLAG(default_dont_download)
-            SET_INSERT_FLAG(i2p_torrent)
-
-            return flags;
-        });
-
     lua["package"]["preload"]["torrents"] = [](sol::this_state s)
     {
         sol::state_view lua{s};
         sol::table torrents = lua.create_table();
-
-        torrents["add"] = [](sol::this_state s, const sol::table& args)
-        {
-            sol::state_view lua{s};
-            const auto options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
-
-            const auto& state = args["preset"].is<std::string>()
-                ? options.config.presets.find(args["preset"]) != options.config.presets.end()
-                  ? options.config.presets.at(args["preset"]).session.has_value()
-                    ? options.sessions.Get(options.config.presets.at(args["preset"]).session.value())
-                    : options.sessions.Default()
-                  : options.sessions.Default()
-                : options.config.presets.find("default") != options.config.presets.end()
-                  ? options.config.presets.at("default").session.has_value()
-                    ? options.sessions.Get(options.config.presets.at("default").session.value())
-                    : options.sessions.Default()
-                  : options.sessions.Default();
-
-            lt::add_torrent_params p;
-            p.userdata = lt::client_data_t(new TorrentClientData());
-            p.userdata.get<TorrentClientData>()->state = state;
-
-            // Apply the 'default' preset if it exists
-            if (options.config.presets.find("default") != options.config.presets.end())
-            {
-                ApplyPreset(p, options.config.presets.at("default"));
-            }
-
-            if (args["preset"].is<std::string>())
-            {
-                const auto preset_name = args["preset"].get<std::string>();
-                const auto preset = options.config.presets.find(preset_name);
-
-                if (preset == options.config.presets.end())
-                {
-                    BOOST_LOG_TRIVIAL(warning) << "Specified preset '" << preset_name << "' not found.";
-                }
-                // Only apply presets other than default here, since default is applied above..
-                else if (preset_name != "default")
-                {
-                    BOOST_LOG_TRIVIAL(debug) << "Applying preset " << preset_name;
-                    ApplyPreset(p, preset->second);
-                }
-            }
-
-            if (args["ti"].is<std::shared_ptr<lt::torrent_info>>())
-            {
-                p.ti = args["ti"].get<std::shared_ptr<lt::torrent_info>>();
-
-                for (const auto& [ name, s ]: options.sessions.All())
-                {
-                    if (s->torrents.find(p.ti->info_hashes()) != s->torrents.end())
-                    {
-                        BOOST_LOG_TRIVIAL(error) << "Torrent already in session";
-                        return;
-                    }
-                }
-            }
-            else if (args["magnet_uri"].is<std::string>())
-            {
-                lt::error_code ec;
-                lt::parse_magnet_uri(args["magnet_uri"].get<std::string>(), p, ec);
-
-                if (ec)
-                {
-                    BOOST_LOG_TRIVIAL(error) << "Failed to parse magnet uri: " << ec.message();
-                    return;
-                }
-            }
-
-            if (args["download_limit"].valid())  p.download_limit  = args["download_limit"].get<int>();
-            if (args["http_seeds"].valid())      p.http_seeds      = args["http_seeds"].get<std::vector<std::string>>();
-            if (args["max_connections"].valid()) p.max_connections = args["max_connections"].get<int>();
-            if (args["max_uploads"].valid())     p.max_uploads     = args["max_uploads"].get<int>();
-            if (args["name"].valid())            p.name            = args["name"].get<std::string>();
-            if (args["save_path"].valid())       p.save_path       = args["save_path"].get<std::string>();
-            if (args["trackers"].valid())        p.trackers        = args["trackers"].get<std::vector<std::string>>();
-            if (args["upload_limit"].valid())    p.upload_limit    = args["upload_limit"].get<int>();
-            if (args["url_seeds"].valid())       p.url_seeds       = args["url_seeds"].get<std::vector<std::string>>();
-
-            // userdata values
-            if (args["category"].valid())        p.userdata.get<TorrentClientData>()->category = args["category"].get<std::string>();
-            if (args["tags"].valid())            p.userdata.get<TorrentClientData>()->tags     = args["tags"].get<std::unordered_set<std::string>>();
-
-            state->session->async_add_torrent(p);
-        };
 
         torrents["errors"] = lua.create_table();
         torrents["errors"]["tracker_failure"] = lt::errors::tracker_failure;
@@ -391,95 +350,6 @@ void Torrents::Register(sol::state& lua)
             }
 
             return std::make_shared<lt::torrent_info>(data);
-        };
-
-        torrents["properties"] = lua.create_table();
-        torrents["properties"]["get"] = [](sol::this_state s, const lt::torrent_status& ts) -> sol::reference
-        {
-            if (!ts.handle.is_valid())
-            {
-                return sol::nil;
-            }
-
-            sol::state_view lua{s};
-            sol::table p = lua.create_table();
-
-#define INSERT_FLAG(name) flags.insert({ #name, (ts.flags & lt::torrent_flags:: name) == lt::torrent_flags:: name });
-
-            std::map<std::string, bool> flags;
-            INSERT_FLAG(seed_mode)
-            INSERT_FLAG(upload_mode)
-            INSERT_FLAG(share_mode)
-            INSERT_FLAG(apply_ip_filter)
-            INSERT_FLAG(paused)
-            INSERT_FLAG(auto_managed)
-            INSERT_FLAG(duplicate_is_error)
-            INSERT_FLAG(update_subscribe)
-            INSERT_FLAG(super_seeding)
-            INSERT_FLAG(sequential_download)
-            INSERT_FLAG(stop_when_ready)
-            INSERT_FLAG(override_trackers)
-            INSERT_FLAG(override_web_seeds)
-            INSERT_FLAG(need_save_resume)
-            INSERT_FLAG(disable_dht)
-            INSERT_FLAG(disable_lsd)
-            INSERT_FLAG(disable_pex)
-            INSERT_FLAG(no_verify_files)
-            INSERT_FLAG(default_dont_download)
-            INSERT_FLAG(i2p_torrent)
-
-            p["flags"]           = flags;
-
-            return p;
-        };
-
-        torrents["properties"]["set"] = [](sol::this_state s, const lt::torrent_status& ts, const sol::table& args)
-        {
-            if (!ts.handle.is_valid())
-            {
-                return;
-            }
-
-            lt::torrent_flags_t flags;
-            lt::torrent_flags_t mask;
-
-            if (args["flags"].valid())
-            {
-                const auto& flags_tbl = args["flags"].get<sol::table>();
-
-#define SET_FLAG(name) \
-    if (flags_tbl[#name].valid()) \
-    { \
-        mask |= lt::torrent_flags:: name; \
-        if (flags_tbl[#name].get<bool>()) \
-        { \
-            flags |= lt::torrent_flags:: name; \
-        } \
-    }
-
-                SET_FLAG(seed_mode)
-                SET_FLAG(upload_mode)
-                SET_FLAG(share_mode)
-                SET_FLAG(apply_ip_filter)
-                SET_FLAG(paused)
-                SET_FLAG(auto_managed)
-                SET_FLAG(duplicate_is_error)
-                SET_FLAG(update_subscribe)
-                SET_FLAG(super_seeding)
-                SET_FLAG(sequential_download)
-                SET_FLAG(stop_when_ready)
-                SET_FLAG(override_trackers)
-                SET_FLAG(override_web_seeds)
-                SET_FLAG(need_save_resume)
-                SET_FLAG(disable_dht)
-                SET_FLAG(disable_lsd)
-                SET_FLAG(disable_pex)
-                SET_FLAG(no_verify_files)
-                SET_FLAG(default_dont_download)
-                SET_FLAG(i2p_torrent)
-
-                ts.handle.set_flags(flags, mask);
-            }
         };
 
         return torrents;
