@@ -11,6 +11,7 @@
 #include "../packages/json.hpp"
 #include "../packages/log.hpp"
 #include "../packages/pql.hpp"
+#include "../packages/presets.hpp"
 #include "../packages/process.hpp"
 #include "../packages/sessions.hpp"
 #include "../packages/sqlite.hpp"
@@ -76,6 +77,7 @@ std::unique_ptr<Plugin> Plugin::Load(const PluginLoadOptions& opts)
     Packages::Json::Register(state->lua);
     Packages::Log::Register(state->lua);
     Packages::PQL::Register(state->lua);
+    Packages::Presets::Register(state->lua);
     Packages::Process::Register(state->lua);
     Packages::Sessions::Register(state->lua);
     Packages::Sqlite::Register(state->lua);
