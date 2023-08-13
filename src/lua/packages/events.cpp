@@ -89,7 +89,7 @@ void Events::Register(sol::state& lua)
                     {
                         try
                         {
-                            cb(th.status());
+                            cb(th);
                         }
                         catch (const sol::error& err)
                         {
@@ -107,7 +107,7 @@ void Events::Register(sol::state& lua)
                     {
                         try
                         {
-                            cb(th.status());
+                            cb(th);
                         }
                         catch (const sol::error& err)
                         {

@@ -53,17 +53,18 @@ return {
 
     remove = function(args)
         return function(ctx, callback)
-            local signal_connection = nil
+            local removing_info_hash = ctx.torrent:info_hash()
+            local signal_connection  = nil
 
             signal_connection = events.on("torrent_removed", function(info_hash)
-                if info_hash == ctx.torrent:info_hash() then
+                if info_hash == removing_info_hash then
                     signal_connection = nil
                     callback()
                 end
             end)
 
             for session in sessions.list() do
-                if session:find_torrent(ctx.torrent:info_hash()) do
+                if session:find_torrent(ctx.torrent:info_hash()) then
                     session:remove_torrent(ctx.torrent, args)
                 end
             end

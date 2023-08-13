@@ -1,6 +1,6 @@
 R"luastring"--(
 local cron     = require "cron"
-local torrents = require "torrents"
+local sessions = require "sessions"
 
 local signals = {}
 
@@ -9,8 +9,10 @@ return function(expression)
         local signal = cron.schedule({
             expression = expression,
             callback   = function()
-                for _, torrent in pairs(torrents.list()) do
-                    callback(torrent)
+                for session in sessions.list() do
+                    for torrent in session:torrents() do
+                        callback(torrent)
+                    end
                 end
             end
         })

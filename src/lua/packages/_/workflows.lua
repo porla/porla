@@ -56,8 +56,8 @@ local function add(workflow)
 
         if type(workflow.filter) == "function" then
             should_execute = workflow.filter(ctx)
-        elseif type(workflow.filter) == "string" then
-            should_execute = pql_filter:includes(torrent)
+        elseif type(workflow.filter) == "string" and type(torrent.status) == "function" then
+            should_execute = pql_filter:includes(torrent:status())
         end
 
         if not should_execute then
