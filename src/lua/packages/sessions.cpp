@@ -100,10 +100,86 @@ void Sessions::Register(sol::state& lua)
         "upload_limit",    &lt::add_torrent_params::upload_limit,
         "userdata",        sol::property([](const lt::add_torrent_params& p) { return p.userdata.get<TorrentClientData>(); }));
 
+    auto settings_pack_type = lua.new_usertype<lt::settings_pack>(
+        "SettingsPack",
+        // the lt settings packs
+        "default",                     sol::factories([]() { return lt::default_settings(); }),
+        "high_performance_seed",       sol::factories([]() { return lt::high_performance_seed(); }),
+        "min_memory_usage",            sol::factories([]() { return lt::min_memory_usage(); }),
+        // get & set
+        sol::meta_function::index,     [](lt::settings_pack& sp, sol::stack_object key, sol::this_state L)
+        {
+            const auto key_str = key.as<std::optional<std::string>>();
+
+            if (!key_str.has_value())
+            {
+                return sol::object(L, sol::in_place, sol::lua_nil);
+            }
+
+            const int type = lt::setting_by_name(key_str.value());
+
+            if (type == -1)
+            {
+                BOOST_LOG_TRIVIAL(warning) << "Unknown setting: " << key_str.value();
+                return sol::object(L, sol::in_place, sol::lua_nil);
+            }
+
+            if ((type & lt::settings_pack::type_mask) == lt::settings_pack::bool_type_base)
+            {
+                return sol::object(L, sol::in_place, sp.get_bool(type));
+            }
+
+            if ((type & lt::settings_pack::type_mask) == lt::settings_pack::int_type_base)
+            {
+                return sol::object(L, sol::in_place, sp.get_int(type));
+            }
+
+            if ((type & lt::settings_pack::type_mask) == lt::settings_pack::string_type_base)
+            {
+                return sol::object(L, sol::in_place, sp.get_str(type));
+            }
+
+            return sol::object(L, sol::in_place, sol::lua_nil);
+        },
+        sol::meta_function::new_index, [](lt::settings_pack& sp, sol::stack_object key, sol::stack_object value)
+        {
+            const auto key_str = key.as<std::optional<std::string>>();
+
+            if (!key_str.has_value() || porla::Sessions::DisallowedSetting(key_str.value()))
+            {
+                return;
+            }
+
+            const int type = lt::setting_by_name(key_str.value());
+
+            if (type == -1)
+            {
+                BOOST_LOG_TRIVIAL(warning) << "Unknown setting: " << key_str.value();
+                return;
+            }
+
+            if ((type & lt::settings_pack::type_mask) == lt::settings_pack::bool_type_base && value.is<bool>())
+            {
+                sp.set_bool(type, value.as<bool>());
+            }
+
+            if ((type & lt::settings_pack::type_mask) == lt::settings_pack::int_type_base && value.is<int>())
+            {
+                sp.set_int(type, value.as<int>());
+            }
+
+            if ((type & lt::settings_pack::type_mask) == lt::settings_pack::string_type_base && value.is<std::string>())
+            {
+                sp.set_str(type, value.as<std::string>());
+            }
+        });
+
     auto session_type = lua.new_usertype<porla::Sessions::SessionState>(
         "porla.Session",
         sol::no_constructor,
-        "name", sol::readonly(&porla::Sessions::SessionState::name));
+        "apply_settings", [](const porla::Sessions::SessionState& state, const lt::settings_pack& sp) { state.session->apply_settings(sp); },
+        "name",           sol::readonly(&porla::Sessions::SessionState::name),
+        "settings",       [](const porla::Sessions::SessionState& state) { return state.session->get_settings(); });
 
     session_type["add_torrent"] = [](const std::shared_ptr<porla::Sessions::SessionState>& state, lt::add_torrent_params& params)
     {
@@ -157,114 +233,6 @@ void Sessions::Register(sol::state& lua)
             sol::state_view lua{s};
             const auto options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
             return SessionsIter(options.sessions.All().begin());
-        };
-
-        sessions["settings"] = lua.create_table();
-        sessions["settings"]["get"] = [](sol::this_state s, const std::string& session) -> sol::reference
-        {
-            sol::state_view lua{s};
-            const auto options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
-            const auto state = options.sessions.Get(session);
-
-            if (state == nullptr)
-            {
-                BOOST_LOG_TRIVIAL(warning) << "Could not find session " << session;
-                return sol::nil;
-            }
-
-            const auto& session_settings = state->session->get_settings();
-
-            sol::table settings = lua.create_table();
-
-            for (int i = lt::settings_pack::bool_type_base; i < lt::settings_pack::max_bool_setting_internal; i++)
-            {
-                const char *name = lt::name_for_setting(i);
-                if (strcmp(name, "") == 0) continue;
-                settings[name] = session_settings.get_bool(i);
-            }
-
-            for (int i = lt::settings_pack::int_type_base; i < lt::settings_pack::max_int_setting_internal; i++)
-            {
-                const char *name = lt::name_for_setting(i);
-                if (strcmp(name, "") == 0) continue;
-                settings[name] = session_settings.get_int(i);
-            }
-
-            for (int i = lt::settings_pack::string_type_base; i < lt::settings_pack::max_string_setting_internal; i++)
-            {
-                const char *name = lt::name_for_setting(i);
-                if (strcmp(name, "") == 0) continue;
-                settings[name] = session_settings.get_str(i);
-            }
-
-            return settings;
-        };
-
-        sessions["settings"]["set"] = [](sol::this_state s, const std::string& session, const sol::table& settings)
-        {
-            sol::state_view lua{s};
-            const auto options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
-            const auto state = options.sessions.Get(session);
-
-            if (state == nullptr)
-            {
-                BOOST_LOG_TRIVIAL(warning) << "Could not find session " << session;
-                return;
-            }
-
-            lt::settings_pack session_settings = state->session->get_settings();
-
-            for (const auto& [ key, value ] : settings)
-            {
-                const auto key_str = key.as<std::string>();
-
-                if (porla::Sessions::DisallowedSetting(key_str))
-                {
-                    BOOST_LOG_TRIVIAL(warning) << "Will not set setting " << key_str;
-                    continue;
-                }
-
-                const int type = lt::setting_by_name(key_str);
-
-                if (type == -1)
-                {
-                    BOOST_LOG_TRIVIAL(warning) << "Unknown setting: " << key_str;
-                    continue;
-                }
-
-                if ((type & lt::settings_pack::type_mask) == lt::settings_pack::bool_type_base)
-                {
-                    if (!value.is<bool>())
-                    {
-                        BOOST_LOG_TRIVIAL(warning) << "Value for setting " << key_str << " is not a boolean";
-                        continue;
-                    }
-
-                    session_settings.set_bool(type, value.as<bool>());
-                }
-                else if((type & lt::settings_pack::type_mask) == lt::settings_pack::int_type_base)
-                {
-                    if (!value.is<int>())
-                    {
-                        BOOST_LOG_TRIVIAL(warning) << "Value for setting " << key_str << " is not an integer";
-                        continue;
-                    }
-
-                    session_settings.set_int(type, value.as<int>());
-                }
-                else if((type & lt::settings_pack::type_mask) == lt::settings_pack::string_type_base)
-                {
-                    if (!value.is<std::string>())
-                    {
-                        BOOST_LOG_TRIVIAL(warning) << "Value for setting " << key_str << " is not a string";
-                        continue;
-                    }
-
-                    session_settings.set_str(type, value.as<std::string>());
-                }
-            }
-
-            state->session->apply_settings(session_settings);
         };
 
         return sessions;
