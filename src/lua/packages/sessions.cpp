@@ -1,6 +1,7 @@
 #include "sessions.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <libtorrent/magnet_uri.hpp>
 
 #include "../plugins/plugin.hpp"
 #include "../../sessions.hpp"
@@ -61,6 +62,28 @@ void Sessions::Register(sol::state& lua)
 {
     auto atp_type = lua.new_usertype<lt::add_torrent_params>(
         "AddTorrentParams",
+        sol::factories([]()
+        {
+            auto atp = std::make_shared<lt::add_torrent_params>();
+            atp->userdata = lt::client_data_t(new TorrentClientData());
+            return atp;
+        }),
+        "from_magnet",     sol::factories([](const std::string& uri) -> std::pair<std::shared_ptr<lt::add_torrent_params>, std::optional<std::string>>
+                           {
+                               auto atp = std::make_shared<lt::add_torrent_params>();
+                               atp->userdata = lt::client_data_t(new TorrentClientData());
+
+                               lt::error_code ec;
+                               lt::parse_magnet_uri(uri, *atp, ec);
+
+                               if (ec)
+                               {
+                                   return std::pair(nullptr, ec.message());
+                               }
+
+                               return std::pair(atp, std::nullopt);
+                           }),
+
         "download_limit",  &lt::add_torrent_params::download_limit,
         "file_priorities", &lt::add_torrent_params::file_priorities,
         // flags,
@@ -74,7 +97,8 @@ void Sessions::Register(sol::state& lua)
         "tracker_tiers",   &lt::add_torrent_params::tracker_tiers,
         "trackerid",       &lt::add_torrent_params::trackerid,
         "trackers",        &lt::add_torrent_params::trackers,
-        "upload_limit",    &lt::add_torrent_params::upload_limit);
+        "upload_limit",    &lt::add_torrent_params::upload_limit,
+        "userdata",        sol::property([](const lt::add_torrent_params& p) { return p.userdata.get<TorrentClientData>(); }));
 
     auto session_type = lua.new_usertype<porla::Sessions::SessionState>(
         "porla.Session",

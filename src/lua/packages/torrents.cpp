@@ -192,17 +192,34 @@ void Torrents::Register(sol::state& lua)
         "tags",     &TorrentClientData::tags);
 
     auto torrent_info_type = lua.new_usertype<lt::torrent_info>(
-        "lt.TorrentInfo",
+        "TorrentInfo",
         sol::no_constructor,
-        "comment",    &lt::torrent_info::comment,
-        "creator",    &lt::torrent_info::creator,
-        "info_hash",  &lt::torrent_info::info_hashes,
-        "name",       &lt::torrent_info::name,
-        "num_files",  &lt::torrent_info::num_files,
-        "num_pieces", &lt::torrent_info::num_pieces,
-        "priv",       &lt::torrent_info::priv,
-        "trackers",   &lt::torrent_info::trackers,
-        "total_size", &lt::torrent_info::total_size);
+
+        "from_buffer", sol::factories([](const std::string& data) -> std::pair<std::shared_ptr<lt::torrent_info>, std::optional<std::string>>
+                       {
+                           lt::error_code ec;
+                           auto ti = std::make_shared<lt::torrent_info>(data, ec, lt::from_span);
+                           if (ec) return std::pair(nullptr, ec.message());
+                           return std::pair(ti, std::nullopt);
+                       }),
+
+        "from_file",   sol::factories([](const std::string& data) -> std::pair<std::shared_ptr<lt::torrent_info>, std::optional<std::string>>
+                       {
+                           lt::error_code ec;
+                           auto ti = std::make_shared<lt::torrent_info>(data, ec);
+                           if (ec) return std::pair(nullptr, ec.message());
+                           return std::pair(ti, std::nullopt);
+                       }),
+
+        "comment",     &lt::torrent_info::comment,
+        "creator",     &lt::torrent_info::creator,
+        "info_hash",   &lt::torrent_info::info_hashes,
+        "name",        &lt::torrent_info::name,
+        "num_files",   &lt::torrent_info::num_files,
+        "num_pieces",  &lt::torrent_info::num_pieces,
+        "priv",        &lt::torrent_info::priv,
+        "trackers",    &lt::torrent_info::trackers,
+        "total_size",  &lt::torrent_info::total_size);
 
     auto torrent_handle_type = lua.new_usertype<lt::torrent_handle>(
         "lt.TorrentHandle",
@@ -338,24 +355,6 @@ void Torrents::Register(sol::state& lua)
     {
         sol::state_view lua{s};
         sol::table torrents = lua.create_table();
-
-        torrents["errors"] = lua.create_table();
-        torrents["errors"]["tracker_failure"] = lt::errors::tracker_failure;
-
-        torrents["parse"] = [](const std::string& data, const std::string& type)
-        {
-            if (type == "buffer")
-            {
-                return std::make_shared<lt::torrent_info>(data, lt::from_span);
-            }
-
-            if (type == "magnet")
-            {
-                // return lt::parse_magnet_uri(data);
-            }
-
-            return std::make_shared<lt::torrent_info>(data);
-        };
 
         return torrents;
     };
