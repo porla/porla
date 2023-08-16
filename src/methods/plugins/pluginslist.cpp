@@ -27,8 +27,10 @@ void PluginsList::Invoke(const PluginsListReq& req, WriteCb<PluginsListRes> cb)
         std::string abs_path = fs::absolute(state.path);
 
         PluginsListRes::Plugin plugin{
-            .name = name,
-            .path = abs_path
+            .can_configure = state.can_configure,
+            .can_uninstall = state.can_uninstall,
+            .name          = name,
+            .path          = abs_path
         };
 
         git_repository* repo;

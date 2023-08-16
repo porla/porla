@@ -19,6 +19,8 @@ namespace porla::Methods
 
         struct Plugin
         {
+            bool                       can_configure;
+            bool                       can_uninstall;
             std::string                name;
             fs::path                   path;
             std::optional<VersionInfo> version_info;

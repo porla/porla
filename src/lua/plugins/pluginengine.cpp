@@ -33,9 +33,11 @@ PluginEngine::PluginEngine(PluginEngineOptions options)
             };
 
             PluginState plugin_state{
-                .config = plugin_load_options.plugin_config,
-                .path   = plugin_load_options.path,
-                .plugin = row.GetInt32(0) > 0
+                .can_configure = true,
+                .can_uninstall = true,
+                .config        = plugin_load_options.plugin_config,
+                .path          = plugin_load_options.path,
+                .plugin        = row.GetInt32(0) > 0
                     ? Plugin::Load(plugin_load_options)
                     : nullptr
             };
@@ -59,7 +61,7 @@ PluginEngine::PluginEngine(PluginEngineOptions options)
                 continue;
             }
 
-            BOOST_LOG_TRIVIAL(info) << "Loading workflow " << file.path().stem();
+            BOOST_LOG_TRIVIAL(info) << "Loading workflow " << file.path().filename();
 
             const PluginLoadOptions plugin_load_options{
                 .config        = m_options.config,
@@ -69,14 +71,15 @@ PluginEngine::PluginEngine(PluginEngineOptions options)
                 .sessions      = m_options.sessions
             };
 
-            auto workflow_plugin = Plugin::Load(plugin_load_options);
+            PluginState plugin_state{
+                .can_configure = false,
+                .can_uninstall = false,
+                .config        = plugin_load_options.plugin_config,
+                .path          = plugin_load_options.path,
+                .plugin        = Plugin::Load(plugin_load_options)
+            };
 
-            if (workflow_plugin == nullptr)
-            {
-                continue;
-            }
-
-            m_workflows.emplace_back(std::move(workflow_plugin));
+            m_plugins.insert({ file.path().filename(), std::move(plugin_state) });
         }
     }
 }
@@ -136,9 +139,11 @@ void PluginEngine::Install(const PluginInstallOptions& options, std::error_code&
 
     // Add it to our view of plugins, but don't enable it.
     PluginState plugin_state{
-        .config = options.config,
-        .path   = options.path,
-        .plugin = nullptr
+        .can_configure = true,
+        .can_uninstall = true,
+        .config        = options.config,
+        .path          = options.path,
+        .plugin        = nullptr
     };
 
     m_plugins.insert({ plugin_name, std::move(plugin_state) });
@@ -151,8 +156,6 @@ void PluginEngine::Install(const PluginInstallOptions& options, std::error_code&
 
         if (state != m_plugins.end())
         {
-            BOOST_LOG_TRIVIAL(info) << "Doing the cha cha cha";
-
             const PluginLoadOptions plugin_load_options{
                 .config        = m_options.config,
                 .io            = m_options.io,
@@ -201,14 +204,21 @@ void PluginEngine::Reload(const std::string& name)
 
 void PluginEngine::Uninstall(const std::string& name, std::error_code& ec)
 {
-    BOOST_LOG_TRIVIAL(info) << "Uninstalling plugin " << name;
-
     auto state = m_plugins.find(name);
 
     if (state == m_plugins.end())
     {
+        BOOST_LOG_TRIVIAL(warning) << "Plugin not found: " << name;
         return;
     }
+
+    if (!state->second.can_uninstall)
+    {
+        BOOST_LOG_TRIVIAL(warning) << "Cannot uninstall plugin " << name;
+        return;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "Uninstalling plugin " << name;
 
     auto stmt = Statement::Prepare(m_options.db, "DELETE FROM plugins WHERE name = $1");
     stmt.Bind(1, std::string_view(name));
