@@ -2,7 +2,7 @@ import { Box, Button, Checkbox, Flex, FormControl, FormErrorMessage, FormHelperT
 import { Field, Form, Formik } from "formik";
 import { useEffect, useState } from "react";
 import { useInvoker, useRPC } from "../services/jsonrpc";
-import { MdExtensionOff, MdOutlineMoreVert, MdSettings } from "react-icons/md";
+import { MdExtensionOff, MdOutlineMoreVert, MdReplay, MdSettings } from "react-icons/md";
 
 type IVersionInfo = {
   head_name: string;
@@ -10,6 +10,8 @@ type IVersionInfo = {
 }
 
 type IPlugin = {
+  can_configure: boolean;
+  can_uninstall: boolean;
   name: string;
   path: string;
   version_info: IVersionInfo | null;
@@ -36,7 +38,6 @@ type PluginConfigureContentFormProps = {
 
 function PluginConfigureContentForm(props: PluginConfigureContentFormProps) {
   const configurePlugin = useInvoker<any>("plugins.configure");
-  const reloadPlugin = useInvoker<any>("plugins.reload");
   const updatePlugin = useInvoker<any>("plugins.update");
   const [ working, setWorking ] = useState(false);
 
@@ -75,23 +76,6 @@ function PluginConfigureContentForm(props: PluginConfigureContentFormProps) {
           </ModalBody>
           <ModalFooter justifyContent={"space-between"}>
             <HStack>
-              <Button
-                disabled={working}
-                size={"sm"}
-                variant={"outline"}
-                onClick={async () => {
-                  setWorking(true);
-
-                  await reloadPlugin({
-                    name: props.name
-                  });
-
-                  setWorking(false);
-                }}
-              >
-                Reload
-              </Button>
-
               <Button
                 disabled={working}
                 size={"sm"}
@@ -150,6 +134,7 @@ function PluginConfigureContent(props: PluginConfigureContentProps) {
 
 export default function Plugins() {
   const installPlugin = useInvoker<any>("plugins.install");
+  const reloadPlugin = useInvoker<any>("plugins.reload");
   const uninstallPlugin = useInvoker<any>("plugins.uninstall");
 
   const { data, mutate } = useRPC<IPluginsList>("plugins.list");
@@ -301,7 +286,13 @@ export default function Plugins() {
             <Tr>
               <Td>{p.name}</Td>
               <Td>{p.path}</Td>
-              <Td>{p.version_info?.head_name} ({p.version_info?.shorthand})</Td>
+              <Td>
+                {
+                  p.version_info
+                    ? <>{p.version_info?.head_name} ({p.version_info?.shorthand})</>
+                    : "-"
+                }
+                </Td>
               <Td>
                 <Menu>
                   <MenuButton
@@ -310,25 +301,41 @@ export default function Plugins() {
                     size={"sm"}
                   />
                   <MenuList>
+                    { p.can_configure && (
+                      <MenuItem
+                        icon={<MdSettings />}
+                        onClick={() => {
+                          setConfigurePlugin(p.name);
+                          setShowConfigure(true);
+                        }}
+                      >
+                        Configure
+                      </MenuItem>
+                    )}
                     <MenuItem
-                      icon={<MdSettings />}
-                      onClick={() => {
-                        setConfigurePlugin(p.name);
-                        setShowConfigure(true);
-                      }}
-                    >
-                      Configure
-                    </MenuItem>
-                    <MenuDivider />
-                    <MenuItem
-                      icon={<MdExtensionOff />}
+                      icon={<MdReplay />}
                       onClick={async () => {
-                        await uninstallPlugin({ name: p.name });
-                        await mutate();
+                        await reloadPlugin({
+                          name: p.name
+                        });
                       }}
                     >
-                      Uninstall
+                      Reload
                     </MenuItem>
+                    { p.can_uninstall && (
+                      <>
+                        <MenuDivider />
+                          <MenuItem
+                            icon={<MdExtensionOff />}
+                            onClick={async () => {
+                              await uninstallPlugin({ name: p.name });
+                              await mutate();
+                            }}
+                          >
+                            Uninstall
+                          </MenuItem>
+                        </>
+                    )}
                   </MenuList>
                 </Menu>
               </Td>

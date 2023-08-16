@@ -18,6 +18,8 @@ namespace porla::Methods
 
     NLOHMANN_JSONIFY_ALL_THINGS(
         PluginsListRes::Plugin,
+        can_configure,
+        can_uninstall,
         name,
         path,
         version_info)
