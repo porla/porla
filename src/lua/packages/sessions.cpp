@@ -183,11 +183,7 @@ void Sessions::Register(sol::state& lua)
 
     session_type["add_torrent"] = [](const std::shared_ptr<porla::Sessions::SessionState>& state, lt::add_torrent_params& params)
     {
-        params.userdata = lt::client_data_t(new TorrentClientData());
         params.userdata.get<TorrentClientData>()->state = state;
-
-        // TODO: set category and tags
-
         state->session->async_add_torrent(params);
     };
 

@@ -189,6 +189,15 @@ void Torrents::Register(sol::state& lua)
         "porla.TorrentClientData",
         sol::no_constructor,
         "category", &TorrentClientData::category,
+        "session",  sol::property([](const TorrentClientData& cd) -> std::optional<std::string>
+                    {
+                        if (auto s = cd.state.lock())
+                        {
+                            return s->name;
+                        }
+
+                        return std::nullopt;
+                    }),
         "tags",     &TorrentClientData::tags);
 
     auto torrent_info_type = lua.new_usertype<lt::torrent_info>(
