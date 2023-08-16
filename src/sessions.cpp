@@ -427,7 +427,12 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                     | lt::torrent_handle::save_info_dict
                     | lt::torrent_handle::only_if_modified);
 
-                boost::asio::post(m_options.io, [this, state, status](){ m_torrent_added(state->name, status); });
+                boost::asio::post(
+                    m_options.io,
+                    [this, state, handle = ata->handle]()
+                    {
+                        m_torrent_added(state->name, handle);
+                    });
 
                 break;
             }
@@ -541,7 +546,12 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                     // Only emit this event if we have downloaded any data this session
                     BOOST_LOG_TRIVIAL(info) << "Torrent " << status.name << " finished";
 
-                    boost::asio::post(m_options.io, [this, state, status](){ m_torrent_finished(state->name, status); });
+                    boost::asio::post(
+                        m_options.io,
+                        [this, state, handle = tfa->handle]()
+                        {
+                            m_torrent_finished(state->name, handle);
+                        });
                 }
 
                 if (status.need_save_resume)
@@ -585,7 +595,12 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
 
                 BOOST_LOG_TRIVIAL(debug) << "Torrent " << status.name << " resumed";
 
-                boost::asio::post(m_options.io, [this, state, status](){ m_torrent_resumed(state->name, status); });
+                boost::asio::post(
+                    m_options.io,
+                    [this, state, handle = tra->handle]()
+                    {
+                        m_torrent_resumed(state->name, handle);
+                    });
 
                 break;
             }
