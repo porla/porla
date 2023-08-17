@@ -9,6 +9,16 @@ using porla::Lua::Packages::Config;
 
 void Config::Register(sol::state& lua)
 {
+    lua["package"]["preload"]["config.app"] = [](sol::this_state s)
+    {
+        sol::state_view lua{s};
+        const auto& options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
+
+        sol::table t = lua.create_table();
+        t["db_file"] = options.config.db_file;
+        return t;
+    };
+
     lua["package"]["preload"]["config"] = [](sol::this_state s) -> sol::object
     {
         sol::state_view lua{s};

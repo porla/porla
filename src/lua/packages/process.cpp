@@ -65,10 +65,15 @@ void Process::Register(sol::state& lua)
     lua["package"]["preload"]["process"] = [](sol::this_state s)
     {
         sol::state_view lua{s};
-        sol::table log = lua.create_table();
+        sol::table process = lua.create_table();
 
-        log["launch"] = &Launch;
+        process["launch"] = &Launch;
 
-        return log;
+        process["search_path"] = [](const std::string& path)
+        {
+            return bp::search_path(path).string();
+        };
+
+        return process;
     };
 }
