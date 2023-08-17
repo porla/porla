@@ -1,10 +1,10 @@
-#include "cron.hpp"
+#include "../packages.hpp"
 
 #include <boost/asio.hpp>
 #include <boost/log/trivial.hpp>
 #include <croncpp.hpp>
 
-#include "../plugins/plugin.hpp"
+#include "../plugin.hpp"
 
 using porla::Lua::Packages::Cron;
 
@@ -110,7 +110,7 @@ void Cron::Register(sol::state& lua)
         cron["schedule"] = [](sol::this_state s, const sol::table& args)
         {
             sol::state_view lua{s};
-            const auto& options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
+            const auto& options = lua.globals()["__load_opts"].get<const PluginLoadOptions&>();
             return std::make_shared<CronSchedule>(options.io, args);
         };
 

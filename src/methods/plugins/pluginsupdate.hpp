@@ -6,7 +6,7 @@
 #include "../method.hpp"
 #include "pluginsupdate_reqres.hpp"
 
-namespace porla::Lua::Plugins
+namespace porla::Lua
 {
     class PluginEngine;
 }
@@ -15,8 +15,8 @@ namespace porla::Methods
 {
     struct PluginsUpdateOptions
     {
-        boost::asio::io_context&           io;
-        porla::Lua::Plugins::PluginEngine& plugin_engine;
+        boost::asio::io_context&  io;
+        porla::Lua::PluginEngine& plugin_engine;
     };
 
     class PluginsUpdate : public Method<PluginsUpdateReq, PluginsUpdateRes>

@@ -1,9 +1,9 @@
-#include "timers.hpp"
+#include "../packages.hpp"
 
 #include <boost/asio.hpp>
 #include <boost/log/trivial.hpp>
 
-#include "../plugins/plugin.hpp"
+#include "../plugin.hpp"
 
 using porla::Lua::Packages::Timers;
 
@@ -106,7 +106,7 @@ void Timers::Register(sol::state& lua)
         timers["new"] = [](sol::this_state s, const sol::table& args)
         {
             sol::state_view lua{s};
-            const auto& options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
+            const auto& options = lua.globals()["__load_opts"].get<const PluginLoadOptions&>();
             return std::make_unique<Timer>(options.io, args);
         };
 

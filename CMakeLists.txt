@@ -153,8 +153,8 @@ add_library(
     src/lua/packages/timers.cpp
     src/lua/packages/torrents.cpp
     src/lua/packages/workflows.cpp
-    src/lua/plugins/plugin.cpp
-    src/lua/plugins/pluginengine.cpp
+    src/lua/plugin.cpp
+    src/lua/pluginengine.cpp
 
     src/methods/fsspace.cpp
     src/methods/plugins/pluginsconfigure.cpp

@@ -7,15 +7,15 @@
 
 #include "plugin.hpp"
 
-#include "../../config.hpp"
-#include "../../data/statement.hpp"
+#include "../config.hpp"
+#include "../data/statement.hpp"
 
 using porla::Data::Statement;
-using porla::Lua::Plugins::Plugin;
-using porla::Lua::Plugins::PluginEngine;
-using porla::Lua::Plugins::PluginEngineOptions;
-using porla::Lua::Plugins::PluginInstallOptions;
-using porla::Lua::Plugins::PluginState;
+using porla::Lua::Plugin;
+using porla::Lua::PluginEngine;
+using porla::Lua::PluginEngineOptions;
+using porla::Lua::PluginInstallOptions;
+using porla::Lua::PluginState;
 
 PluginEngine::PluginEngine(PluginEngineOptions options)
     : m_options(options)

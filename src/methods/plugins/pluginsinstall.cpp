@@ -5,13 +5,13 @@
 #include <git2.h>
 #include <toml++/toml.h>
 
-#include "../../lua/plugins/plugin.hpp"
-#include "../../lua/plugins/pluginengine.hpp"
+#include "../../lua/plugin.hpp"
+#include "../../lua/pluginengine.hpp"
 
 #define MAX_CONCURRENT_INSTALLS 3
 
-using porla::Lua::Plugins::PluginEngine;
-using porla::Lua::Plugins::PluginInstallOptions;
+using porla::Lua::PluginEngine;
+using porla::Lua::PluginInstallOptions;
 
 using porla::Methods::PluginsInstall;
 using porla::Methods::PluginsInstallOptions;

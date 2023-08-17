@@ -1,4 +1,4 @@
-#include "json.hpp"
+#include "../packages.hpp"
 
 static const char json_lua[] =
 #include "_/json.lua"

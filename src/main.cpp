@@ -8,7 +8,7 @@
 #include "cmdargs.hpp"
 #include "config.hpp"
 #include "logger.hpp"
-#include "lua/plugins/pluginengine.hpp"
+#include "lua/pluginengine.hpp"
 #include "sessions.hpp"
 #include "tools/authtoken.hpp"
 #include "tools/generatesecretkey.hpp"
@@ -137,7 +137,7 @@ int main(int argc, char* argv[])
         }
 
         // Load plugins before we load the torrents to give plugins a chance to run any hooks.
-        porla::Lua::Plugins::PluginEngine plugin_engine{porla::Lua::Plugins::PluginEngineOptions{
+        porla::Lua::PluginEngine plugin_engine{porla::Lua::PluginEngineOptions{
             .config   = *cfg,
             .db       = cfg->db,
             .io       = io,

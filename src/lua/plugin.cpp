@@ -3,25 +3,11 @@
 #include <boost/log/trivial.hpp>
 #include <sol/sol.hpp>
 
-#include "../packages/config.hpp"
-#include "../packages/cron.hpp"
-#include "../packages/events.hpp"
-#include "../packages/filesystem.hpp"
-#include "../packages/httpclient.hpp"
-#include "../packages/json.hpp"
-#include "../packages/log.hpp"
-#include "../packages/pql.hpp"
-#include "../packages/presets.hpp"
-#include "../packages/process.hpp"
-#include "../packages/sessions.hpp"
-#include "../packages/sqlite.hpp"
-#include "../packages/timers.hpp"
-#include "../packages/torrents.hpp"
-#include "../packages/workflows.hpp"
+#include "packages.hpp"
 
 namespace fs = std::filesystem;
-using porla::Lua::Plugins::Plugin;
-using porla::Lua::Plugins::PluginLoadOptions;
+using porla::Lua::Plugin;
+using porla::Lua::PluginLoadOptions;
 
 struct Plugin::State
 {

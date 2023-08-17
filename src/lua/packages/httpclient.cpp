@@ -1,4 +1,4 @@
-#include "httpclient.hpp"
+#include "../packages.hpp"
 
 #include <map>
 #include <thread>
@@ -7,7 +7,7 @@
 #include <boost/log/trivial.hpp>
 #include <curl/curl.h>
 
-#include "../plugins/plugin.hpp"
+#include "../plugin.hpp"
 
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* user)
 {
@@ -39,7 +39,7 @@ void HttpClient::Register(sol::state& lua)
         client["request"] = [](sol::this_state s, const sol::table& args)
         {
             sol::state_view lua{s};
-            const auto options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
+            const auto options = lua.globals()["__load_opts"].get<const PluginLoadOptions&>();
 
             auto state = std::make_shared<HttpRequestState>(HttpRequestState{
                 .body     = args["body"],
