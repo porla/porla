@@ -1,6 +1,7 @@
 #include "torrents.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <libtorrent/file_storage.hpp>
 #include <libtorrent/hex.hpp>
 #include <libtorrent/magnet_uri.hpp>
 #include <libtorrent/torrent_info.hpp>
@@ -149,6 +150,14 @@ void Torrents::Register(sol::state& lua)
     announce_entry_type["source"]   = sol::property([](const lt::announce_entry& ae) { return ae.source; });
     announce_entry_type["verified"] = sol::property([](const lt::announce_entry& ae) { return ae.verified; });
 
+    auto file_storage_type = lua.new_usertype<lt::file_storage>(
+        "FileStorage",
+        sol::no_constructor,
+        "file_name", [](const lt::file_storage& fs, int index) { return fs.file_name(lt::file_index_t{index}).to_string(); },
+        "file_path", [](const lt::file_storage& fs, int index) { return fs.file_path(lt::file_index_t{index}); },
+        "file_size", [](const lt::file_storage& fs, int index) { return fs.file_size(lt::file_index_t{index}); }
+        );
+
     auto info_hash_type = lua.new_usertype<lt::info_hash_t>(
         "lt.InfoHash",
         sol::no_constructor);
@@ -222,6 +231,7 @@ void Torrents::Register(sol::state& lua)
 
         "comment",     &lt::torrent_info::comment,
         "creator",     &lt::torrent_info::creator,
+        "files",       &lt::torrent_info::files,
         "info_hash",   &lt::torrent_info::info_hashes,
         "name",        &lt::torrent_info::name,
         "num_files",   &lt::torrent_info::num_files,
@@ -236,6 +246,7 @@ void Torrents::Register(sol::state& lua)
         "clear_error",             &lt::torrent_handle::clear_error,
         "clear_peers",             &lt::torrent_handle::clear_peers,
         "download_limit",          &lt::torrent_handle::download_limit,
+        "file_priorities",         &lt::torrent_handle::get_file_priorities,
         "flags",                   [](const lt::torrent_handle& th)
                                    {
                                        return FlagsToMap(th.flags());
@@ -270,6 +281,18 @@ void Torrents::Register(sol::state& lua)
         "post_piece_availability", &lt::torrent_handle::post_piece_availability,
         "post_status",             [](const lt::torrent_handle& th) { return th.post_status(); },
         "post_trackers",           &lt::torrent_handle::post_trackers,
+        "prioritize_files",        [](const lt::torrent_handle& th, const sol::table& args)
+        {
+            printf("hhh");
+            std::vector<int> priorities = args.as<std::vector<int>>();
+            std::vector<lt::download_priority_t> prios;
+            std::for_each(
+                priorities.begin(),
+                priorities.end(),
+                [&prios](int i) { prios.emplace_back(i); });
+printf("Hejej");
+            th.prioritize_files(prios);
+        },
         "queue_position",          &lt::torrent_handle::queue_position,
         "queue_position_bottom",   &lt::torrent_handle::queue_position_bottom,
         "queue_position_down",     &lt::torrent_handle::queue_position_down,
@@ -338,7 +361,26 @@ void Torrents::Register(sol::state& lua)
         "save_path",              sol::readonly(&lt::torrent_status::save_path),
         "seed_rank",              sol::readonly(&lt::torrent_status::seed_rank),
         "seeding_duration",       sol::property([](const lt::torrent_status& ts) { return ts.seeding_duration.count(); }),
-        // state
+        "state",                  sol::property([](const lt::torrent_status& ts) -> std::optional<std::string>
+                                  {
+                                      switch (ts.state)
+                                      {
+                                          case lt::torrent_status::checking_files:
+                                              return "checking_files";
+                                          case lt::torrent_status::downloading_metadata:
+                                              return "downloading_metadata";
+                                          case lt::torrent_status::downloading:
+                                              return "downloading";
+                                          case lt::torrent_status::finished:
+                                              return "finished";
+                                          case lt::torrent_status::seeding:
+                                              return "seeding";
+                                          case lt::torrent_status::checking_resume_data:
+                                              return "checking_resume_data";
+                                      }
+
+                                      return std::nullopt;
+                                  }),
         // storage mode
         "torrent_file",           sol::property([](const lt::torrent_status& ts) -> std::shared_ptr<const lt::torrent_info>
                                   {
