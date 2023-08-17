@@ -358,6 +358,7 @@ printf("Hejej");
         // pieces
         "progress",               sol::readonly(&lt::torrent_status::progress),
         "queue_position",         sol::readonly(&lt::torrent_status::queue_position),
+        "ratio",                  sol::property([](const lt::torrent_status& ts) { return porla::Utils::Ratio(ts); }),
         "save_path",              sol::readonly(&lt::torrent_status::save_path),
         "seed_rank",              sol::readonly(&lt::torrent_status::seed_rank),
         "seeding_duration",       sol::property([](const lt::torrent_status& ts) { return ts.seeding_duration.count(); }),
