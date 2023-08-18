@@ -1,6 +1,6 @@
-#include "workflows.hpp"
+#include "../packages.hpp"
 
-#include "../plugins/plugin.hpp"
+#include "../plugin.hpp"
 
 static const char workflows_lua[] =
 #include "_/workflows.lua"
@@ -44,7 +44,7 @@ static const char workflows_triggers_torrent_lua[] =
 ;
 
 using porla::Lua::Packages::Workflows;
-using porla::Lua::Plugins::PluginLoadOptions;
+using porla::Lua::PluginLoadOptions;
 
 void Workflows::Register(sol::state& lua)
 {

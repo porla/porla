@@ -2,11 +2,11 @@
 
 #include <boost/log/trivial.hpp>
 
-#include "../../lua/plugins/plugin.hpp"
-#include "../../lua/plugins/pluginengine.hpp"
+#include "../../lua/plugin.hpp"
+#include "../../lua/pluginengine.hpp"
 
-using porla::Lua::Plugins::PluginEngine;
-using porla::Lua::Plugins::PluginInstallOptions;
+using porla::Lua::PluginEngine;
+using porla::Lua::PluginInstallOptions;
 
 using porla::Methods::PluginsConfigure;
 using porla::Methods::PluginsConfigureReq;

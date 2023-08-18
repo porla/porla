@@ -12,7 +12,7 @@ namespace porla
     class Sessions;
 }
 
-namespace porla::Lua::Plugins
+namespace porla::Lua
 {
     struct PluginLoadOptions
     {

@@ -8,7 +8,7 @@
 #include "../method.hpp"
 #include "pluginsinstall_reqres.hpp"
 
-namespace porla::Lua::Plugins
+namespace porla::Lua
 {
     class PluginEngine;
 }
@@ -17,10 +17,10 @@ namespace porla::Methods
 {
     struct PluginsInstallOptions
     {
-        bool                               allow_git;
-        fs::path                           install_dir;
-        boost::asio::io_context&           io;
-        porla::Lua::Plugins::PluginEngine& plugin_engine;
+        bool                      allow_git;
+        fs::path                  install_dir;
+        boost::asio::io_context&  io;
+        porla::Lua::PluginEngine& plugin_engine;
     };
 
     class PluginsInstall : public Method<PluginsInstallReq, PluginsInstallRes>

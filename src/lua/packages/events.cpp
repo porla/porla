@@ -1,10 +1,10 @@
-#include "events.hpp"
+#include "../packages.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <boost/signals2.hpp>
 #include <libtorrent/alert_types.hpp>
 
-#include "../plugins/plugin.hpp"
+#include "../plugin.hpp"
 #include "../../sessions.hpp"
 
 using porla::Lua::Packages::Events;
@@ -44,7 +44,7 @@ void Events::Register(sol::state& lua)
         events["on"] = [](sol::this_state s, const std::string& name, const sol::function& callback)
         {
             sol::state_view lua{s};
-            const auto options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
+            const auto options = lua.globals()["__load_opts"].get<const PluginLoadOptions&>();
 
             if (name == "torrent_added")
             {

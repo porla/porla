@@ -1,14 +1,14 @@
-#include "sessions.hpp"
+#include "../packages.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <libtorrent/magnet_uri.hpp>
 
-#include "../plugins/plugin.hpp"
+#include "../plugin.hpp"
 #include "../../sessions.hpp"
 #include "../../torrentclientdata.hpp"
 
 using porla::Lua::Packages::Sessions;
-using porla::Lua::Plugins::PluginLoadOptions;
+using porla::Lua::PluginLoadOptions;
 using porla::TorrentClientData;
 
 class SessionsIter
@@ -22,7 +22,7 @@ public:
     std::shared_ptr<porla::Sessions::SessionState> operator()(sol::this_state s)
     {
         sol::state_view lua{s};
-        const auto options = lua.globals()["__load_opts"].get<const porla::Lua::Plugins::PluginLoadOptions&>();
+        const auto options = lua.globals()["__load_opts"].get<const PluginLoadOptions&>();
 
         if (m_iter == options.sessions.All().end()) return nullptr;
 
@@ -220,14 +220,14 @@ void Sessions::Register(sol::state& lua)
         sessions["get"] = [](sol::this_state s, const std::string& name)
         {
             sol::state_view lua{s};
-            const auto options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
+            const auto options = lua.globals()["__load_opts"].get<const PluginLoadOptions&>();
             return options.sessions.Get(name);
         };
 
         sessions["list"] = [](sol::this_state s)
         {
             sol::state_view lua{s};
-            const auto options = lua.globals()["__load_opts"].get<const Plugins::PluginLoadOptions&>();
+            const auto options = lua.globals()["__load_opts"].get<const PluginLoadOptions&>();
             return SessionsIter(options.sessions.All().begin());
         };
 

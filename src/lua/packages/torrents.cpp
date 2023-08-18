@@ -1,4 +1,4 @@
-#include "torrents.hpp"
+#include "../packages.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <libtorrent/file_storage.hpp>
@@ -7,7 +7,7 @@
 #include <libtorrent/torrent_info.hpp>
 #include <libtorrent/torrent_status.hpp>
 
-#include "../plugins/plugin.hpp"
+#include "../plugin.hpp"
 #include "../../config.hpp"
 #include "../../sessions.hpp"
 #include "../../torrentclientdata.hpp"

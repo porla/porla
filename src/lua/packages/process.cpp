@@ -1,13 +1,13 @@
-#include "process.hpp"
+#include "../packages.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <boost/process.hpp>
 
-#include "../plugins/plugin.hpp"
+#include "../plugin.hpp"
 
 namespace bp = boost::process;
 using porla::Lua::Packages::Process;
-using porla::Lua::Plugins::PluginLoadOptions;
+using porla::Lua::PluginLoadOptions;
 
 struct LaunchState
 {
