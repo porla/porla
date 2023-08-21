@@ -89,14 +89,14 @@ void AuthLoginHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpReques
                     // just 'hunter2'.
 
                     (void) crypto_pwhash_str_verify(
-                        "$argon2id$v=19$m=1048576,t=4,p=1$MNy6/sqw4+WlGyeRDxiFdw$+FnYmB7Qfz+JKQeCzpjQW7rmpW/uqZxwGqDRDweBQRE",
+                        "$argon2id$v=19$m=8,t=2,p=1$+6Dhs+XwJA6aMr+EpEirUA$5+DoNO4hoWzPUnTM0BTg3a0JZx0c9LI1FkfZvDX1lTw",
                         "hunter2",
                         7);
                 }
 
                 boost::asio::dispatch(
                     state->options.io,
-                    [state, res, result, thread_id = std::this_thread::get_id(), username = user->username]()
+                    [state, res, result, thread_id = std::this_thread::get_id(), user]()
                     {
                         auto thread = std::find_if(
                             state->threads.begin(),
@@ -120,7 +120,7 @@ void AuthLoginHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpReques
                             state->threads.erase(thread);
                         }
 
-                        if (result != 0)
+                        if (result != 0 || !user.has_value())
                         {
                             return res->end(json({
                                 {"error", "invalid_auth"}
@@ -132,7 +132,7 @@ void AuthLoginHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpReques
                             .set_expires_at(std::chrono::system_clock::now() + std::chrono::days{1})
                             .set_issuer("porla")
                             .set_issued_at(std::chrono::system_clock::now())
-                            .set_subject(username)
+                            .set_subject(user->username)
                             .set_type("JWS")
                             .sign(jwt::algorithm::hs256(state->options.secret_key));
 
