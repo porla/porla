@@ -314,14 +314,14 @@ printf("Hejej");
         "lt.TorrentStatus",
         sol::no_constructor,
         "active_duration",        sol::property([](const lt::torrent_status& ts) { return ts.active_duration.count(); }),
-        // added time
+        "added_time",             sol::readonly(&lt::torrent_status::added_time),
         "all_time_download",      sol::readonly(&lt::torrent_status::all_time_download),
         "all_time_upload",        sol::readonly(&lt::torrent_status::all_time_upload),
         "announcing_to_dht",      sol::readonly(&lt::torrent_status::announcing_to_dht),
         "announcing_to_lsd",      sol::readonly(&lt::torrent_status::announcing_to_lsd),
         "announcing_to_trackers", sol::readonly(&lt::torrent_status::announcing_to_trackers),
         "block_size",             sol::readonly(&lt::torrent_status::block_size),
-        // completed time
+        "completed_time",         sol::readonly(&lt::torrent_status::completed_time),
         "connect_candidates",     sol::readonly(&lt::torrent_status::connect_candidates),
         "connections_limit",      sol::readonly(&lt::torrent_status::connections_limit),
         "current_tracker",        sol::readonly(&lt::torrent_status::current_tracker),
