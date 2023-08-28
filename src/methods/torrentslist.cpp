@@ -156,7 +156,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
                     else if (filter_field == "tags" && args.is_string())
                     {
                         const auto& tag_value = args.get<std::string>();
-                        const auto  tags      = client_data->tags.value_or(std::unordered_set<std::string>());
+                        const auto  tags      = client_data->tags;
 
                         filter_includes_torrent = tags.find(tag_value) != tags.end();
                     }
@@ -224,7 +224,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
                 .session           = name,
                 .size              = size,
                 .state             = ts.state,
-                .tags              = client_data->tags.value_or(std::unordered_set<std::string>()),
+                .tags              = client_data->tags,
                 .total             = ts.total,
                 .total_done        = ts.total_done,
                 .upload_rate       = ts.upload_rate,
