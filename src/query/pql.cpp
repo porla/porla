@@ -319,8 +319,7 @@ public:
                         const auto client_data = ts.handle.userdata().get<porla::TorrentClientData>();
 
                         return client_data != nullptr
-                            && client_data->tags.has_value()
-                            && client_data->tags->contains(*tag);
+                            && client_data->tags.contains(*tag);
                     }
 
                     throw QueryError("Invalid value type - expected string");
