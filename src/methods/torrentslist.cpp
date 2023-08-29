@@ -19,8 +19,24 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
     {
         {{"download_rate", false},  [](auto const& lhs, auto const& rhs) { return lhs.download_rate > rhs.download_rate; }},
         {{"download_rate", true},   [](auto const& lhs, auto const& rhs) { return lhs.download_rate < rhs.download_rate; }},
-        {{"eta", false},            [](auto const& lhs, auto const& rhs) { return lhs.eta > rhs.eta; }},
-        {{"eta", true},             [](auto const& lhs, auto const& rhs) { return lhs.eta < rhs.eta; }},
+        {
+            {"eta", false},
+            [](auto const& lhs, auto const& rhs)
+            {
+                if (lhs.eta < 0) return false;
+                if (rhs.eta < 0) return true;
+                return lhs.eta > rhs.eta;
+            }
+        },
+        {
+            {"eta", true},
+            [](auto const& lhs, auto const& rhs)
+            {
+                if (lhs.eta < 0) return false;
+                if (rhs.eta < 0) return true;
+                return lhs.eta < rhs.eta;
+            }
+        },
         {{"list_peers", false},     [](auto const& lhs, auto const& rhs) { return lhs.list_peers > rhs.list_peers; }},
         {{"list_peers", true},      [](auto const& lhs, auto const& rhs) { return lhs.list_peers < rhs.list_peers; }},
         {{"list_seeds", false},     [](auto const& lhs, auto const& rhs) { return lhs.list_seeds > rhs.list_seeds; }},
