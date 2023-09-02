@@ -63,22 +63,31 @@ void AddTorrentParams::ForEach(sqlite3 *db, const std::string_view& session, con
 
             if (!client_data_str.empty())
             {
-                auto client_data_ptr = *atp.userdata.get<TorrentClientData>();
-                const auto client_data_json = json::parse(client_data_str);
+                json client_data_json;
+
+                try
+                {
+                    client_data_json = json::parse(client_data_str);
+                }
+                catch (const std::exception& e)
+                {
+                    BOOST_LOG_TRIVIAL(error) << "Failed to parse client data JSON: " << e.what();
+                    return SQLITE_OK;
+                }
 
                 if (client_data_json.contains("category"))
                 {
-                    client_data_ptr.category = client_data_json["category"].get<std::string>();
+                    atp.userdata.get<TorrentClientData>()->category = client_data_json["category"];
                 }
 
                 if (client_data_json.contains("metadata"))
                 {
-                    client_data_ptr.metadata = client_data_json["metadata"];
+                    atp.userdata.get<TorrentClientData>()->metadata = client_data_json["metadata"];
                 }
 
                 if (client_data_json.contains("tags"))
                 {
-                    client_data_ptr.tags = client_data_json["tags"];
+                    atp.userdata.get<TorrentClientData>()->tags = client_data_json["tags"];
                 }
             }
 
