@@ -70,7 +70,7 @@ jobs:
         run: pushd html/dist && zip -9 -r ../webui.zip * && popd && ls -la
 
       - name: Build Docker image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
@@ -89,7 +89,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push Docker image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           build-args: GITVERSION_SEMVER=${{ steps.gitversion.outputs.fullSemVer }}
           context: .
