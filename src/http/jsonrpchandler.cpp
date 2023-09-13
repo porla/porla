@@ -97,8 +97,15 @@ void JsonRpcHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest*
 
         try
         {
+            json params = body.at("params");
+
+            if (params.is_array() && params.size() == 1)
+            {
+                params = params[0];
+            }
+
             BOOST_LOG_TRIVIAL(debug) << "Executing JSONRPC method '" << method << "'";
-            state->Methods().at(method)(body.at("id"), body.at("params"), res);
+            state->Methods().at(method)(body.at("id"), params, res);
         }
         catch (const std::exception& ex)
         {
