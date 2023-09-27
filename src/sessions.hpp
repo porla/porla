@@ -34,6 +34,12 @@ namespace porla
     public:
         static bool DisallowedSetting(const std::string& name);
 
+        struct TorrentFileErrorEvent
+        {
+            std::string        file;
+            lt::torrent_handle torrent;
+        };
+
         struct SessionState
         {
             friend class Sessions;
@@ -51,6 +57,7 @@ namespace porla
 
         typedef boost::signals2::signal<void(const std::string& session, const libtorrent::info_hash_t&)> InfoHashSignal;
         typedef boost::signals2::signal<void(const std::string& session, const lt::span<const int64_t>&)> SessionStatsSignal;
+        typedef boost::signals2::signal<void(const std::string& session, const TorrentFileErrorEvent&)> TorrentFileErrorSignal;
         typedef boost::signals2::signal<void(const std::string& session, const libtorrent::torrent_handle&)> TorrentHandleSignal;
         typedef boost::signals2::signal<void(const std::string& session, const std::vector<libtorrent::torrent_status>&)> TorrentStatusListSignal;
 
@@ -81,6 +88,11 @@ namespace porla
         boost::signals2::connection OnTorrentAdded(const TorrentHandleSignal::slot_type& subscriber)
         {
             return m_torrent_added.connect(subscriber);
+        }
+
+        boost::signals2::connection OnTorrentFileError(const TorrentFileErrorSignal::slot_type& subscriber)
+        {
+            return m_torrent_file_error.connect(subscriber);
         }
 
         boost::signals2::connection OnTorrentFinished(const TorrentHandleSignal::slot_type& subscriber)
@@ -120,6 +132,7 @@ namespace porla
         TorrentStatusListSignal m_state_update;
         TorrentHandleSignal m_storage_moved;
         TorrentHandleSignal m_torrent_added;
+        TorrentFileErrorSignal m_torrent_file_error;
         TorrentHandleSignal m_torrent_finished;
         TorrentHandleSignal m_torrent_paused;
         InfoHashSignal m_torrent_removed;

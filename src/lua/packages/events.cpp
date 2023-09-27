@@ -64,6 +64,24 @@ void Events::Register(sol::state& lua)
                 return std::make_shared<SignalConnection>(connection);
             }
 
+            if (name == "torrent_file_error")
+            {
+                auto connection = options.sessions.OnTorrentFileError(
+                    [cb = callback](const std::string& session, const porla::Sessions::TorrentFileErrorEvent& evt)
+                    {
+                        try
+                        {
+                            cb(evt.torrent, evt.file);
+                        }
+                        catch (const sol::error& err)
+                        {
+                            BOOST_LOG_TRIVIAL(error) << "An error occurred in an event handler: " << err.what();
+                        }
+                    });
+
+                return std::make_shared<SignalConnection>(connection);
+            }
+
             if (name == "torrent_finished")
             {
                 auto connection = options.sessions.OnTorrentFinished(
