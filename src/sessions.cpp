@@ -436,6 +436,19 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
 
                 break;
             }
+            case lt::file_error_alert::alert_type:
+            {
+                const auto fea = lt::alert_cast<lt::file_error_alert>(alert);
+
+                TorrentFileErrorEvent evt{
+                    .file = fea->filename(),
+                    .torrent = fea->handle
+                };
+
+                boost::asio::post(m_options.io, [this, evt, state](){ m_torrent_file_error(state->name, evt); });
+
+                break;
+            }
             case lt::metadata_received_alert::alert_type:
             {
                 auto mra = lt::alert_cast<lt::metadata_received_alert>(alert);
