@@ -107,6 +107,11 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
     {
         for (auto const& [_, handle] : state->torrents)
         {
+            if (!handle.is_valid())
+            {
+                continue;
+            }
+
             const auto client_data = handle.userdata().get<TorrentClientData>();
 
             std::map<std::string, json> metadata = {};
