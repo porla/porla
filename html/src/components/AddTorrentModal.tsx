@@ -100,12 +100,21 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
               save_path: values.save_path,
             };
 
+            let addedHashes: InfoHash[] = [];
+
             if (values.type === "magnet_uri") {
               params.magnet_uri = values.magnet_uri;
-              return props.onClose([await torrentsAdd(params)]);
-            }
 
-            let addedHashes: InfoHash[] = [];
+              try {
+                addedHashes.push(await torrentsAdd(params));
+                props.onClose(addedHashes);
+              } catch (err) {
+                setError(err);
+                setTimeout(() => setError(undefined), 3000);
+              }
+
+              return;
+            }
 
             if (values.ti.length === 1) {
               params.ti = values.ti[0];
