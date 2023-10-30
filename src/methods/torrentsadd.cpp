@@ -122,6 +122,14 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
             BOOST_LOG_TRIVIAL(error) << "Failed to parse magnet uri: " << ec.message();
             return cb.Error(-3, "Could not parse 'magnet_uri' param");
         }
+
+        for (const auto& [ name, s ]: m_sessions.All())
+        {
+            if (s->torrents.find(p.info_hashes) != s->torrents.end())
+            {
+                return cb.Error(-3, "Torrent already in session '" + name + "'");
+            }
+        }
     }
 
     if (req.download_limit.has_value())  p.download_limit  = req.download_limit.value();
