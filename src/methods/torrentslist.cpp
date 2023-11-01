@@ -115,7 +115,6 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             const auto client_data = handle.userdata().get<TorrentClientData>();
 
             std::map<std::string, json> metadata = {};
-            std::int64_t size                    = -1;
 
             if (req.include_metadata.has_value())
             {
@@ -139,9 +138,6 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             }
 
             auto const& ts = handle.status();
-
-            if (auto ti = ts.torrent_file.lock())
-                size = ti->total_size();
 
             // Filter torrents here.
             bool filter_includes_torrent = true;
@@ -243,7 +239,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
                 .save_path         = ts.save_path,
                 .seeding_duration  = ts.seeding_duration.count(),
                 .session           = name,
-                .size              = size,
+                .size              = ts.total,
                 .state             = ts.state,
                 .tags              = client_data->tags,
                 .total             = ts.total,
