@@ -51,7 +51,14 @@ __attribute__((always_inline)) inline auto IsIncludedInList(
     {
         for (const auto& [filter_field, args] : filters.value())
         {
-            if (!args.is_string()) {
+            // Stop early if this torrent can't conform to current filter
+            if (!filter_includes_torrent)
+            {
+                break;
+            }
+
+            if (!args.is_string())
+            {
                 continue;
             }
 
