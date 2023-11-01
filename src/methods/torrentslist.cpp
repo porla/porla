@@ -253,14 +253,6 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
         }
     }
 
-    std::sort(
-        torrents.begin(),
-        torrents.end(),
-        [&sorter](auto const& lhs, auto const& rhs)
-        {
-            return sorter->second(lhs, rhs);
-        });
-
     int page_beg = req.page.value_or(0) * req.page_size.value_or(50);
     int page_end = std::min(
         page_beg + req.page_size.value_or(50),
@@ -270,6 +262,15 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
     {
         return cb.Error(-2, "Invalid page - too large.");
     }
+
+    std::partial_sort(
+        torrents.begin(),
+        torrents.begin() + page_end,
+        torrents.end(),
+        [&sorter](auto const& lhs, auto const& rhs)
+        {
+            return sorter->second(lhs, rhs);
+        });
 
     cb.Ok(TorrentsListRes{
         .order_by                  = req.order_by.value_or("queue_position"),
