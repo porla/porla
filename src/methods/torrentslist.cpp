@@ -22,10 +22,8 @@ enum SortOrder : std::uint8_t {
  * so we can easily differentiate cases without branching.
  * @return DJB2 hash of the input string.
  */
-__attribute__((always_inline)) constexpr auto HashDJB2(
-    const char* sz,
-    SortOrder sort_order = kOrder_Asc
-) -> std::uint64_t {
+__attribute__((always_inline)) inline
+constexpr std::uint64_t HashDJB2(const char* sz, SortOrder sort_order = kOrder_Asc) {
     std::uint32_t ch = 0u, hash = 5381u;
     while ((ch = static_cast<std::uint8_t>(*sz++)))
         hash = (hash * 33u) ^ ch;
@@ -36,16 +34,19 @@ __attribute__((always_inline)) constexpr auto HashDJB2(
     return std::uint64_t(hash) | std::uint64_t(sort_order) << 63;
 }
 
-constexpr auto operator"" _djb2(const char *s, unsigned long) -> std::uint64_t {
+__attribute__((always_inline)) inline
+constexpr std::uint64_t operator"" _djb2(const char *s, unsigned long)
+{
     return HashDJB2(s);
 }
 
-__attribute__((always_inline)) inline auto IsIncludedInList(
+__attribute__((always_inline)) inline
+bool CanIncludeInList(
     const porla::Methods::TorrentsListReq& req,
     const libtorrent::torrent_status& ts,
     const std::string& session_name,
     porla::TorrentClientData* client_data
-) -> bool {
+) {
     bool filter_includes_torrent = true;
     if (req.filters.has_value(); const auto& filters = req.filters)
     {
@@ -63,27 +64,33 @@ __attribute__((always_inline)) inline auto IsIncludedInList(
             }
 
             const auto field_hash = HashDJB2(filter_field.c_str());
-            switch (field_hash) {
-            case "category"_djb2: {
+            switch (field_hash)
+            {
+            case "category"_djb2:
+            {
                 filter_includes_torrent &= client_data->category == args.get<std::string>();
                 break;
             }
-            case "query"_djb2: {
+            case "query"_djb2:
+            {
                 if (!args.get<std::string>().empty()) {
                     const auto parsed = porla::Query::PQL::Parse(args.get<std::string>());
                     filter_includes_torrent &= parsed->Includes(ts);
                 }
                 break;
             }
-            case "save_path"_djb2: {
+            case "save_path"_djb2:
+            {
                 filter_includes_torrent &= ts.save_path == args.get<std::string>();
                 break;
             }
-            case "session"_djb2: {
+            case "session"_djb2:
+            {
                 filter_includes_torrent &= session_name == args.get<std::string>();
                 break;
             }
-            case "tags"_djb2: {
+            case "tags"_djb2:
+            {
                 const auto& tag_value = args.get<std::string>();
                 const auto& tags      = client_data->tags;
 
@@ -98,10 +105,11 @@ __attribute__((always_inline)) inline auto IsIncludedInList(
     return filter_includes_torrent;
 }
 
-__attribute__((always_inline)) inline auto SortTorrents(
+__attribute__((always_inline)) inline
+void SortTorrents(
     const porla::Methods::TorrentsListReq& req,
     std::vector<porla::Methods::TorrentsListRes::Item>& torrents
-) -> void {
+) {
     using Item = porla::Methods::TorrentsListRes::Item;
 
 #define NUMBER_SORT(FIELD) \
@@ -122,12 +130,14 @@ __attribute__((always_inline)) inline auto SortTorrents(
 #undef NUMBER_SORT // !NUMBER_SORT
 
 #define PRIORITY_SORT(FIELD) \
-    static const auto FIELD##_ASC  = [](Item const& lhs, Item const& rhs) { \
+    static const auto FIELD##_ASC  = [](Item const& lhs, Item const& rhs) \
+    { \
         if (lhs.FIELD < 0) return false; \
         else if (rhs.FIELD < 0) return true; \
         else return lhs.FIELD > rhs.FIELD; \
     }; \
-    static const auto FIELD##_DESC = [](Item const& lhs, Item const& rhs) { \
+    static const auto FIELD##_DESC = [](Item const& lhs, Item const& rhs) \
+    { \
         if (lhs.FIELD < 0) return false; \
         else if (rhs.FIELD < 0) return true; \
         else return lhs.FIELD < rhs.FIELD; \
@@ -137,10 +147,13 @@ __attribute__((always_inline)) inline auto SortTorrents(
     PRIORITY_SORT(queue_position)
 #undef PRIORITY_SORT // !PRIORITY_SORT
 
-    static const auto name_ASC = [](Item const& lhs, Item const& rhs) {
+    static const auto name_ASC = [](Item const& lhs, Item const& rhs)
+    {
         return strcmp(lhs.name.c_str(), rhs.name.c_str()) > 0;
     };
-    static const auto name_DESC = [](Item const& lhs, Item const& rhs) {
+
+    static const auto name_DESC = [](Item const& lhs, Item const& rhs)
+    {
         return strcmp(lhs.name.c_str(), rhs.name.c_str()) < 0;
     };
 
@@ -156,7 +169,8 @@ __attribute__((always_inline)) inline auto SortTorrents(
     using SortFn = bool(*)(Item const&, Item const&);
     SortFn sort_fn = nullptr;
 
-    switch (field_hash) {
+    switch (field_hash)
+    {
     USE_SORT(download_rate)
     USE_SORT(list_peers)
     USE_SORT(list_seeds)
@@ -185,7 +199,7 @@ TorrentsList::TorrentsList(porla::Sessions& sessions)
 {
 }
 
-void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> cb)
+void TorrentsList::InvokeImpl(const TorrentsListReq& req, WriteCb<TorrentsListRes>& cb)
 {
     std::uintptr_t global_total_torrents = 0;
 
@@ -210,7 +224,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             // Filter torrents here.
             auto const& ts = handle.status();
 
-            if (!IsIncludedInList(req, ts, session_name, client_data))
+            if (!CanIncludeInList(req, ts, session_name, client_data))
             {
                 continue;
             }
@@ -234,9 +248,12 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
                     for (const auto& key : metadata_keys)
                     {
                         auto it = metadata_client.find(key);
-                        if (it == metadata_client.end()) {
+                        if (it == metadata_client.end())
+                        {
                             continue;
-                        } else {
+                        }
+                        else
+                        {
                             metadata[key] = *it;
                         }
                     }
@@ -249,6 +266,8 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
 #define INSERT_FLAG(name) if ((ts.flags & lt::torrent_flags:: name) == lt::torrent_flags:: name) flags.emplace_back(#name);
 
+            // Assume at least some allocation
+            // Is this usually the case though?
             std::vector<std::string> flags;
             flags.reserve(4);
 
@@ -336,4 +355,15 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
         .torrents_total            = static_cast<int>(torrents.size()),
         .torrents_total_unfiltered = static_cast<int>(global_total_torrents)
     });
+}
+
+void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> cb) {
+    try
+    {
+        InvokeImpl(req, cb);
+    }
+    catch (const Query::QueryError& qe)
+    {
+        return cb.Error(-1000, qe.what(), {{"pos", qe.pos()}});
+    }
 }

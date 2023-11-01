@@ -20,6 +20,9 @@ namespace porla::Methods
         void Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> cb) override;
 
     private:
+        void InvokeImpl(const TorrentsListReq& req, WriteCb<TorrentsListRes>& cb);
+
+    private:
         porla::Sessions& m_sessions;
     };
 }
