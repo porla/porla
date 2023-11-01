@@ -3,6 +3,7 @@
 #include <sqlite3.h>
 
 #include "method.hpp"
+#include "../torrentclientdata.hpp"
 #include "torrentslist_reqres.hpp"
 
 namespace porla

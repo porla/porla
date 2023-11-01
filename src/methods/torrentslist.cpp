@@ -8,6 +8,171 @@
 
 using porla::Methods::TorrentsList;
 
+namespace {
+enum SortOrder : std::uint8_t {
+  kOrder_Asc  = 0,
+  kOrder_Desc = 1
+};
+
+/**
+ * Hash a C-string using DJB2 xor-variant hash.
+ * This is very fast for small strings. Much faster than plain string comparison.
+ * @param [in] sz C-String to hash
+ * @param [in] sort_order Based on ASC/DESC this will set the most-significant/leftmost bit
+ * so we can easily differentiate cases without branching.
+ * @return DJB2 hash of the input string.
+ */
+__attribute__((always_inline)) constexpr auto HashDJB2(
+    const char* sz,
+    SortOrder sort_order = kOrder_Asc
+) -> std::uint64_t {
+    std::uint32_t ch = 0u, hash = 5381u;
+    while ((ch = static_cast<std::uint8_t>(*sz++)))
+        hash = (hash * 33u) ^ ch;
+
+    // Set most significant bit (for asc/desc sorting)
+    // 00000000 00000000 00000000 00000000 00000000 00000100 00000000 00000000
+    // 10000000 00000000 00000000 00000000 00000000 00000100 00000000 00000000
+    return std::uint64_t(hash) | std::uint64_t(sort_order) << 63;
+}
+
+constexpr auto operator"" _djb2(const char *s, unsigned long) -> std::uint64_t {
+    return HashDJB2(s);
+}
+
+__attribute__((always_inline)) inline auto IsIncludedInList(
+    const porla::Methods::TorrentsListReq& req,
+    const libtorrent::torrent_status& ts,
+    const std::string& session_name,
+    porla::TorrentClientData* client_data
+) -> bool {
+    bool filter_includes_torrent = true;
+    if (req.filters.has_value(); const auto& filters = req.filters)
+    {
+        for (const auto& [filter_field, args] : filters.value())
+        {
+            if (!args.is_string()) {
+                continue;
+            }
+
+            const auto field_hash = HashDJB2(filter_field.c_str());
+            switch (field_hash) {
+            case "category"_djb2: {
+                filter_includes_torrent &= client_data->category == args.get<std::string>();
+                break;
+            }
+            case "query"_djb2: {
+                if (!args.get<std::string>().empty()) {
+                    const auto parsed = porla::Query::PQL::Parse(args.get<std::string>());
+                    filter_includes_torrent &= parsed->Includes(ts);
+                }
+                break;
+            }
+            case "save_path"_djb2: {
+                filter_includes_torrent &= ts.save_path == args.get<std::string>();
+                break;
+            }
+            case "session"_djb2: {
+                filter_includes_torrent &= session_name == args.get<std::string>();
+                break;
+            }
+            case "tags"_djb2: {
+                const auto& tag_value = args.get<std::string>();
+                const auto& tags      = client_data->tags;
+
+                filter_includes_torrent &= tags.find(tag_value) != tags.end();
+                break;
+            }
+            default:
+                break;
+            }
+        }
+    }
+    return filter_includes_torrent;
+}
+
+__attribute__((always_inline)) inline auto SortTorrents(
+    const porla::Methods::TorrentsListReq& req,
+    std::vector<porla::Methods::TorrentsListRes::Item>& torrents
+) -> void {
+    using Item = porla::Methods::TorrentsListRes::Item;
+
+#define NUMBER_SORT(FIELD) \
+    static const auto FIELD##_ASC  = [](Item const& lhs, Item const& rhs) { return lhs.FIELD > rhs.FIELD; }; \
+    static const auto FIELD##_DESC = [](Item const& lhs, Item const& rhs) { return lhs.FIELD < rhs.FIELD; };
+
+    NUMBER_SORT(download_rate)
+    NUMBER_SORT(list_peers)
+    NUMBER_SORT(list_seeds)
+    NUMBER_SORT(num_peers)
+    NUMBER_SORT(num_seeds)
+    NUMBER_SORT(progress)
+    NUMBER_SORT(ratio)
+    NUMBER_SORT(size)
+    NUMBER_SORT(total)
+    NUMBER_SORT(total_done)
+    NUMBER_SORT(upload_rate)
+#undef NUMBER_SORT // !NUMBER_SORT
+
+#define PRIORITY_SORT(FIELD) \
+    static const auto FIELD##_ASC  = [](Item const& lhs, Item const& rhs) { \
+        if (lhs.FIELD < 0) return false; \
+        else if (rhs.FIELD < 0) return true; \
+        else return lhs.FIELD > rhs.FIELD; \
+    }; \
+    static const auto FIELD##_DESC = [](Item const& lhs, Item const& rhs) { \
+        if (lhs.FIELD < 0) return false; \
+        else if (rhs.FIELD < 0) return true; \
+        else return lhs.FIELD < rhs.FIELD; \
+    };
+
+    PRIORITY_SORT(eta)
+    PRIORITY_SORT(queue_position)
+#undef PRIORITY_SORT // !PRIORITY_SORT
+
+    static const auto name_ASC = [](Item const& lhs, Item const& rhs) {
+        return strcmp(lhs.name.c_str(), rhs.name.c_str()) > 0;
+    };
+    static const auto name_DESC = [](Item const& lhs, Item const& rhs) {
+        return strcmp(lhs.name.c_str(), rhs.name.c_str()) < 0;
+    };
+
+    const auto field_hash = HashDJB2(
+        req.order_by.value_or("queue_position").c_str(),
+        req.order_by_dir.value() != "desc" ? kOrder_Asc : kOrder_Desc
+    );
+
+#define USE_SORT(FIELD)                                                     \
+    case (HashDJB2(#FIELD, kOrder_Asc)):  { sort_fn = FIELD##_ASC; break; }  \
+    case (HashDJB2(#FIELD, kOrder_Desc)): { sort_fn = FIELD##_DESC; break; } \
+
+    using SortFn = bool(*)(Item const&, Item const&);
+    SortFn sort_fn = nullptr;
+
+    switch (field_hash) {
+    USE_SORT(download_rate)
+    USE_SORT(list_peers)
+    USE_SORT(list_seeds)
+    USE_SORT(num_peers)
+    USE_SORT(num_seeds)
+    USE_SORT(progress)
+    USE_SORT(ratio)
+    USE_SORT(size)
+    USE_SORT(total)
+    USE_SORT(total_done)
+    USE_SORT(upload_rate)
+    USE_SORT(eta)
+    USE_SORT(queue_position)
+    USE_SORT(name)
+    default:
+        // Don't sort if no match
+        return;
+    }
+
+    std::sort(torrents.begin(), torrents.end(), sort_fn);
+}
+}
+
 TorrentsList::TorrentsList(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
@@ -15,96 +180,17 @@ TorrentsList::TorrentsList(porla::Sessions& sessions)
 
 void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> cb)
 {
-    static std::map<std::pair<std::string, bool>, std::function<bool(const TorrentsListRes::Item&, const TorrentsListRes::Item&)>> sorters =
-    {
-        {{"download_rate", false},  [](auto const& lhs, auto const& rhs) { return lhs.download_rate > rhs.download_rate; }},
-        {{"download_rate", true},   [](auto const& lhs, auto const& rhs) { return lhs.download_rate < rhs.download_rate; }},
-        {
-            {"eta", false},
-            [](auto const& lhs, auto const& rhs)
-            {
-                if (lhs.eta < 0) return false;
-                if (rhs.eta < 0) return true;
-                return lhs.eta > rhs.eta;
-            }
-        },
-        {
-            {"eta", true},
-            [](auto const& lhs, auto const& rhs)
-            {
-                if (lhs.eta < 0) return false;
-                if (rhs.eta < 0) return true;
-                return lhs.eta < rhs.eta;
-            }
-        },
-        {{"list_peers", false},     [](auto const& lhs, auto const& rhs) { return lhs.list_peers > rhs.list_peers; }},
-        {{"list_peers", true},      [](auto const& lhs, auto const& rhs) { return lhs.list_peers < rhs.list_peers; }},
-        {{"list_seeds", false},     [](auto const& lhs, auto const& rhs) { return lhs.list_seeds > rhs.list_seeds; }},
-        {{"list_seeds", true},      [](auto const& lhs, auto const& rhs) { return lhs.list_seeds < rhs.list_seeds; }},
-        {{"name", false},           [](auto const& lhs, auto const& rhs) { return strcmp(lhs.name.c_str(), rhs.name.c_str()) > 0; }},
-        {{"name", true},            [](auto const& lhs, auto const& rhs) { return strcmp(lhs.name.c_str(), rhs.name.c_str()) < 0; }},
-        {{"num_peers", false},      [](auto const& lhs, auto const& rhs) { return lhs.num_peers > rhs.num_peers; }},
-        {{"num_peers", true},       [](auto const& lhs, auto const& rhs) { return lhs.num_peers < rhs.num_peers; }},
-        {{"num_seeds", false},      [](auto const& lhs, auto const& rhs) { return lhs.num_seeds > rhs.num_seeds; }},
-        {{"num_seeds", true},       [](auto const& lhs, auto const& rhs) { return lhs.num_seeds < rhs.num_seeds; }},
-        {{"progress", false},       [](auto const& lhs, auto const& rhs) { return lhs.progress > rhs.progress; }},
-        {{"progress", true},        [](auto const& lhs, auto const& rhs) { return lhs.progress < rhs.progress; }},
-        {
-            {"queue_position", false},
-            [](auto const& lhs, auto const& rhs)
-            {
-                if (lhs.queue_position < 0) return false;
-                if (rhs.queue_position < 0) return true;
-                return lhs.queue_position >= rhs.queue_position;
-            }
-        },
-        {
-            {"queue_position", true},
-            [](auto const& lhs, auto const& rhs)
-            {
-                if (lhs.queue_position < 0) return false;
-                if (rhs.queue_position < 0) return true;
-                return lhs.queue_position < rhs.queue_position;
-            }
-        },
-        {{"ratio", false},          [](auto const& lhs, auto const& rhs) { return lhs.ratio > rhs.ratio; }},
-        {{"ratio", true},           [](auto const& lhs, auto const& rhs) { return lhs.ratio < rhs.ratio; }},
-        {{"save_path", false},      [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) > 0; }},
-        {{"save_path", true},       [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) < 0; }},
-        {{"size", false},           [](auto const& lhs, auto const& rhs) { return lhs.size > rhs.size; }},
-        {{"size", true},            [](auto const& lhs, auto const& rhs) { return lhs.size < rhs.size; }},
-        {{"total", false},          [](auto const& lhs, auto const& rhs) { return lhs.total > rhs.total; }},
-        {{"total", true},           [](auto const& lhs, auto const& rhs) { return lhs.total < rhs.total; }},
-        {{"total_done", false},     [](auto const& lhs, auto const& rhs) { return lhs.total_done > rhs.total_done; }},
-        {{"total_done", true},      [](auto const& lhs, auto const& rhs) { return lhs.total_done < rhs.total_done; }},
-        {{"upload_rate", false},    [](auto const& lhs, auto const& rhs) { return lhs.upload_rate > rhs.upload_rate; }},
-        {{"upload_rate", true},     [](auto const& lhs, auto const& rhs) { return lhs.upload_rate < rhs.upload_rate; }},
-    };
-
-    std::string field = req.order_by.value_or("queue_position");
-    bool order_asc = req.order_by_dir.value_or("asc") == "asc";
-
-    auto const& sorter = sorters.find({field,order_asc});
-
-    if (sorter == sorters.end())
-    {
-        return cb.Error(-1, "Invalid field in 'order_by'");
-    }
-
-    const int global_total_torrents = std::accumulate(
-        m_sessions.All().begin(),
-        m_sessions.All().end(),
-        0,
-        [](int current, const auto& state)
-        {
-            return current + state.second->torrents.size();
-        });
+    std::uintptr_t global_total_torrents = 0;
 
     std::vector<TorrentsListRes::Item> torrents;
     torrents.reserve(m_sessions.Default()->torrents.size());
 
-    for (const auto& [ name, state] : m_sessions.All())
+    const auto now = lt::clock_type::now();
+
+    for (const auto& [session_name, state] : m_sessions.All())
     {
+        global_total_torrents += state->torrents.size();
+
         for (auto const& [_, handle] : state->torrents)
         {
             if (!handle.is_valid())
@@ -114,84 +200,51 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
             const auto client_data = handle.userdata().get<TorrentClientData>();
 
-            std::map<std::string, json> metadata = {};
-            std::int64_t size                    = -1;
+            // Filter torrents here.
+            auto const& ts = handle.status();
+
+            if (!IsIncludedInList(req, ts, session_name, client_data))
+            {
+                continue;
+            }
+
+            std::map<std::string, nlohmann::json> metadata = {};
 
             if (req.include_metadata.has_value())
             {
                 const auto metadata_keys   = req.include_metadata.value();
-                const auto metadata_client = client_data->metadata.value_or(std::map<std::string, nlohmann::json>());
+                const auto metadata_client = client_data->metadata.value_or(std::map<std::string, nlohmann::json>{});
 
                 // Include metadata for all the keys specified. If ["*"], include everything.
-
-                if (metadata_keys.size() == 1 && metadata_keys.at(0) == "*")
+                if (metadata_keys.size() == 1 && !metadata_keys[0].empty() && metadata_keys[0][0] == '*')
                 {
                     metadata = metadata_client;
                 }
                 else
                 {
+                    // Iterate over requested metadata fields
+                    // and only include relevant ones
                     for (const auto& key : metadata_keys)
                     {
-                        if (!metadata_client.contains(key)) continue;
-                        metadata[key] = metadata_client.at(key);
+                        auto it = metadata_client.find(key);
+                        if (it == metadata_client.end()) {
+                            continue;
+                        } else {
+                            metadata[key] = *it;
+                        }
                     }
                 }
             }
 
-            auto const& ts = handle.status();
-
+            std::int64_t size = -1;
             if (auto ti = ts.torrent_file.lock())
                 size = ti->total_size();
-
-            // Filter torrents here.
-            bool filter_includes_torrent = true;
-
-            if (const auto& filters = req.filters)
-            {
-                for (const auto& [filter_field, args] : filters.value())
-                {
-                    if (filter_field == "category" && args.is_string())
-                    {
-                        filter_includes_torrent = client_data->category == args.get<std::string>();
-                    }
-                    else if (filter_field == "query" && args.is_string() && !args.get<std::string>().empty())
-                    {
-                        try
-                        {
-                            const auto filter = Query::PQL::Parse(args.get<std::string>());
-                            filter_includes_torrent = filter->Includes(ts);
-                        }
-                        catch (const Query::QueryError& qe)
-                        {
-                            return cb.Error(-1000, qe.what(), {{"pos", qe.pos()}});
-                        }
-                    }
-                    else if (filter_field == "save_path" && args.is_string())
-                    {
-                        filter_includes_torrent = ts.save_path == args.get<std::string>();
-                    }
-                    else if (filter_field == "session" && args.is_string())
-                    {
-                        filter_includes_torrent = name == args.get<std::string>();
-                    }
-                    else if (filter_field == "tags" && args.is_string())
-                    {
-                        const auto& tag_value = args.get<std::string>();
-                        const auto  tags      = client_data->tags;
-
-                        filter_includes_torrent = tags.find(tag_value) != tags.end();
-                    }
-                }
-            }
-
-            if (!filter_includes_torrent)
-            {
-                continue;
-            }
 
 #define INSERT_FLAG(name) if ((ts.flags & lt::torrent_flags:: name) == lt::torrent_flags:: name) flags.emplace_back(#name);
 
             std::vector<std::string> flags;
+            flags.reserve(4);
+
             INSERT_FLAG(seed_mode)
             INSERT_FLAG(upload_mode)
             INSERT_FLAG(share_mode)
@@ -213,6 +266,8 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             INSERT_FLAG(default_dont_download)
             INSERT_FLAG(i2p_torrent)
 
+#undef INSERT_FLAG // !INSERT_FLAG
+
             torrents.emplace_back(TorrentsListRes::Item{
                 .active_duration   = ts.active_duration.count(),
                 .all_time_download = ts.all_time_download,
@@ -225,10 +280,10 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
                 .flags             = flags,
                 .info_hash         = ts.info_hashes,
                 .last_download     = ts.last_download.time_since_epoch().count() > 0
-                    ? lt::total_seconds(lt::clock_type::now() - ts.last_download)
+                    ? lt::total_seconds(now - ts.last_download)
                     : -1,
                 .last_upload       = ts.last_upload.time_since_epoch().count() > 0
-                    ? lt::total_seconds(lt::clock_type::now() - ts.last_upload)
+                    ? lt::total_seconds(now - ts.last_upload)
                     : -1,
                 .list_peers        = ts.list_peers,
                 .list_seeds        = ts.list_seeds,
@@ -242,7 +297,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
                 .ratio             = porla::Utils::Ratio(ts),
                 .save_path         = ts.save_path,
                 .seeding_duration  = ts.seeding_duration.count(),
-                .session           = name,
+                .session           = session_name,
                 .size              = size,
                 .state             = ts.state,
                 .tags              = client_data->tags,
@@ -253,13 +308,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
         }
     }
 
-    std::sort(
-        torrents.begin(),
-        torrents.end(),
-        [&sorter](auto const& lhs, auto const& rhs)
-        {
-            return sorter->second(lhs, rhs);
-        });
+    SortTorrents(req, torrents);
 
     int page_beg = req.page.value_or(0) * req.page_size.value_or(50);
     int page_end = std::min(
