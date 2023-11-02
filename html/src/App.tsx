@@ -2,12 +2,10 @@ import { Fragment, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import {
   Bars3Icon,
-  CalendarIcon,
-  ChartPieIcon,
-  DocumentDuplicateIcon,
-  FolderIcon,
-  HomeIcon,
-  UsersIcon,
+  CloudArrowDownIcon,
+  CloudArrowUpIcon,
+  CloudIcon,
+  ExclamationTriangleIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
 
@@ -15,19 +13,14 @@ import {
 const navigation = [
 
 
-  { name: 'Dashboard', href: '#', icon: HomeIcon, current: true },
-  { name: 'Team', href: '#', icon: UsersIcon, current: false },
-  { name: 'Projects', href: '#', icon: FolderIcon, current: false },
-  { name: 'Calendar', href: '#', icon: CalendarIcon, current: false },
-  { name: 'Documents', href: '#', icon: DocumentDuplicateIcon, current: false },
-  { name: 'Reports', href: '#', icon: ChartPieIcon, current: false },
+  { name: 'All', href: '#', icon: CloudIcon, current: true, count: 122 },
+  { name: 'Downloading', href: '#', icon: CloudArrowDownIcon, current: false, count: 33 },
+  { name: 'Seeding', href: '#', icon: CloudArrowUpIcon, current: false, count: 89 },
+  { name: 'Error', href: '#', icon: ExclamationTriangleIcon, current: false, count: 0 },
 ]
 const teams = [
 
 
-  { id: 1, name: 'Heroicons', href: '#', initial: 'H', current: false },
-  { id: 2, name: 'Tailwind Labs', href: '#', initial: 'T', current: false },
-  { id: 3, name: 'Workcation', href: '#', initial: 'W', current: false },
 ]
 
 
@@ -102,6 +95,7 @@ function App() {
                     <nav className="flex flex-1 flex-col">
                       <ul role="list" className="flex flex-1 flex-col gap-y-7">
                         <li>
+                          <div className="text-xs font-semibold leading-6 text-gray-400">Your teams</div>
                           <ul role="list" className="-mx-2 space-y-1">
                             {navigation.map((item) => (
                               <li key={item.name}>
@@ -173,11 +167,12 @@ function App() {
             <div className="flex h-16 shrink-0 items-center">
               <img
                 className="h-8 w-auto"
-                src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=600"
-                alt="Your Company"
+                src="/isotype.svg"
+                alt="Porla"
               />
             </div>
             <nav className="flex flex-1 flex-col">
+              <div className="text-xs font-semibold leading-6 text-gray-400">Torrents</div>
               <ul role="list" className="flex flex-1 flex-col gap-y-7">
                 <li>
                   <ul role="list" className="-mx-2 space-y-1">
@@ -200,13 +195,21 @@ function App() {
                             aria-hidden="true"
                           />
                           {item.name}
+                          {item.count >= 0 ? (
+                            <span
+                              className="ml-auto w-9 min-w-max whitespace-nowrap rounded-full bg-white px-2.5 py-0.5 text-center text-xs font-medium leading-5 text-gray-600 ring-1 ring-inset ring-gray-200"
+                              aria-hidden="true"
+                            >
+                              {item.count}
+                            </span>
+                          ) : null}
                         </a>
                       </li>
                     ))}
                   </ul>
                 </li>
                 <li>
-                  <div className="text-xs font-semibold leading-6 text-gray-400">Your teams</div>
+                  <div className="text-xs font-semibold leading-6 text-gray-400">Trackers</div>
                   <ul role="list" className="-mx-2 mt-2 space-y-1">
                     {teams.map((team) => (
                       <li key={team.name}>
