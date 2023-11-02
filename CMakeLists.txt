@@ -253,3 +253,22 @@ target_link_libraries(
     GTest::gtest
     GTest::gmock_main
 )
+
+add_compile_options(
+        -Wall -Wextra -Wpedantic
+        -Wno-unused-variable
+        -Wno-unused-function
+        -Wno-unused-result
+        -Wno-sign-compare
+        -Wstack-protector
+        -fstack-protector-all
+        -march=native
+        $<$<CONFIG:RELEASE>:-O3>
+        $<$<CONFIG:RELEASE>:-mavx2>
+        $<$<CONFIG:RELEASE>:-fdata-sections>
+        $<$<CONFIG:RELEASE>:-ffunction-sections>
+        $<$<CONFIG:RELWITHDEBINFO>:-O3>
+        $<$<CONFIG:RELWITHDEBINFO>:-mavx2>
+        $<$<CONFIG:DEBUG>:-Og>
+        $<$<CONFIG:DEBUG>:-ggdb3>
+)

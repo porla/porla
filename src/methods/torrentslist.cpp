@@ -9,6 +9,10 @@
 using porla::Methods::TorrentsList;
 
 namespace {
+using FilterHashList = std::vector<std::pair<std::uint64_t, nlohmann::json>>;
+using Item = porla::Methods::TorrentsListRes::Item;
+using SortFn = bool(*)(Item const&, Item const&);
+
 enum SortOrder : std::uint8_t {
   kOrder_Asc  = 0,
   kOrder_Desc = 1
@@ -24,7 +28,7 @@ enum SortOrder : std::uint8_t {
  */
 __attribute__((always_inline)) inline
 constexpr std::uint64_t HashDJB2(const char* sz, SortOrder sort_order = kOrder_Asc) {
-    std::uint32_t ch = 0u, hash = 5381u;
+    std::uint32_t ch, hash = 5381u;
     while ((ch = static_cast<std::uint8_t>(*sz++)))
         hash = (hash * 33u) ^ ch;
 
@@ -41,77 +45,72 @@ constexpr std::uint64_t operator"" _djb2(const char *s, unsigned long)
 }
 
 __attribute__((always_inline)) inline
-bool CanIncludeInList(
-    const porla::Methods::TorrentsListReq& req,
+bool ShouldFilterOut(
+    const FilterHashList& filters,
     const libtorrent::torrent_status& ts,
     const std::string& session_name,
     porla::TorrentClientData* client_data
 ) {
     bool filter_includes_torrent = true;
-    if (req.filters.has_value(); const auto& filters = req.filters)
+
+    for (const auto& [field_hash, args] : filters)
     {
-        for (const auto& [filter_field, args] : filters.value())
+        // Stop early if this torrent can't conform to current filter
+        if (!filter_includes_torrent)
         {
-            // Stop early if this torrent can't conform to current filter
-            if (!filter_includes_torrent)
-            {
-                break;
-            }
+            break;
+        }
 
-            if (!args.is_string())
-            {
-                continue;
-            }
+        if (!args.is_string())
+        {
+            continue;
+        }
 
-            const auto field_hash = HashDJB2(filter_field.c_str());
-            switch (field_hash)
-            {
-            case "category"_djb2:
-            {
-                filter_includes_torrent &= client_data->category == args.get<std::string>();
-                break;
+        switch (field_hash)
+        {
+        case "category"_djb2:
+        {
+            filter_includes_torrent &= client_data->category == args.get<std::string>();
+            break;
+        }
+        case "query"_djb2:
+        {
+            if (!args.get<std::string>().empty()) {
+                const auto parsed = porla::Query::PQL::Parse(args.get<std::string>());
+                filter_includes_torrent &= parsed->Includes(ts);
             }
-            case "query"_djb2:
-            {
-                if (!args.get<std::string>().empty()) {
-                    const auto parsed = porla::Query::PQL::Parse(args.get<std::string>());
-                    filter_includes_torrent &= parsed->Includes(ts);
-                }
-                break;
-            }
-            case "save_path"_djb2:
-            {
-                filter_includes_torrent &= ts.save_path == args.get<std::string>();
-                break;
-            }
-            case "session"_djb2:
-            {
-                filter_includes_torrent &= session_name == args.get<std::string>();
-                break;
-            }
-            case "tags"_djb2:
-            {
-                const auto& tag_value = args.get<std::string>();
-                const auto& tags      = client_data->tags;
+            break;
+        }
+        case "save_path"_djb2:
+        {
+            filter_includes_torrent &= ts.save_path == args.get<std::string>();
+            break;
+        }
+        case "session"_djb2:
+        {
+            filter_includes_torrent &= session_name == args.get<std::string>();
+            break;
+        }
+        case "tags"_djb2:
+        {
+            const auto& tag_value = args.get<std::string>();
+            const auto& tags      = client_data->tags;
 
-                filter_includes_torrent &= tags.find(tag_value) != tags.end();
-                break;
-            }
-            default:
-                break;
-            }
+            filter_includes_torrent &= tags.find(tag_value) != tags.end();
+            break;
+        }
+        default:
+            break;
         }
     }
     return filter_includes_torrent;
 }
 
 __attribute__((always_inline)) inline
-void SortTorrents(
-    const porla::Methods::TorrentsListReq& req,
-    std::vector<porla::Methods::TorrentsListRes::Item>& torrents
+SortFn GetSortComparator(
+    const std::string& order_by,
+    const std::string& order_by_dir
 ) {
-    using Item = porla::Methods::TorrentsListRes::Item;
-
 #define NUMBER_SORT(FIELD) \
     static const auto FIELD##_ASC  = [](Item const& lhs, Item const& rhs) { return lhs.FIELD > rhs.FIELD; }; \
     static const auto FIELD##_DESC = [](Item const& lhs, Item const& rhs) { return lhs.FIELD < rhs.FIELD; };
@@ -158,16 +157,13 @@ void SortTorrents(
     };
 
     const auto field_hash = HashDJB2(
-        req.order_by.value_or("queue_position").c_str(),
-        req.order_by_dir.value() != "desc" ? kOrder_Asc : kOrder_Desc
+        order_by.c_str(),
+        order_by_dir == "asc" ? kOrder_Asc : kOrder_Desc
     );
 
 #define USE_SORT(FIELD)                                                     \
-    case (HashDJB2(#FIELD, kOrder_Asc)):  { sort_fn = FIELD##_ASC; break; }  \
-    case (HashDJB2(#FIELD, kOrder_Desc)): { sort_fn = FIELD##_DESC; break; } \
-
-    using SortFn = bool(*)(Item const&, Item const&);
-    SortFn sort_fn = nullptr;
+    case (HashDJB2(#FIELD, kOrder_Asc)):  { return FIELD##_ASC; break; }  \
+    case (HashDJB2(#FIELD, kOrder_Desc)): { return FIELD##_DESC; break; } \
 
     switch (field_hash)
     {
@@ -186,11 +182,8 @@ void SortTorrents(
     USE_SORT(queue_position)
     USE_SORT(name)
     default:
-        // Don't sort if no match
-        return;
+        return nullptr;
     }
-
-    std::sort(torrents.begin(), torrents.end(), sort_fn);
 }
 }
 
@@ -208,6 +201,17 @@ void TorrentsList::InvokeImpl(const TorrentsListReq& req, WriteCb<TorrentsListRe
 
     const auto now = lt::clock_type::now();
 
+    FilterHashList filters{};
+    if (req.filters.has_value())
+    {
+        filters.reserve(req.filters->size());
+
+        for (const auto& [key, value] : *req.filters)
+        {
+            filters.emplace_back(HashDJB2(key.c_str()), value);
+        }
+    }
+
     for (const auto& [session_name, state] : m_sessions.All())
     {
         global_total_torrents += state->torrents.size();
@@ -224,12 +228,12 @@ void TorrentsList::InvokeImpl(const TorrentsListReq& req, WriteCb<TorrentsListRe
             // Filter torrents here.
             auto const& ts = handle.status();
 
-            if (!CanIncludeInList(req, ts, session_name, client_data))
+            if (!ShouldFilterOut(filters, ts, session_name, client_data))
             {
                 continue;
             }
 
-            std::map<std::string, nlohmann::json> metadata = {};
+            std::unordered_map<std::string, nlohmann::json> metadata = {};
 
             if (req.include_metadata.has_value())
             {
@@ -239,7 +243,11 @@ void TorrentsList::InvokeImpl(const TorrentsListReq& req, WriteCb<TorrentsListRe
                 // Include metadata for all the keys specified. If ["*"], include everything.
                 if (metadata_keys.size() == 1 && !metadata_keys[0].empty() && metadata_keys[0][0] == '*')
                 {
-                    metadata = metadata_client;
+                    // Copy all metadata fields from std::map to std::unordered_map
+                    metadata = std::unordered_map<std::string, nlohmann::json>{
+                        metadata_client.begin(),
+                        metadata_client.end()
+                    };
                 }
                 else
                 {
@@ -259,10 +267,6 @@ void TorrentsList::InvokeImpl(const TorrentsListReq& req, WriteCb<TorrentsListRe
                     }
                 }
             }
-
-            std::int64_t size = -1;
-            if (auto ti = ts.torrent_file.lock())
-                size = ti->total_size();
 
 #define INSERT_FLAG(name) if ((ts.flags & lt::torrent_flags:: name) == lt::torrent_flags:: name) flags.emplace_back(#name);
 
@@ -324,7 +328,7 @@ void TorrentsList::InvokeImpl(const TorrentsListReq& req, WriteCb<TorrentsListRe
                 .save_path         = ts.save_path,
                 .seeding_duration  = ts.seeding_duration.count(),
                 .session           = session_name,
-                .size              = size,
+                .size              = ts.total,
                 .state             = ts.state,
                 .tags              = client_data->tags,
                 .total             = ts.total,
@@ -334,23 +338,38 @@ void TorrentsList::InvokeImpl(const TorrentsListReq& req, WriteCb<TorrentsListRe
         }
     }
 
-    SortTorrents(req, torrents);
+    const auto page = req.page.value_or(0);
+    const auto page_size = req.page_size.value_or(50);
 
-    int page_beg = req.page.value_or(0) * req.page_size.value_or(50);
-    int page_end = std::min(
-        page_beg + req.page_size.value_or(50),
-        static_cast<int>(torrents.size()));
+    const auto page_beg = page * page_size;
+    const auto page_end = std::min(
+        page_beg + page_size,
+        static_cast<int>(torrents.size())
+    );
 
-    if (page_beg > torrents.size())
+    if (page_beg > page_end)
     {
-        return cb.Error(-2, "Invalid page - too large.");
+        return cb.Error(-2, "Invalid list range: page begin > end.");
     }
 
+    const auto order_by = req.order_by.value_or("queue_position");
+    const auto order_by_dir = req.order_by_dir.value_or("asc");
+
+    auto* sort_fn = GetSortComparator(order_by, order_by_dir);
+    if (!sort_fn)
+    {
+        return cb.Error(-1, "Invalid field in 'order_by'");
+    }
+
+    // Keep top `page_size` entries sorted at the beginning of the list.
+    // Iterates through the entire list.
+    std::partial_sort(torrents.begin(), torrents.begin() + page_end, torrents.end(), sort_fn);
+
     cb.Ok(TorrentsListRes{
-        .order_by                  = req.order_by.value_or("queue_position"),
-        .order_by_dir              = req.order_by_dir.value_or("asc"),
-        .page                      = req.page.value_or(0),
-        .page_size                 = req.page_size.value_or(50),
+        .order_by                  = order_by,
+        .order_by_dir              = order_by_dir,
+        .page                      = page,
+        .page_size                 = page_size,
         .torrents                  = std::vector(torrents.begin() + page_beg, torrents.begin() + page_end),
         .torrents_total            = static_cast<int>(torrents.size()),
         .torrents_total_unfiltered = static_cast<int>(global_total_torrents)

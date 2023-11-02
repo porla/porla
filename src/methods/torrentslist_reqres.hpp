@@ -10,7 +10,7 @@ namespace porla::Methods
 {
     struct TorrentsListReq
     {
-        std::optional<std::map<std::string, nlohmann::json>> filters;
+        std::optional<std::unordered_map<std::string, nlohmann::json>> filters;
         std::optional<std::vector<std::string>> include_metadata;
         std::optional<int> page;
         std::optional<int> page_size;
