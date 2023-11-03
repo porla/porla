@@ -23,6 +23,7 @@
 #include "torrentslist.hpp"
 #include "torrentsmetadatalist.hpp"
 #include "torrentsmove.hpp"
+#include "torrentsoverview.hpp"
 #include "torrentspause.hpp"
 #include "torrentspeersadd.hpp"
 #include "torrentspeerslist.hpp"

@@ -175,6 +175,7 @@ add_library(
     src/methods/torrentslist.cpp
     src/methods/torrentsmetadatalist.cpp
     src/methods/torrentsmove.cpp
+    src/methods/torrentsoverview.cpp
     src/methods/torrentspause.cpp
     src/methods/torrentspeersadd.cpp
     src/methods/torrentspeerslist.cpp
