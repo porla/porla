@@ -56,8 +56,6 @@ static std::map<std::string, bool> FlagsToMap(const lt::torrent_flags_t& flags)
     SET_INSERT_FLAG(super_seeding)
     SET_INSERT_FLAG(sequential_download)
     SET_INSERT_FLAG(stop_when_ready)
-    SET_INSERT_FLAG(override_trackers)
-    SET_INSERT_FLAG(override_web_seeds)
     SET_INSERT_FLAG(need_save_resume)
     SET_INSERT_FLAG(disable_dht)
     SET_INSERT_FLAG(disable_lsd)
@@ -94,8 +92,6 @@ static void SetHandleFlags(const lt::torrent_handle& th, const sol::table& flags
     SET_FLAG(super_seeding)
     SET_FLAG(sequential_download)
     SET_FLAG(stop_when_ready)
-    SET_FLAG(override_trackers)
-    SET_FLAG(override_web_seeds)
     SET_FLAG(need_save_resume)
     SET_FLAG(disable_dht)
     SET_FLAG(disable_lsd)
@@ -153,7 +149,7 @@ void Torrents::Register(sol::state& lua)
     auto file_storage_type = lua.new_usertype<lt::file_storage>(
         "FileStorage",
         sol::no_constructor,
-        "file_name", [](const lt::file_storage& fs, int index) { return fs.file_name(lt::file_index_t{index}).to_string(); },
+        "file_name", [](const lt::file_storage& fs, int index) { return fs.file_name(lt::file_index_t{index}); },
         "file_path", [](const lt::file_storage& fs, int index) { return fs.file_path(lt::file_index_t{index}); },
         "file_size", [](const lt::file_storage& fs, int index) { return fs.file_size(lt::file_index_t{index}); }
         );
@@ -237,7 +233,6 @@ void Torrents::Register(sol::state& lua)
         "num_files",   &lt::torrent_info::num_files,
         "num_pieces",  &lt::torrent_info::num_pieces,
         "priv",        &lt::torrent_info::priv,
-        "trackers",    &lt::torrent_info::trackers,
         "total_size",  &lt::torrent_info::total_size);
 
     auto torrent_handle_type = lua.new_usertype<lt::torrent_handle>(
@@ -346,7 +341,7 @@ printf("Hejej");
         "list_seeds",             sol::readonly(&lt::torrent_status::list_seeds),
         "moving_storage",         sol::readonly(&lt::torrent_status::moving_storage),
         "name",                   sol::readonly(&lt::torrent_status::name),
-        "need_save_resume",       sol::readonly(&lt::torrent_status::need_save_resume),
+        "need_save_resume_data",  sol::readonly(&lt::torrent_status::need_save_resume_data),
         // next announce
         "num_complete",           sol::readonly(&lt::torrent_status::num_complete),
         "num_connections",        sol::readonly(&lt::torrent_status::num_connections),
