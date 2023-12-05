@@ -250,7 +250,7 @@ Sessions::~Sessions()
 
                 if (!th.is_valid()
                     || !ts.has_metadata
-                    || !ts.need_save_resume)
+                    || !ts.need_save_resume_data)
                 {
                     std::advance(current, 1);
                     continue;
@@ -567,7 +567,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                         });
                 }
 
-                if (status.need_save_resume)
+                if (status.need_save_resume_data)
                 {
                     status.handle.save_resume_data(
                         lt::torrent_handle::flush_disk_cache

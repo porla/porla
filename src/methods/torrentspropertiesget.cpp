@@ -49,8 +49,6 @@ void TorrentsPropertiesGet::Invoke(const TorrentsPropertiesGetReq& req, WriteCb<
     INSERT_FLAG(super_seeding)
     INSERT_FLAG(sequential_download)
     INSERT_FLAG(stop_when_ready)
-    INSERT_FLAG(override_trackers)
-    INSERT_FLAG(override_web_seeds)
     INSERT_FLAG(need_save_resume)
     INSERT_FLAG(disable_dht)
     INSERT_FLAG(disable_lsd)
