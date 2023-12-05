@@ -11,6 +11,8 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline'
 
+import ProgressBar from "./components/ProgressBar.tsx";
+
 
 const navigation = [
 
@@ -28,9 +30,32 @@ const teams = [
 const torrents = [
 
 
-  { name: 'debian-12.2.0-amd64-netinst.iso', size: '287.4 MiB', email: 'lindsay.walton@example.com', role: 'Member' },
-  // More people...
+  { id: 1, name: 'debian-12.2.0-amd64-netinst.iso', size: '287.4 MiB', progress: 80, status: 'Downloading', download_speed: '117.00 MiB/s', upload_speed: '117.00 MiB/s', active_seeds: 1, inactive_seeds: 2, active_peers: 3, inactive_peers: 4, ratio: 13.37 },
+  { id: 2, name: "archlinux-2023.12.01-x86_64.iso", size: "872 MiB", progress: 100, status: 'Seeding', download_speed: '1.17 GiB/s', upload_speed: '1.17 GiB/s', active_seeds: 5, inactive_seeds: 6, active_peers: 7, inactive_peers: 8, ratio: 133.7  }
+  // More torrents...
 ]
+
+const getColor = (ratio: number) => {
+  const colorMap = {
+    'text-amber-200 drop-shadow-[0_0_5px_rgba(255,255,0,1)]': 100,
+    'text-orange-500': 50,
+    'text-purple-500': 10,
+    'text-blue-500': 5,
+    'text-green-500': 2,
+    'text-neutral-300': 1
+  };
+
+  const colors = Object.keys(colorMap);
+  const ratios = Object.values(colorMap);
+
+  for (let i = 0; i < ratios.length; i++) {
+    if (ratio >= ratios[i]) {
+      return colors[i];
+    }
+  }
+
+  return 'text-gray-500';
+};
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(' ')
@@ -164,36 +189,59 @@ function App() {
           <div className="px-4 sm:px-6 lg:px-8">
           <table className="min-w-full divide-y divide-gray-700">
                     <thead>
-                      <tr>
-                        <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-neutral-300 sm:pl-0">
-                          Name
-                        </th>
-                        <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-neutral-300">
-                          Size
-                        </th>
-                        <th scope="col" className="px-3 py-3.5 text-center text-sm font-semibold text-neutral-300">
-                          Progress
-                        </th>
-                        <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-neutral-300">
-                          Peers
-                        </th>
-                      </tr>
+                    <tr>
+                      <th scope="col"
+                          className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-neutral-300 sm:pl-0">
+                        Name
+                      </th>
+                      <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-neutral-300">
+                        Size
+                      </th>
+                      <th scope="col" className="px-3 py-3.5 text-center text-sm font-semibold text-neutral-300">
+                        Progress
+                      </th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-neutral-300">
+                        Status
+                      </th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-neutral-300">
+                        Download Speed
+                      </th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-neutral-300">
+                        Upload Speed
+                      </th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-neutral-300">
+                        Seeds
+                      </th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-neutral-300">
+                        Peers
+                      </th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-neutral-300">
+                        Ratio
+                      </th>
+                    </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-800">
-                      {torrents.map((torrent) => (
-                        <tr key={torrent.email}>
-                          <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-neutral-300 sm:pl-0">
-                            {torrent.name}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-right text-gray-300">{torrent.size}</td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-300">
-                            <progress className="progress w-100" value="67" max="100"></progress>
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-right text-gray-300">10 / 100</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            <tbody className="divide-y divide-gray-800">
+            {torrents.map((torrent) => (
+                <tr key={torrent.id} className="whitespace-nowrap text-sm text-neutral-300">
+                  <td className="px-3 py-4 sm:pl-0">
+                    {torrent.name}
+                  </td>
+                  <td className="px-3 py-4 text-right">{torrent.size}</td>
+                  <td className="px-3 py-4">
+                    <ProgressBar gradient={true} progress={torrent.progress}/>
+                  </td>
+                  <td className="px-3 py-4 text-left">{torrent.status}</td>
+                  <td className="px-3 py-4 text-left">{torrent.download_speed}</td>
+                  <td className="px-3 py-4 text-left">{torrent.upload_speed}</td>
+                  <td className="px-3 py-4 text-left">{torrent.active_seeds} / {torrent.inactive_seeds}</td>
+                  <td className="px-3 py-4 text-left">{torrent.active_peers} / {torrent.inactive_peers}</td>
+                  <td className="px-3 py-4 text-left ">
+                    <span className={`${getColor(torrent.ratio)}`}>{torrent.ratio}</span>
+                  </td>
+                </tr>
+            ))}
+            </tbody>
+          </table>
           </div>
         </main>
       </div>
