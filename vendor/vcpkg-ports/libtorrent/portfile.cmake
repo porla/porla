@@ -29,10 +29,10 @@ endif()
 
 vcpkg_from_github(
         OUT_SOURCE_PATH SOURCE_PATH
-        REPO arvidn/libtorrent
-        REF 6c5ec0952a7e3b508d6a3056bb36dec82840c8b2 # pread-disk-io
-        SHA512 4c114cadd205e13464d9df17fe0b531d78aff8aa5e3e336d032a5381dd61262a768203fd25e3ee98ea25d4c55f9bceb47b97d1cd98e22d959ffa47342b7be941
-        HEAD_REF master
+        REPO vktr/libtorrent
+        REF 7c8182155e2d4aa889ded478328e73860d4317d8 # pread-disk-io
+        SHA512 8bb9f9338025c6cc08511c3c0d8a37b6ced7cf060e7e732d076842ac7ddb5f067262fb49cff852a0c3cd3d3e8f3d4c628d2e7dfe560278a015e27dbe1d91cf2c
+        HEAD_REF pread-disk-io
 )
 
 vcpkg_from_github(
