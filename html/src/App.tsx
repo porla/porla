@@ -189,33 +189,32 @@ function App() {
           <div className="px-4 sm:px-6 lg:px-8">
           <table className="min-w-full divide-y divide-gray-700">
                     <thead>
-                    <tr>
-                      <th scope="col"
-                          className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-neutral-300 sm:pl-0">
+                    <tr className="text-sm font-semibold text-neutral-300">
+                      <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm sm:pl-0">
                         Name
                       </th>
-                      <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-neutral-300">
+                      <th scope="col" className="px-3 py-3.5 text-right">
                         Size
                       </th>
-                      <th scope="col" className="px-3 py-3.5 text-center text-sm font-semibold text-neutral-300">
+                      <th scope="col" className="px-3 py-3.5 text-center">
                         Progress
                       </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-neutral-300">
+                      <th scope="col" className="px-3 py-3.5 text-left">
                         Status
                       </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-neutral-300">
+                      <th scope="col" className="px-3 py-3.5 text-left">
                         Download Speed
                       </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-neutral-300">
+                      <th scope="col" className="px-3 py-3.5 text-left">
                         Upload Speed
                       </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-neutral-300">
+                      <th scope="col" className="px-3 py-3.5 text-left">
                         Seeds
                       </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-neutral-300">
+                      <th scope="col" className="px-3 py-3.5 text-left">
                         Peers
                       </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-neutral-300">
+                      <th scope="col" className="px-3 py-3.5 text-left">
                         Ratio
                       </th>
                     </tr>
