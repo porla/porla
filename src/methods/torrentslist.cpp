@@ -38,16 +38,14 @@ constexpr std::uint64_t HashDJB2(const char* sz, SortOrder sort_order = kOrder_A
     return std::uint64_t(hash) | std::uint64_t(sort_order) << 63;
 }
 
-__attribute__((always_inline)) inline
-constexpr std::uint64_t operator"" _djb2(const char *s, unsigned long)
+consteval std::uint64_t operator"" _djb2(const char *s, unsigned long)
 {
     return HashDJB2(s);
 }
 
-__attribute__((always_inline)) inline
-bool ShouldFilterOut(
+bool FilterIncludesTorrent(
     const FilterHashList& filters,
-    const libtorrent::torrent_status& ts,
+    const lt::torrent_status& ts,
     const std::string& session_name,
     porla::TorrentClientData* client_data
 ) {
@@ -58,12 +56,7 @@ bool ShouldFilterOut(
         // Stop early if this torrent can't conform to current filter
         if (!filter_includes_torrent)
         {
-            break;
-        }
-
-        if (!args.is_string())
-        {
-            continue;
+            return false;
         }
 
         switch (field_hash)
@@ -103,6 +96,7 @@ bool ShouldFilterOut(
             break;
         }
     }
+
     return filter_includes_torrent;
 }
 
@@ -194,158 +188,147 @@ TorrentsList::TorrentsList(porla::Sessions& sessions)
 
 void TorrentsList::InvokeImpl(const TorrentsListReq& req, WriteCb<TorrentsListRes>& cb)
 {
-    std::uintptr_t global_total_torrents = 0;
-
-    std::vector<TorrentsListRes::Item> torrents;
-    torrents.reserve(m_sessions.Default()->torrents.size());
-
     const auto now = lt::clock_type::now();
 
-    FilterHashList filters{};
+    FilterHashList filters;
     if (req.filters.has_value())
     {
         filters.reserve(req.filters->size());
 
         for (const auto& [key, value] : *req.filters)
         {
+            if (!value.is_string()) {
+                continue;
+            }
+
             filters.emplace_back(HashDJB2(key.c_str()), value);
         }
     }
 
-    for (const auto& [session_name, state] : m_sessions.All())
+    auto* session = m_sessions.Default().get();
+
+    auto torrents = std::vector<TorrentsListRes::Item>();
+    torrents.reserve(session->status_snapshots.size());
+
+    for (auto const& [_, ts] : session->status_snapshots)
     {
-        global_total_torrents += state->torrents.size();
+        const auto client_data = ts.handle.userdata().get<TorrentClientData>();
 
-        for (auto const& [_, handle] : state->torrents)
+        if (!filters.empty() && !FilterIncludesTorrent(filters, ts, session->name, client_data))
         {
-            if (!handle.is_valid())
+            continue;
+        }
+
+        std::unordered_map<std::string, nlohmann::json> metadata;
+
+        if (client_data->metadata.has_value() && req.include_metadata.has_value())
+        {
+            const auto metadata_keys = req.include_metadata.value();
+            metadata.reserve(metadata_keys.size());
+
+            const auto request_fields = client_data->metadata.value();
+
+            // Include metadata for all the keys specified. If ["*"], include everything.
+            if (metadata_keys.size() == 1 && !metadata_keys[0].empty() && metadata_keys[0][0] == '*')
             {
-                continue;
+                // Copy all metadata fields from std::map to std::unordered_map
+                metadata = std::unordered_map<std::string, nlohmann::json>{
+                    request_fields.begin(),
+                    request_fields.end()
+                };
             }
-
-            const auto client_data = handle.userdata().get<TorrentClientData>();
-
-            // Filter torrents here.
-            auto const& ts = handle.status();
-
-            if (!ShouldFilterOut(filters, ts, session_name, client_data))
+            else
             {
-                continue;
-            }
-
-            std::unordered_map<std::string, nlohmann::json> metadata = {};
-
-            if (req.include_metadata.has_value())
-            {
-                const auto metadata_keys   = req.include_metadata.value();
-                const auto metadata_client = client_data->metadata.value_or(std::map<std::string, nlohmann::json>{});
-
-                // Include metadata for all the keys specified. If ["*"], include everything.
-                if (metadata_keys.size() == 1 && !metadata_keys[0].empty() && metadata_keys[0][0] == '*')
+                // Iterate over requested metadata fields
+                // and only include relevant ones
+                for (const auto& key : metadata_keys)
                 {
-                    // Copy all metadata fields from std::map to std::unordered_map
-                    metadata = std::unordered_map<std::string, nlohmann::json>{
-                        metadata_client.begin(),
-                        metadata_client.end()
-                    };
-                }
-                else
-                {
-                    // Iterate over requested metadata fields
-                    // and only include relevant ones
-                    for (const auto& key : metadata_keys)
+                    auto it = request_fields.find(key);
+                    if (it == request_fields.end())
                     {
-                        auto it = metadata_client.find(key);
-                        if (it == metadata_client.end())
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            metadata[key] = *it;
-                        }
+                        continue;
+                    }
+                    else
+                    {
+                        metadata[key] = *it;
                     }
                 }
             }
+        }
 
 #define INSERT_FLAG(name) if ((ts.flags & lt::torrent_flags:: name) == lt::torrent_flags:: name) flags.emplace_back(#name);
 
-            // Assume at least some allocation
-            // Is this usually the case though?
-            std::vector<std::string> flags;
-            flags.reserve(4);
+        // Assume at least some allocation
+        // Is this usually the case though?
+        std::vector<std::string> flags;
 
-            INSERT_FLAG(seed_mode)
-            INSERT_FLAG(upload_mode)
-            INSERT_FLAG(share_mode)
-            INSERT_FLAG(apply_ip_filter)
-            INSERT_FLAG(paused)
-            INSERT_FLAG(auto_managed)
-            INSERT_FLAG(duplicate_is_error)
-            INSERT_FLAG(update_subscribe)
-            INSERT_FLAG(super_seeding)
-            INSERT_FLAG(sequential_download)
-            INSERT_FLAG(stop_when_ready)
-            INSERT_FLAG(override_trackers)
-            INSERT_FLAG(override_web_seeds)
-            INSERT_FLAG(need_save_resume)
-            INSERT_FLAG(disable_dht)
-            INSERT_FLAG(disable_lsd)
-            INSERT_FLAG(disable_pex)
-            INSERT_FLAG(no_verify_files)
-            INSERT_FLAG(default_dont_download)
-            INSERT_FLAG(i2p_torrent)
+        INSERT_FLAG(seed_mode)
+        INSERT_FLAG(upload_mode)
+        INSERT_FLAG(share_mode)
+        INSERT_FLAG(apply_ip_filter)
+        INSERT_FLAG(paused)
+        INSERT_FLAG(auto_managed)
+        INSERT_FLAG(duplicate_is_error)
+        INSERT_FLAG(update_subscribe)
+        INSERT_FLAG(super_seeding)
+        INSERT_FLAG(sequential_download)
+        INSERT_FLAG(stop_when_ready)
+        INSERT_FLAG(override_trackers)
+        INSERT_FLAG(override_web_seeds)
+        INSERT_FLAG(need_save_resume)
+        INSERT_FLAG(disable_dht)
+        INSERT_FLAG(disable_lsd)
+        INSERT_FLAG(disable_pex)
+        INSERT_FLAG(no_verify_files)
+        INSERT_FLAG(default_dont_download)
+        INSERT_FLAG(i2p_torrent)
 
 #undef INSERT_FLAG // !INSERT_FLAG
 
-            torrents.emplace_back(TorrentsListRes::Item{
-                .active_duration   = ts.active_duration.count(),
-                .all_time_download = ts.all_time_download,
-                .all_time_upload   = ts.all_time_upload,
-                .category          = client_data->category,
-                .download_rate     = ts.download_rate,
-                .error             = ts.errc,
-                .eta               = porla::Utils::ETA(ts).count(),
-                .finished_duration = ts.finished_duration.count(),
-                .flags             = flags,
-                .info_hash         = ts.info_hashes,
-                .last_download     = ts.last_download.time_since_epoch().count() > 0
-                    ? lt::total_seconds(now - ts.last_download)
-                    : -1,
-                .last_upload       = ts.last_upload.time_since_epoch().count() > 0
-                    ? lt::total_seconds(now - ts.last_upload)
-                    : -1,
-                .list_peers        = ts.list_peers,
-                .list_seeds        = ts.list_seeds,
-                .metadata          = metadata,
-                .moving_storage    = ts.moving_storage,
-                .name              = ts.name,
-                .num_peers         = ts.num_peers,
-                .num_seeds         = ts.num_seeds,
-                .progress          = ts.progress,
-                .queue_position    = static_cast<int>(ts.queue_position),
-                .ratio             = porla::Utils::Ratio(ts),
-                .save_path         = ts.save_path,
-                .seeding_duration  = ts.seeding_duration.count(),
-                .session           = session_name,
-                .size              = ts.total,
-                .state             = ts.state,
-                .tags              = client_data->tags,
-                .total             = ts.total,
-                .total_done        = ts.total_done,
-                .upload_rate       = ts.upload_rate,
-            });
-        }
+        torrents.emplace_back(TorrentsListRes::Item{
+            .active_duration   = ts.active_duration.count(),
+            .all_time_download = ts.all_time_download,
+            .all_time_upload   = ts.all_time_upload,
+            .category          = client_data->category,
+            .download_rate     = ts.download_rate,
+            .error             = ts.errc,
+            .eta               = porla::Utils::ETA(ts).count(),
+            .finished_duration = ts.finished_duration.count(),
+            .flags             = flags,
+            .info_hash         = ts.info_hashes,
+            .last_download     = ts.last_download.time_since_epoch().count() > 0
+                ? lt::total_seconds(now - ts.last_download)
+                : -1,
+            .last_upload       = ts.last_upload.time_since_epoch().count() > 0
+                ? lt::total_seconds(now - ts.last_upload)
+                : -1,
+            .list_peers        = ts.list_peers,
+            .list_seeds        = ts.list_seeds,
+            .metadata          = metadata,
+            .moving_storage    = ts.moving_storage,
+            .name              = ts.name,
+            .num_peers         = ts.num_peers,
+            .num_seeds         = ts.num_seeds,
+            .progress          = ts.progress,
+            .queue_position    = static_cast<int>(ts.queue_position),
+            .ratio             = porla::Utils::Ratio(ts),
+            .save_path         = ts.save_path,
+            .seeding_duration  = ts.seeding_duration.count(),
+            .session           = session->name,
+            .size              = ts.total,
+            .state             = ts.state,
+            .tags              = client_data->tags,
+            .total             = ts.total,
+            .total_done        = ts.total_done,
+            .upload_rate       = ts.upload_rate,
+        });
     }
 
     const auto page = req.page.value_or(0);
     const auto page_size = req.page_size.value_or(50);
 
     const auto page_beg = page * page_size;
-    const auto page_end = std::min(
-        page_beg + page_size,
-        static_cast<int>(torrents.size())
-    );
+    const auto page_end = std::min(page_beg + page_size, static_cast<int>(torrents.size()));
 
     if (page_beg > page_end)
     {
@@ -372,7 +355,7 @@ void TorrentsList::InvokeImpl(const TorrentsListReq& req, WriteCb<TorrentsListRe
         .page_size                 = page_size,
         .torrents                  = std::vector(torrents.begin() + page_beg, torrents.begin() + page_end),
         .torrents_total            = static_cast<int>(torrents.size()),
-        .torrents_total_unfiltered = static_cast<int>(global_total_torrents)
+        .torrents_total_unfiltered = static_cast<int>(session->torrents.size())
     });
 }
 

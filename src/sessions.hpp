@@ -44,10 +44,12 @@ namespace porla
         {
             friend class Sessions;
 
-            std::string                                   name;
-            std::shared_ptr<lt::session>                  session;
-            std::filesystem::path                         session_params_file;
-            std::map<lt::info_hash_t, lt::torrent_handle> torrents;
+            std::string                                              name;
+            std::shared_ptr<lt::session>                             session;
+            std::filesystem::path                                    session_params_file;
+
+            std::map<lt::info_hash_t, lt::torrent_handle>            torrents;
+            std::unordered_map<lt::info_hash_t, lt::torrent_status>  status_snapshots;
 
             void Recheck(const lt::info_hash_t& hash);
 
