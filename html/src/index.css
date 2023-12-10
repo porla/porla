@@ -1,3 +1,20 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Style scrollbars for webkit enabled browsers i.e. Chrome, Edge, and Safari */
+@layer base {
+    *::-webkit-scrollbar-corner {
+        background-color: transparent;
+    }
+    *::-webkit-scrollbar {
+        height: 8px;
+        width: 10px;
+    }
+    *::-webkit-scrollbar-thumb {
+        @apply bg-neutral-400 rounded-xl;
+    }
+    .dark *::-webkit-scrollbar-thumb {
+        @apply bg-neutral-600;
+    }
+}
