@@ -13,26 +13,23 @@ import {
 
 import ProgressBar from "./components/ProgressBar.tsx";
 
+const teams = []
 
 const navigation = [
-
 
   { name: 'All', href: '#', icon: CloudIcon, current: true, count: 122 },
   { name: 'Downloading', href: '#', icon: CloudArrowDownIcon, current: false, count: 33 },
   { name: 'Seeding', href: '#', icon: CloudArrowUpIcon, current: false, count: 89 },
   { name: 'Error', href: '#', icon: ExclamationTriangleIcon, current: false, count: 0 },
-]
-const teams = [
-
 
 ]
 
 const torrents = [
 
-
   { id: 1, name: 'debian-12.2.0-amd64-netinst.iso', size: '287.4 MiB', progress: 80, status: 'Downloading', download_speed: '117.00 MiB/s', upload_speed: '117.00 MiB/s', active_seeds: 1, inactive_seeds: 2, active_peers: 3, inactive_peers: 4, ratio: 13.37 },
   { id: 2, name: "archlinux-2023.12.01-x86_64.iso", size: "872 MiB", progress: 100, status: 'Seeding', download_speed: '1.17 GiB/s', upload_speed: '1.17 GiB/s', active_seeds: 5, inactive_seeds: 6, active_peers: 7, inactive_peers: 8, ratio: 133.7  }
   // More torrents...
+
 ]
 
 const getColor = (ratio: number) => {
@@ -55,6 +52,7 @@ const getColor = (ratio: number) => {
   }
 
   return 'text-gray-500';
+
 };
 
 function classNames(...classes: any[]) {
@@ -185,12 +183,12 @@ function App() {
           </a>
         </div>
 
-        <main className="py-10 lg:pl-72">
+        <main className="py-0 sm:py-10 lg:pl-72">
           <div className="px-4 sm:px-6 lg:px-8 overflow-auto">
           <table className="min-w-full divide-y divide-gray-700">
                     <thead>
                     <tr className="text-sm font-semibold text-neutral-300">
-                      <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm sm:pl-0">
+                      <th scope="col" className="px-3 sm:px-0 py-3.5 text-left">
                         Name
                       </th>
                       <th scope="col" className="px-3 py-3.5 text-right">
