@@ -186,7 +186,7 @@ function App() {
         </div>
 
         <main className="py-10 lg:pl-72">
-          <div className="px-4 sm:px-6 lg:px-8">
+          <div className="px-4 sm:px-6 lg:px-8 overflow-auto">
           <table className="min-w-full divide-y divide-gray-700">
                     <thead>
                     <tr className="text-sm font-semibold text-neutral-300">
