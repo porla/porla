@@ -286,7 +286,7 @@ function App() {
                   <td className="px-3 py-4 text-left">{torrent.active_seeds} / {torrent.inactive_seeds}</td>
                   <td className="px-3 py-4 text-left">{torrent.active_peers} / {torrent.inactive_peers}</td>
                   <td className="px-3 py-4 text-left ">
-                    <span className={`${getColor(torrent.ratio)}`}>{torrent.ratio}</span>
+                    <span className={`${getColor(torrent.ratio)}`}>{torrent.ratio.toFixed(2)}</span>
                   </td>
                 </tr>
               ))}
