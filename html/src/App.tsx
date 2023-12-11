@@ -14,6 +14,7 @@ import {
 import PorlaLogo from "./porla.svg?react";
 
 import ProgressBar from "./components/ProgressBar.tsx";
+import { CollapsibleSection } from "./components/CollapsibleSection.tsx";
 
 
 const navigation = [
@@ -101,7 +102,7 @@ function App() {
         <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
           {/* Sidebar component, swap this element with another sidebar if you like */}
           <div
-            className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-6">
+            className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-4">
             <div className="flex h-16 shrink-0 items-center">
               <img
                 className="h-8 w-auto"
@@ -110,10 +111,10 @@ function App() {
               />
             </div>
             <nav className="flex flex-1 flex-col">
-              <div className="text-xs font-semibold leading-6 text-gray-400 dark:text-neutral-400">Torrents</div>
               <ul role="list" className="flex flex-1 flex-col gap-y-7">
                 <li>
-                  <ul role="list" className="-mx-2 space-y-1">
+                  <CollapsibleSection title="Torrents">
+                  <ul role="list" className="mt-2 space-y-1">
                     {navigation.map((item) => (
                       <li key={item.name}>
                         <a
@@ -152,10 +153,11 @@ function App() {
                       </li>
                     ))}
                   </ul>
+                  </CollapsibleSection>
                 </li>
                 <li>
-                  <div className="text-xs font-semibold leading-6 text-gray-400">Trackers</div>
-                  <ul role="list" className="-mx-2 mt-2 space-y-1">
+                  <CollapsibleSection title="Trackers">
+                  <ul role="list" className="mt-2 space-y-1">
                     {trackers.map((tracker) => (
                       <li key={tracker.url}>
                         <a
@@ -196,11 +198,12 @@ function App() {
                       </li>
                     ))}
                   </ul>
+                  </CollapsibleSection>
                 </li>
-                <li className="-mx-6 mt-auto">
+                <li className="mt-auto">
                   <a
                     href="#"
-                    className="flex items-center gap-x-4 mx-3 my-2 px-3 py-2 text-sm font-semibold leading-6 text-neutral-300 hover:bg-gray-50 hover:dark:bg-neutral-700 rounded-md"
+                    className="flex items-center gap-x-4 my-2 px-2 py-1 text-sm font-semibold leading-6 text-neutral-300 hover:bg-gray-50 hover:dark:bg-neutral-700 rounded-md"
                   >
                     <img
                       className="h-8 w-8 rounded-full"
