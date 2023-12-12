@@ -291,7 +291,7 @@ function App() {
                   </td>
                   <td className="px-3 py-4 text-right">{torrent.size}</td>
                   <td className="px-3 py-4">
-                    <ProgressBar progress={torrent.progress} gradient={true}/>
+                    <ProgressBar progress={torrent.progress} gradient={true} fromColor="from-purple-500" toColor="to-blue-600"/>
                   </td>
                   <td className="px-3 py-4 text-left">{torrent.status}</td>
                   <td className="px-3 py-4 text-left">{torrent.download_speed}</td>
