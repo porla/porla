@@ -13,7 +13,7 @@ import {
 
 import PorlaLogo from "./porla.svg?react";
 
-import ProgressBar from "./components/ProgressBar.tsx";
+import { ProgressBar } from "./components/ProgressBar.tsx";
 import { CollapsibleSection } from "./components/CollapsibleSection.tsx";
 
 
@@ -39,7 +39,7 @@ const torrents = [
     id: 1,
     name: 'debian-12.2.0-amd64-netinst.iso',
     size: '287.4 MiB',
-    progress: 80,
+    progress: 99,
     status: 'Downloading',
     download_speed: '117.00 MiB/s',
     upload_speed: '117.00 MiB/s',
@@ -62,8 +62,21 @@ const torrents = [
     active_peers: 7,
     inactive_peers: 8,
     ratio: 133.7
+  },
+  {
+    id: 3,
+    name: "ubuntu-20.04.6-live-server-amd64.iso",
+    size: "1.4 GiB",
+    progress: 50,
+    status: 'Downloading',
+    download_speed: '11.70 MiB/s',
+    upload_speed: '11.70 MiB/s',
+    active_seeds: 9,
+    inactive_seeds: 10,
+    active_peers: 11,
+    inactive_peers: 12,
+    ratio: 1.337
   }
-  // More torrents...
 
 ]
 
@@ -278,7 +291,7 @@ function App() {
                   </td>
                   <td className="px-3 py-4 text-right">{torrent.size}</td>
                   <td className="px-3 py-4">
-                    <ProgressBar gradient={true} progress={torrent.progress}/>
+                    <ProgressBar progress={torrent.progress} gradient={true}/>
                   </td>
                   <td className="px-3 py-4 text-left">{torrent.status}</td>
                   <td className="px-3 py-4 text-left">{torrent.download_speed}</td>
