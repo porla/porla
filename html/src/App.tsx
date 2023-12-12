@@ -80,7 +80,7 @@ const torrents = [
 
 ]
 
-const getColor = (ratio: number) => {
+const RatioColor = (ratio: number) => {
   const colorMap = {
     'text-amber-200 drop-shadow-[0_0_5px_rgba(255,255,0,1)]': 100,
     'text-orange-500': 50,
@@ -299,7 +299,7 @@ function App() {
                   <td className="px-3 py-4 text-left">{torrent.active_seeds} / {torrent.inactive_seeds}</td>
                   <td className="px-3 py-4 text-left">{torrent.active_peers} / {torrent.inactive_peers}</td>
                   <td className="px-3 py-4 text-left ">
-                    <span className={`${getColor(torrent.ratio)}`}>{torrent.ratio.toFixed(2)}</span>
+                    <span className={`${RatioColor(torrent.ratio)}`}>{torrent.ratio.toFixed(2)}</span>
                   </td>
                 </tr>
               ))}
