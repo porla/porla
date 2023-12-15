@@ -56,7 +56,7 @@ jobs:
         run: pushd html/dist && zip -9 -r ../webui.zip * && popd && ls -la
 
       - name: Upload web UI to artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: webui.zip
           path: html/webui.zip
@@ -110,13 +110,13 @@ jobs:
           docker save -o /tmp/porla-${{ matrix.platform }}-docker.tar ghcr.io/porla/porla:${{ needs.calc-version.outputs.shortSha }}-${{ matrix.platform }}
 
       - name: Upload Docker container to artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: porla-${{ matrix.platform }}-docker.tar
           path: /tmp/porla-${{ matrix.platform }}-docker.tar
 
       - name: Upload Porla binary to artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: porla-${{ matrix.platform }}
           path: /tmp/porla-${{ matrix.platform }}
