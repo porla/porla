@@ -83,7 +83,7 @@ jobs:
           submodules: 'recursive'
 
       - name: Download web UI artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: webui.zip
           path: html/
@@ -134,13 +134,13 @@ jobs:
 
     steps:
       - name: Download Docker artifact (linux-amd64)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: porla-linux-amd64-docker.tar
           path: /tmp
 
       - name: Download Docker artifact (linux-arm64)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: porla-linux-arm64-docker.tar
           path: /tmp
