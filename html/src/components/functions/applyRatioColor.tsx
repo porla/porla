@@ -17,6 +17,6 @@ export function applyRatioColor (ratio: number) {
     }
   }
 
-  return 'text-gray-500';
+  return 'text-neutral-500';
 
 }
