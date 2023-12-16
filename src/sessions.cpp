@@ -134,7 +134,7 @@ static void WriteSessionParams(const fs::path& file, const lt::session_params& p
 
 void Sessions::SessionState::Recheck(const lt::info_hash_t& hash)
 {
-    const auto& handle = torrents.at(hash);
+    const auto& [ handle, _ ] = torrents.at(hash);
 
     // If the torrent is paused, it must be resumed in order to be rechecked.
     // It should also not be auto managed, so remove it from that as well.
@@ -169,17 +169,19 @@ void Sessions::SessionState::Recheck(const lt::info_hash_t& hash)
                 return;
             }
 
+            const auto& [ th, _ ] = torrents.at(hash);
+
             // TODO: Unsure about the order here. If there are reports that force-checking a torrent
             //       leads to any issues with resume/pause, the order of these statements might matter.
 
             if (was_auto_managed)
             {
-                torrents.at(hash).set_flags(lt::torrent_flags::auto_managed);
+                th.set_flags(lt::torrent_flags::auto_managed);
             }
 
             if (was_paused)
             {
-                torrents.at(hash).pause();
+                th.pause();
             }
         });
 
@@ -245,12 +247,9 @@ Sessions::~Sessions()
 
             for (int j = 0; j < chunk_items; j++)
             {
-                auto const &th = current->second;
-                auto const &ts = th.status();
+                const auto& [ th, ts ] = current->second;
 
-                if (!th.is_valid()
-                    || !ts.has_metadata
-                    || !ts.need_save_resume)
+                if (!th.is_valid() || !ts.has_metadata || !ts.need_save_resume)
                 {
                     std::advance(current, 1);
                     continue;
@@ -368,7 +367,7 @@ void Sessions::Load(const SessionsLoadOptions& options)
             params.userdata.get<TorrentClientData>()->state = state;
 
             lt::torrent_handle th = state->session->add_torrent(params);
-            state->torrents.insert({ th.info_hashes(), th });
+            state->torrents.insert({ th.info_hashes(), std::make_pair(th, th.status()) });
 
             if (current % 1000 == 0 && current != count)
             {
@@ -410,7 +409,9 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                     continue;
                 }
 
-                state->torrents.insert({ ata->handle.info_hashes(), ata->handle });
+                state->torrents.insert({
+                    ata->handle.info_hashes(),
+                    std::make_pair(ata->handle, ata->handle.status()) });
 
                 const auto status = ata->handle.status();
 

@@ -33,7 +33,9 @@ void TorrentsPause::Invoke(const TorrentsPauseReq& req, WriteCb<TorrentsPauseRes
         return cb.Error(-1, "Torrent not found");
     }
 
-    handle->second.pause();
+    const auto& [ th, _ ] = handle->second;
+
+    th.pause();
 
     cb.Ok(TorrentsPauseRes{});
 }

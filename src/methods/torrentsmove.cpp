@@ -42,7 +42,9 @@ void TorrentsMove::Invoke(const TorrentsMoveReq &req, WriteCb<TorrentsMoveRes> c
         if (req.flags.value() == "fail_if_exist")        flags = lt::move_flags_t::fail_if_exist;
     }
 
-    handle->second.move_storage(req.path, flags);
+    const auto& [ th, _ ] = handle->second;
+
+    th.move_storage(req.path, flags);
 
     return cb.Ok(TorrentsMoveRes{});
 }
