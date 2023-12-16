@@ -3,6 +3,7 @@ import { Allotment } from "allotment";
 import { TorrentList } from "./components/panes/TorrentList.tsx";
 import { NavigationSidebar } from "./components/panes/NavigationSidebar.tsx";
 import { MobileNavigation } from "./components/panes/MobileNavigation.tsx";
+import { Toolbar } from "./components/panes/Toolbar.tsx";
 
 function App() {
 
@@ -36,18 +37,21 @@ function App() {
 
   return (
     <>
-      <Allotment className="h-screen hidden lg:flex"
-                 defaultSizes={sidebarSize} onDragEnd={setSidebarSize}>
-        <Allotment.Pane maxSize={300}>
-          <NavigationSidebar/>
-        </Allotment.Pane>
-        <Allotment className="h-screen" defaultSizes={mainAreaSize} onDragEnd={setMainAreaSize} vertical={true}>
-          <TorrentList/>
-          <div className="flex h-full justify-center items-center">
-            <span>This will be the details area but it has not been started yet.</span>
-          </div>
+      <div className="h-screen hidden lg:flex lg:flex-col">
+        <Toolbar/>
+        <Allotment className="h-full hidden lg:flex"
+                   defaultSizes={sidebarSize} onDragEnd={setSidebarSize}>
+          <Allotment.Pane maxSize={300}>
+            <NavigationSidebar/>
+          </Allotment.Pane>
+          <Allotment className="h-full" defaultSizes={mainAreaSize} onDragEnd={setMainAreaSize} vertical={true}>
+            <TorrentList/>
+            <div className="flex h-full justify-center items-center">
+              <span>This will be the details area but it has not been started yet.</span>
+            </div>
+          </Allotment>
         </Allotment>
-      </Allotment>
+      </div>
       <div className="flex flex-col h-screen lg:hidden">
         <MobileNavigation/>
         <TorrentList/>

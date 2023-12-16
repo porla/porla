@@ -8,11 +8,7 @@ export const NavigationSidebar = () => {
     <>
       <nav
         className="h-full flex flex-1 flex-col overflow-y-auto border-r border-gray-200 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-4">
-        <div className="flex items-center pl-2 pt-4 pb-6">
-          <PorlaIcon className="h-8 w-auto"/>
-          <span className="pl-3 text-3xl font-bold ">Porla</span>
-        </div>
-        <ul role="list" className="flex flex-1 flex-col gap-y-7">
+        <ul role="list" className="flex flex-1 flex-col gap-y-7 pt-4">
           <li>
             <CollapsibleSection title="Torrents">
               <ul role="list" className="mt-2 space-y-1">
