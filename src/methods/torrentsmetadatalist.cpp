@@ -35,7 +35,8 @@ void TorrentsMetadataList::Invoke(const TorrentsMetadataListReq& req, WriteCb<To
         return cb.Error(-1, "Torrent not found");
     }
 
-    const auto client_data = handle->second.userdata().get<TorrentClientData>();
+    const auto& [ th, _ ] = handle->second;
+    const auto& client_data = th.userdata().get<TorrentClientData>();
 
     return cb.Ok(TorrentsMetadataListRes{
         .metadata = client_data->metadata.has_value()

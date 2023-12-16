@@ -35,6 +35,8 @@ void TorrentsPeersAdd::Invoke(const TorrentsPeersAddReq& req, WriteCb<TorrentsPe
         return cb.Error(-1, "Torrent not found");
     }
 
+    const auto& [ th, _ ] = handle->second;
+
     for (const auto& [ip,port] : req.peers)
     {
         boost::system::error_code ec;
@@ -46,7 +48,7 @@ void TorrentsPeersAdd::Invoke(const TorrentsPeersAddReq& req, WriteCb<TorrentsPe
             continue;
         }
 
-        handle->second.connect_peer(boost::asio::ip::tcp::endpoint{addr,port});
+        th.connect_peer(boost::asio::ip::tcp::endpoint{addr,port});
     }
 
     cb(TorrentsPeersAddRes{});

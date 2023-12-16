@@ -48,14 +48,14 @@ public:
     {
         if (m_iter == m_state.torrents.end()) return std::nullopt;
 
-        auto th = m_iter->second;
+        const auto& [ th, _ ] = m_iter->second;
         std::advance(m_iter, 1);
         return th;
     }
 
 private:
     const porla::Sessions::SessionState& m_state;
-    std::map<lt::info_hash_t, lt::torrent_handle>::const_iterator m_iter;
+    std::map<lt::info_hash_t, std::tuple<lt::torrent_handle, lt::torrent_status>>::const_iterator m_iter;
 };
 
 void Sessions::Register(sol::state& lua)
@@ -196,7 +196,9 @@ void Sessions::Register(sol::state& lua)
             return std::nullopt;
         }
 
-        return it->second;
+        const auto& [ th, _ ] = it->second;
+
+        return th;
     };
 
     session_type["remove_torrent"] = [](const porla::Sessions::SessionState& state, const lt::torrent_handle& th, const sol::table& args)

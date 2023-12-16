@@ -105,8 +105,10 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
     for (const auto& [ name, state] : m_sessions.All())
     {
-        for (auto const& [_, handle] : state->torrents)
+        for (const auto& [_, pair] : state->torrents)
         {
+            const auto& [ handle, ts ] = pair;
+
             if (!handle.is_valid())
             {
                 continue;
@@ -137,8 +139,6 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
                     }
                 }
             }
-
-            auto const& ts = handle.status();
 
             if (auto ti = ts.torrent_file.lock())
                 size = ti->total_size();

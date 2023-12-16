@@ -33,7 +33,9 @@ void TorrentsPropertiesGet::Invoke(const TorrentsPropertiesGetReq& req, WriteCb<
         return cb.Error(-1, "Torrent not found");
     }
 
-    const auto handle_flags = handle->second.flags();
+    const auto& [ th, _ ] = handle->second;
+
+    const auto handle_flags = th.flags();
 
 #define INSERT_FLAG(name) flags.insert({ #name, (handle_flags & lt::torrent_flags:: name) == lt::torrent_flags:: name });
 
@@ -60,10 +62,10 @@ void TorrentsPropertiesGet::Invoke(const TorrentsPropertiesGetReq& req, WriteCb<
     INSERT_FLAG(i2p_torrent)
 
     cb.Ok(TorrentsPropertiesGetRes{
-        .download_limit  = handle->second.download_limit(),
+        .download_limit  = th.download_limit(),
         .flags           = flags,
-        .max_connections = handle->second.max_connections(),
-        .max_uploads     = handle->second.max_uploads(),
-        .upload_limit    = handle->second.upload_limit()
+        .max_connections = th.max_connections(),
+        .max_uploads     = th.max_uploads(),
+        .upload_limit    = th.upload_limit()
     });
 }
