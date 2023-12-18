@@ -51,7 +51,7 @@ export const torrents = [
     id: 3,
     name: "ubuntu-20.04.6-live-server-amd64.iso",
     size: "1.4 GiB",
-    progress: 50,
+    progress: 50.0,
     status: 'Downloading',
     download_speed: '11.70 MiB/s',
     upload_speed: '11.70 MiB/s',
@@ -60,6 +60,19 @@ export const torrents = [
     active_peers: 11,
     inactive_peers: 12,
     ratio: 1.337
+  },
+  {
+    id: 4,
+    name: "ubuntu-20.04.5-live-server-amd64.iso",
+    size: "1.4 GiB",
+    progress: 0.08,
+    status: 'Stalled',
+    download_speed: '0 B/s',
+    upload_speed: '0 B/s',
+    active_seeds: 13,
+    inactive_seeds: 14,
+    active_peers: 15,
+    inactive_peers: 16,
+    ratio: 0.00
   }
-
 ]
