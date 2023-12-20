@@ -1,7 +1,8 @@
 import {
+  CloudArrowDownIcon,
+  CloudArrowUpIcon,
   PlayIcon,
   PauseIcon,
-  PlusIcon,
   Cog6ToothIcon,
   PuzzlePieceIcon,
   MagnifyingGlassIcon
@@ -13,13 +14,14 @@ export const Toolbar = () => {
     <>
       <div className="flex justify-between items-center dark:bg-neutral-800 border-b border-b-neutral-600">
         <div className="grid grid-cols-3 w-full h-10">
-          <div className="flex pl-4 gap-x-4 items-center">
+          <div className="flex pl-4 gap-x-6 items-center">
             <div className="flex items-center">
               <PorlaIcon className="h-6 w-6"/>
               <span className="pl-2 text-2xl font-bold">Porla</span>
             </div>
             <div className="flex gap-x-2">
-              <a href="#"><PlusIcon className="h-8 stroke-current"/></a>
+              <a href="#"><CloudArrowUpIcon className="h-8"/></a>
+              <a href="#"><CloudArrowDownIcon className="h-8"/></a>
               <a href="#"><PlayIcon className="h-8 fill-green-600"/></a>
               <a href="#"><PauseIcon className="h-8 -mx-1 fill-amber-600"/></a>
             </div>
