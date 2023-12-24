@@ -8,6 +8,10 @@ project(porla)
 set(CMAKE_CXX_STANDARD 20)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(tomlplusplus REQUIRED IMPORTED_TARGET tomlplusplus)
+pkg_check_modules(LIBGIT2 REQUIRED IMPORTED_TARGET libgit2)
+
 find_package(antlr4-runtime      CONFIG REQUIRED)
 find_package(Boost                      REQUIRED COMPONENTS log program_options system)
 find_package(CURL                CONFIG REQUIRED)
@@ -16,8 +20,6 @@ find_package(libzip              CONFIG REQUIRED)
 find_package(LibtorrentRasterbar CONFIG REQUIRED)
 find_package(Lua                        REQUIRED)
 find_package(nlohmann_json       CONFIG REQUIRED)
-find_package(tomlplusplus        CONFIG REQUIRED)
-find_package(unofficial-git2     CONFIG REQUIRED)
 find_package(unofficial-sodium   CONFIG REQUIRED)
 find_package(unofficial-sqlite3  CONFIG REQUIRED)
 find_package(uriparser           CONFIG REQUIRED)
@@ -219,9 +221,10 @@ target_link_libraries(
     CURL::libcurl
     libzip::zip
     LibtorrentRasterbar::torrent-rasterbar
+    PkgConfig::LIBGIT2
+    PkgConfig::tomlplusplus
     unofficial-sodium::sodium
     unofficial-sodium::sodium_config_public
-    unofficial::git2::libgit2package
     unofficial::sqlite3::sqlite3
     uriparser::uriparser
     uSockets

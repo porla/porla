@@ -1,4 +1,4 @@
-FROM ghcr.io/porla/build-env:202308081156 AS build-env
+FROM ghcr.io/porla/build-env:202311271646 AS build-env
 
 WORKDIR /src
 
