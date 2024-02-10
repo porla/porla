@@ -190,6 +190,12 @@ jobs:
       pull-requests: read
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
+
       - name: Download Docker artifact (linux-amd64)
         uses: actions/download-artifact@v3
         with:
