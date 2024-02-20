@@ -41,6 +41,8 @@ namespace porla::Methods
             std::string                     name;
             int                             num_peers;
             int                             num_seeds;
+            int                             num_complete;
+            int                             num_incomplete;
             float                           progress;
             int                             queue_position;
             double                          ratio;

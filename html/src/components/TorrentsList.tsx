@@ -74,7 +74,7 @@ export default function TorrentsList(props: TorrentsListProps) {
       spacing={1}
     >
       <Grid
-        gridTemplateColumns={"32px 48px 1fr 100px 110px 110px 100px 48px"}
+        gridTemplateColumns={"32px 48px 1fr 100px 110px 110px 110px 110px 100px 48px"}
         gridTemplateRows={"0fr"}
       >
         <GridItem></GridItem>
@@ -95,6 +95,12 @@ export default function TorrentsList(props: TorrentsListProps) {
         </GridItem>
         <GridItem display={"flex"} me={2} justifyContent={"end"}>
           <GridTitle field={"upload_rate"} onSort={props.onSort} orderBy={props.orderBy} orderByDir={props.orderByDir} title="UL" />
+        </GridItem>
+        <GridItem display={"flex"} me={2} justifyContent={"end"}>
+          <GridTitle field={"num_seeds"} onSort={props.onSort} orderBy={props.orderBy} orderByDir={props.orderByDir} title="Seeds" />
+        </GridItem>
+        <GridItem display={"flex"} me={2} justifyContent={"end"}>
+          <GridTitle title="Peers" />
         </GridItem>
         <GridItem></GridItem>
       </Grid>
