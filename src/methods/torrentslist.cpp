@@ -237,6 +237,8 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
                 .name              = ts.name,
                 .num_peers         = ts.num_peers,
                 .num_seeds         = ts.num_seeds,
+                .num_complete      = ts.num_complete,
+                .num_incomplete    = ts.num_incomplete,
                 .progress          = ts.progress,
                 .queue_position    = static_cast<int>(ts.queue_position),
                 .ratio             = porla::Utils::Ratio(ts),
