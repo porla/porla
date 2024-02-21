@@ -17,6 +17,12 @@ export type Torrent = {
   category: string | null;
   download_rate: number;
   download_limit: number;
+  num_peers: number;
+  num_seeds: number;
+  num_complete: number;
+  num_incomplete: number;
+  list_peers: number;
+  list_seeds: number;
   error: any;
   eta: number;
   flags: string[];

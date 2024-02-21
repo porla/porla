@@ -160,7 +160,7 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
 
   return (
     <Grid
-      gridTemplateColumns={"32px 48px 1fr 100px 110px 110px 100px 48px"}
+      gridTemplateColumns={"32px 48px 1fr 100px 110px 110px 110px 110px 100px 48px"}
       gridTemplateRows={"min-content"}
     >
       <GridItem alignSelf={"center"}>
@@ -318,6 +318,32 @@ export default function TorrentsListItem(props: TorrentsListItemProps) {
             ? <>{filesize(props.torrent.upload_rate).toString()}/s</>
             : <>-</>
           }
+        </Text>
+      </GridItem>
+
+      <GridItem alignSelf={"center"} textAlign={"end"}>
+        <Text
+          fontSize={"sm"}
+          mx={2}
+        >
+          {props.torrent.num_seeds} ({
+          props.torrent.num_complete > -1 ?
+              props.torrent.num_complete :
+              props.torrent.list_seeds
+        })
+        </Text>
+      </GridItem>
+
+      <GridItem alignSelf={"center"} textAlign={"end"}>
+        <Text
+          fontSize={"sm"}
+          mx={2}
+        >
+          {props.torrent.num_peers - props.torrent.num_seeds} ({
+          props.torrent.num_incomplete > -1 ?
+              props.torrent.num_incomplete :
+              props.torrent.list_peers - props.torrent.list_seeds
+        })
         </Text>
       </GridItem>
 
