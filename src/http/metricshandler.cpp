@@ -134,12 +134,12 @@ void MetricsHandler::PopulateWithGlobalMetrics(std::stringstream& out) {
 void MetricsHandler::PopulateWithPerTorrentMetrics(std::stringstream &out) {
     for (const auto &[info_hash, tuple]: m_state->TorrentStatuses()) {
         const auto [ms, session, status] = tuple;
-        auto makeCounter = [&out, &session, &ms](
+        auto makeCounter = [&out, &session, &ms, &status](
                 const char *name,
                 const std::int64_t value
         ) {
             out << "# TYPE porla_torrent_status_" << name << " counter\n";
-            out << "porla_torrent_status_" << name << "{session=\"" << session << "\", name=\"" << name << "\"} " << value
+            out << "porla_torrent_status_" << name << "{session=\"" << session << "\", name=\"" << status.name << "\"} " << value
                 << " " << ms << "\n\n";
         };
         makeCounter("total_download", status.total_download);
