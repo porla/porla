@@ -134,56 +134,54 @@ void MetricsHandler::PopulateWithGlobalMetrics(std::stringstream& out) {
 void MetricsHandler::PopulateWithPerTorrentMetrics(std::stringstream &out) {
     for (const auto &[info_hash, tuple]: m_state->TorrentStatuses()) {
         const auto [ms, session, status] = tuple;
-        auto makeCounter = [&out, &session, &ms, &status](
+        auto metric = [&out, &session, &ms, &status](
+                const char *type,
                 const char *name,
                 const std::int64_t value
         ) {
-            out << "# TYPE porla_torrent_status_" << name << " counter\n";
+            out << "# TYPE porla_torrent_status_" << name << " " << type << "\n";
             out << "porla_torrent_status_" << name << "{session=\"" << session << "\", name=\"" << status.name << "\"} " << value
                 << " " << ms << "\n\n";
         };
-        makeCounter("total_download", status.total_download);
-        makeCounter("total_upload", status.total_upload);
-        makeCounter("total_payload_download", status.total_payload_download);
-        makeCounter("total_payload_upload", status.total_payload_upload);
-        makeCounter("total_failed_bytes", status.total_failed_bytes);
-        makeCounter("total_redundant_bytes", status.total_redundant_bytes);
-        makeCounter("total_done", status.total_done);
-        makeCounter("total", status.total);
-        makeCounter("total_wanted_done", status.total_wanted_done);
-        makeCounter("total_wanted", status.total_wanted);
-        makeCounter("all_time_upload", status.all_time_upload);
-        makeCounter("all_time_download", status.all_time_download);
-        makeCounter("added_time", status.added_time);
-        makeCounter("completed_time", status.completed_time);
-        makeCounter("last_seen_complete", status.last_seen_complete);
-        makeCounter("progress_ppm",  status.progress_ppm);
-        makeCounter("queue_position", status.queue_position.operator int());
-        makeCounter("download_rate", status.download_rate);
-        makeCounter("upload_rate", status.upload_rate);
-        makeCounter("download_payload_rate", status.download_payload_rate);
-        makeCounter("upload_payload_rate", status.upload_payload_rate);
-        makeCounter("num_seeds", status.num_seeds);
-        makeCounter("num_peers", status.num_peers);
-        makeCounter("num_complete", status.num_complete);
-        makeCounter("num_incomplete", status.num_incomplete);
-        makeCounter("list_seeds", status.list_seeds);
-        makeCounter("list_peers", status.list_peers);
-        makeCounter("connect_candidates", status.connect_candidates);
-        makeCounter("num_pieces", status.num_pieces);
-        makeCounter("distributed_full_copies", status.distributed_full_copies);
-        makeCounter("distributed_fraction", status.distributed_fraction);
-        makeCounter("block_size", status.block_size);
-        makeCounter("num_uploads", status.num_uploads);
-        makeCounter("num_connections", status.num_connections);
-        makeCounter("uploads_limit", status.uploads_limit);
-        makeCounter("connections_limit", status.connections_limit);
-        makeCounter("up_bandwidth_queue", status.up_bandwidth_queue);
-        makeCounter("down_bandwidth_queue", status.down_bandwidth_queue);
-        makeCounter("seed_rank", status.seed_rank);
-        makeCounter("state", status.state);
-        makeCounter("active_duration", status.active_duration.count());
-        makeCounter("finished_duration", status.finished_duration.count());
-        makeCounter("seeding_duration", status.seeding_duration.count());
+        metric("counter", "total_download", status.total_download);
+        metric("counter", "total_upload", status.total_upload);
+        metric("counter", "total_payload_download", status.total_payload_download);
+        metric("counter", "total_payload_upload", status.total_payload_upload);
+        metric("counter", "total_failed_bytes", status.total_failed_bytes);
+        metric("counter", "total_redundant_bytes", status.total_redundant_bytes);
+        metric("counter", "total_done", status.total_done);
+        metric("counter", "total", status.total);
+        metric("counter", "all_time_upload", status.all_time_upload);
+        metric("counter", "all_time_download", status.all_time_download);
+        metric("gauge", "added_time", status.added_time);
+        metric("gauge", "completed_time", status.completed_time);
+        metric("counter", "progress_ppm",  status.progress_ppm);
+        metric("gauge", "queue_position", status.queue_position.operator int());
+        metric("gauge", "download_rate", status.download_rate);
+        metric("gauge", "upload_rate", status.upload_rate);
+        metric("gauge", "download_payload_rate", status.download_payload_rate);
+        metric("gauge", "upload_payload_rate", status.upload_payload_rate);
+        metric("gauge", "num_seeds", status.num_seeds);
+        metric("gauge", "num_peers", status.num_peers);
+        metric("gauge", "num_complete", status.num_complete);
+        metric("gauge", "num_incomplete", status.num_incomplete);
+        metric("gauge", "list_seeds", status.list_seeds);
+        metric("gauge", "list_peers", status.list_peers);
+        metric("gauge", "connect_candidates", status.connect_candidates);
+        metric("gauge", "num_pieces", status.num_pieces);
+        metric("gauge", "distributed_full_copies", status.distributed_full_copies);
+        metric("gauge", "distributed_fraction", status.distributed_fraction);
+        metric("gauge", "block_size", status.block_size);
+        metric("gauge", "num_uploads", status.num_uploads);
+        metric("gauge", "num_connections", status.num_connections);
+        metric("gauge", "uploads_limit", status.uploads_limit);
+        metric("gauge", "connections_limit", status.connections_limit);
+        metric("gauge", "up_bandwidth_queue", status.up_bandwidth_queue);
+        metric("gauge", "down_bandwidth_queue", status.down_bandwidth_queue);
+        metric("gauge", "seed_rank", status.seed_rank);
+        metric("gauge", "state", status.state);
+        metric("counter", "active_duration", status.active_duration.count());
+        metric("counter", "finished_duration", status.finished_duration.count());
+        metric("counter", "seeding_duration", status.seeding_duration.count());
     }
 }
