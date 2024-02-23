@@ -100,7 +100,7 @@ export default function TorrentsList(props: TorrentsListProps) {
           <GridTitle field={"num_seeds"} onSort={props.onSort} orderBy={props.orderBy} orderByDir={props.orderByDir} title="Seeds" />
         </GridItem>
         <GridItem display={"flex"} me={2} justifyContent={"end"}>
-          <GridTitle title="Peers" />
+          <GridTitle field={"num_peers"} onSort={props.onSort} orderBy={props.orderBy} orderByDir={props.orderByDir} title="Peers" />
         </GridItem>
         <GridItem></GridItem>
       </Grid>

@@ -21,6 +21,8 @@ namespace porla::Http
 
     private:
         class State;
+        void PopulateWithGlobalMetrics(std::stringstream& out);
+        void PopulateWithPerTorrentMetrics(std::stringstream& out);
         std::shared_ptr<State> m_state;
     };
 }
