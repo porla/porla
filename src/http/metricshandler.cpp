@@ -38,7 +38,7 @@ public:
         return m_stats;
     }
 
-    std::map<lt::sha1_hash, std::tuple<std::uint64_t, std::string, libtorrent::torrent_status>>& TorrentStatuses()
+    std::map<lt::info_hash_t, std::tuple<std::uint64_t, std::string, libtorrent::torrent_status>>& TorrentStatuses()
     {
         return m_torrent_statuses;
     }
@@ -61,14 +61,14 @@ private:
         for (const auto& status : torrents)
         {
             uint64_t ms = duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-            m_torrent_statuses.insert_or_assign(status.info_hashes.v1, std::make_tuple(ms,session, status));
+            m_torrent_statuses.insert_or_assign(status.info_hashes, std::make_tuple(ms,session, status));
         }
     }
 
     boost::signals2::connection m_stats_connection;
     boost::signals2::connection m_state_update_connection;
     std::map<std::string, std::pair<std::uint64_t, lt::span<const int64_t>>> m_session_counters;
-    std::map<lt::sha1_hash, std::tuple<std::uint64_t, std::string, libtorrent::torrent_status>> m_torrent_statuses;
+    std::map<lt::info_hash_t, std::tuple<std::uint64_t, std::string, libtorrent::torrent_status>> m_torrent_statuses;
     std::vector<lt::stats_metric> m_stats;
 };
 
