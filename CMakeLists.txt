@@ -195,6 +195,7 @@ add_library(
 target_compile_definitions(
     ${PROJECT_NAME}_core
     PUBLIC
+    -D_GNU_SOURCE
     -DSQLITE_CORE
 )
 
