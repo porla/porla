@@ -4,7 +4,9 @@ type AddTorrentParams = {
 }
 
 export type PresetsList = {
-  [id: string] : Preset;
+  presets: {
+    [id: string] : Preset;
+  }
 };
 
 export type Preset = {

@@ -54,7 +54,7 @@ type AddTorrentModalProps = {
 }
 
 export default function AddTorrentModal(props: AddTorrentModalProps) {
-  const { presets } = props;
+  const { presets } = props.presets;
 
   const fsSpace             = useInvoker<any>("fs.space");
   const torrentsAdd         = useInvoker<InfoHash>("torrents.add");
@@ -71,8 +71,8 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
   }, [path]);
 
   useEffect(() => {
-    if (props.presets.default && props.presets.default.save_path) {
-      setPath(() => props.presets.default.save_path!);
+    if (presets.default && presets.default.save_path) {
+      setPath(() => presets.default.save_path!);
     }
   }, []);
 
