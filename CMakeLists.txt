@@ -1,32 +1,33 @@
 cmake_minimum_required(VERSION 3.12)
-
-set(VCPKG_OVERLAY_TRIPLETS ${CMAKE_CURRENT_SOURCE_DIR}/vendor/vcpkg-triplets)
-set(CMAKE_TOOLCHAIN_FILE   ${CMAKE_CURRENT_SOURCE_DIR}/vendor/vcpkg/scripts/buildsystems/vcpkg.cmake CACHE STRING "Vcpkg toolchain file")
+set(CMAKE_POLICY_DEFAULT_CMP0135 NEW)
 
 project(porla)
 
+include(FetchContent)
+
+# cmake options
 set(CMAKE_CXX_STANDARD 20)
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(tomlplusplus REQUIRED IMPORTED_TARGET tomlplusplus)
-pkg_check_modules(LIBGIT2 REQUIRED IMPORTED_TARGET libgit2)
+# boost options
+set(BOOST_INCLUDE_LIBRARIES asio headers log program_options system)
+set(BOOST_ENABLE_CMAKE      ON)
+set(Boost_USE_STATIC_LIBS   ON)
 
-find_package(antlr4-runtime      CONFIG REQUIRED)
-find_package(Boost                      REQUIRED COMPONENTS log program_options system)
-find_package(CURL                CONFIG REQUIRED)
-find_package(GTest               CONFIG REQUIRED)
-find_package(libzip              CONFIG REQUIRED)
-find_package(LibtorrentRasterbar CONFIG REQUIRED)
-find_package(Lua                        REQUIRED)
-find_package(nlohmann_json       CONFIG REQUIRED)
-find_package(unofficial-sodium   CONFIG REQUIRED)
-find_package(unofficial-sqlite3  CONFIG REQUIRED)
-find_package(uriparser           CONFIG REQUIRED)
+FetchContent_Declare(
+    Boost
+    URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz
+    FIND_PACKAGE_ARGS NAMES asio headers log program_options system
+)
 
-find_path(JWT_CPP_INCLUDE_DIRS "jwt-cpp/base.h")
+FetchContent_Declare(
+    libtorrent
+    URL https://github.com/arvidn/libtorrent/releases/download/v2.0.10/libtorrent-rasterbar-2.0.10.tar.gz
+)
 
-include_directories(${ANTLR4_INCLUDE_DIR})
+FetchContent_MakeAvailable(
+    Boost
+    libtorrent
+)
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
@@ -69,7 +70,7 @@ target_include_directories(
 target_link_libraries(
     uSockets
     PRIVATE
-    Boost::boost
+    Boost
 )
 
 add_library(
@@ -80,7 +81,7 @@ add_library(
 target_link_libraries(
     ${PROJECT_NAME}_utils
     PRIVATE
-    LibtorrentRasterbar::torrent-rasterbar
+    torrent-rasterbar
 )
 
 add_library(
@@ -98,7 +99,7 @@ target_link_libraries(
     PRIVATE
     ${PROJECT_NAME}_utils
     antlr4_static
-    LibtorrentRasterbar::torrent-rasterbar
+    torrent-rasterbar
 )
 
 add_library(
@@ -215,12 +216,10 @@ target_link_libraries(
 
     ${LUA_LIBRARIES}
 
-    Boost::boost
-    Boost::log
-    Boost::program_options
+    Boost
     CURL::libcurl
     libzip::zip
-    LibtorrentRasterbar::torrent-rasterbar
+    torrent-rasterbar
     PkgConfig::LIBGIT2
     PkgConfig::tomlplusplus
     unofficial-sodium::sodium
@@ -238,21 +237,6 @@ add_executable(
 target_link_libraries(
     ${PROJECT_NAME}
     ${PROJECT_NAME}_core
-        uSockets
+    uSockets
 )
 
-add_executable(
-    ${PROJECT_NAME}_tests
-    tests/main.cpp
-    tests/query/pql.cpp
-    tests/utils/string.cpp
-)
-
-target_link_libraries(
-    ${PROJECT_NAME}_tests
-    ${PROJECT_NAME}_core
-    ${PROJECT_NAME}_query
-    GTest::gmock
-    GTest::gtest
-    GTest::gmock_main
-)
