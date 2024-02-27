@@ -59,11 +59,11 @@ void JwtHandler::operator()(uWS::HttpResponse<false> *res, uWS::HttpRequest *req
 
         return m_next(res, req);
     }
-    catch (const jwt::signature_verification_exception& ex)
+    catch (const jwt::error::signature_verification_exception& ex)
     {
         BOOST_LOG_TRIVIAL(warning) << "Failed to verify JWT signature: " << ex.what();
     }
-    catch (const jwt::token_verification_exception& ex)
+    catch (const jwt::error::token_verification_exception& ex)
     {
         BOOST_LOG_TRIVIAL(warning) << "Failed to verify JWT token: " << ex.what();
     }
