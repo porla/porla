@@ -14,9 +14,9 @@ include(FetchContent)
 
 set(BUILD_SHARED_LIBS           OFF CACHE BOOL "Build static library" FORCE)
 set(BUILD_TESTS                 OFF CACHE BOOL "Build tests" FORCE)
-# set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-# set(LINK_WITH_STATIC_LIBRARIES  ON CACHE BOOL "Link with static libs" FORCE)
-# set(OPENSSL_USE_STATIC_LIBS     TRUE)
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+set(LINK_WITH_STATIC_LIBRARIES  ON CACHE BOOL "Link with static libs" FORCE)
+set(OPENSSL_USE_STATIC_LIBS     TRUE)
 
 # uriparser options
 set(URIPARSER_BUILD_DOCS    OFF CACHE BOOL "Build docs"    FORCE)
