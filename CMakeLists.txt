@@ -14,7 +14,15 @@ include(FetchContent)
 
 set(BUILD_SHARED_LIBS           OFF CACHE BOOL "Build static library" FORCE)
 set(BUILD_TESTS                 OFF CACHE BOOL "Build tests" FORCE)
-set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+set(BUILD_TOOLS			OFF CACHE BOOL "Build tools" FORCE)
+set(BUILD_REGRESS		OFF CACHE BOOL "Build regression tests" FORCE)
+set(BUILD_OSSFUZZ		OFF CACHE BOOL "Build fuzzers for ossfuzz" FORCE)
+set(BUILD_EXAMPLES		OFF CACHE BOOL "Build examples" FORCE)
+set(BUILD_DOC			OFF CACHE BOOL "Build docs" FORCE)
+set(ENABLE_BZIP2        OFF)
+set(ENABLE_ZSTD         OFF)
+
+set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib .so .dll)
 set(LINK_WITH_STATIC_LIBRARIES  ON CACHE BOOL "Link with static libs" FORCE)
 set(OPENSSL_USE_STATIC_LIBS     TRUE)
 
@@ -93,6 +101,7 @@ target_link_libraries(
 
 add_library(
     ${PROJECT_NAME}_utils
+    STATIC
     src/utils/ratio.cpp
 )
 
@@ -251,6 +260,8 @@ target_link_libraries(
     tomlplusplus::tomlplusplus
     uriparser
     uSockets
+    -lcrypto
+    -lssl
 )
 
 add_executable(
@@ -263,4 +274,3 @@ target_link_libraries(
     ${PROJECT_NAME}_core
     uSockets
 )
-
