@@ -7,113 +7,45 @@ project(porla)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-include(ExternalAntlr4Cpp)
-include(ExternalProject)
-include(FetchContent)
-
-# cmake options
 set(CMAKE_CXX_STANDARD 20)
 
-# common options
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libs" FORCE)
-set(BUILD_STATIC_LIBS ON  CACHE BOOL "Build static libs" FORCE)
+include(ExternalAntlr4Cpp)
+include(FetchContent)
 
-# boost options
-set(Boost_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/boost-1.84-install)
-
-# curl opts
-set(BUILD_LIBCURL_DOCS OFF CACHE BOOL "Build curl docs" FORCE)
-
-# libzip optons
-set(BUILD_REGRESS OFF CACHE BOOL "Build regression tests" FORCE)
-
-# sodium opts
-set(VERSION 1.0.19)
-set(SODIUM_LIBRARY_VERSION_MAJOR 10)
-set(SODIUM_LIBRARY_VERSION_MINOR 3)
+set(BUILD_SHARED_LIBS           OFF CACHE BOOL "Build static library" FORCE)
+set(BUILD_TESTS                 OFF CACHE BOOL "Build tests" FORCE)
+# set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+# set(LINK_WITH_STATIC_LIBRARIES  ON CACHE BOOL "Link with static libs" FORCE)
+# set(OPENSSL_USE_STATIC_LIBS     TRUE)
 
 # uriparser options
-set(URIPARSER_BUILD_DOCS OFF CACHE BOOL "Build docs" FORCE)
-set(URIPARSER_BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
-set(URIPARSER_BUILD_TOOLS OFF CACHE BOOL "Build tools" FORCE)
+set(URIPARSER_BUILD_DOCS    OFF CACHE BOOL "Build docs"    FORCE)
+set(URIPARSER_BUILD_TESTS   OFF CACHE BOOL "Build tests"   FORCE)
+set(URIPARSER_BUILD_TOOLS   OFF CACHE BOOL "Build tools"   FORCE)
 set(URIPARSER_BUILD_WCHAR_T OFF CACHE BOOL "Build wchar_t" FORCE)
-set(URIPARSER_SHARED_LIBS OFF CACHE BOOL "Shared libs" FORCE)
+set(URIPARSER_SHARED_LIBS   OFF CACHE BOOL "Shared libs"   FORCE)
 
-FetchContent_Declare(
-    nlohmann_json
-    URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
-)
+find_package(Boost               REQUIRED COMPONENTS log program_options system)
+find_package(LibtorrentRasterbar REQUIRED)
+find_package(Lua                 REQUIRED)
+find_package(OpenSSL             REQUIRED)
+find_package(SQLite3             REQUIRED)
+find_package(ZLIB                REQUIRED)
 
-FetchContent_MakeAvailable(nlohmann_json)
-
-FetchContent_Declare(
-    curl
-    URL https://github.com/curl/curl/releases/download/curl-8_6_0/curl-8.6.0.tar.xz
-)
-
-FetchContent_Declare(
-    jwt-cpp
-    GIT_REPOSITORY https://github.com/Thalhammer/jwt-cpp
-    GIT_TAG v0.7.0
-)
-
-FetchContent_Declare(
-    libsodium
-    URL https://github.com/jedisct1/libsodium/releases/download/1.0.19-RELEASE/libsodium-1.0.19.tar.gz
-)
-
-FetchContent_Declare(
-    libtorrent
-    URL https://github.com/arvidn/libtorrent/releases/download/v2.0.10/libtorrent-rasterbar-2.0.10.tar.gz
-)
-
-FetchContent_Declare(
-    libzip
-    URL https://github.com/nih-at/libzip/releases/download/v1.10.1/libzip-1.10.1.tar.xz
-)
-
-FetchContent_Declare(
-    lua
-    URL https://github.com/lua/lua/archive/refs/tags/v5.4.6.tar.gz
-)
-
-FetchContent_Declare(
-    sqlite3
-    URL "https://sqlite.org/2024/sqlite-amalgamation-3450100.zip"
-)
-
-FetchContent_Declare(
-    tomlplusplus
-    URL https://github.com/marzer/tomlplusplus/archive/refs/tags/v3.4.0.tar.gz
-)
-
-FetchContent_Declare(
-    uriparser
-    URL https://github.com/uriparser/uriparser/releases/download/uriparser-0.9.7/uriparser-0.9.7.tar.xz
-)
+FetchContent_Declare(curl          URL https://github.com/curl/curl/releases/download/curl-8_6_0/curl-8.6.0.tar.xz)
+FetchContent_Declare(jwt-cpp       URL https://github.com/Thalhammer/jwt-cpp/archive/refs/tags/v0.7.0.tar.gz)
+FetchContent_Declare(nlohmann_json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
+FetchContent_Declare(libzip        URL https://github.com/nih-at/libzip/releases/download/v1.10.1/libzip-1.10.1.tar.xz)
+FetchContent_Declare(tomlplusplus  URL https://github.com/marzer/tomlplusplus/archive/refs/tags/v3.4.0.tar.gz)
+FetchContent_Declare(uriparser     URL https://github.com/uriparser/uriparser/releases/download/uriparser-0.9.7/uriparser-0.9.7.tar.xz)
 
 FetchContent_MakeAvailable(
     curl
+    nlohmann_json
     jwt-cpp
-    libtorrent
     libzip
     tomlplusplus
-    uriparser
-)
-
-find_package(Boost REQUIRED COMPONENTS log program_options system)
-
-if (NOT libsodium_POPULATED)
-  FetchContent_Populate(libsodium)
-endif()
-
-if (NOT lua_POPULATED)
-  FetchContent_Populate(lua)
-endif()
-
-if (NOT sqlite3_POPULATED)
-  FetchContent_Populate(sqlite3)
-endif()
+    uriparser)
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
@@ -157,133 +89,6 @@ target_link_libraries(
     uSockets
     PRIVATE
     Boost::boost
-)
-
-add_library(
-    lua
-    STATIC
-    ${lua_SOURCE_DIR}/lapi.c
-    ${lua_SOURCE_DIR}/lauxlib.c
-    ${lua_SOURCE_DIR}/lbaselib.c
-    ${lua_SOURCE_DIR}/lcode.c
-    ${lua_SOURCE_DIR}/lcorolib.c
-    ${lua_SOURCE_DIR}/lctype.c
-    ${lua_SOURCE_DIR}/ldblib.c
-    ${lua_SOURCE_DIR}/ldebug.c
-    ${lua_SOURCE_DIR}/ldo.c
-    ${lua_SOURCE_DIR}/ldump.c
-    ${lua_SOURCE_DIR}/lfunc.c
-    ${lua_SOURCE_DIR}/lgc.c
-    ${lua_SOURCE_DIR}/liolib.c
-    ${lua_SOURCE_DIR}/llex.c
-    ${lua_SOURCE_DIR}/loadlib.c
-    ${lua_SOURCE_DIR}/lmathlib.c
-    ${lua_SOURCE_DIR}/lmem.c
-    ${lua_SOURCE_DIR}/lobject.c
-    ${lua_SOURCE_DIR}/lopcodes.c
-    ${lua_SOURCE_DIR}/loslib.c
-    ${lua_SOURCE_DIR}/lparser.c
-    ${lua_SOURCE_DIR}/lstate.c
-    ${lua_SOURCE_DIR}/lstring.c
-    ${lua_SOURCE_DIR}/lstrlib.c
-    ${lua_SOURCE_DIR}/ltable.c
-    ${lua_SOURCE_DIR}/ltablib.c
-    ${lua_SOURCE_DIR}/ltm.c
-    ${lua_SOURCE_DIR}/lundump.c
-    ${lua_SOURCE_DIR}/lutf8lib.c
-    ${lua_SOURCE_DIR}/lvm.c
-    ${lua_SOURCE_DIR}/lzio.c
-    ${lua_SOURCE_DIR}/ltests.c
-)
-
-target_include_directories(
-    lua
-    PUBLIC ${lua_SOURCE_DIR}
-)
-
-add_library(
-    sodium
-    STATIC
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_aead/aegis128l/aead_aegis128l.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_aead/aegis128l/aegis128l_aesni.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_aead/aegis128l/aegis128l_armcrypto.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_aead/aegis128l/aegis128l_soft.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_aead/aegis256/aead_aegis256.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_aead/aegis256/aegis256_aesni.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_aead/aegis256/aegis256_armcrypto.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_aead/aegis256/aegis256_soft.c
-
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_core/ed25519/ref10/ed25519_ref10.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_core/ed25519/core_ed25519.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_core/salsa/ref/core_salsa_ref.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_core/softaes/softaes.c
-
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_generichash/blake2b/ref/blake2b-compress-avx2.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_generichash/blake2b/ref/blake2b-compress-ref.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_generichash/blake2b/ref/blake2b-compress-sse41.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_generichash/blake2b/ref/blake2b-compress-ssse3.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_generichash/blake2b/ref/blake2b-ref.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_generichash/blake2b/ref/generichash_blake2b.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_generichash/blake2b/generichash_blake2.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_generichash/crypto_generichash.c
-
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_onetimeauth/poly1305/donna/poly1305_donna.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_onetimeauth/poly1305/sse2/poly1305_sse2.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_onetimeauth/poly1305/onetimeauth_poly1305.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_onetimeauth/crypto_onetimeauth.c
-
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_pwhash/argon2/argon2-core.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_pwhash/argon2/argon2-encoding.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_pwhash/argon2/argon2-fill-block-avx2.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_pwhash/argon2/argon2-fill-block-avx512f.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_pwhash/argon2/argon2-fill-block-ref.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_pwhash/argon2/argon2-fill-block-ssse3.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_pwhash/argon2/argon2.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_pwhash/argon2/blake2b-long.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_pwhash/argon2/pwhash_argon2i.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_pwhash/argon2/pwhash_argon2id.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_pwhash/crypto_pwhash.c
-
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_scalarmult/curve25519/ref10/x25519_ref10.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_scalarmult/curve25519/scalarmult_curve25519.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_scalarmult/crypto_scalarmult.c
-
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_stream/chacha20/dolbeau/chacha20_dolbeau-avx2.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_stream/chacha20/dolbeau/chacha20_dolbeau-ssse3.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_stream/chacha20/ref/chacha20_ref.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_stream/chacha20/stream_chacha20.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_stream/salsa20/ref/salsa20_ref.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_stream/salsa20/stream_salsa20.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_stream/crypto_stream.c
-
-    ${libsodium_SOURCE_DIR}/src/libsodium/crypto_verify/verify.c
-
-    ${libsodium_SOURCE_DIR}/src/libsodium/randombytes/internal/randombytes_internal_random.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/randombytes/sysrandom/randombytes_sysrandom.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/randombytes/randombytes.c
-
-    ${libsodium_SOURCE_DIR}/src/libsodium/sodium/codecs.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/sodium/core.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/sodium/runtime.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/sodium/utils.c
-    ${libsodium_SOURCE_DIR}/src/libsodium/sodium/version.c
-)
-
-configure_file(
-    ${libsodium_SOURCE_DIR}/src/libsodium/include/sodium/version.h.in
-    ${libsodium_SOURCE_DIR}/src/libsodium/include/sodium/version.h
-)
-
-target_include_directories(
-    sodium
-    PUBLIC ${libsodium_SOURCE_DIR}/src/libsodium/include
-    PRIVATE ${libsodium_SOURCE_DIR}/src/libsodium/include/sodium
-)
-
-target_include_directories(
-    sodium
-    INTERFACE
-    ${libsodium_SOURCE_DIR}/src/include
 )
 
 add_library(
@@ -411,8 +216,6 @@ add_library(
     src/tools/authtoken.cpp
     src/tools/generatesecretkey.cpp
     src/tools/versionjson.cpp
-
-    ${sqlite3_SOURCE_DIR}/sqlite3.c
 )
 
 target_compile_definitions(
@@ -443,6 +246,7 @@ target_link_libraries(
     lua
     nlohmann_json::nlohmann_json
     sodium
+    SQLite::SQLite3
     torrent-rasterbar
     tomlplusplus::tomlplusplus
     uriparser
