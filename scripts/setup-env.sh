@@ -35,8 +35,6 @@ echo "@edge-main https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/re
 apk add --no-cache \
     build-base \
     cmake \
-    curl-dev \
-    curl-static \
     git \
     linux-headers \
     ninja \
