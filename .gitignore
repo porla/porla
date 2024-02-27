@@ -1,6 +1,7 @@
 .DS_Store
 .idea
 .vscode
+boost*
 build/
 cmake-build-*
 docs/build/
