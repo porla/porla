@@ -194,13 +194,13 @@ add_library(
     src/lua/pluginengine.cpp
 
     src/methods/fsspace.cpp
-    # src/methods/plugins/pluginsconfigure.cpp
-    # src/methods/plugins/pluginsget.cpp
-    # src/methods/plugins/pluginsinstall.cpp
-    # src/methods/plugins/pluginslist.cpp
-    # src/methods/plugins/pluginsreload.cpp
-    # src/methods/plugins/pluginsuninstall.cpp
-    # src/methods/plugins/pluginsupdate.cpp
+    src/methods/plugins/pluginsconfigure.cpp
+    src/methods/plugins/pluginsget.cpp
+    src/methods/plugins/pluginsinstall.cpp
+    src/methods/plugins/pluginslist.cpp
+    src/methods/plugins/pluginsreload.cpp
+    src/methods/plugins/pluginsuninstall.cpp
+    src/methods/plugins/pluginsupdate.cpp
     src/methods/sessions/sessionslist.cpp
     src/methods/sessions/sessionspause.cpp
     src/methods/sessions/sessionsresume.cpp
@@ -262,6 +262,7 @@ target_link_libraries(
     uSockets
     -lcrypto
     -lssl
+    -lgit2
 )
 
 add_executable(

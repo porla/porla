@@ -10,6 +10,16 @@ function setup_boost() {
         && cd ..
 }
 
+function setup_libgit2() {
+    wget -O libgit2-1.8.0.tar.gz https://github.com/libgit2/libgit2/archive/refs/tags/v1.8.0.tar.gz
+    tar zxf libgit2-1.8.0.tar.gz
+
+    cd libgit2-1.8.0 \
+        && cmake -S . -B build -G Ninja -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS="-static" -DLINK_WITH_STATIC_LIBRARIES=ON -DUSE_NTLMCLIENT=OFF \
+        && cmake --build build --target install \
+        && cd ..
+}
+
 function setup_libtorrent() {
     wget https://github.com/arvidn/libtorrent/releases/download/v2.0.10/libtorrent-rasterbar-2.0.10.tar.gz
     tar zxf libtorrent-rasterbar-2.0.10.tar.gz
@@ -50,5 +60,6 @@ apk add --no-cache \
 cd /tmp
 
 setup_boost
+setup_libgit2
 setup_libtorrent
 setup_lua
