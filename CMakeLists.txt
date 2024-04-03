@@ -14,11 +14,11 @@ include(FetchContent)
 
 set(BUILD_SHARED_LIBS           OFF CACHE BOOL "Build static library" FORCE)
 set(BUILD_TESTS                 OFF CACHE BOOL "Build tests" FORCE)
-set(BUILD_TOOLS			OFF CACHE BOOL "Build tools" FORCE)
-set(BUILD_REGRESS		OFF CACHE BOOL "Build regression tests" FORCE)
-set(BUILD_OSSFUZZ		OFF CACHE BOOL "Build fuzzers for ossfuzz" FORCE)
-set(BUILD_EXAMPLES		OFF CACHE BOOL "Build examples" FORCE)
-set(BUILD_DOC			OFF CACHE BOOL "Build docs" FORCE)
+set(BUILD_TOOLS         OFF CACHE BOOL "Build tools" FORCE)
+set(BUILD_REGRESS       OFF CACHE BOOL "Build regression tests" FORCE)
+set(BUILD_OSSFUZZ       OFF CACHE BOOL "Build fuzzers for ossfuzz" FORCE)
+set(BUILD_EXAMPLES      OFF CACHE BOOL "Build examples" FORCE)
+set(BUILD_DOC           OFF CACHE BOOL "Build docs" FORCE)
 set(ENABLE_BZIP2        OFF)
 set(ENABLE_ZSTD         OFF)
 
@@ -40,16 +40,14 @@ find_package(OpenSSL             REQUIRED)
 find_package(SQLite3             REQUIRED)
 find_package(ZLIB                REQUIRED)
 
-FetchContent_Declare(curl          URL https://github.com/curl/curl/releases/download/curl-8_6_0/curl-8.6.0.tar.xz)
+FetchContent_Declare(curl          URL https://github.com/curl/curl/archive/refs/tags/curl-8_6_0.tar.gz)
 FetchContent_Declare(jwt-cpp       URL https://github.com/Thalhammer/jwt-cpp/archive/refs/tags/v0.7.0.tar.gz)
-FetchContent_Declare(nlohmann_json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
-FetchContent_Declare(libzip        URL https://github.com/nih-at/libzip/releases/download/v1.10.1/libzip-1.10.1.tar.xz)
+FetchContent_Declare(libzip        URL https://github.com/nih-at/libzip/archive/refs/tags/v1.10.1.tar.gz)
 FetchContent_Declare(tomlplusplus  URL https://github.com/marzer/tomlplusplus/archive/refs/tags/v3.4.0.tar.gz)
-FetchContent_Declare(uriparser     URL https://github.com/uriparser/uriparser/releases/download/uriparser-0.9.7/uriparser-0.9.7.tar.xz)
+FetchContent_Declare(uriparser     URL https://github.com/uriparser/uriparser/archive/refs/tags/uriparser-0.9.7.tar.gz)
 
 FetchContent_MakeAvailable(
     curl
-    nlohmann_json
     jwt-cpp
     libzip
     tomlplusplus
@@ -125,6 +123,7 @@ target_include_directories(
     ${PROJECT_NAME}_query
     PRIVATE
     ${ANTLR4_INCLUDE_DIRS}
+    vendor/nlohmann-json/include
 )
 
 target_link_libraries(
@@ -132,7 +131,6 @@ target_link_libraries(
     PRIVATE
     ${PROJECT_NAME}_utils
     antlr4_static
-    nlohmann_json::nlohmann_json
     torrent-rasterbar
 )
 
@@ -239,6 +237,7 @@ target_include_directories(
     ${JWT_CPP_INCLUDE_DIRS}
     ${LUA_INCLUDE_DIR}
     vendor/croncpp/include
+    vendor/nlohmann-json/include
     vendor/sol2/include
 )
 
@@ -253,7 +252,6 @@ target_link_libraries(
     jwt-cpp::jwt-cpp
     libzip::zip
     lua
-    nlohmann_json::nlohmann_json
     sodium
     SQLite::SQLite3
     torrent-rasterbar
