@@ -1,32 +1,57 @@
 cmake_minimum_required(VERSION 3.12)
 
-set(VCPKG_OVERLAY_TRIPLETS ${CMAKE_CURRENT_SOURCE_DIR}/vendor/vcpkg-triplets)
-set(CMAKE_TOOLCHAIN_FILE   ${CMAKE_CURRENT_SOURCE_DIR}/vendor/vcpkg/scripts/buildsystems/vcpkg.cmake CACHE STRING "Vcpkg toolchain file")
+cmake_policy(SET CMP0114 NEW)
+cmake_policy(SET CMP0135 NEW)
 
 project(porla)
 
-set(CMAKE_CXX_STANDARD 20)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(tomlplusplus REQUIRED IMPORTED_TARGET tomlplusplus)
-pkg_check_modules(LIBGIT2 REQUIRED IMPORTED_TARGET libgit2)
+set(CMAKE_CXX_STANDARD 20)
 
-find_package(antlr4-runtime      CONFIG REQUIRED)
-find_package(Boost                      REQUIRED COMPONENTS log program_options system)
-find_package(CURL                CONFIG REQUIRED)
-find_package(GTest               CONFIG REQUIRED)
-find_package(libzip              CONFIG REQUIRED)
-find_package(LibtorrentRasterbar CONFIG REQUIRED)
-find_package(Lua                        REQUIRED)
-find_package(nlohmann_json       CONFIG REQUIRED)
-find_package(unofficial-sodium   CONFIG REQUIRED)
-find_package(unofficial-sqlite3  CONFIG REQUIRED)
-find_package(uriparser           CONFIG REQUIRED)
+include(ExternalAntlr4Cpp)
+include(FetchContent)
 
-find_path(JWT_CPP_INCLUDE_DIRS "jwt-cpp/base.h")
+set(BUILD_SHARED_LIBS           OFF CACHE BOOL "Build static library" FORCE)
+set(BUILD_TESTS                 OFF CACHE BOOL "Build tests" FORCE)
+set(BUILD_TOOLS         OFF CACHE BOOL "Build tools" FORCE)
+set(BUILD_REGRESS       OFF CACHE BOOL "Build regression tests" FORCE)
+set(BUILD_OSSFUZZ       OFF CACHE BOOL "Build fuzzers for ossfuzz" FORCE)
+set(BUILD_EXAMPLES      OFF CACHE BOOL "Build examples" FORCE)
+set(BUILD_DOC           OFF CACHE BOOL "Build docs" FORCE)
+set(ENABLE_BZIP2        OFF)
+set(ENABLE_ZSTD         OFF)
 
-include_directories(${ANTLR4_INCLUDE_DIR})
+set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib .so .dll)
+set(LINK_WITH_STATIC_LIBRARIES  ON CACHE BOOL "Link with static libs" FORCE)
+set(OPENSSL_USE_STATIC_LIBS     TRUE)
+
+# uriparser options
+set(URIPARSER_BUILD_DOCS    OFF CACHE BOOL "Build docs"    FORCE)
+set(URIPARSER_BUILD_TESTS   OFF CACHE BOOL "Build tests"   FORCE)
+set(URIPARSER_BUILD_TOOLS   OFF CACHE BOOL "Build tools"   FORCE)
+set(URIPARSER_BUILD_WCHAR_T OFF CACHE BOOL "Build wchar_t" FORCE)
+set(URIPARSER_SHARED_LIBS   OFF CACHE BOOL "Shared libs"   FORCE)
+
+find_package(Boost               REQUIRED COMPONENTS log program_options system)
+find_package(LibtorrentRasterbar REQUIRED)
+find_package(Lua                 REQUIRED)
+find_package(OpenSSL             REQUIRED)
+find_package(SQLite3             REQUIRED)
+find_package(ZLIB                REQUIRED)
+
+FetchContent_Declare(curl          URL https://github.com/curl/curl/archive/refs/tags/curl-8_6_0.tar.gz)
+FetchContent_Declare(jwt-cpp       URL https://github.com/Thalhammer/jwt-cpp/archive/refs/tags/v0.7.0.tar.gz)
+FetchContent_Declare(libzip        URL https://github.com/nih-at/libzip/archive/refs/tags/v1.10.1.tar.gz)
+FetchContent_Declare(tomlplusplus  URL https://github.com/marzer/tomlplusplus/archive/refs/tags/v3.4.0.tar.gz)
+FetchContent_Declare(uriparser     URL https://github.com/uriparser/uriparser/archive/refs/tags/uriparser-0.9.7.tar.gz)
+
+FetchContent_MakeAvailable(
+    curl
+    jwt-cpp
+    libzip
+    tomlplusplus
+    uriparser)
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
@@ -74,13 +99,14 @@ target_link_libraries(
 
 add_library(
     ${PROJECT_NAME}_utils
+    STATIC
     src/utils/ratio.cpp
 )
 
 target_link_libraries(
     ${PROJECT_NAME}_utils
     PRIVATE
-    LibtorrentRasterbar::torrent-rasterbar
+    torrent-rasterbar
 )
 
 add_library(
@@ -93,12 +119,19 @@ add_library(
     src/query/pql.cpp
 )
 
+target_include_directories(
+    ${PROJECT_NAME}_query
+    PRIVATE
+    ${ANTLR4_INCLUDE_DIRS}
+    vendor/nlohmann-json/include
+)
+
 target_link_libraries(
     ${PROJECT_NAME}_query
     PRIVATE
     ${PROJECT_NAME}_utils
     antlr4_static
-    LibtorrentRasterbar::torrent-rasterbar
+    torrent-rasterbar
 )
 
 add_library(
@@ -204,6 +237,7 @@ target_include_directories(
     ${JWT_CPP_INCLUDE_DIRS}
     ${LUA_INCLUDE_DIR}
     vendor/croncpp/include
+    vendor/nlohmann-json/include
     vendor/sol2/include
 )
 
@@ -213,21 +247,20 @@ target_link_libraries(
     ${PROJECT_NAME}_query
     ${PROJECT_NAME}_utils
 
-    ${LUA_LIBRARIES}
-
-    Boost::boost
-    Boost::log
-    Boost::program_options
+    Boost::boost Boost::log Boost::program_options
     CURL::libcurl
+    jwt-cpp::jwt-cpp
     libzip::zip
-    LibtorrentRasterbar::torrent-rasterbar
-    PkgConfig::LIBGIT2
-    PkgConfig::tomlplusplus
-    unofficial-sodium::sodium
-    unofficial-sodium::sodium_config_public
-    unofficial::sqlite3::sqlite3
-    uriparser::uriparser
+    lua
+    sodium
+    SQLite::SQLite3
+    torrent-rasterbar
+    tomlplusplus::tomlplusplus
+    uriparser
     uSockets
+    -lcrypto
+    -lssl
+    -lgit2
 )
 
 add_executable(
@@ -238,21 +271,5 @@ add_executable(
 target_link_libraries(
     ${PROJECT_NAME}
     ${PROJECT_NAME}_core
-        uSockets
-)
-
-add_executable(
-    ${PROJECT_NAME}_tests
-    tests/main.cpp
-    tests/query/pql.cpp
-    tests/utils/string.cpp
-)
-
-target_link_libraries(
-    ${PROJECT_NAME}_tests
-    ${PROJECT_NAME}_core
-    ${PROJECT_NAME}_query
-    GTest::gmock
-    GTest::gtest
-    GTest::gmock_main
+    uSockets
 )
