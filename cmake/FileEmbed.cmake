@@ -1,10 +1,10 @@
-message("Checking ${CMAKE_SOURCE_DIR}/webui.zip")
+message("Checking ${PROJECT_SOURCE_DIR}/html/webui.zip")
 
-if (EXISTS "${CMAKE_SOURCE_DIR}/webui.zip")
-    message("Embedding ${CMAKE_SOURCE_DIR}/webui.zip in Porla")
+if (EXISTS "${PROJECT_SOURCE_DIR}/html/webui.zip")
+    message("Embedding ${PROJECT_SOURCE_DIR}/html/webui.zip in Porla")
 
     execute_process(
-        COMMAND /bin/sh -c "hexdump -ve '1/1 \"0x%.2x,\"' ${CMAKE_SOURCE_DIR}/webui.zip"
+        COMMAND /bin/sh -c "hexdump -ve '1/1 \"0x%.2x,\"' ${PROJECT_SOURCE_DIR}/html/webui.zip"
         OUTPUT_VARIABLE output_c)
 endif()
 
