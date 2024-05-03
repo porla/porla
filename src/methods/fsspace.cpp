@@ -1,6 +1,7 @@
 #include "fsspace.hpp"
 
 #include <filesystem>
+#include <fstream>
 #include <optional>
 #include <regex>
 

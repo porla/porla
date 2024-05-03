@@ -33,7 +33,9 @@ void TorrentsResume::Invoke(const TorrentsResumeReq& req, WriteCb<TorrentsResume
         return cb.Error(-1, "Torrent not found");
     }
 
-    handle->second.resume();
+    const auto& [ th, _ ] = handle->second;
+
+    th.resume();
 
     cb.Ok(TorrentsResumeRes{});
 }

@@ -105,8 +105,10 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
     for (const auto& [ name, state] : m_sessions.All())
     {
-        for (auto const& [_, handle] : state->torrents)
+        for (const auto& [_, pair] : state->torrents)
         {
+            const auto& [ handle, ts ] = pair;
+
             if (!handle.is_valid())
             {
                 continue;
@@ -137,8 +139,6 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
                     }
                 }
             }
-
-            auto const& ts = handle.status();
 
             if (auto ti = ts.torrent_file.lock())
                 size = ti->total_size();
@@ -237,6 +237,8 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
                 .name              = ts.name,
                 .num_peers         = ts.num_peers,
                 .num_seeds         = ts.num_seeds,
+                .num_complete      = ts.num_complete,
+                .num_incomplete    = ts.num_incomplete,
                 .progress          = ts.progress,
                 .queue_position    = static_cast<int>(ts.queue_position),
                 .ratio             = porla::Utils::Ratio(ts),

@@ -134,7 +134,7 @@ static void WriteSessionParams(const fs::path& file, const lt::session_params& p
 
 void Sessions::SessionState::Recheck(const lt::info_hash_t& hash)
 {
-    const auto& handle = torrents.at(hash);
+    const auto& [ handle, _ ] = torrents.at(hash);
 
     // If the torrent is paused, it must be resumed in order to be rechecked.
     // It should also not be auto managed, so remove it from that as well.
@@ -169,17 +169,19 @@ void Sessions::SessionState::Recheck(const lt::info_hash_t& hash)
                 return;
             }
 
+            const auto& [ th, _ ] = torrents.at(hash);
+
             // TODO: Unsure about the order here. If there are reports that force-checking a torrent
             //       leads to any issues with resume/pause, the order of these statements might matter.
 
             if (was_auto_managed)
             {
-                torrents.at(hash).set_flags(lt::torrent_flags::auto_managed);
+                th.set_flags(lt::torrent_flags::auto_managed);
             }
 
             if (was_paused)
             {
-                torrents.at(hash).pause();
+                th.pause();
             }
         });
 
@@ -245,12 +247,9 @@ Sessions::~Sessions()
 
             for (int j = 0; j < chunk_items; j++)
             {
-                auto const &th = current->second;
-                auto const &ts = th.status();
+                const auto& [ th, ts ] = current->second;
 
-                if (!th.is_valid()
-                    || !ts.has_metadata
-                    || !ts.need_save_resume)
+                if (!th.is_valid() || !ts.has_metadata || !ts.need_save_resume)
                 {
                     std::advance(current, 1);
                     continue;
@@ -368,7 +367,7 @@ void Sessions::Load(const SessionsLoadOptions& options)
             params.userdata.get<TorrentClientData>()->state = state;
 
             lt::torrent_handle th = state->session->add_torrent(params);
-            state->torrents.insert({ th.info_hashes(), th });
+            state->torrents.insert({ th.info_hashes(), std::make_pair(th, th.status()) });
 
             if (current % 1000 == 0 && current != count)
             {
@@ -410,7 +409,9 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                     continue;
                 }
 
-                state->torrents.insert({ ata->handle.info_hashes(), ata->handle });
+                state->torrents.insert({
+                    ata->handle.info_hashes(),
+                    std::make_pair(ata->handle, ata->handle.status()) });
 
                 const auto status = ata->handle.status();
 
@@ -492,6 +493,11 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
             {
                 auto sua = lt::alert_cast<lt::state_update_alert>(alert);
 
+                for (const auto& status : sua->status)
+                {
+                    state->torrents.at(status.info_hashes) = std::make_pair(status.handle, status);
+                }
+
                 boost::asio::post(m_options.io, [this, state, status = sua->status](){ m_state_update(state->name, status); });
 
                 break;
@@ -510,6 +516,8 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                         | lt::torrent_handle::only_if_modified);
                 }
 
+                state->torrents.at(sma->handle.info_hashes()) = std::make_pair(sma->handle, sma->handle.status());
+
                 boost::asio::post(m_options.io, [this, state, th = sma->handle](){ m_storage_moved(state->name, th); });
 
                 break;
@@ -519,6 +527,8 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                 const auto tca = lt::alert_cast<lt::torrent_checked_alert>(alert);
 
                 BOOST_LOG_TRIVIAL(info) << "Torrent " << tca->torrent_name() << " finished checking";
+
+                state->torrents.at(tca->handle.info_hashes()) = std::make_pair(tca->handle, tca->handle.status());
 
                 if (state->m_oneshot_torrent_callbacks.contains({ alert->type(), tca->handle.info_hashes()}))
                 {
@@ -543,6 +553,8 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
 
                 const auto has_signaled_finished = contains_signaled_finished
                     && client_data->metadata.value()["signal:finished"] == true;
+
+                state->torrents.at(tfa->handle.info_hashes()) = std::make_pair(tfa->handle, status);
 
                 // A torrent finished signal should only be emitted once per
                 // torrent. If we emit this signal, store it in the torrent metadata.
@@ -583,6 +595,8 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
 
                 BOOST_LOG_TRIVIAL(debug) << "Torrent " << tpa->torrent_name() << " paused";
 
+                state->torrents.at(tpa->handle.info_hashes()) = std::make_pair(tpa->handle, tpa->handle.status());
+
                 boost::asio::post(m_options.io, [this, state, th = tpa->handle](){ m_torrent_paused(state->name, th); });
 
                 break;
@@ -607,6 +621,8 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                 auto const& status = tra->handle.status();
 
                 BOOST_LOG_TRIVIAL(debug) << "Torrent " << status.name << " resumed";
+
+                state->torrents.at(tra->handle.info_hashes()) = std::make_pair(tra->handle, status);
 
                 boost::asio::post(
                     m_options.io,

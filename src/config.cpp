@@ -1,6 +1,7 @@
 #include "config.hpp"
 
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 
 #include <boost/log/trivial.hpp>

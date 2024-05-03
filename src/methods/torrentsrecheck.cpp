@@ -36,7 +36,9 @@ void TorrentsRecheck::Invoke(const TorrentsRecheckReq &req, WriteCb<TorrentsRech
         return cb.Error(-1, "Torrent not found");
     }
 
-    state->second->Recheck(handle->second.info_hashes());
+    const auto& [ th, _ ] = handle->second;
+
+    state->second->Recheck(th.info_hashes());
 
     return cb.Ok(TorrentsRecheckRes{});
 }

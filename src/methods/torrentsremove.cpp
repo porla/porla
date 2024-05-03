@@ -35,8 +35,10 @@ void TorrentsRemove::Invoke(const TorrentsRemoveReq &req, WriteCb<TorrentsRemove
             continue;
         }
 
+        const auto& [ th, _ ] = handle->second;
+
         state->second->session->remove_torrent(
-            handle->second,
+            th,
             req.remove_data ? lt::session::delete_files : lt::remove_flags_t{});
     }
 

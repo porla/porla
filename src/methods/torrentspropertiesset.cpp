@@ -33,8 +33,10 @@ void TorrentsPropertiesSet::Invoke(const TorrentsPropertiesSetReq& req, WriteCb<
         return cb.Error(-1, "Torrent not found");
     }
 
+    const auto& [ th, _ ] = handle->second;
+
     if (const auto val = req.download_limit)
-        handle->second.set_download_limit(*val);
+        th.set_download_limit(*val);
 
     if (const auto val = req.flags)
     {
@@ -68,17 +70,17 @@ void TorrentsPropertiesSet::Invoke(const TorrentsPropertiesSetReq& req, WriteCb<
             SET_FLAG(i2p_torrent)
         }
 
-        handle->second.set_flags(flags, mask);
+        th.set_flags(flags, mask);
     }
 
     if (const auto val = req.max_connections)
-        handle->second.set_max_connections(*val);
+        th.set_max_connections(*val);
 
     if (const auto val = req.max_uploads)
-        handle->second.set_max_uploads(*val);
+        th.set_max_uploads(*val);
 
     if (const auto val = req.upload_limit)
-        handle->second.set_upload_limit(*val);
+        th.set_upload_limit(*val);
 
     cb.Ok({});
 }

@@ -1,29 +1,14 @@
-FROM ghcr.io/porla/build-env:202308081156 AS build-env
+FROM ghcr.io/porla/alpine:3.19.1 AS build-env
 
 WORKDIR /src
 
 COPY . .
-COPY ./html/webui.zip /src/build/webui.zip
 
-RUN mkdir -p /src/build
+RUN ./scripts/setup-env.sh
+RUN cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS="-static -Os"
+RUN cmake --build build
 
-ARG GITVERSION_SEMVER="0.0.0"
-ARG CCACHE_REMOTE_STORAGE="http://ccache.blinkenlights.cloud/porla|read-only|connect-timeout=500"
-
-ENV CCACHE_REMOTE_ONLY="1"
-ENV CCACHE_REMOTE_STORAGE=${CCACHE_REMOTE_STORAGE}
-ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
-ENV VCPKG_FORCE_SYSTEM_BINARIES="1"
-
-RUN apt-get update -y \
-    && apt-get install -y bsdmainutils ccache \
-    && cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-    && cmake --build build \
-    && ccache -s -v \
-    && strip build/porla
-
-# -- runtime layer
-FROM ghcr.io/porla/alpine:3.18.0 AS runtime
+FROM ghcr.io/porla/alpine:3.19.1 AS runtime
 
 ENV PORLA_HTTP_HOST=0.0.0.0
 EXPOSE 1337

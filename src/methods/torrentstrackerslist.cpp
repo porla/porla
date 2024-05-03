@@ -33,7 +33,9 @@ void TorrentsTrackersList::Invoke(const TorrentsTrackersListReq& req, WriteCb<To
         return cb.Error(-1, "Torrent not found");
     }
 
+    const auto& [ th, _ ] = handle->second;
+
     cb.Ok(TorrentsTrackersListRes{
-        .trackers = handle->second.trackers()
+        .trackers = th.trackers()
     });
 }

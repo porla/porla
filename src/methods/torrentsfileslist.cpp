@@ -35,7 +35,7 @@ void TorrentsFilesList::Invoke(const TorrentsFilesListReq& req, WriteCb<Torrents
         return cb.Error(-1, "Torrent not found");
     }
 
-    const auto& status = handle->second.status();
+    const auto& [ _, status ] = handle->second;
 
     TorrentsFilesListRes res;
 
