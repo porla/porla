@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      -
     tags:
       - 'v*.*.*'
 
@@ -44,13 +45,16 @@ jobs:
           fetch-depth: 0
           submodules: true
 
-      - name: Install Node.js dependencies
+      - name: Setup bun
         uses: oven-sh/setup-bun@v1
+        with:
+          version: 'latest'
+
+      - name: Install packages
         run: bun install --frozen-lockfile
         working-directory: ./html
 
       - name: Build web UI
-        uses: oven-sh/setup-bun@v1
         run: bun run build
         working-directory: ./html
 
