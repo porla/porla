@@ -4,7 +4,6 @@ import { TorrentList } from "./components/panes/TorrentList.tsx";
 import { NavigationSidebar } from "./components/panes/NavigationSidebar.tsx";
 import { MobileNavigation } from "./components/panes/MobileNavigation.tsx";
 import { Toolbar } from "./components/panes/Toolbar.tsx";
-import { Link, Outlet } from "@tanstack/react-router";
 
 function Index() {
 
