@@ -1,7 +1,8 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import Index from "../../Index.tsx";
 
-export const Route = createFileRoute('/_auth/')({
+export const Route = createFileRoute('/_auth/_indexLayout')({
+
   beforeLoad: async ({ context, location }) => {
     if (!context.auth.isAuthenticated) {
       throw redirect({
@@ -15,5 +16,7 @@ export const Route = createFileRoute('/_auth/')({
       })
     }
   },
-  component: Index
+
+  component: Index,
+
 })

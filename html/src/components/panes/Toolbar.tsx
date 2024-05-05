@@ -19,7 +19,7 @@ export const Toolbar = () => {
     const auth = useAuth()
 
     const handleLogout = () => {
-      // if (window.confirm('Are you sure you want to logout?')) {
+      // if (window.confirm('Are you sure you want to log out?')) {
         auth.logout()
         router.invalidate().finally(() => {
           navigate({ to: '/' })
@@ -29,7 +29,7 @@ export const Toolbar = () => {
 
   return (
     <>
-      <div className="flex justify-between items-center dark:bg-neutral-800 border-b border-b-neutral-600">
+      <div className="flex justify-between items-center dark:bg-neutral-800">
         <div className="grid grid-cols-3 w-full h-10">
           <div className="flex pl-4 gap-x-6 items-center">
             <div className="flex items-center">

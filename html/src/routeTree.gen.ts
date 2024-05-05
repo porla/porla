@@ -13,8 +13,10 @@
 import { Route as rootRoute } from './routes/__root'
 import { Route as LoginImport } from './routes/login'
 import { Route as AuthImport } from './routes/_auth'
-import { Route as AuthIndexImport } from './routes/_auth/index'
-import { Route as AuthDetailsImport } from './routes/_auth/_details'
+import { Route as AuthIndexLayoutImport } from './routes/_auth/_indexLayout'
+import { Route as AuthIndexLayoutTabLayoutImport } from './routes/_auth/_indexLayout/_tabLayout'
+import { Route as AuthIndexLayoutTabLayoutIndexImport } from './routes/_auth/_indexLayout/_tabLayout/index'
+import { Route as AuthIndexLayoutTabLayoutTrackerImport } from './routes/_auth/_indexLayout/_tabLayout/tracker'
 
 // Create/Update Routes
 
@@ -28,15 +30,27 @@ const AuthRoute = AuthImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const AuthIndexRoute = AuthIndexImport.update({
-  path: '/',
+const AuthIndexLayoutRoute = AuthIndexLayoutImport.update({
+  id: '/_indexLayout',
   getParentRoute: () => AuthRoute,
 } as any)
 
-const AuthDetailsRoute = AuthDetailsImport.update({
-  id: '/_details',
-  getParentRoute: () => AuthRoute,
+const AuthIndexLayoutTabLayoutRoute = AuthIndexLayoutTabLayoutImport.update({
+  id: '/_tabLayout',
+  getParentRoute: () => AuthIndexLayoutRoute,
 } as any)
+
+const AuthIndexLayoutTabLayoutIndexRoute =
+  AuthIndexLayoutTabLayoutIndexImport.update({
+    path: '/',
+    getParentRoute: () => AuthIndexLayoutTabLayoutRoute,
+  } as any)
+
+const AuthIndexLayoutTabLayoutTrackerRoute =
+  AuthIndexLayoutTabLayoutTrackerImport.update({
+    path: '/tracker',
+    getParentRoute: () => AuthIndexLayoutTabLayoutRoute,
+  } as any)
 
 // Populate the FileRoutesByPath interface
 
@@ -50,13 +64,21 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginImport
       parentRoute: typeof rootRoute
     }
-    '/_auth/_details': {
-      preLoaderRoute: typeof AuthDetailsImport
+    '/_auth/_indexLayout': {
+      preLoaderRoute: typeof AuthIndexLayoutImport
       parentRoute: typeof AuthImport
     }
-    '/_auth/': {
-      preLoaderRoute: typeof AuthIndexImport
-      parentRoute: typeof AuthImport
+    '/_auth/_indexLayout/_tabLayout': {
+      preLoaderRoute: typeof AuthIndexLayoutTabLayoutImport
+      parentRoute: typeof AuthIndexLayoutImport
+    }
+    '/_auth/_indexLayout/_tabLayout/tracker': {
+      preLoaderRoute: typeof AuthIndexLayoutTabLayoutTrackerImport
+      parentRoute: typeof AuthIndexLayoutTabLayoutImport
+    }
+    '/_auth/_indexLayout/_tabLayout/': {
+      preLoaderRoute: typeof AuthIndexLayoutTabLayoutIndexImport
+      parentRoute: typeof AuthIndexLayoutTabLayoutImport
     }
   }
 }
@@ -64,7 +86,14 @@ declare module '@tanstack/react-router' {
 // Create and export the route tree
 
 export const routeTree = rootRoute.addChildren([
-  AuthRoute.addChildren([AuthIndexRoute]),
+  AuthRoute.addChildren([
+    AuthIndexLayoutRoute.addChildren([
+      AuthIndexLayoutTabLayoutRoute.addChildren([
+        AuthIndexLayoutTabLayoutTrackerRoute,
+        AuthIndexLayoutTabLayoutIndexRoute,
+      ]),
+    ]),
+  ]),
   LoginRoute,
 ])
 

@@ -4,6 +4,7 @@ import { TorrentList } from "./components/panes/TorrentList.tsx";
 import { NavigationSidebar } from "./components/panes/NavigationSidebar.tsx";
 import { MobileNavigation } from "./components/panes/MobileNavigation.tsx";
 import { Toolbar } from "./components/panes/Toolbar.tsx";
+import { Outlet } from "@tanstack/react-router";
 
 function Index() {
 
@@ -46,8 +47,8 @@ function Index() {
           </Allotment.Pane>
           <Allotment className="h-full" defaultSizes={mainAreaSize} onDragEnd={setMainAreaSize} vertical={true}>
             <TorrentList/>
-            <div className="flex h-full justify-center items-center">
-              <span>This will be the details area but it has not been started yet.</span>
+            <div className="flex h-full min-w-full">
+              <Outlet />
             </div>
           </Allotment>
         </Allotment>

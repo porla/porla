@@ -10,7 +10,7 @@ import { z } from 'zod'
 import { useAuth } from '../auth'
 import PorlaIcon from '../porla.svg?react'
 
-const fallback = '/' as const
+const fallback = '/dashboard' as const
 
 export const Route = createFileRoute('/login')({
   validateSearch: z.object({
