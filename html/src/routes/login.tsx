@@ -7,8 +7,8 @@ import {
 } from '@tanstack/react-router'
 import { z } from 'zod'
 
-import { useAuth } from '../auth'
 import PorlaIcon from '../porla.svg?react'
+import { useAuth } from "../components/functions/useAuth.tsx";
 
 const fallback = '/dashboard' as const
 

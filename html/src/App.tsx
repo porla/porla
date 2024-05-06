@@ -1,6 +1,7 @@
-import { AuthProvider, useAuth } from "./auth.tsx";
+import { AuthProvider } from "./auth.tsx";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen.ts";
+import { useAuth } from "./components/functions/useAuth.tsx";
 
 // Set up a Router instance
 const router = createRouter({

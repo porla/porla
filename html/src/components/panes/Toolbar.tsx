@@ -9,9 +9,9 @@ import {
   ArrowLeftStartOnRectangleIcon
 } from "@heroicons/react/24/solid";
 import PorlaIcon from '../../porla.svg?react'
-import { useAuth } from "../../auth.tsx";
 import { useRouter } from "@tanstack/react-router";
 import { Route } from "../../routes/_auth";
+import { useAuth } from "../functions/useAuth.tsx";
 
 export const Toolbar = () => {
     const router = useRouter()
@@ -19,7 +19,7 @@ export const Toolbar = () => {
     const auth = useAuth()
 
     const handleLogout = () => {
-      // if (window.confirm('Are you sure you want to log out?')) {
+      // if (window.confirm('Are you sure you wantF to log out?')) {
         auth.logout()
         router.invalidate().finally(() => {
           navigate({ to: '/' })
