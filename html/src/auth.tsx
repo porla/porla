@@ -7,7 +7,7 @@ export interface AuthContext {
   user: string | null
 }
 
-const AuthContext = React.createContext<AuthContext | null>(null)
+export const AuthContext = React.createContext<AuthContext | null>(null)
 
 const key = 'porla.auth'
 
@@ -42,12 +42,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   )
-}
-
-export function useAuth() {
-  const context = React.useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
 }
