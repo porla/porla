@@ -1,10 +1,10 @@
 import ReactDOM from 'react-dom/client'
-import { RouterProvider, createRouter } from '@tanstack/react-router'
+import { createRouter } from '@tanstack/react-router'
 
 import { routeTree } from './routeTree.gen'
-import { AuthProvider, useAuth } from './auth'
 
 import './index.css'
+import { App } from "./App.tsx";
 
 // Set up a Router instance
 const router = createRouter({
@@ -20,19 +20,6 @@ declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router
   }
-}
-
-function InnerApp() {
-  const auth = useAuth()
-  return <RouterProvider router={router} context={{ auth }} />
-}
-
-function App() {
-  return (
-    <AuthProvider>
-      <InnerApp />
-    </AuthProvider>
-  )
 }
 
 const rootElement = document.getElementById('root')!
