@@ -5,14 +5,31 @@ import {
   PauseIcon,
   Cog6ToothIcon,
   PuzzlePieceIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  ArrowLeftStartOnRectangleIcon
 } from "@heroicons/react/24/solid";
 import PorlaIcon from '../../porla.svg?react'
+import { useRouter } from "@tanstack/react-router";
+import { Route } from "../../routes/_auth";
+import { useAuth } from "../functions/useAuth.tsx";
 
 export const Toolbar = () => {
+    const router = useRouter()
+    const navigate = Route.useNavigate()
+    const auth = useAuth()
+
+    const handleLogout = () => {
+      // if (window.confirm('Are you sure you wantF to log out?')) {
+        auth.logout()
+        router.invalidate().finally(() => {
+          navigate({ to: '/' })
+        })
+      //}
+    }
+
   return (
     <>
-      <div className="flex justify-between items-center dark:bg-neutral-800 border-b border-b-neutral-600">
+      <div className="flex justify-between items-center dark:bg-neutral-800">
         <div className="grid grid-cols-3 w-full h-10">
           <div className="flex pl-4 gap-x-6 items-center">
             <div className="flex items-center">
@@ -38,6 +55,7 @@ export const Toolbar = () => {
             <div className="flex gap-x-2">
               <a href="#"><PuzzlePieceIcon className="h-8"/></a>
               <a href="#"><Cog6ToothIcon className="h-8"/></a>
+              <ArrowLeftStartOnRectangleIcon className="size-8" onClick={handleLogout}></ArrowLeftStartOnRectangleIcon>
             </div>
           </div>
         </div>

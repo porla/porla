@@ -7,7 +7,7 @@ export const NavigationSidebar = () => {
   return (
     <>
       <nav
-        className="h-full flex flex-1 flex-col overflow-y-auto border-r border-gray-200 dark:border-neutral-600 bg-white dark:bg-neutral-800 px-4">
+        className="h-full flex flex-1 flex-col overflow-y-auto border-r border-gray-200 dark:border-neutral-600 px-4">
         <ul role="list" className="flex flex-1 flex-col gap-y-7 pt-4">
           <li>
             <CollapsibleSection title="Torrents">
