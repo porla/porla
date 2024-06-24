@@ -48,6 +48,8 @@ apk add --no-cache \
     git \
     linux-headers \
     ninja \
+    nodejs \
+    npm \
     openssl-dev \
     openssl-libs-static \
     libsodium-dev@edge-main \
