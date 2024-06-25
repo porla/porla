@@ -83,7 +83,7 @@ function AuthApp() {
           </Flex>
         </GridItem>
 
-        <GridItem area={"main"}>
+        <GridItem area={"main"} overflow={"auto"}>
           <Outlet />
         </GridItem>
 
