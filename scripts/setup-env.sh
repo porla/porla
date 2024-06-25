@@ -1,10 +1,10 @@
-#!/usr/bin/env ash
+#!/usr/bin/env sh
 
 function setup_boost() {
-    wget https://boostorg.jfrog.io/artifactory/main/release/1.84.0/source/boost_1_84_0.tar.gz
-    tar zxf boost_1_84_0.tar.gz
+    wget https://boostorg.jfrog.io/artifactory/main/release/1.85.0/source/boost_1_85_0.tar.gz
+    tar zxf boost_1_85_0.tar.gz
 
-    cd boost_1_84_0 \
+    cd boost_1_85_0 \
         && ./bootstrap.sh \
         && ./b2 link=static variant=release install \
         && cd ..
