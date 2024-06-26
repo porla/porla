@@ -20,20 +20,62 @@ namespace libtorrent
 {
     static void from_json(const json& j, libtorrent::info_hash_t& ih)
     {
+        // v1 info hash as a string
         if (j.is_string() && j.get<std::string>().size() == 40)
         {
             lt::sha1_hash h;
             lt::aux::from_hex({j.get<std::string>().c_str(),40}, h.data());
             ih = lt::info_hash_t(h);
+
+            return;
         }
-        else if (j.is_string() && j.size() == 68)
+
+        // v2 info hash as a string
+        if (j.is_string() && j.get<std::string>().size() == 64)
         {
-        }
-        else if (j.is_array() && j.size() == 2)
-        {
-            lt::sha1_hash h;
-            lt::aux::from_hex({j[0].get<std::string>().c_str(),40}, h.data());
+            lt::sha256_hash h;
+            lt::aux::from_hex({j.get<std::string>().c_str(),64}, h.data());
             ih = lt::info_hash_t(h);
+
+            return;
+        }
+
+        if (j.is_array() && j.size() == 2)
+        {
+            // v1 info hash with null v2 hash
+            if (j.at(0).is_string() && j.at(0).get<std::string>().size() == 40 && j.at(1).is_null())
+            {
+                lt::sha1_hash h;
+                lt::aux::from_hex({j[0].get<std::string>().c_str(),40}, h.data());
+                ih = lt::info_hash_t(h);
+
+                return;
+            }
+
+            // null v1 info hash with v2 info hash
+            if (j.at(0).is_null() && j.at(1).is_string() && j.at(1).get<std::string>().size() == 64)
+            {
+                lt::sha256_hash h;
+                lt::aux::from_hex({j[1].get<std::string>().c_str(),64}, h.data());
+                ih = lt::info_hash_t(h);
+
+                return;
+            }
+
+            // both v1 and v2 hashes
+            if (j.at(0).is_string() && j[0].get<std::string>().size() == 40
+                && j.at(1).is_string() && j[1].get<std::string>().size() == 64)
+            {
+                lt::sha1_hash v1;
+                lt::aux::from_hex({j[0].get<std::string>().c_str(),40}, v1.data());
+
+                lt::sha256_hash v2;
+                lt::aux::from_hex({j[1].get<std::string>().c_str(),64}, v2.data());
+
+                ih = lt::info_hash_t(v1, v2);
+
+                return;
+            }
         }
     }
 

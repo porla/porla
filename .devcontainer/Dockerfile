@@ -1,6 +1,6 @@
 FROM alpine:3.19.1
 
-RUN apk add curl nerd-fonts shadow starship zsh
+RUN apk add curl nerd-fonts nodejs npm shadow starship zsh
 
 RUN addgroup -S vscode \
     && adduser -S vscode -G vscode --shell /bin/zsh
