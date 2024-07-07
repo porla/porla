@@ -35,6 +35,11 @@ void TorrentsPropertiesSet::Invoke(const TorrentsPropertiesSetReq& req, WriteCb<
 
     const auto& [ th, _ ] = handle->second;
 
+    if (!th.is_valid())
+    {
+        return cb.Error(-2, "Torrent not valid");
+    }
+
     if (const auto val = req.download_limit)
         th.set_download_limit(*val);
 

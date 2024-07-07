@@ -38,6 +38,11 @@ void TorrentsRecheck::Invoke(const TorrentsRecheckReq &req, WriteCb<TorrentsRech
 
     const auto& [ th, _ ] = handle->second;
 
+    if (!th.is_valid())
+    {
+        return cb.Error(-2, "Torrent not valid");
+    }
+
     state->second->Recheck(th.info_hashes());
 
     return cb.Ok(TorrentsRecheckRes{});

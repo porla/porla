@@ -35,6 +35,11 @@ void TorrentsPropertiesGet::Invoke(const TorrentsPropertiesGetReq& req, WriteCb<
 
     const auto& [ th, _ ] = handle->second;
 
+    if (!th.is_valid())
+    {
+        return cb.Error(-2, "Torrent not valid");
+    }
+
     const auto handle_flags = th.flags();
 
 #define INSERT_FLAG(name) flags.insert({ #name, (handle_flags & lt::torrent_flags:: name) == lt::torrent_flags:: name });

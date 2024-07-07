@@ -37,6 +37,11 @@ void TorrentsPeersAdd::Invoke(const TorrentsPeersAddReq& req, WriteCb<TorrentsPe
 
     const auto& [ th, _ ] = handle->second;
 
+    if (!th.is_valid())
+    {
+        return cb.Error(-2, "Torrent not valid");
+    }
+
     for (const auto& [ip,port] : req.peers)
     {
         boost::system::error_code ec;
