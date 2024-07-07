@@ -44,6 +44,11 @@ void TorrentsMove::Invoke(const TorrentsMoveReq &req, WriteCb<TorrentsMoveRes> c
 
     const auto& [ th, _ ] = handle->second;
 
+    if (!th.is_valid())
+    {
+        return cb.Error(-2, "Torrent not valid");
+    }
+
     th.move_storage(req.path, flags);
 
     return cb.Ok(TorrentsMoveRes{});

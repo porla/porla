@@ -35,6 +35,11 @@ void TorrentsPause::Invoke(const TorrentsPauseReq& req, WriteCb<TorrentsPauseRes
 
     const auto& [ th, _ ] = handle->second;
 
+    if (!th.is_valid())
+    {
+        return cb.Error(-2, "Torrent not valid");
+    }
+
     th.pause();
 
     cb.Ok(TorrentsPauseRes{});
