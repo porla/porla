@@ -54,7 +54,12 @@ type AddTorrentModalProps = {
 }
 
 export default function AddTorrentModal(props: AddTorrentModalProps) {
-  const { presets } = props;
+  const presets = Object.keys(props.presets)
+    .filter(presetName => !props.presets[presetName]["$hidden"])
+    .reduce((prev, curr) => {
+      prev[curr] = props.presets[curr];
+      return prev;
+    }, {} as PresetsList);
 
   const fsSpace             = useInvoker<any>("fs.space");
   const torrentsAdd         = useInvoker<InfoHash>("torrents.add");
@@ -221,7 +226,7 @@ export default function AddTorrentModal(props: AddTorrentModalProps) {
                           }}
                         >
                           { Object.keys(presets).map(p => (
-                            <option key={p} selected={p === values.preset}>{p}</option>
+                            <option key={p} value={p}>{p}</option>
                           ))}
                         </Select>
                         <FormHelperText>Select a preset to apply to the torrent.</FormHelperText>

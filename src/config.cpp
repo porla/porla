@@ -292,6 +292,9 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
                     if (auto val = value_tbl["upload_limit"].value<int>())
                         p.upload_limit = *val;
 
+                    if (auto dollar_hidden = value_tbl["$hidden"].value<bool>())
+                        p.dollar_hidden = *dollar_hidden;
+
                     cfg->presets.insert({ key.data(), std::move(p) });
                 }
             }

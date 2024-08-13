@@ -8,7 +8,8 @@ export type PresetsList = {
 };
 
 export type Preset = {
-  save_path: string | null
+  save_path: string | null;
+  $hidden: boolean | null;
 };
 
 export type Torrent = {

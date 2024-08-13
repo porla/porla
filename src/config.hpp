@@ -33,6 +33,9 @@ namespace porla
             std::optional<libtorrent::storage_mode_t> storage_mode;
             std::unordered_set<std::string>           tags;
             std::optional<int>                        upload_limit;
+
+            // porla specific
+            std::optional<bool>                       dollar_hidden;
         };
 
         std::optional<std::string>               config_file;
