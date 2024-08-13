@@ -27,6 +27,9 @@ namespace porla::Methods
             j[key]["session"]         = preset.session         ? json(preset.session.value())         : json();
             j[key]["tags"]            = !preset.tags.empty()   ? json(preset.tags)                    : json();
             j[key]["upload_limit"]    = preset.upload_limit    ? json(preset.upload_limit.value())    : json();
+
+            // porla specific
+            j[key]["$hidden"]         = preset.dollar_hidden   ? json(preset.dollar_hidden.value())   : json();
         }
     }
 }
