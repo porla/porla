@@ -43,6 +43,7 @@
 #include "methods/torrentslist.hpp"
 #include "methods/torrentsmetadatalist.hpp"
 #include "methods/torrentsmove.hpp"
+#include "methods/torrentsoverview.hpp"
 #include "methods/torrentspause.hpp"
 #include "methods/torrentspeersadd.hpp"
 #include "methods/torrentspeerslist.hpp"
@@ -178,6 +179,7 @@ int main(int argc, char* argv[])
             {"torrents.list", porla::Methods::TorrentsList(sessions)},
             {"torrents.metadata.list", porla::Methods::TorrentsMetadataList(cfg->db, sessions)},
             {"torrents.move", porla::Methods::TorrentsMove(sessions)},
+            {"torrents.overview", porla::Methods::TorrentsOverview(sessions)},
             {"torrents.pause", porla::Methods::TorrentsPause(sessions)},
             {"torrents.peers.add", porla::Methods::TorrentsPeersAdd(sessions)},
             {"torrents.peers.list", porla::Methods::TorrentsPeersList(sessions)},
