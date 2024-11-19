@@ -46,6 +46,26 @@ void Events::Register(sol::state& lua)
             sol::state_view lua{s};
             const auto options = lua.globals()["__load_opts"].get<const PluginLoadOptions&>();
 
+            if (name == "session_stats")
+            {
+                auto connection = options.sessions.OnSessionStats(
+                    [cb = callback](const std::string& session, const lt::span<const int64_t>& counters)
+                    {
+                        try
+                        {
+                            std::vector<int64_t> c;
+                            for (const int64_t counter : counters) { c.emplace_back(counter); }
+                            cb(session, c);
+                        }
+                        catch (const sol::error& err)
+                        {
+                            BOOST_LOG_TRIVIAL(error) << "An error occurred in an event handler: " << err.what();
+                        }
+                    });
+
+                return std::make_shared<SignalConnection>(connection);
+            }
+
             if (name == "torrent_added")
             {
                 auto connection = options.sessions.OnTorrentAdded(

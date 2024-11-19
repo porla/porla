@@ -2,6 +2,7 @@
 
 #include <boost/log/trivial.hpp>
 #include <libtorrent/magnet_uri.hpp>
+#include <libtorrent/session_stats.hpp>
 
 #include "../plugin.hpp"
 #include "../../sessions.hpp"
@@ -231,6 +232,19 @@ void Sessions::Register(sol::state& lua)
             sol::state_view lua{s};
             const auto options = lua.globals()["__load_opts"].get<const PluginLoadOptions&>();
             return SessionsIter(options.sessions.All().begin());
+        };
+
+        sessions["metrics"] = [](sol::this_state s)
+        {
+            sol::state_view lua{s};
+            sol::table metrics = lua.create_table();
+
+            for (const auto& metric : lt::session_stats_metrics())
+            {
+                metrics[metric.name] = metric.value_index;
+            }
+
+            return metrics;
         };
 
         return sessions;
