@@ -11,3 +11,12 @@ antlr-4*.jar
 src/query/.antlr
 src/query/_aux/*.interp
 src/query/_aux/*.tokens
+# Devenv
+.devenv*
+devenv.local.nix
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
