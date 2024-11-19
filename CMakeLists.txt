@@ -12,7 +12,6 @@ set(CMAKE_CXX_STANDARD 20)
 include(ExternalAntlr4Cpp)
 include(FetchContent)
 
-set(BUILD_SHARED_LIBS           OFF CACHE BOOL "Build static library" FORCE)
 set(BUILD_TESTS                 OFF CACHE BOOL "Build tests" FORCE)
 set(BUILD_TOOLS         OFF CACHE BOOL "Build tools" FORCE)
 set(BUILD_REGRESS       OFF CACHE BOOL "Build regression tests" FORCE)
@@ -23,15 +22,12 @@ set(ENABLE_BZIP2        OFF)
 set(ENABLE_ZSTD         OFF)
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib .so .dll)
-set(LINK_WITH_STATIC_LIBRARIES  ON CACHE BOOL "Link with static libs" FORCE)
-set(OPENSSL_USE_STATIC_LIBS     TRUE)
 
 # uriparser options
 set(URIPARSER_BUILD_DOCS    OFF CACHE BOOL "Build docs"    FORCE)
 set(URIPARSER_BUILD_TESTS   OFF CACHE BOOL "Build tests"   FORCE)
 set(URIPARSER_BUILD_TOOLS   OFF CACHE BOOL "Build tools"   FORCE)
 set(URIPARSER_BUILD_WCHAR_T OFF CACHE BOOL "Build wchar_t" FORCE)
-set(URIPARSER_SHARED_LIBS   OFF CACHE BOOL "Shared libs"   FORCE)
 
 find_package(Boost               REQUIRED COMPONENTS log program_options system)
 find_package(LibtorrentRasterbar REQUIRED)
@@ -261,6 +257,7 @@ target_link_libraries(
     -lcrypto
     -lssl
     -lgit2
+    -lz
 )
 
 add_executable(
