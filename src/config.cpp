@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 #include <boost/log/trivial.hpp>
 #include <boost/program_options.hpp>
@@ -11,9 +12,11 @@
 #include <libtorrent/extensions/smart_ban.hpp>
 #include <libtorrent/fingerprint.hpp>
 #include <libtorrent/session.hpp>
+#include <libtorrent/version.hpp>
 #include <sodium.h>
 #include <toml++/toml.h>
 
+#include "buildinfo.hpp"
 #include "data/migrate.hpp"
 #include "sessions.hpp"
 #include "utils/secretkey.hpp"
@@ -461,7 +464,11 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     {
         settings.set_int(lt::settings_pack::alert_mask, alerts);
         settings.set_str(lt::settings_pack::peer_fingerprint, lt::generate_fingerprint("PO", 0, 1));
-        settings.set_str(lt::settings_pack::user_agent, "porla/1.0");
+
+        std::stringstream user_agent;
+        user_agent << "porla/" << BuildInfo::Version() << " libtorrent/" << LIBTORRENT_VERSION;
+
+        settings.set_str(lt::settings_pack::user_agent, user_agent.str());
     }
 
     // If we get here without having a secret key, we must generate one. Also log a warning because
