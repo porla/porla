@@ -25,6 +25,8 @@ set(VERSION_SRC "const char* GIT_BRANCH=\"${GIT_BRANCH}\";
 const char* GIT_COMMITISH=\"${GIT_COMMITISH}\";
 const char* VERSION=\"${VERSION}\";")
 
+message(VERSION_SRC="${VERSION_SRC}")
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/version.cpp)
     file(READ ${CMAKE_CURRENT_SOURCE_DIR}/version.cpp VERSION_SRC_)
 else()

@@ -1,4 +1,8 @@
+ARG GITVERSION_SEMVER="0.0.0"
+
 FROM ghcr.io/porla/alpine:3.19.1 AS build-env
+
+ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
 
 WORKDIR /src
 
