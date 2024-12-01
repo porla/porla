@@ -91,10 +91,20 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Set ccache remote
+        run: |
+          if [[ ${{ github.ref }} == 'refs/heads/main' ]]; then
+            echo "CCACHE_REMOTE_STORAGE=${{ secrets.PORLA_CCACHE_REMOTE_STORAGE_WRITE }}" >> $GITHUB_ENV
+          else
+            echo "CCACHE_REMOTE_STORAGE=http://ccache.porla.org/cache|read-only|connect-timeout=500" >> $GITHUB_ENV
+          fi
+
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
-          build-args: GITVERSION_SEMVER=${{ needs.calc-version.outputs.semVer }}
+          build-args: |
+            CCACHE_REMOTE_STORAGE=${{ env.CCACHE_REMOTE_STORAGE }}
+            GITVERSION_SEMVER=${{ needs.calc-version.outputs.semVer }}
           context: .
           load: true
           tags: ghcr.io/porla/porla:${{ needs.calc-version.outputs.shortSha }}-${{ matrix.platform }}
