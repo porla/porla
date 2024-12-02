@@ -9,9 +9,10 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib .so .dll)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 find_package(ANTLR4              REQUIRED)
-find_package(Boost               REQUIRED COMPONENTS log program_options system)
+find_package(Boost               CONFIG COMPONENTS log program_options system)
 find_package(CURL                REQUIRED)
 find_package(LibtorrentRasterbar REQUIRED)
 find_package(libzip              REQUIRED)

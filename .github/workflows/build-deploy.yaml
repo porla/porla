@@ -105,6 +105,9 @@ jobs:
           build-args: |
             CCACHE_REMOTE_STORAGE=${{ env.CCACHE_REMOTE_STORAGE }}
             GITVERSION_SEMVER=${{ needs.calc-version.outputs.semVer }}
+            GITVERSION_MAJOR=${{ needs.calc-version.outputs.major }}
+            GITVERSION_MINOR=${{ needs.calc-version.outputs.minor }}
+            GITVERSION_PATCH=${{ needs.calc-version.outputs.patch }}
           context: .
           load: true
           tags: ghcr.io/porla/porla:${{ needs.calc-version.outputs.shortSha }}-${{ matrix.platform }}
