@@ -34,38 +34,6 @@ add_custom_command(
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FileEmbed.cmake)
 
 add_library(
-    uSockets
-    STATIC
-    vendor/uWebSockets/uSockets/src/crypto/openssl.c
-    vendor/uWebSockets/uSockets/src/eventing/asio.cpp
-    vendor/uWebSockets/uSockets/src/bsd.c
-    vendor/uWebSockets/uSockets/src/context.c
-    vendor/uWebSockets/uSockets/src/loop.c
-    vendor/uWebSockets/uSockets/src/quic.c
-    vendor/uWebSockets/uSockets/src/socket.c
-    vendor/uWebSockets/uSockets/src/udp.c
-)
-
-target_compile_definitions(
-    uSockets
-    PRIVATE
-    -DLIBUS_NO_SSL
-    -DLIBUS_USE_ASIO
-)
-
-target_include_directories(
-    uSockets
-    PUBLIC
-    vendor/uWebSockets/uSockets/src
-)
-
-target_link_libraries(
-    uSockets
-    PRIVATE
-    Boost::boost
-)
-
-add_library(
     ${PROJECT_NAME}_utils
     STATIC
     src/utils/ratio.cpp
@@ -202,7 +170,6 @@ target_compile_definitions(
 target_include_directories(
     ${PROJECT_NAME}_core
     PUBLIC
-    ${JWT_CPP_INCLUDE_DIRS}
     ${LUA_INCLUDE_DIR}
     vendor/croncpp/include
     vendor/jwt-cpp/include
@@ -225,7 +192,7 @@ target_link_libraries(
     SQLite::SQLite3
     torrent-rasterbar
     uriparser
-    uSockets
+    -luSockets
     -lcrypto
     -lssl
     -lgit2

@@ -110,6 +110,18 @@ RUN cd uriparser-0.9.8 \
         -DURIPARSER_BUILD_DOCS=OFF \
     && cmake --build build --target install
 
+# uWebSockets
+FROM build-base AS build-uwebsockets
+COPY --from=build-boost /usr/local/include/boost /usr/local/include/boost
+COPY --from=build-boost /usr/local/lib/cmake /usr/local/lib/cmake
+COPY --from=build-boost /usr/local/lib/libboost* /usr/local/lib
+RUN wget -O uSockets-0.8.8.tar.gz https://github.com/uNetworking/uSockets/archive/refs/tags/v0.8.8.tar.gz
+RUN tar zxf uSockets-0.8.8.tar.gz
+RUN cd uSockets-0.8.8 \
+    && WITH_ASIO=1 WITH_OPENSSL=1 make
+RUN wget -O uWebSockets-20.70.0.tar.gz https://github.com/uNetworking/uWebSockets/archive/refs/tags/v20.70.0.tar.gz
+RUN tar zxf uWebSockets-20.70.0.tar.gz
+
 FROM build-base AS build-porla
 # antlr4
 COPY --from=build-antlr4 /usr/local/include/antlr4-runtime /usr/local/include/antlr4-runtime
@@ -142,6 +154,11 @@ COPY --from=build-libzip /usr/local/lib/libzip* /usr/local/lib
 COPY --from=build-uriparser /usr/local/include/uriparser /usr/local/include/uriparser
 COPY --from=build-uriparser /usr/local/lib/cmake /usr/local/lib/cmake
 COPY --from=build-uriparser /usr/local/lib/liburiparser* /usr/local/lib
+# uwebsockets
+COPY --from=build-uwebsockets /src/uSockets-0.8.8/src/libusockets.h /usr/local/include/libusockets.h
+COPY --from=build-uwebsockets /src/uSockets-0.8.8/uSockets.a /usr/local/lib/libuSockets.a
+COPY --from=build-uwebsockets /src/uWebSockets-20.70.0/src/* /usr/local/include/uWebSockets/
+
 COPY . .
 
 RUN echo "@edge-main https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories

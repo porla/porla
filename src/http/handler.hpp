@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "../../vendor/uWebSockets/src/App.h"
+#include <uWebSockets/App.h>
 
 namespace porla::Http
 {
