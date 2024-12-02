@@ -463,7 +463,9 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     for (auto& [ _, settings ] : cfg->sessions)
     {
         settings.set_int(lt::settings_pack::alert_mask, alerts);
-        settings.set_str(lt::settings_pack::peer_fingerprint, lt::generate_fingerprint("PO", 0, 1));
+        settings.set_str(
+            lt::settings_pack::peer_fingerprint,
+            lt::generate_fingerprint("PO", BuildInfo::VersionMajor(), BuildInfo::VersionMinor(), BuildInfo::VersionPatch()));
 
         std::stringstream user_agent;
         user_agent << "porla/" << BuildInfo::Version() << " libtorrent/" << LIBTORRENT_VERSION;
