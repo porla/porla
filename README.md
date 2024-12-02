@@ -121,30 +121,44 @@ Various bits and pieces of information regarding development.
 
 ### Building
 
-We try to make sure Porla is easy to get running directly from the Git
-repository. Dependencies are managed with [vcpkg](https://github.com/microsoft/vcpkg).
+> [!NOTE]
+> I (@vktr) run Arch on my desktop and macOS (Sequoia) which is why the build
+> process might be skewed towards those targets.
 
-```shell
-git clone --recursive https://github.com/porla/porla
-cd porla
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -G Ninja
-cmake --build build
+
+#### Docker
+
+The Dockerfile in Porla produces a statically linked binary and can be used to
+build a Docker image. Copy the Porla binary from the Docker image if you do not
+want to introduce a Docker dependency on your seedbox.
+
+```sh
+docker build -t porla-tmp .
+docker create --name porla-tmp-bin porla-tmp
+docker cp porla-tmp-bin:/usr/bin/porla .
+docker rm -f porla-tmp-bin
 ```
 
-You can also remove `-G Ninja` if you don't have Ninja available.
+#### Dependencies (on Arch)
 
-### Updating the pre-built Dockerfile build environment
+ * antlr4-runtime (4.13.2)
+ * boost (1.86)
+ * libgit2 (1.8.4)
+ * libtorrent-rasterbar (2.0.10)
+ * libzip (1.11.2)
+ * uriparser (0.9.8)
 
-To reduce build times, we use a pre-built Docker layer with all the vcpkg
-dependencies already built. This needs to be updated whenever we update the
-vcpkg submodule or radically change the project structure.
+#### uWebSockets
 
-_Requires push access to the Porla container registry_.
+uWebSockets is the outlier since it does not provide any packages. Building it
+is easy, however.
 
-```shell
-docker build -t porla-build-env -f Dockerfile.build-env .
-docker tag porla-build-env ghcr.io/porla/build-env:<timestamp>
-docker push ghcr.io/porla/build-env:<timestamp>
+```sh
+git clone --recursive https://github.com/uNetworking/uWebSockets
+WITH_ASIO=1 WITH_OPENSSL=1 make -C uWebSockets
+sudo cp uWebSockets/uSockets/uSockets.a /usr/local/lib/libuSockets.a
+sudo cp uWebSockets/uSockets/src/libusockets.h /usr/local/include
+sudo cp uWebSockets/src/* /usr/local/include/uWebSockets
 ```
 
 ### Generating ANTLR4 grammar source files
