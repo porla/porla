@@ -23,13 +23,13 @@ jobs:
           submodules: true
 
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v0.10.2
+        uses: gittools/actions/gitversion/setup@v3.0.3
         with:
-          versionSpec: '5.x'
+          versionSpec: '6.x'
 
       - name: Calculate version
         id: gitversion
-        uses: gittools/actions/gitversion/execute@v0.10.2
+        uses: gittools/actions/gitversion/execute@v3.0.3
         with:
           useConfigFile: true
 
@@ -56,7 +56,7 @@ jobs:
         run: pushd html/dist && zip -9 -r ../webui.zip * && popd && ls -la
 
       - name: Upload web UI to artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: webui.zip
           path: html/webui.zip
@@ -83,7 +83,7 @@ jobs:
           submodules: 'recursive'
 
       - name: Download web UI artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: webui.zip
           path: html/
@@ -120,13 +120,13 @@ jobs:
           docker save -o /tmp/porla-${{ matrix.platform }}-docker.tar ghcr.io/porla/porla:${{ needs.calc-version.outputs.shortSha }}-${{ matrix.platform }}
 
       - name: Upload Docker container to artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: porla-${{ matrix.platform }}-docker.tar
           path: /tmp/porla-${{ matrix.platform }}-docker.tar
 
       - name: Upload Porla binary to artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: porla-${{ matrix.platform }}
           path: /tmp/porla-${{ matrix.platform }}
@@ -144,13 +144,13 @@ jobs:
 
     steps:
       - name: Download Docker artifact (linux-amd64)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: porla-linux-amd64-docker.tar
           path: /tmp
 
       - name: Download Docker artifact (linux-arm64)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: porla-linux-arm64-docker.tar
           path: /tmp
@@ -207,13 +207,13 @@ jobs:
           submodules: true
 
       - name: Download Docker artifact (linux-amd64)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: porla-linux-amd64-docker.tar
           path: /tmp
 
       - name: Download Docker artifact (linux-arm64)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: porla-linux-arm64-docker.tar
           path: /tmp
@@ -251,13 +251,13 @@ jobs:
           docker manifest push ghcr.io/porla/porla:${{ needs.calc-version.outputs.semVer }}
 
       - name: Download Porla binary artifact (linux-amd64)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: porla-linux-amd64
           path: /tmp
 
       - name: Download Porla binary artifact (linux-arm64)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: porla-linux-arm64
           path: /tmp
