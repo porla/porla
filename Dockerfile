@@ -14,7 +14,19 @@ RUN apk add --no-cache \
     linux-headers \
     ninja \
     openssl-dev \
-    openssl-libs-static
+    openssl-libs-static \
+    zlib-dev \
+    zlib-static
+
+# antlr4
+FROM build-base AS build-antlr4
+RUN wget -O antlr4-4.13.2.tar.gz https://github.com/antlr/antlr4/archive/refs/tags/4.13.2.tar.gz
+RUN tar zxf antlr4-4.13.2.tar.gz
+RUN cd antlr4-4.13.2/runtime/Cpp \
+    && cmake -S . -B build -G Ninja \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+        -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build build --target install
 
 # boost
 FROM build-base AS build-boost
@@ -65,13 +77,43 @@ RUN cd libgit2-1.8.4 \
         -DUSE_NTLMCLIENT=OFF \
     && cmake --build build --target install
 
+# libzip
+FROM build-base AS build-libzip
+RUN wget https://github.com/nih-at/libzip/releases/download/v1.11.2/libzip-1.11.2.tar.gz
+RUN tar zxf libzip-1.11.2.tar.gz
+RUN cd libzip-1.11.2 \
+    && cmake -S . -B build -G Ninja \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_TOOLS=OFF \
+        -DBUILD_DOCS=OFF \
+        -DBUILD_EXAMPLES=OFF \
+    && cmake --build build --target install
+
 # lua
 FROM build-base AS build-lua
 RUN wget https://www.lua.org/ftp/lua-5.4.6.tar.gz
 RUN tar zxf lua-5.4.6.tar.gz
 RUN cd lua-5.4.6 && make CC="ccache gcc" all && make install
 
+# uriparser
+FROM build-base AS build-uriparser
+RUN wget https://github.com/uriparser/uriparser/releases/download/uriparser-0.9.8/uriparser-0.9.8.tar.gz
+RUN tar zxf uriparser-0.9.8.tar.gz
+RUN cd uriparser-0.9.8 \
+    && cmake -S . -B build -G Ninja \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DURIPARSER_BUILD_TESTS=OFF \
+        -DURIPARSER_BUILD_TOOLS=OFF \
+        -DURIPARSER_SHARED_LIBS=OFF \
+        -DURIPARSER_BUILD_DOCS=OFF \
+    && cmake --build build --target install
+
 FROM build-base AS build-porla
+# antlr4
+COPY --from=build-antlr4 /usr/local/include/antlr4-runtime /usr/local/include/antlr4-runtime
+COPY --from=build-antlr4 /usr/local/lib/libantlr4* /usr/local/lib
 # boost
 COPY --from=build-boost /usr/local/include/boost /usr/local/include/boost
 COPY --from=build-boost /usr/local/lib/cmake /usr/local/lib/cmake
@@ -92,6 +134,14 @@ COPY --from=build-libtorrent /usr/local/lib/libtorrent* /usr/local/lib
 # lua
 COPY --from=build-lua /usr/local/include/* /usr/local/include/
 COPY --from=build-lua /usr/local/lib/liblua* /usr/local/lib
+# libzip
+COPY --from=build-libzip /usr/local/include/* /usr/local/include/
+COPY --from=build-libzip /usr/local/lib/cmake /usr/local/lib/cmake
+COPY --from=build-libzip /usr/local/lib/libzip* /usr/local/lib
+# uriparser
+COPY --from=build-uriparser /usr/local/include/uriparser /usr/local/include/uriparser
+COPY --from=build-uriparser /usr/local/lib/cmake /usr/local/lib/cmake
+COPY --from=build-uriparser /usr/local/lib/liburiparser* /usr/local/lib
 COPY . .
 
 RUN echo "@edge-main https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
@@ -101,9 +151,7 @@ RUN apk add --no-cache \
     libsodium-dev@edge-main \
     libsodium-static@edge-main \
     sqlite-dev \
-    sqlite-static \
-    zlib-dev \
-    zlib-static
+    sqlite-static
 
 RUN cmake -S . -B build -G Ninja \
     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
