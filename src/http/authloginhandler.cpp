@@ -89,10 +89,13 @@ void AuthLoginHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpReques
                     // enumerate usernames. Do not set the result. The hashed password is
                     // just 'hunter2'.
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
                     (void) crypto_pwhash_str_verify(
                         "$argon2id$v=19$m=8,t=2,p=1$+6Dhs+XwJA6aMr+EpEirUA$5+DoNO4hoWzPUnTM0BTg3a0JZx0c9LI1FkfZvDX1lTw",
                         "hunter2",
                         7);
+#pragma GCC diagnostic pop
                 }
 
                 boost::asio::dispatch(
