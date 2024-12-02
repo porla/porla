@@ -30,23 +30,20 @@ set(URIPARSER_BUILD_TOOLS   OFF CACHE BOOL "Build tools"   FORCE)
 set(URIPARSER_BUILD_WCHAR_T OFF CACHE BOOL "Build wchar_t" FORCE)
 
 find_package(Boost               REQUIRED COMPONENTS log program_options system)
+find_package(CURL                REQUIRED)
 find_package(LibtorrentRasterbar REQUIRED)
 find_package(Lua                 REQUIRED)
 find_package(OpenSSL             REQUIRED)
 find_package(SQLite3             REQUIRED)
 find_package(ZLIB                REQUIRED)
 
-FetchContent_Declare(curl          URL https://github.com/curl/curl/archive/refs/tags/curl-8_6_0.tar.gz)
 FetchContent_Declare(jwt-cpp       URL https://github.com/Thalhammer/jwt-cpp/archive/refs/tags/v0.7.0.tar.gz)
 FetchContent_Declare(libzip        URL https://github.com/nih-at/libzip/archive/refs/tags/v1.10.1.tar.gz)
-FetchContent_Declare(tomlplusplus  URL https://github.com/marzer/tomlplusplus/archive/refs/tags/v3.4.0.tar.gz)
 FetchContent_Declare(uriparser     URL https://github.com/uriparser/uriparser/archive/refs/tags/uriparser-0.9.7.tar.gz)
 
 FetchContent_MakeAvailable(
-    curl
     jwt-cpp
     libzip
-    tomlplusplus
     uriparser)
 
 add_custom_command(
@@ -235,6 +232,7 @@ target_include_directories(
     vendor/croncpp/include
     vendor/nlohmann-json/include
     vendor/sol2/include
+    vendor/tomlplusplus/include
 )
 
 target_link_libraries(
@@ -251,7 +249,6 @@ target_link_libraries(
     sodium
     SQLite::SQLite3
     torrent-rasterbar
-    tomlplusplus::tomlplusplus
     uriparser
     uSockets
     -lcrypto

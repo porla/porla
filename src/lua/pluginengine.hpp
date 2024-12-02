@@ -7,7 +7,7 @@
 
 #include <boost/asio.hpp>
 #include <sqlite3.h>
-#include <toml++/toml.h>
+#include <toml++/toml.hpp>
 
 namespace porla
 {

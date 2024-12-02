@@ -23,6 +23,18 @@ RUN wget https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz
 RUN tar zxf boost_1_86_0.tar.gz
 RUN cd boost_1_86_0 && ./bootstrap.sh && ./b2 link=static variant=release install
 
+# libcurl
+FROM build-base AS build-curl
+RUN wget https://github.com/curl/curl/releases/download/curl-8_11_0/curl-8.11.0.tar.gz
+RUN tar zxf curl-8.11.0.tar.gz
+RUN cd curl-8.11.0 \
+    && cmake -S . -B build -G Ninja \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+        -DBUILD_CURL_EXE=OFF \
+        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_STATIC_LIBS=ON \
+    && cmake --build build --target install
+
 # libtorrent
 FROM build-base AS build-libtorrent
 COPY --from=build-boost /usr/local/include/boost /usr/local/include/boost
@@ -60,21 +72,30 @@ RUN tar zxf lua-5.4.6.tar.gz
 RUN cd lua-5.4.6 && make CC="ccache gcc" all && make install
 
 FROM build-base AS build-porla
+# boost
 COPY --from=build-boost /usr/local/include/boost /usr/local/include/boost
 COPY --from=build-boost /usr/local/lib/cmake /usr/local/lib/cmake
 COPY --from=build-boost /usr/local/lib/libboost* /usr/local/lib
+# libcurl
+COPY --from=build-curl /usr/local/include/curl /usr/local/include/curl
+COPY --from=build-curl /usr/local/lib/cmake /usr/local/lib/cmake
+COPY --from=build-curl /usr/local/lib/libcurl* /usr/local/lib
+# libgit2
 COPY --from=build-libgit2 /usr/local/include/git2 /usr/local/include/git2
 COPY --from=build-libgit2 /usr/local/include/git2.h /usr/local/include/
 COPY --from=build-libgit2 /usr/local/lib/libgit2* /usr/local/lib
 COPY --from=build-libgit2 /usr/local/lib/pkgconfig/libgit2.pc /usr/local/lib/pkgconfig/libgit2.pc
+# libtorrent
 COPY --from=build-libtorrent /usr/local/include/libtorrent /usr/local/include/libtorrent
 COPY --from=build-libtorrent /usr/local/lib/cmake /usr/local/lib/cmake
 COPY --from=build-libtorrent /usr/local/lib/libtorrent* /usr/local/lib
+# lua
 COPY --from=build-lua /usr/local/include/* /usr/local/include/
 COPY --from=build-lua /usr/local/lib/liblua* /usr/local/lib
 COPY . .
 
 RUN echo "@edge-main https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
+
 RUN apk add --no-cache \
     git \
     libsodium-dev@edge-main \
@@ -83,6 +104,7 @@ RUN apk add --no-cache \
     sqlite-static \
     zlib-dev \
     zlib-static
+
 RUN cmake -S . -B build -G Ninja \
     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
     -DCMAKE_BUILD_TYPE=Release \
@@ -91,8 +113,10 @@ RUN cmake -S . -B build -G Ninja \
     -DLINK_WITH_STATIC_LIBRARIES=ON \
     -DOPENSSL_USE_STATIC_LIBS=TRUE \
     -DURIPARSER_SHARED_LIBS=OFF
+
 RUN cmake --build build
 
+# runtime image
 FROM base AS runtime
 
 ENV PORLA_HTTP_HOST=0.0.0.0

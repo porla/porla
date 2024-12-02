@@ -3,7 +3,7 @@
 #include <boost/log/trivial.hpp>
 #include <utility>
 #include <git2.h>
-#include <toml++/toml.h>
+#include <toml++/toml.hpp>
 
 #include "../../lua/plugin.hpp"
 #include "../../lua/pluginengine.hpp"
