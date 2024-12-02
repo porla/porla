@@ -8,46 +8,18 @@ project(porla)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(CMAKE_CXX_STANDARD 20)
-
-include(ExternalAntlr4Cpp)
-include(FetchContent)
-
-set(BUILD_TESTS                 OFF CACHE BOOL "Build tests" FORCE)
-set(BUILD_TOOLS         OFF CACHE BOOL "Build tools" FORCE)
-set(BUILD_REGRESS       OFF CACHE BOOL "Build regression tests" FORCE)
-set(BUILD_OSSFUZZ       OFF CACHE BOOL "Build fuzzers for ossfuzz" FORCE)
-set(BUILD_EXAMPLES      OFF CACHE BOOL "Build examples" FORCE)
-set(BUILD_DOC           OFF CACHE BOOL "Build docs" FORCE)
-set(ENABLE_BZIP2        OFF)
-set(ENABLE_ZSTD         OFF)
-
 set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib .so .dll)
 
-# uriparser options
-set(URIPARSER_BUILD_DOCS    OFF CACHE BOOL "Build docs"    FORCE)
-set(URIPARSER_BUILD_TESTS   OFF CACHE BOOL "Build tests"   FORCE)
-set(URIPARSER_BUILD_TOOLS   OFF CACHE BOOL "Build tools"   FORCE)
-set(URIPARSER_BUILD_WCHAR_T OFF CACHE BOOL "Build wchar_t" FORCE)
-
+find_package(ANTLR4              REQUIRED)
 find_package(Boost               REQUIRED COMPONENTS log program_options system)
+find_package(CURL                REQUIRED)
 find_package(LibtorrentRasterbar REQUIRED)
+find_package(libzip              REQUIRED)
 find_package(Lua                 REQUIRED)
 find_package(OpenSSL             REQUIRED)
 find_package(SQLite3             REQUIRED)
+find_package(uriparser           REQUIRED)
 find_package(ZLIB                REQUIRED)
-
-FetchContent_Declare(curl          URL https://github.com/curl/curl/archive/refs/tags/curl-8_6_0.tar.gz)
-FetchContent_Declare(jwt-cpp       URL https://github.com/Thalhammer/jwt-cpp/archive/refs/tags/v0.7.0.tar.gz)
-FetchContent_Declare(libzip        URL https://github.com/nih-at/libzip/archive/refs/tags/v1.10.1.tar.gz)
-FetchContent_Declare(tomlplusplus  URL https://github.com/marzer/tomlplusplus/archive/refs/tags/v3.4.0.tar.gz)
-FetchContent_Declare(uriparser     URL https://github.com/uriparser/uriparser/archive/refs/tags/uriparser-0.9.7.tar.gz)
-
-FetchContent_MakeAvailable(
-    curl
-    jwt-cpp
-    libzip
-    tomlplusplus
-    uriparser)
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
@@ -60,38 +32,6 @@ add_custom_command(
     ${CMAKE_CURRENT_BINARY_DIR}/_webui.cpp
     COMMAND ${CMAKE_COMMAND} -P
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FileEmbed.cmake)
-
-add_library(
-    uSockets
-    STATIC
-    vendor/uWebSockets/uSockets/src/crypto/openssl.c
-    vendor/uWebSockets/uSockets/src/eventing/asio.cpp
-    vendor/uWebSockets/uSockets/src/bsd.c
-    vendor/uWebSockets/uSockets/src/context.c
-    vendor/uWebSockets/uSockets/src/loop.c
-    vendor/uWebSockets/uSockets/src/quic.c
-    vendor/uWebSockets/uSockets/src/socket.c
-    vendor/uWebSockets/uSockets/src/udp.c
-)
-
-target_compile_definitions(
-    uSockets
-    PRIVATE
-    -DLIBUS_NO_SSL
-    -DLIBUS_USE_ASIO
-)
-
-target_include_directories(
-    uSockets
-    PUBLIC
-    vendor/uWebSockets/uSockets/src
-)
-
-target_link_libraries(
-    uSockets
-    PRIVATE
-    Boost::boost
-)
 
 add_library(
     ${PROJECT_NAME}_utils
@@ -126,7 +66,7 @@ target_link_libraries(
     ${PROJECT_NAME}_query
     PRIVATE
     ${PROJECT_NAME}_utils
-    antlr4_static
+    ${ANTLR4_LIBRARIES}
     torrent-rasterbar
 )
 
@@ -230,11 +170,12 @@ target_compile_definitions(
 target_include_directories(
     ${PROJECT_NAME}_core
     PUBLIC
-    ${JWT_CPP_INCLUDE_DIRS}
     ${LUA_INCLUDE_DIR}
     vendor/croncpp/include
+    vendor/jwt-cpp/include
     vendor/nlohmann-json/include
     vendor/sol2/include
+    vendor/tomlplusplus/include
 )
 
 target_link_libraries(
@@ -245,15 +186,13 @@ target_link_libraries(
 
     Boost::boost Boost::log Boost::program_options
     CURL::libcurl
-    jwt-cpp::jwt-cpp
     libzip::zip
     lua
     sodium
     SQLite::SQLite3
     torrent-rasterbar
-    tomlplusplus::tomlplusplus
     uriparser
-    uSockets
+    -luSockets
     -lcrypto
     -lssl
     -lgit2

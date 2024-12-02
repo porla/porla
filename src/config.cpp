@@ -14,7 +14,7 @@
 #include <libtorrent/session.hpp>
 #include <libtorrent/version.hpp>
 #include <sodium.h>
-#include <toml++/toml.h>
+#include <toml++/toml.hpp>
 
 #include "buildinfo.hpp"
 #include "data/migrate.hpp"

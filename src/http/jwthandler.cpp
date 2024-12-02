@@ -1,6 +1,7 @@
 #include "jwthandler.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <jwt-cpp/traits/nlohmann-json/defaults.h>
 #include <jwt-cpp/jwt.h>
 
 using porla::Http::JwtHandler;

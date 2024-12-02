@@ -4,7 +4,7 @@
 #include <libtorrent/version.hpp>
 #include <openssl/opensslv.h>
 #include <sqlite3.h>
-#include <toml++/toml.h>
+#include <toml++/toml.hpp>
 
 #include "../buildinfo.hpp"
 

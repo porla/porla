@@ -11,7 +11,7 @@
 #include <libtorrent/settings_pack.hpp>
 #include <libtorrent/storage_defs.hpp>
 #include <sqlite3.h>
-#include <toml++/toml.h>
+#include <toml++/toml.hpp>
 
 typedef std::function<std::shared_ptr<libtorrent::torrent_plugin>(libtorrent:: torrent_handle const&, libtorrent::client_data_t)> lt_plugin;
 

@@ -1,5 +1,6 @@
 #include "authtoken.hpp"
 
+#include <jwt-cpp/traits/nlohmann-json/defaults.h>
 #include <jwt-cpp/jwt.h>
 
 #include "../config.hpp"
