@@ -118,7 +118,7 @@ COPY --from=build-boost /usr/local/lib/libboost* /usr/local/lib
 RUN wget -O uSockets-0.8.8.tar.gz https://github.com/uNetworking/uSockets/archive/refs/tags/v0.8.8.tar.gz
 RUN tar zxf uSockets-0.8.8.tar.gz
 RUN cd uSockets-0.8.8 \
-    && WITH_ASIO=1 WITH_OPENSSL=1 make
+    && WITH_ASIO=1 WITH_OPENSSL=1 make CC="ccache gcc"
 RUN wget -O uWebSockets-20.70.0.tar.gz https://github.com/uNetworking/uWebSockets/archive/refs/tags/v20.70.0.tar.gz
 RUN tar zxf uWebSockets-20.70.0.tar.gz
 
