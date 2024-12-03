@@ -53,7 +53,6 @@ RUN cd libtorrent-rasterbar-2.0.10 \
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
         -DBUILD_SHARED_LIBS=OFF \
         -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_EXE_LINKER_FLAGS="-static" \
         -DBoost_USE_STATIC_LIBS=ON \
     && cmake --build build --target install
 
@@ -67,7 +66,6 @@ RUN cd libgit2-1.8.4 \
         -DBUILD_SHARED_LIBS=OFF \
         -DBUILD_TESTS=OFF \
         -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_EXE_LINKER_FLAGS="-static" \
         -DLINK_WITH_STATIC_LIBRARIES=ON \
         -DUSE_NTLMCLIENT=OFF \
     && cmake --build build --target install
@@ -92,20 +90,6 @@ FROM build-base AS build-lua
 RUN wget https://www.lua.org/ftp/lua-5.4.6.tar.gz
 RUN tar zxf lua-5.4.6.tar.gz
 RUN cd lua-5.4.6 && make CC="ccache gcc" all && make install
-
-# uriparser
-FROM build-base AS build-uriparser
-RUN wget https://github.com/uriparser/uriparser/releases/download/uriparser-0.9.8/uriparser-0.9.8.tar.gz
-RUN tar zxf uriparser-0.9.8.tar.gz
-RUN cd uriparser-0.9.8 \
-    && cmake -S . -B build -G Ninja \
-        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DURIPARSER_BUILD_TESTS=OFF \
-        -DURIPARSER_BUILD_TOOLS=OFF \
-        -DURIPARSER_SHARED_LIBS=OFF \
-        -DURIPARSER_BUILD_DOCS=OFF \
-    && cmake --build build --target install
 
 # uWebSockets
 FROM build-base AS build-uwebsockets
@@ -140,10 +124,6 @@ COPY --from=build-lua /usr/local/lib/liblua* /usr/local/lib
 COPY --from=build-libzip /usr/local/include/* /usr/local/include/
 COPY --from=build-libzip /usr/local/lib/cmake /usr/local/lib/cmake
 COPY --from=build-libzip /usr/local/lib/libzip* /usr/local/lib
-# uriparser
-COPY --from=build-uriparser /usr/local/include/uriparser /usr/local/include/uriparser
-COPY --from=build-uriparser /usr/local/lib/cmake /usr/local/lib/cmake
-COPY --from=build-uriparser /usr/local/lib/liburiparser* /usr/local/lib
 # uwebsockets
 COPY --from=build-uwebsockets /src/uSockets-0.8.8/src/libusockets.h /usr/local/include/libusockets.h
 COPY --from=build-uwebsockets /src/uSockets-0.8.8/uSockets.a /usr/local/lib/libuSockets.a
@@ -168,7 +148,6 @@ RUN cmake -S . -B build -G Ninja \
     -DBUILD_SHARED_LIBS=OFF \
     -DLINK_WITH_STATIC_LIBRARIES=ON \
     -DOPENSSL_USE_STATIC_LIBS=TRUE \
-    -DURIPARSER_SHARED_LIBS=OFF \
     # boost
     -DBoost_USE_STATIC_LIBS=ON \
     # libzip

@@ -19,7 +19,6 @@ find_package(libzip              REQUIRED)
 find_package(Lua                 REQUIRED)
 find_package(OpenSSL             REQUIRED)
 find_package(SQLite3             REQUIRED)
-find_package(uriparser           REQUIRED)
 find_package(ZLIB                REQUIRED)
 
 add_custom_command(
@@ -82,7 +81,6 @@ add_library(
     src/config.cpp
     src/logger.cpp
     src/sessions.cpp
-    src/uri.cpp
     src/utils/eta.cpp
     src/utils/secretkey.cpp
     src/utils/string.cpp
@@ -192,7 +190,6 @@ target_link_libraries(
     sodium
     SQLite::SQLite3
     torrent-rasterbar
-    uriparser
     -luSockets
     -lcrypto
     -lssl
