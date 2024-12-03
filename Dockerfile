@@ -85,12 +85,6 @@ RUN cd libzip-1.11.2 \
         -DENABLE_LZMA=OFF \
     && cmake --build build --target install
 
-# lua
-FROM build-base AS build-lua
-RUN wget https://www.lua.org/ftp/lua-5.4.6.tar.gz
-RUN tar zxf lua-5.4.6.tar.gz
-RUN cd lua-5.4.6 && make CC="ccache gcc" all && make install
-
 # uWebSockets
 FROM build-base AS build-uwebsockets
 RUN wget -O uSockets-0.8.8.tar.gz https://github.com/uNetworking/uSockets/archive/refs/tags/v0.8.8.tar.gz
@@ -117,9 +111,6 @@ COPY --from=build-libgit2 /usr/local/lib/pkgconfig/libgit2.pc /usr/local/lib/pkg
 COPY --from=build-libtorrent /usr/local/include/libtorrent /usr/local/include/libtorrent
 COPY --from=build-libtorrent /usr/local/lib/cmake /usr/local/lib/cmake
 COPY --from=build-libtorrent /usr/local/lib/libtorrent* /usr/local/lib
-# lua
-COPY --from=build-lua /usr/local/include/* /usr/local/include/
-COPY --from=build-lua /usr/local/lib/liblua* /usr/local/lib
 # libzip
 COPY --from=build-libzip /usr/local/include/* /usr/local/include/
 COPY --from=build-libzip /usr/local/lib/cmake /usr/local/lib/cmake
@@ -138,6 +129,7 @@ RUN apk add --no-cache \
     icu-static \
     libsodium-dev@edge-main \
     libsodium-static@edge-main \
+    lua5.4-dev \
     sqlite-dev \
     sqlite-static
 
