@@ -11,16 +11,18 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib .so .dll)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
+find_package(PkgConfig           REQUIRED)
 find_package(ANTLR4              REQUIRED)
 find_package(Boost               CONFIG COMPONENTS log program_options system)
 find_package(CURL                REQUIRED)
 find_package(LibtorrentRasterbar REQUIRED)
 find_package(libzip              REQUIRED)
-find_package(Lua                 REQUIRED)
 find_package(OpenSSL             REQUIRED)
 find_package(SQLite3             REQUIRED)
-find_package(uriparser           REQUIRED)
 find_package(ZLIB                REQUIRED)
+
+pkg_check_modules(libgit2 REQUIRED IMPORTED_TARGET libgit2)
+pkg_check_modules(Lua     REQUIRED IMPORTED_TARGET lua5.4)
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
@@ -82,7 +84,6 @@ add_library(
     src/config.cpp
     src/logger.cpp
     src/sessions.cpp
-    src/uri.cpp
     src/utils/eta.cpp
     src/utils/secretkey.cpp
     src/utils/string.cpp
@@ -171,7 +172,6 @@ target_compile_definitions(
 target_include_directories(
     ${PROJECT_NAME}_core
     PUBLIC
-    ${LUA_INCLUDE_DIR}
     vendor/croncpp/include
     vendor/jwt-cpp/include
     vendor/nlohmann-json/include
@@ -188,15 +188,14 @@ target_link_libraries(
     Boost::boost Boost::log Boost::program_options
     CURL::libcurl
     libzip::zip
-    lua
+    PkgConfig::libgit2
+    PkgConfig::Lua
     sodium
     SQLite::SQLite3
     torrent-rasterbar
-    uriparser
     -luSockets
     -lcrypto
     -lssl
-    -lgit2
     -lz
 )
 

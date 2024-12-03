@@ -9,6 +9,8 @@ ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
 WORKDIR /src
 RUN apk add --no-cache \
     build-base \
+    boost1.82-dev \
+    boost1.82-static \
     ccache \
     cmake \
     linux-headers \
@@ -16,7 +18,9 @@ RUN apk add --no-cache \
     openssl-dev \
     openssl-libs-static \
     zlib-dev \
-    zlib-static
+    zlib-static \
+    zstd-dev \
+    zstd-static
 
 # antlr4
 FROM build-base AS build-antlr4
@@ -27,13 +31,6 @@ RUN cd antlr4-4.13.2/runtime/Cpp \
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
         -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build --target install
-
-# boost
-FROM build-base AS build-boost
-RUN echo "using gcc : : ccache g++ ;" >> ~/user-config.jam
-RUN wget https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz
-RUN tar zxf boost_1_86_0.tar.gz
-RUN cd boost_1_86_0 && ./bootstrap.sh && ./b2 link=static variant=release install
 
 # libcurl
 FROM build-base AS build-curl
@@ -49,9 +46,6 @@ RUN cd curl-8.11.0 \
 
 # libtorrent
 FROM build-base AS build-libtorrent
-COPY --from=build-boost /usr/local/include/boost /usr/local/include/boost
-COPY --from=build-boost /usr/local/lib/cmake /usr/local/lib/cmake
-COPY --from=build-boost /usr/local/lib/libboost* /usr/local/lib
 RUN wget https://github.com/arvidn/libtorrent/releases/download/v2.0.10/libtorrent-rasterbar-2.0.10.tar.gz
 RUN tar zxf libtorrent-rasterbar-2.0.10.tar.gz
 RUN cd libtorrent-rasterbar-2.0.10 \
@@ -59,7 +53,7 @@ RUN cd libtorrent-rasterbar-2.0.10 \
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
         -DBUILD_SHARED_LIBS=OFF \
         -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_EXE_LINKER_FLAGS="-static" \
+        -DBoost_USE_STATIC_LIBS=ON \
     && cmake --build build --target install
 
 # libgit2
@@ -72,7 +66,6 @@ RUN cd libgit2-1.8.4 \
         -DBUILD_SHARED_LIBS=OFF \
         -DBUILD_TESTS=OFF \
         -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_EXE_LINKER_FLAGS="-static" \
         -DLINK_WITH_STATIC_LIBRARIES=ON \
         -DUSE_NTLMCLIENT=OFF \
     && cmake --build build --target install
@@ -88,33 +81,12 @@ RUN cd libzip-1.11.2 \
         -DBUILD_TOOLS=OFF \
         -DBUILD_DOCS=OFF \
         -DBUILD_EXAMPLES=OFF \
-    && cmake --build build --target install
-
-# lua
-FROM build-base AS build-lua
-RUN wget https://www.lua.org/ftp/lua-5.4.6.tar.gz
-RUN tar zxf lua-5.4.6.tar.gz
-RUN cd lua-5.4.6 && make CC="ccache gcc" all && make install
-
-# uriparser
-FROM build-base AS build-uriparser
-RUN wget https://github.com/uriparser/uriparser/releases/download/uriparser-0.9.8/uriparser-0.9.8.tar.gz
-RUN tar zxf uriparser-0.9.8.tar.gz
-RUN cd uriparser-0.9.8 \
-    && cmake -S . -B build -G Ninja \
-        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DURIPARSER_BUILD_TESTS=OFF \
-        -DURIPARSER_BUILD_TOOLS=OFF \
-        -DURIPARSER_SHARED_LIBS=OFF \
-        -DURIPARSER_BUILD_DOCS=OFF \
+        -DENABLE_BZIP2=OFF \
+        -DENABLE_LZMA=OFF \
     && cmake --build build --target install
 
 # uWebSockets
 FROM build-base AS build-uwebsockets
-COPY --from=build-boost /usr/local/include/boost /usr/local/include/boost
-COPY --from=build-boost /usr/local/lib/cmake /usr/local/lib/cmake
-COPY --from=build-boost /usr/local/lib/libboost* /usr/local/lib
 RUN wget -O uSockets-0.8.8.tar.gz https://github.com/uNetworking/uSockets/archive/refs/tags/v0.8.8.tar.gz
 RUN tar zxf uSockets-0.8.8.tar.gz
 RUN cd uSockets-0.8.8 \
@@ -126,10 +98,6 @@ FROM build-base AS build-porla
 # antlr4
 COPY --from=build-antlr4 /usr/local/include/antlr4-runtime /usr/local/include/antlr4-runtime
 COPY --from=build-antlr4 /usr/local/lib/libantlr4* /usr/local/lib
-# boost
-COPY --from=build-boost /usr/local/include/boost /usr/local/include/boost
-COPY --from=build-boost /usr/local/lib/cmake /usr/local/lib/cmake
-COPY --from=build-boost /usr/local/lib/libboost* /usr/local/lib
 # libcurl
 COPY --from=build-curl /usr/local/include/curl /usr/local/include/curl
 COPY --from=build-curl /usr/local/lib/cmake /usr/local/lib/cmake
@@ -143,17 +111,10 @@ COPY --from=build-libgit2 /usr/local/lib/pkgconfig/libgit2.pc /usr/local/lib/pkg
 COPY --from=build-libtorrent /usr/local/include/libtorrent /usr/local/include/libtorrent
 COPY --from=build-libtorrent /usr/local/lib/cmake /usr/local/lib/cmake
 COPY --from=build-libtorrent /usr/local/lib/libtorrent* /usr/local/lib
-# lua
-COPY --from=build-lua /usr/local/include/* /usr/local/include/
-COPY --from=build-lua /usr/local/lib/liblua* /usr/local/lib
 # libzip
 COPY --from=build-libzip /usr/local/include/* /usr/local/include/
 COPY --from=build-libzip /usr/local/lib/cmake /usr/local/lib/cmake
 COPY --from=build-libzip /usr/local/lib/libzip* /usr/local/lib
-# uriparser
-COPY --from=build-uriparser /usr/local/include/uriparser /usr/local/include/uriparser
-COPY --from=build-uriparser /usr/local/lib/cmake /usr/local/lib/cmake
-COPY --from=build-uriparser /usr/local/lib/liburiparser* /usr/local/lib
 # uwebsockets
 COPY --from=build-uwebsockets /src/uSockets-0.8.8/src/libusockets.h /usr/local/include/libusockets.h
 COPY --from=build-uwebsockets /src/uSockets-0.8.8/uSockets.a /usr/local/lib/libuSockets.a
@@ -165,8 +126,10 @@ RUN echo "@edge-main https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/ap
 
 RUN apk add --no-cache \
     git \
+    icu-static \
     libsodium-dev@edge-main \
     libsodium-static@edge-main \
+    lua5.4-dev \
     sqlite-dev \
     sqlite-static
 
@@ -177,7 +140,11 @@ RUN cmake -S . -B build -G Ninja \
     -DBUILD_SHARED_LIBS=OFF \
     -DLINK_WITH_STATIC_LIBRARIES=ON \
     -DOPENSSL_USE_STATIC_LIBS=TRUE \
-    -DURIPARSER_SHARED_LIBS=OFF
+    # boost
+    -DBoost_USE_STATIC_LIBS=ON \
+    # libzip
+    -DENABLE_BZIP2=OFF \
+    -DENABLE_LZMA=OFF
 
 RUN cmake --build build
 
