@@ -37,43 +37,6 @@ add_custom_command(
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FileEmbed.cmake)
 
 add_library(
-    ${PROJECT_NAME}_utils
-    STATIC
-    src/utils/ratio.cpp
-)
-
-target_link_libraries(
-    ${PROJECT_NAME}_utils
-    PRIVATE
-    torrent-rasterbar
-)
-
-add_library(
-    ${PROJECT_NAME}_query
-    STATIC
-    src/query/_aux/PorlaQueryLangBaseVisitor.cpp
-    src/query/_aux/PorlaQueryLangLexer.cpp
-    src/query/_aux/PorlaQueryLangParser.cpp
-    src/query/_aux/PorlaQueryLangVisitor.cpp
-    src/query/pql.cpp
-)
-
-target_include_directories(
-    ${PROJECT_NAME}_query
-    PRIVATE
-    ${ANTLR4_INCLUDE_DIRS}
-    vendor/nlohmann-json/include
-)
-
-target_link_libraries(
-    ${PROJECT_NAME}_query
-    PRIVATE
-    ${PROJECT_NAME}_utils
-    ${ANTLR4_LIBRARIES}
-    torrent-rasterbar
-)
-
-add_library(
     ${PROJECT_NAME}_core
     STATIC
     ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
@@ -158,9 +121,17 @@ add_library(
     src/methods/torrentspropertiesset.cpp
     src/methods/torrentstrackerslist.cpp
 
+    src/query/_aux/PorlaQueryLangBaseVisitor.cpp
+    src/query/_aux/PorlaQueryLangLexer.cpp
+    src/query/_aux/PorlaQueryLangParser.cpp
+    src/query/_aux/PorlaQueryLangVisitor.cpp
+    src/query/pql.cpp
+
     src/tools/authtoken.cpp
     src/tools/generatesecretkey.cpp
     src/tools/versionjson.cpp
+
+    src/utils/ratio.cpp
 )
 
 target_compile_definitions(
@@ -172,6 +143,7 @@ target_compile_definitions(
 target_include_directories(
     ${PROJECT_NAME}_core
     PUBLIC
+    ${ANTLR4_INCLUDE_DIRS}
     vendor/croncpp/include
     vendor/jwt-cpp/include
     vendor/nlohmann-json/include
@@ -182,8 +154,7 @@ target_include_directories(
 target_link_libraries(
     ${PROJECT_NAME}_core
 
-    ${PROJECT_NAME}_query
-    ${PROJECT_NAME}_utils
+    ${ANTLR4_LIBRARIES}
 
     Boost::boost Boost::log Boost::program_options
     CURL::libcurl
