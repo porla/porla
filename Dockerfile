@@ -44,18 +44,6 @@ RUN cd curl-8.11.0 \
         -DBUILD_STATIC_LIBS=ON \
     && cmake --build build --target install
 
-# libtorrent
-FROM build-base AS build-libtorrent
-RUN wget https://github.com/arvidn/libtorrent/releases/download/v2.0.10/libtorrent-rasterbar-2.0.10.tar.gz
-RUN tar zxf libtorrent-rasterbar-2.0.10.tar.gz
-RUN cd libtorrent-rasterbar-2.0.10 \
-    && cmake -S . -B build -G Ninja \
-        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-        -DBUILD_SHARED_LIBS=OFF \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DBoost_USE_STATIC_LIBS=ON \
-    && cmake --build build --target install
-
 # libgit2
 FROM build-base AS build-libgit2
 RUN wget -O libgit2-1.8.4.tar.gz https://github.com/libgit2/libgit2/archive/refs/tags/v1.8.4.tar.gz
@@ -107,10 +95,6 @@ COPY --from=build-libgit2 /usr/local/include/git2 /usr/local/include/git2
 COPY --from=build-libgit2 /usr/local/include/git2.h /usr/local/include/
 COPY --from=build-libgit2 /usr/local/lib/libgit2* /usr/local/lib
 COPY --from=build-libgit2 /usr/local/lib/pkgconfig/libgit2.pc /usr/local/lib/pkgconfig/libgit2.pc
-# libtorrent
-COPY --from=build-libtorrent /usr/local/include/libtorrent /usr/local/include/libtorrent
-COPY --from=build-libtorrent /usr/local/lib/cmake /usr/local/lib/cmake
-COPY --from=build-libtorrent /usr/local/lib/libtorrent* /usr/local/lib
 # libzip
 COPY --from=build-libzip /usr/local/include/* /usr/local/include/
 COPY --from=build-libzip /usr/local/lib/cmake /usr/local/lib/cmake
@@ -122,6 +106,7 @@ COPY --from=build-uwebsockets /src/uWebSockets-20.70.0/src/* /usr/local/include/
 
 COPY . .
 
+RUN echo "@edge-community https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
 RUN echo "@edge-main https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
 
 RUN apk add --no-cache \
@@ -129,6 +114,8 @@ RUN apk add --no-cache \
     icu-static \
     libsodium-dev@edge-main \
     libsodium-static@edge-main \
+    libtorrent-rasterbar-dev@edge-community \
+    libtorrent-rasterbar-static@edge-community \
     lua5.4-dev \
     sqlite-dev \
     sqlite-static
