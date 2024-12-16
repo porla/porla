@@ -59,6 +59,9 @@ namespace porla
         std::optional<int>                       timer_session_stats;
         std::optional<int>                       timer_torrent_updates;
         std::optional<fs::path>                  workflow_dir;
+        std::string                              ssl_cert_file;
+        std::string                              ssl_key_file;
+        std::string                              ssl_key_file_pass;
 
         static std::unique_ptr<Config> Load(const boost::program_options::variables_map& cmd);
 

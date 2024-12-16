@@ -77,7 +77,7 @@ WebUIHandler::WebUIHandler(std::string base_path)
     }
 }
 
-void WebUIHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
+void WebUIHandler::operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* req)
 {
     // If files are empty (we have no embedded web UI) - return 404.
     if (m_files.empty())

@@ -17,7 +17,7 @@ AuthInitHandler::AuthInitHandler(boost::asio::io_context& io, sqlite3* db, int m
 {
 }
 
-void AuthInitHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
+void AuthInitHandler::operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* req)
 {
     if (porla::Data::Models::Users::Any(m_db))
     {

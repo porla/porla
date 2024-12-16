@@ -17,7 +17,7 @@ namespace porla::Http
         explicit EventsHandler(Sessions& sessions);
         ~EventsHandler();
 
-        void operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+        void operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* req);
 
     private:
         class State;

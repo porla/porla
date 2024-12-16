@@ -12,7 +12,7 @@ JwtHandler::JwtHandler(const std::string &secret_key, Handler next)
 {
 }
 
-void JwtHandler::operator()(uWS::HttpResponse<false> *res, uWS::HttpRequest *req)
+void JwtHandler::operator()(uWS::HttpResponse<true> *res, uWS::HttpRequest *req)
 {
     static const std::string AltAuthHeader = "x-porla-token";
 

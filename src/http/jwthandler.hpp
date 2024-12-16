@@ -12,7 +12,7 @@ namespace porla::Http
     public:
         explicit JwtHandler(const std::string& secret_key, Handler next);
 
-        void operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+        void operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* req);
 
     private:
         std::string m_secret_key;

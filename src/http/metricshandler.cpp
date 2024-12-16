@@ -79,7 +79,7 @@ MetricsHandler::MetricsHandler(porla::Sessions& sessions)
 
 MetricsHandler::~MetricsHandler() = default;
 
-void MetricsHandler::operator()(uWS::HttpResponse<false>* res, [[maybe_unused]] uWS::HttpRequest* req)
+void MetricsHandler::operator()(uWS::HttpResponse<true>* res, [[maybe_unused]] uWS::HttpRequest* req)
 {
     std::stringstream out;
     this->PopulateWithGlobalMetrics(out);

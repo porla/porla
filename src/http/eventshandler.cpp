@@ -29,7 +29,7 @@ public:
         m_torrent_resumed_connection.disconnect();
     }
 
-    void Add(uWS::HttpResponse<false>* res)
+    void Add(uWS::HttpResponse<true>* res)
     {
         res->writeStatus("200 OK")
             ->writeHeader("Connection", "keep-alive")
@@ -45,7 +45,7 @@ public:
         m_responses.insert(res);
     }
 
-    void Remove(uWS::HttpResponse<false>* res)
+    void Remove(uWS::HttpResponse<true>* res)
     {
         m_responses.erase(res);
     }
@@ -107,7 +107,7 @@ private:
         }).dump());
     }
 
-    std::unordered_set<uWS::HttpResponse<false>*> m_responses;
+    std::unordered_set<uWS::HttpResponse<true>*> m_responses;
 
     boost::signals2::connection m_state_update_connection;
     boost::signals2::connection m_torrent_paused_connection;
@@ -122,7 +122,7 @@ EventsHandler::EventsHandler(porla::Sessions& sessions)
 
 EventsHandler::~EventsHandler() = default;
 
-void EventsHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
+void EventsHandler::operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* req)
 {
     res->onAborted(
         [state = m_state, res]()

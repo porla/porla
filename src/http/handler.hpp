@@ -6,5 +6,5 @@
 
 namespace porla::Http
 {
-    typedef std::function<void((uWS::HttpResponse<false> * , uWS::HttpRequest *))> Handler;
+    typedef std::function<void((uWS::HttpResponse<true> * , uWS::HttpRequest *))> Handler;
 }

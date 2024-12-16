@@ -35,7 +35,7 @@ AuthLoginHandler::~AuthLoginHandler()
     }
 }
 
-void AuthLoginHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
+void AuthLoginHandler::operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* req)
 {
     if (m_state->threads.size() >= 5)
     {

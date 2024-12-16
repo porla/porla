@@ -8,26 +8,26 @@ using porla::Http::JsonRpcHandler;
 class JsonRpcHandler::State
 {
 public:
-    explicit State(std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<false>*)>> methods)
+    explicit State(std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<true>*)>> methods)
         : m_methods(std::move(methods))
     {
     }
 
-    std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<false>*)>>& Methods()
+    std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<true>*)>>& Methods()
     {
         return m_methods;
     }
 
 private:
-    std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<false>*)>> m_methods;
+    std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<true>*)>> m_methods;
 };
 
-JsonRpcHandler::JsonRpcHandler(std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<false>*)>> methods)
+JsonRpcHandler::JsonRpcHandler(std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<true>*)>> methods)
     : m_state(std::make_shared<State>(methods))
 {
 }
 
-void JsonRpcHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
+void JsonRpcHandler::operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* req)
 {
     res->onAborted([](){});
 

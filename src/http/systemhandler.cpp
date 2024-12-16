@@ -12,7 +12,7 @@ SystemHandler::SystemHandler(sqlite3* db)
 {
 }
 
-void SystemHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
+void SystemHandler::operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* req)
 {
     auto any_users = porla::Data::Models::Users::Any(m_db);
 

@@ -16,7 +16,7 @@ namespace porla::Methods
     class WriteCb
     {
     public:
-        explicit WriteCb(nlohmann::json id, uWS::HttpResponse<false>* res)
+        explicit WriteCb(nlohmann::json id, uWS::HttpResponse<true>* res)
             : m_id(std::move(id))
             , m_res(res)
         {
@@ -57,14 +57,14 @@ namespace porla::Methods
 
     private:
         nlohmann::json m_id;
-        uWS::HttpResponse<false>* m_res;
+        uWS::HttpResponse<true>* m_res;
     };
 
     template<typename TReq, typename TRes>
     class Method
     {
     public:
-        void operator()(const nlohmann::json& id, const nlohmann::json& body, uWS::HttpResponse<false>* res)
+        void operator()(const nlohmann::json& id, const nlohmann::json& body, uWS::HttpResponse<true>* res)
         {
             Invoke(body.get<TReq>(), WriteCb<TRes>(id, res));
         }

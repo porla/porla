@@ -196,7 +196,11 @@ int main(int argc, char* argv[])
 
         uWS::Loop::get(&io);
 
-        uWS::App http_server;
+        uWS::SSLApp http_server({.key_file_name = cfg->ssl_key_file.c_str(),
+                                 .cert_file_name = cfg->ssl_cert_file.c_str(),
+                                 .passphrase = cfg->ssl_key_file_pass.c_str()});
+
+
         http_server.post(http_base_path + "/api/v1/auth/init", porla::Http::AuthInitHandler(io, cfg->db, cfg->sodium_memlimit.value_or(crypto_pwhash_MEMLIMIT_MIN)));
         http_server.post(http_base_path + "/api/v1/auth/login", porla::Http::AuthLoginHandler(porla::Http::AuthLoginHandlerOptions{
             .db         = cfg->db,
@@ -236,7 +240,7 @@ int main(int argc, char* argv[])
                 BOOST_LOG_TRIVIAL(info) << "HTTP server listening";
             });
 
-        io.run();
+        http_server.run();
 
         plugin_engine.UnloadAll();
     }

@@ -24,7 +24,7 @@ namespace porla::Http
         explicit AuthLoginHandler(const AuthLoginHandlerOptions& opts);
         ~AuthLoginHandler();
 
-        void operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+        void operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* req);
 
     private:
         struct State;
