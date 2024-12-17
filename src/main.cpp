@@ -240,7 +240,8 @@ int main(int argc, char* argv[])
                 BOOST_LOG_TRIVIAL(info) << "HTTP server listening";
             });
 
-        http_server.run();
+        // io.run() breaks SSLApp
+        uWS::run();
 
         plugin_engine.UnloadAll();
     }
