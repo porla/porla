@@ -29,6 +29,7 @@ namespace porla::Methods
                 {"num_blocks",       storage.file_num_blocks(idx)},
                 {"num_pieces",       storage.file_num_pieces(idx)},
                 {"offset",           storage.file_offset(idx)},
+                {"progress",         res.file_progress.at(i)},
                 {"path",             storage.file_path(idx)},
                 {"size",             storage.file_size(idx)}
             });
