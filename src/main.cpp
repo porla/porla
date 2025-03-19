@@ -104,8 +104,12 @@ int main(int argc, char* argv[])
 
     {
         porla::Sessions sessions(porla::SessionsOptions{
-            .db = cfg->db,
-            .io = io
+            .db                    = cfg->db,
+            .io                    = io,
+            .timer_dht_stats       = cfg->timer_dht_stats.value_or(5000),
+            .timer_save_state      = cfg->timer_save_state.value_or(300000),
+            .timer_session_stats   = cfg->timer_session_stats.value_or(5000),
+            .timer_torrent_updates = cfg->timer_torrent_updates.value_or(1000)
         });
 
         for (const auto& [name, settings] : cfg->sessions)

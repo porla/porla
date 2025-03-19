@@ -203,13 +203,16 @@ Sessions::Sessions(const SessionsOptions &options)
     : m_options(options)
 {
     if (options.timer_dht_stats > 0)
-        m_timers.emplace_back(options.io, options.timer_dht_stats, [&]() { PostDhtStats(); });
+        m_timers.emplace_back(options.io, options.timer_dht_stats, [&] { PostDhtStats(); });
+
+    if (options.timer_save_state > 0)
+        m_timers.emplace_back(options.io, options.timer_save_state, [&] { SaveState(); });
 
     if (options.timer_session_stats > 0)
-        m_timers.emplace_back(options.io, options.timer_session_stats, [&]() { PostSessionStats(); });
+        m_timers.emplace_back(options.io, options.timer_session_stats, [&] { PostSessionStats(); });
 
     if (options.timer_torrent_updates > 0)
-        m_timers.emplace_back(options.io, options.timer_torrent_updates, [&]() { PostTorrentUpdates(); });
+        m_timers.emplace_back(options.io, options.timer_torrent_updates, [&] { PostTorrentUpdates(); });
 
 }
 
@@ -639,7 +642,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
 
 void Sessions::PostDhtStats()
 {
-    for (const auto& [ _, state ] : m_sessions)
+    for (const auto &state: m_sessions | std::views::values)
     {
         state->session->post_dht_stats();
     }
@@ -647,7 +650,7 @@ void Sessions::PostDhtStats()
 
 void Sessions::PostSessionStats()
 {
-    for (const auto& [ _, state ] : m_sessions)
+    for (const auto &state: m_sessions | std::views::values)
     {
         state->session->post_session_stats();
     }
@@ -655,8 +658,32 @@ void Sessions::PostSessionStats()
 
 void Sessions::PostTorrentUpdates()
 {
-    for (const auto& [ _, state ] : m_sessions)
+    for (const auto &state: m_sessions | std::views::values)
     {
         state->session->post_torrent_updates();
+    }
+}
+
+void Sessions::SaveState()
+{
+    for (const auto &state: m_sessions | std::views::values)
+    {
+        std::vector<lt::torrent_status> torrents = state->session->get_torrent_status(
+            [](lt::torrent_status const& ts)
+            {
+                return ts.need_save_resume;
+            });
+
+        if (torrents.empty())
+        {
+            continue;
+        }
+
+        BOOST_LOG_TRIVIAL(info) << "Saving state for " << torrents.size() << " torrent(s) in session " << state->name;
+
+        for (const auto& ts : torrents)
+        {
+            ts.handle.save_resume_data();
+        }
     }
 }

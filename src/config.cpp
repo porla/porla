@@ -128,6 +128,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     }
     if (auto val = std::getenv("PORLA_STATE_DIR"))             cfg->state_dir             = val;
     if (auto val = std::getenv("PORLA_TIMER_DHT_STATS"))       cfg->timer_dht_stats       = std::stoi(val);
+    if (auto val = std::getenv("PORLA_TIMER_SAVE_STATE"))      cfg->timer_save_state      = std::stoi(val);
     if (auto val = std::getenv("PORLA_TIMER_SESSION_STATS"))   cfg->timer_session_stats   = std::stoi(val);
     if (auto val = std::getenv("PORLA_TIMER_TORRENT_UPDATES")) cfg->timer_torrent_updates = std::stoi(val);
     if (auto val = std::getenv("PORLA_WORKFLOW_DIR"))          cfg->workflow_dir          = val;
@@ -379,6 +380,9 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
             if (auto val = config_file_tbl["timer"]["dht_stats"].value<int>())
                 cfg->timer_dht_stats = *val;
+
+            if (auto val = config_file_tbl["timer"]["save_state"].value<int>())
+                cfg->timer_save_state = *val;
 
             if (auto val = config_file_tbl["timer"]["session_stats"].value<int>())
                 cfg->timer_session_stats = *val;
