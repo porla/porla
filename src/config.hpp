@@ -56,6 +56,7 @@ namespace porla
         std::optional<int>                       sodium_memlimit;
         std::optional<fs::path>                  state_dir;
         std::optional<int>                       timer_dht_stats;
+        std::optional<int>                       timer_save_state;
         std::optional<int>                       timer_session_stats;
         std::optional<int>                       timer_torrent_updates;
         std::optional<fs::path>                  workflow_dir;

@@ -17,9 +17,10 @@ namespace porla
     {
         sqlite3*                 db;
         boost::asio::io_context& io;
-        int                      timer_dht_stats       = 5000;
-        int                      timer_session_stats   = 5000;
-        int                      timer_torrent_updates = 1000;
+        int                      timer_dht_stats;
+        int                      timer_save_state;
+        int                      timer_session_stats;
+        int                      timer_torrent_updates;
     };
 
     struct SessionsLoadOptions
@@ -123,6 +124,8 @@ namespace porla
         void PostTorrentUpdates();
 
         void ReadAlerts(const std::shared_ptr<SessionState>& state);
+
+        void SaveState();
 
         SessionsOptions m_options;
         std::map<std::string, std::shared_ptr<SessionState>> m_sessions;
