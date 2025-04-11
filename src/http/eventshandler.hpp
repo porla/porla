@@ -11,16 +11,17 @@ namespace porla
 
 namespace porla::Http
 {
-    class EventsHandler
+    
+    template <bool SSL> class EventsHandler
     {
     public:
         explicit EventsHandler(Sessions& sessions);
         ~EventsHandler();
 
-        void operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* req);
+        void operator()(uWS::HttpResponse<SSL>* res, uWS::HttpRequest* req);
 
     private:
-        class State;
-        std::shared_ptr<State> m_state;
+        template <bool SSLS> class State;
+        std::shared_ptr<State<SSL>> m_state;
     };
 }

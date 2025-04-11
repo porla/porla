@@ -131,6 +131,11 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (auto val = std::getenv("PORLA_TIMER_SESSION_STATS"))   cfg->timer_session_stats   = std::stoi(val);
     if (auto val = std::getenv("PORLA_TIMER_TORRENT_UPDATES")) cfg->timer_torrent_updates = std::stoi(val);
     if (auto val = std::getenv("PORLA_WORKFLOW_DIR"))          cfg->workflow_dir          = val;
+    if (auto val = std::getenv("PORLA_SSL_ENABLE"))
+    {
+        if (strcmp("true", val) == 0)  cfg->ssl_enable = true;
+        if (strcmp("false", val) == 0) cfg->ssl_enable = false;
+    }
     if (auto val = std::getenv("PORLA_SSL_CERT_FILE"))         cfg->ssl_cert_file         = val;
     if (auto val = std::getenv("PORLA_SSL_KEY_FILE"))          cfg->ssl_key_file          = val;
     if (auto val = std::getenv("PORLA_SSL_KEY_FILE_PASS"))     cfg->ssl_key_file_pass     = val;
@@ -392,6 +397,8 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
             if (auto val = config_file_tbl["workflow_dir"].value<std::string>())
                 cfg->workflow_dir = *val;
 
+            if (auto val = config_file_tbl["ssl_enable"].value<bool>())
+                cfg->ssl_enable = *val;
             if (auto val = config_file_tbl["ssl_cert_file"].value<std::string>())
                 cfg->ssl_cert_file = *val;
             if (auto val = config_file_tbl["ssl_key_file"].value<std::string>())
@@ -432,6 +439,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (cmd.count("timer-session-stats"))   cfg->timer_session_stats   = cmd["timer-session-stats"].as<pid_t>();
     if (cmd.count("timer-torrent-updates")) cfg->timer_torrent_updates = cmd["timer-torrent-updates"].as<pid_t>();
     if (cmd.count("workflow-dir"))          cfg->workflow_dir          = cmd["workflow-dir"].as<std::string>();
+    if (cmd.count("ssl_enable"))            cfg->ssl_enable            = cmd["ssl_enable"].as<bool>();
     if (cmd.count("ssl_cert_file"))         cfg->ssl_cert_file         = cmd["ssl_cert_file"].as<std::string>();
     if (cmd.count("ssl_key_file"))          cfg->ssl_key_file          = cmd["ssl_key_file"].as<std::string>();
     if (cmd.count("ssl_key_file_pass"))     cfg->ssl_key_file_pass     = cmd["ssl_key_file_pass"].as<std::string>();
@@ -500,6 +508,25 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (cfg->sodium_memlimit.has_value())
     {
         BOOST_LOG_TRIVIAL(info) << "Setting sodium memlimit to " << cfg->sodium_memlimit.value();
+    }
+
+    if (cfg->ssl_enable.has_value() && cfg->ssl_enable.value())
+    {
+        if (!(cfg->ssl_cert_file.has_value()))
+        {
+            BOOST_LOG_TRIVIAL(fatal) << "SSL is enabled but ssl_cert_file is missing";
+            throw std::runtime_error("SSL is enabled but ssl_cert_file is missing");
+        }
+        if (!(cfg->ssl_key_file.has_value()))
+        {
+            BOOST_LOG_TRIVIAL(fatal) << "SSL is enabled but ssl_key_file is missing";
+            throw std::runtime_error("SSL is enabled but ssl_key_file is missing");
+        }
+        if (!(cfg->ssl_key_file_pass.has_value()))
+        {
+            BOOST_LOG_TRIVIAL(fatal) << "SSL is enabled but ssl_key_file_pass is missing";
+            throw std::runtime_error("SSL is enabled but ssl_key_file_pass is missing");
+        }
     }
 
     return std::move(cfg);

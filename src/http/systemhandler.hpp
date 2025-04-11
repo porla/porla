@@ -6,12 +6,12 @@
 
 namespace porla::Http
 {
-    class SystemHandler
+    template <bool SSL> class SystemHandler
     {
     public:
         explicit SystemHandler(sqlite3* db);
 
-        void operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* req);
+        void operator()(uWS::HttpResponse<SSL>* res, uWS::HttpRequest* req);
 
     private:
         sqlite3* m_db;

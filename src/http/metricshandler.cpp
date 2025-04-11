@@ -12,7 +12,7 @@ static std::map<std::string, std::string> MetricHelp =
     {"", ""}
 };
 
-class MetricsHandler::State
+template <bool SSL> class MetricsHandler<SSL>::State
 {
 public:
     explicit State(Sessions& sessions)
@@ -72,14 +72,14 @@ private:
     std::vector<lt::stats_metric> m_stats;
 };
 
-MetricsHandler::MetricsHandler(porla::Sessions& sessions)
+template <bool SSL> MetricsHandler<SSL>::MetricsHandler(porla::Sessions& sessions)
     : m_state(std::make_shared<State>(sessions))
 {
 }
 
-MetricsHandler::~MetricsHandler() = default;
+template <bool SSL> MetricsHandler<SSL>::~MetricsHandler() = default;
 
-void MetricsHandler::operator()(uWS::HttpResponse<true>* res, [[maybe_unused]] uWS::HttpRequest* req)
+template <bool SSL> void MetricsHandler<SSL>::operator()(uWS::HttpResponse<SSL>* res, [[maybe_unused]] uWS::HttpRequest* req)
 {
     std::stringstream out;
     this->PopulateWithGlobalMetrics(out);
@@ -88,7 +88,7 @@ void MetricsHandler::operator()(uWS::HttpResponse<true>* res, [[maybe_unused]] u
     res->writeStatus("200 OK")->end(out.str());
 }
 
-void MetricsHandler::PopulateWithGlobalMetrics(std::stringstream& out) {
+template <bool SSL> void MetricsHandler<SSL>::PopulateWithGlobalMetrics(std::stringstream& out) {
 
     for (const auto& metric : m_state->StatsMetrics())
     {
@@ -131,7 +131,7 @@ void MetricsHandler::PopulateWithGlobalMetrics(std::stringstream& out) {
     }
 }
 
-void MetricsHandler::PopulateWithPerTorrentMetrics(std::stringstream &out) {
+template <bool SSL> void MetricsHandler<SSL>::PopulateWithPerTorrentMetrics(std::stringstream &out) {
     for (const auto &[info_hash, tuple]: m_state->TorrentStatuses()) {
         const auto [ms, session, status] = tuple;
         auto metric = [&out, &session, &ms, &status](
@@ -184,4 +184,9 @@ void MetricsHandler::PopulateWithPerTorrentMetrics(std::stringstream &out) {
         metric("counter", "finished_duration", status.finished_duration.count());
         metric("counter", "seeding_duration", status.seeding_duration.count());
     }
+}
+
+namespace porla::Http {
+    template class MetricsHandler<true>;
+    template class MetricsHandler<false>;
 }

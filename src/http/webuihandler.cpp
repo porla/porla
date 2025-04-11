@@ -33,7 +33,7 @@ static void str_replace_all(std::string& str, const std::string& from, const std
     }
 }
 
-WebUIHandler::WebUIHandler(std::string base_path)
+template <bool SSL> WebUIHandler<SSL>::WebUIHandler(std::string base_path)
     : m_base_path(std::move(base_path))
 {
     if (webui_zip_size() == 0)
@@ -77,7 +77,7 @@ WebUIHandler::WebUIHandler(std::string base_path)
     }
 }
 
-void WebUIHandler::operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* req)
+template <bool SSL> void WebUIHandler<SSL>::operator()(uWS::HttpResponse<SSL>* res, uWS::HttpRequest* req)
 {
     // If files are empty (we have no embedded web UI) - return 404.
     if (m_files.empty())
@@ -143,4 +143,9 @@ void WebUIHandler::operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* re
     if (!m_files.contains(rooted_path))                    rooted_path = "index.html";
 
     respond_with_file(rooted_path);
+}
+
+namespace porla::Http {
+    template class WebUIHandler<true>;
+    template class WebUIHandler<false>;
 }

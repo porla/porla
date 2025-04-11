@@ -7,12 +7,12 @@
 using json = nlohmann::json;
 using porla::Http::SystemHandler;
 
-SystemHandler::SystemHandler(sqlite3* db)
+template <bool SSL> SystemHandler<SSL>::SystemHandler(sqlite3* db)
     : m_db(db)
 {
 }
 
-void SystemHandler::operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* req)
+template <bool SSL> void SystemHandler<SSL>::operator()(uWS::HttpResponse<SSL>* res, uWS::HttpRequest* req)
 {
     auto any_users = porla::Data::Models::Users::Any(m_db);
 
@@ -23,4 +23,10 @@ void SystemHandler::operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* r
     res->writeHeader("Content-Type", "application/json")
         ->writeStatus("200 OK")
         ->end(j.dump());
+}
+
+namespace porla::Http
+{
+    template class SystemHandler<true>;
+    template class SystemHandler<false>;
 }

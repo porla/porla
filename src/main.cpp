@@ -1,9 +1,12 @@
+#include <any>
 #include <boost/asio.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
 #include <curl/curl.h>
 #include <git2.h>
 #include <sodium.h>
+#include <uWebSockets/App.h>
+#include <uWebSockets/Loop.h>
 
 #include "cmdargs.hpp"
 #include "config.hpp"
@@ -158,7 +161,7 @@ int main(int argc, char* argv[])
             .plugin_engine = plugin_engine
         };
 
-        porla::Http::JsonRpcHandler rpc({
+        porla::Http::JsonRpcHandler<true> rpcSSL({
             {"fs.space", porla::Methods::FsSpace()},
             {"plugins.configure", porla::Methods::PluginsConfigure(plugin_engine)},
             {"plugins.get", porla::Methods::PluginsGet(plugin_engine)},
@@ -188,60 +191,137 @@ int main(int argc, char* argv[])
             {"torrents.resume", porla::Methods::TorrentsResume(sessions)},
             {"torrents.trackers.list", porla::Methods::TorrentsTrackersList(sessions)}
         });
-
+/*
+        porla::Http::JsonRpcHandler<false> rpc({
+            {"fs.space", porla::Methods::FsSpace()},
+            {"plugins.configure", porla::Methods::PluginsConfigure(plugin_engine)},
+            {"plugins.get", porla::Methods::PluginsGet(plugin_engine)},
+            {"plugins.install", porla::Methods::PluginsInstall(plugins_install_options)},
+            {"plugins.list", porla::Methods::PluginsList(plugin_engine)},
+            {"plugins.reload", porla::Methods::PluginsReload(plugin_engine)},
+            {"plugins.uninstall", porla::Methods::PluginsUninstall(plugin_engine)},
+            {"plugins.update", porla::Methods::PluginsUpdate(plugins_update_options)},
+            {"presets.list", porla::Methods::PresetsList(cfg->presets)},
+            {"sessions.list", porla::Methods::SessionsList(sessions)},
+            {"sessions.pause", porla::Methods::SessionsPause(sessions)},
+            {"sessions.resume", porla::Methods::SessionsResume(sessions)},
+            {"sessions.settings.list", porla::Methods::SessionsSettingsList(sessions)},
+            {"sys.versions", porla::Methods::SysVersions()},
+            {"torrents.add", porla::Methods::TorrentsAdd(sessions, cfg->presets)},
+            {"torrents.files.list", porla::Methods::TorrentsFilesList(sessions)},
+            {"torrents.list", porla::Methods::TorrentsList(sessions)},
+            {"torrents.metadata.list", porla::Methods::TorrentsMetadataList(cfg->db, sessions)},
+            {"torrents.move", porla::Methods::TorrentsMove(sessions)},
+            {"torrents.pause", porla::Methods::TorrentsPause(sessions)},
+            {"torrents.peers.add", porla::Methods::TorrentsPeersAdd(sessions)},
+            {"torrents.peers.list", porla::Methods::TorrentsPeersList(sessions)},
+            {"torrents.properties.get", porla::Methods::TorrentsPropertiesGet(sessions)},
+            {"torrents.properties.set", porla::Methods::TorrentsPropertiesSet(sessions)},
+            {"torrents.recheck", porla::Methods::TorrentsRecheck(sessions)},
+            {"torrents.remove", porla::Methods::TorrentsRemove(sessions)},
+            {"torrents.resume", porla::Methods::TorrentsResume(sessions)},
+            {"torrents.trackers.list", porla::Methods::TorrentsTrackersList(sessions)}
+        });
+*/
         std::string http_base_path = cfg->http_base_path.value_or("/");
         if (http_base_path.empty())        http_base_path = "/";
         if (http_base_path[0] != '/')      http_base_path = "/" + http_base_path;
         if (http_base_path.ends_with("/")) http_base_path = http_base_path.substr(0, http_base_path.size() - 1);
 
-        uWS::Loop::get(&io);
-
-        uWS::SSLApp http_server({.key_file_name = cfg->ssl_key_file.c_str(),
-                                 .cert_file_name = cfg->ssl_cert_file.c_str(),
-                                 .passphrase = cfg->ssl_key_file_pass.c_str()});
-
-
-        http_server.post(http_base_path + "/api/v1/auth/init", porla::Http::AuthInitHandler(io, cfg->db, cfg->sodium_memlimit.value_or(crypto_pwhash_MEMLIMIT_MIN)));
-        http_server.post(http_base_path + "/api/v1/auth/login", porla::Http::AuthLoginHandler(porla::Http::AuthLoginHandlerOptions{
-            .db         = cfg->db,
-            .io         = io,
-            .secret_key = cfg->secret_key
-        }));
-
-        http_server.get(http_base_path + "/api/v1/events",
-            cfg->http_auth_enabled.value_or(true)
-                ? static_cast<porla::Http::Handler>(porla::Http::JwtHandler(cfg->secret_key, porla::Http::EventsHandler(sessions)))
-                : static_cast<porla::Http::Handler>(porla::Http::EventsHandler(sessions)));
-
-        http_server.post(http_base_path + "/api/v1/jsonrpc",
-            cfg->http_auth_enabled.value_or(true)
-                ? static_cast<porla::Http::Handler>(porla::Http::JwtHandler(cfg->secret_key, rpc))
-                : static_cast<porla::Http::Handler>(rpc));
-
-        http_server.get(http_base_path + "/api/v1/system", porla::Http::SystemHandler(cfg->db));
-
-        if (cfg->http_metrics_enabled.value_or(true))
+        if (cfg->ssl_enable.has_value() && cfg->ssl_enable.value())
         {
-            BOOST_LOG_TRIVIAL(info) << "Enabling HTTP metrics endpoint";
-            http_server.get(http_base_path + "/metrics", porla::Http::MetricsHandler(sessions));
-        }
+            uWS::Loop::get(&io);
+            
+            BOOST_LOG_TRIVIAL(info) << "Starting HTTP server with SSL ON.";
 
-        if (cfg->http_webui_enabled.value_or(true))
-        {
-            BOOST_LOG_TRIVIAL(info) << "Enabling HTTP web UI";
-            http_server.get(http_base_path + "/*", porla::Http::WebUIHandler(http_base_path));
-        }
+            uWS::SSLApp http_server({.key_file_name = cfg->ssl_key_file.value().c_str(),
+                                     .cert_file_name = cfg->ssl_cert_file.value().c_str(),
+                                     .passphrase = cfg->ssl_key_file_pass.value().c_str()});
 
-        http_server.listen(
-            cfg->http_host.value_or("127.0.0.1"),
-            cfg->http_port.value_or(1337),
-            [](const auto* t)
+            http_server.post(
+                http_base_path + "/api/v1/auth/init",
+                porla::Http::AuthInitHandler(io, cfg->db, cfg->sodium_memlimit.value_or(crypto_pwhash_MEMLIMIT_MIN)));
+            http_server.post(http_base_path + "/api/v1/auth/login",
+                             porla::Http::AuthLoginHandler(porla::Http::AuthLoginHandlerOptions{
+                                 .db = cfg->db, .io = io, .secret_key = cfg->secret_key}));
+
+            http_server.get(http_base_path + "/api/v1/events",
+                            cfg->http_auth_enabled.value_or(true)
+                                ? static_cast<porla::Http::Handler<true>>(
+                                      porla::Http::JwtHandler<true>(cfg->secret_key, porla::Http::EventsHandler<true>(sessions)))
+                                : static_cast<porla::Http::Handler<true>>(porla::Http::EventsHandler<true>(sessions)));
+
+            http_server.post(http_base_path + "/api/v1/jsonrpc",
+                             cfg->http_auth_enabled.value_or(true)
+                                 ? static_cast<porla::Http::Handler<true>>(porla::Http::JwtHandler<true>(cfg->secret_key, rpcSSL))
+                                 : static_cast<porla::Http::Handler<true>>(rpcSSL));
+
+            http_server.get(http_base_path + "/api/v1/system", porla::Http::SystemHandler<true>(cfg->db));
+
+            if (cfg->http_metrics_enabled.value_or(true))
             {
-                BOOST_LOG_TRIVIAL(info) << "HTTP server listening";
-            });
+                BOOST_LOG_TRIVIAL(info) << "Enabling HTTP metrics endpoint";
+                http_server.get(http_base_path + "/metrics", porla::Http::MetricsHandler<true>(sessions));
+            }
+
+            if (cfg->http_webui_enabled.value_or(true))
+            {
+                BOOST_LOG_TRIVIAL(info) << "Enabling HTTP web UI";
+                http_server.get(http_base_path + "/*", porla::Http::WebUIHandler<true>(http_base_path));
+            }
+
+            http_server.listen(cfg->http_host.value_or("127.0.0.1"), cfg->http_port.value_or(1337),
+                               [](const auto *t) { BOOST_LOG_TRIVIAL(info) << "HTTP server listening"; });
+            
+            uWS::run();
+        }
+        else
+        {
+            uWS::Loop::get(&io);
+
+            BOOST_LOG_TRIVIAL(info) << "Starting HTTP server with SSL OFF.";
+            
+            uWS::App http_server;
+
+            http_server.post(
+                http_base_path + "/api/v1/auth/init",
+                porla::Http::AuthInitHandler(io, cfg->db, cfg->sodium_memlimit.value_or(crypto_pwhash_MEMLIMIT_MIN)));
+            http_server.post(http_base_path + "/api/v1/auth/login",
+                             porla::Http::AuthLoginHandler(porla::Http::AuthLoginHandlerOptions{
+                                 .db = cfg->db, .io = io, .secret_key = cfg->secret_key}));
+
+            http_server.get(http_base_path + "/api/v1/events",
+                            cfg->http_auth_enabled.value_or(true)
+                                ? static_cast<porla::Http::Handler<false>>(
+                                      porla::Http::JwtHandler<false>(cfg->secret_key, porla::Http::EventsHandler<false>(sessions)))
+                                : static_cast<porla::Http::Handler<false>>(porla::Http::EventsHandler<false>(sessions)));
+
+            // http_server.post(http_base_path + "/api/v1/jsonrpc",
+                             // cfg->http_auth_enabled.value_or(true)
+                                 // ? static_cast<porla::Http::Handler<false>>(porla::Http::JwtHandler<false>(cfg->secret_key, rpc))
+                                 // : static_cast<porla::Http::Handler<false>>(rpc));
+
+            http_server.get(http_base_path + "/api/v1/system", porla::Http::SystemHandler<false>(cfg->db));
+
+            if (cfg->http_metrics_enabled.value_or(true))
+            {
+                BOOST_LOG_TRIVIAL(info) << "Enabling HTTP metrics endpoint";
+                http_server.get(http_base_path + "/metrics", porla::Http::MetricsHandler<false>(sessions));
+            }
+
+            if (cfg->http_webui_enabled.value_or(true))
+            {
+                BOOST_LOG_TRIVIAL(info) << "Enabling HTTP web UI";
+                http_server.get(http_base_path + "/*", porla::Http::WebUIHandler<false>(http_base_path));
+            }
+
+            http_server.listen(cfg->http_host.value_or("127.0.0.1"), cfg->http_port.value_or(1337),
+                               [](const auto *t) { BOOST_LOG_TRIVIAL(info) << "HTTP server listening"; });
+
+            uWS::run();
+        }
 
         // io.run() breaks SSLApp
-        uWS::run();
 
         plugin_engine.UnloadAll();
     }

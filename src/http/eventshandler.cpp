@@ -10,7 +10,7 @@
 using json = nlohmann::json;
 using porla::Http::EventsHandler;
 
-class EventsHandler::State
+template <bool SSL> template <bool SSLS> class EventsHandler<SSL>::State
 {
 public:
     explicit State(porla::Sessions& sessions)
@@ -29,7 +29,7 @@ public:
         m_torrent_resumed_connection.disconnect();
     }
 
-    void Add(uWS::HttpResponse<true>* res)
+    void Add(uWS::HttpResponse<SSLS>* res)
     {
         res->writeStatus("200 OK")
             ->writeHeader("Connection", "keep-alive")
@@ -45,7 +45,7 @@ public:
         m_responses.insert(res);
     }
 
-    void Remove(uWS::HttpResponse<true>* res)
+    void Remove(uWS::HttpResponse<SSLS>* res)
     {
         m_responses.erase(res);
     }
@@ -107,7 +107,7 @@ private:
         }).dump());
     }
 
-    std::unordered_set<uWS::HttpResponse<true>*> m_responses;
+    std::unordered_set<uWS::HttpResponse<SSLS>*> m_responses;
 
     boost::signals2::connection m_state_update_connection;
     boost::signals2::connection m_torrent_paused_connection;
@@ -115,14 +115,14 @@ private:
     boost::signals2::connection m_torrent_resumed_connection;
 };
 
-EventsHandler::EventsHandler(porla::Sessions& sessions)
-    : m_state(std::make_shared<State>(sessions))
+template <bool SSL> EventsHandler<SSL>::EventsHandler(porla::Sessions& sessions)
+    : m_state(std::make_shared<State<SSL>>(sessions))
 {
 }
 
-EventsHandler::~EventsHandler() = default;
+template <bool SSL> EventsHandler<SSL>::~EventsHandler() = default;
 
-void EventsHandler::operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* req)
+template <bool SSL> void EventsHandler<SSL>::operator()(uWS::HttpResponse<SSL>* res, uWS::HttpRequest* req)
 {
     res->onAborted(
         [state = m_state, res]()
@@ -131,4 +131,9 @@ void EventsHandler::operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* r
         });
 
     m_state->Add(res);
+}
+
+namespace porla::Http {
+    template class EventsHandler<true>;
+    template class EventsHandler<false>;
 }

@@ -5,6 +5,7 @@
 #include <jwt-cpp/jwt.h>
 #include <nlohmann/json.hpp>
 #include <sodium.h>
+#include <uWebSockets/HttpParser.h>
 
 #include "../data/models/users.hpp"
 
@@ -35,7 +36,17 @@ AuthLoginHandler::~AuthLoginHandler()
     }
 }
 
-void AuthLoginHandler::operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* req)
+void AuthLoginHandler::operator()(uWS::HttpResponse<true> *res, uWS::HttpRequest *req)
+{
+    this->callHandler(res, req);
+}
+
+void AuthLoginHandler::operator()(uWS::HttpResponse<false> *res, uWS::HttpRequest *req)
+{
+    this->callHandler(res, req);
+}
+
+template <bool SSL> void AuthLoginHandler::callHandler(uWS::HttpResponse<SSL> *res, uWS::HttpRequest *req)
 {
     if (m_state->threads.size() >= 5)
     {

@@ -13,10 +13,13 @@ namespace porla::Http
         explicit AuthInitHandler(boost::asio::io_context& io, sqlite3* db, int memlimit);
 
         void operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* req);
+        void operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
 
     private:
         boost::asio::io_context& m_io;
         sqlite3* m_db;
         int m_memlimit;
+
+        template <bool SSL> void callHandler(uWS::HttpResponse<SSL> *res);
     };
 }

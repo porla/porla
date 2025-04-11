@@ -6,13 +6,13 @@
 
 using porla::Http::JwtHandler;
 
-JwtHandler::JwtHandler(const std::string &secret_key, Handler next)
+template <bool SSL> JwtHandler<SSL>::JwtHandler(const std::string &secret_key, Handler<SSL> next)
     : m_secret_key(secret_key)
     , m_next(next)
 {
 }
 
-void JwtHandler::operator()(uWS::HttpResponse<true> *res, uWS::HttpRequest *req)
+template <bool SSL> void JwtHandler<SSL>::operator()(uWS::HttpResponse<SSL> *res, uWS::HttpRequest *req)
 {
     static const std::string AltAuthHeader = "x-porla-token";
 
@@ -74,4 +74,9 @@ void JwtHandler::operator()(uWS::HttpResponse<true> *res, uWS::HttpRequest *req)
     }
 
     return res->writeStatus("401 Unauthorized")->end("Unauthorized");
+}
+
+namespace porla::Http {
+    template class JwtHandler<true>;
+    template class JwtHandler<false>;
 }

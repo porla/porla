@@ -5,29 +5,29 @@
 using json = nlohmann::json;
 using porla::Http::JsonRpcHandler;
 
-class JsonRpcHandler::State
+template <bool SSL> template <bool SSLS> class JsonRpcHandler<SSL>::State
 {
 public:
-    explicit State(std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<true>*)>> methods)
+    explicit State(std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<SSLS>*)>> methods)
         : m_methods(std::move(methods))
     {
     }
 
-    std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<true>*)>>& Methods()
+    std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<SSLS>*)>>& Methods()
     {
         return m_methods;
     }
 
 private:
-    std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<true>*)>> m_methods;
+    std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<SSLS>*)>> m_methods;
 };
 
-JsonRpcHandler::JsonRpcHandler(std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<true>*)>> methods)
-    : m_state(std::make_shared<State>(methods))
+template <bool SSL> JsonRpcHandler<SSL>::JsonRpcHandler(std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<SSL>*)>> methods)
+    : m_state(std::make_shared<State<SSL>>(methods))
 {
 }
 
-void JsonRpcHandler::operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* req)
+template <bool SSL> void JsonRpcHandler<SSL>::operator()(uWS::HttpResponse<SSL>* res, uWS::HttpRequest* req)
 {
     res->onAborted([](){});
 
@@ -113,4 +113,9 @@ void JsonRpcHandler::operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* 
             }).dump());
         }
     });
+}
+
+namespace porla::Http {
+    template class JsonRpcHandler<true>;
+    template class JsonRpcHandler<false>;
 }

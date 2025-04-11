@@ -5,6 +5,7 @@
 #include <boost/log/trivial.hpp>
 #include <nlohmann/json.hpp>
 #include <sodium.h>
+#include <uWebSockets/HttpResponse.h>
 
 #include "../data/models/users.hpp"
 
@@ -17,7 +18,16 @@ AuthInitHandler::AuthInitHandler(boost::asio::io_context& io, sqlite3* db, int m
 {
 }
 
-void AuthInitHandler::operator()(uWS::HttpResponse<true>* res, uWS::HttpRequest* req)
+void AuthInitHandler::operator()(uWS::HttpResponse<true> *res, uWS::HttpRequest *req)
+{
+    this->callHandler(res);
+}
+void AuthInitHandler::operator()(uWS::HttpResponse<false> *res, uWS::HttpRequest *req)
+{
+    this->callHandler(res);
+}
+
+template <bool SSL> void AuthInitHandler::callHandler(uWS::HttpResponse<SSL> *res)
 {
     if (porla::Data::Models::Users::Any(m_db))
     {
