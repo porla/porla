@@ -6,12 +6,12 @@ using porla::Methods::TorrentsTrackersList;
 using porla::Methods::TorrentsTrackersListReq;
 using porla::Methods::TorrentsTrackersListRes;
 
-TorrentsTrackersList::TorrentsTrackersList(porla::Sessions& sessions)
+template <bool SSL> TorrentsTrackersList<SSL>::TorrentsTrackersList(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
 }
 
-void TorrentsTrackersList::Invoke(const TorrentsTrackersListReq& req, WriteCb<TorrentsTrackersListRes> cb)
+template <bool SSL> void TorrentsTrackersList<SSL>::Invoke(const TorrentsTrackersListReq& req, WriteCb<TorrentsTrackersListRes, SSL> cb)
 {
     const auto& state = std::find_if(
         m_sessions.All().begin(),
@@ -43,4 +43,9 @@ void TorrentsTrackersList::Invoke(const TorrentsTrackersListReq& req, WriteCb<To
     cb.Ok(TorrentsTrackersListRes{
         .trackers = th.trackers()
     });
+}
+
+namespace porla::Methods {
+    template class TorrentsTrackersList<true>;
+    template class TorrentsTrackersList<false>;
 }

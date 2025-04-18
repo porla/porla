@@ -10,13 +10,13 @@ namespace porla
 
 namespace porla::Methods
 {
-    class TorrentsPause : public Method<TorrentsPauseReq, TorrentsPauseRes>
+    template <bool SSL> class TorrentsPause : public Method<TorrentsPauseReq, TorrentsPauseRes, SSL>
     {
     public:
         explicit TorrentsPause(Sessions& session);
 
     protected:
-        void Invoke(const TorrentsPauseReq& req, WriteCb<TorrentsPauseRes> cb) override;
+        void Invoke(const TorrentsPauseReq& req, WriteCb<TorrentsPauseRes, SSL> cb) override;
 
     private:
         Sessions& m_sessions;

@@ -8,12 +8,12 @@ using porla::Methods::TorrentsFilesList;
 using porla::Methods::TorrentsFilesListReq;
 using porla::Methods::TorrentsFilesListRes;
 
-TorrentsFilesList::TorrentsFilesList(porla::Sessions& sessions)
+template <bool SSL> TorrentsFilesList<SSL>::TorrentsFilesList(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
 }
 
-void TorrentsFilesList::Invoke(const TorrentsFilesListReq& req, WriteCb<TorrentsFilesListRes> cb)
+template <bool SSL> void TorrentsFilesList<SSL>::Invoke(const TorrentsFilesListReq& req, WriteCb<TorrentsFilesListRes, SSL> cb)
 {
     const auto& state = std::find_if(
         m_sessions.All().begin(),
@@ -47,4 +47,9 @@ void TorrentsFilesList::Invoke(const TorrentsFilesListReq& req, WriteCb<Torrents
     }
 
     return cb.Error(-2, "Failed to lock torrent file");
+}
+
+namespace porla::Methods {
+    template class TorrentsFilesList<true>;
+    template class TorrentsFilesList<false>;
 }

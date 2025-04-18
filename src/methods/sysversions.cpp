@@ -10,7 +10,7 @@
 
 using porla::Methods::SysVersions;
 
-void SysVersions::Invoke(const json &req, WriteCb<std::map<std::string, std::string>> cb)
+template <bool SSL> void SysVersions<SSL>::Invoke(const json &req, WriteCb<std::map<std::string, std::string>, SSL> cb)
 {
     std::stringstream boost_version;
     boost_version << BOOST_VERSION / 100000 << "."
@@ -47,7 +47,7 @@ void SysVersions::Invoke(const json &req, WriteCb<std::map<std::string, std::str
             {"release_date", OPENSSL_RELEASE_DATE},
             {"version", OPENSSL_VERSION_STR},
             {"version_text", OPENSSL_VERSION_TEXT}
-        }},
+}},
         {"sqlite", {
             {"source_id", SQLITE_SOURCE_ID},
             {"version", SQLITE_VERSION}
@@ -56,4 +56,9 @@ void SysVersions::Invoke(const json &req, WriteCb<std::map<std::string, std::str
             {"version", toml_version.str()}
         }}
     });
+}
+
+namespace porla::Methods {
+    template class SysVersions<true>;
+    template class SysVersions<false>;
 }

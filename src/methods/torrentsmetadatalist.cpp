@@ -7,13 +7,13 @@ using porla::Methods::TorrentsMetadataList;
 using porla::Methods::TorrentsMetadataListReq;
 using porla::Methods::TorrentsMetadataListRes;
 
-TorrentsMetadataList::TorrentsMetadataList(sqlite3 *db, Sessions& sessions)
+template <bool SSL> TorrentsMetadataList<SSL>::TorrentsMetadataList(sqlite3 *db, Sessions& sessions)
     : m_db(db)
     , m_sessions(sessions)
 {
 }
 
-void TorrentsMetadataList::Invoke(const TorrentsMetadataListReq& req, WriteCb<TorrentsMetadataListRes> cb)
+template <bool SSL> void TorrentsMetadataList<SSL>::Invoke(const TorrentsMetadataListReq& req, WriteCb<TorrentsMetadataListRes, SSL> cb)
 {
     const auto& state = std::find_if(
         m_sessions.All().begin(),
@@ -36,11 +36,16 @@ void TorrentsMetadataList::Invoke(const TorrentsMetadataListReq& req, WriteCb<To
     }
 
     const auto& [ th, _ ] = handle->second;
-    const auto& client_data = th.userdata().get<TorrentClientData>();
+    const auto& client_data = th.userdata().template get<TorrentClientData>();
 
     return cb.Ok(TorrentsMetadataListRes{
         .metadata = client_data->metadata.has_value()
             ? client_data->metadata.value()
             : std::map<std::string, nlohmann::json>()
     });
+}
+
+namespace porla::Methods {
+    template class TorrentsMetadataList<true>;
+    template class TorrentsMetadataList<false>;
 }

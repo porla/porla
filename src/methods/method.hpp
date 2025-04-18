@@ -12,11 +12,11 @@ using json = nlohmann::json;
 
 namespace porla::Methods
 {
-    template<typename TRes>
+    template<typename TRes, bool SSL>
     class WriteCb
     {
     public:
-        explicit WriteCb(nlohmann::json id, uWS::HttpResponse<true>* res)
+        explicit WriteCb(nlohmann::json id, uWS::HttpResponse<SSL>* res)
             : m_id(std::move(id))
             , m_res(res)
         {
@@ -57,19 +57,19 @@ namespace porla::Methods
 
     private:
         nlohmann::json m_id;
-        uWS::HttpResponse<true>* m_res;
+        uWS::HttpResponse<SSL>* m_res;
     };
 
-    template<typename TReq, typename TRes>
+    template<typename TReq, typename TRes, bool SSL>
     class Method
     {
     public:
-        void operator()(const nlohmann::json& id, const nlohmann::json& body, uWS::HttpResponse<true>* res)
+        void operator()(const nlohmann::json& id, const nlohmann::json& body, uWS::HttpResponse<SSL>* res)
         {
-            Invoke(body.get<TReq>(), WriteCb<TRes>(id, res));
+            Invoke(body.get<TReq>(), WriteCb<TRes, SSL>(id, res));
         }
 
     protected:
-        virtual void Invoke(const TReq& req, WriteCb<TRes>) = 0;
+        virtual void Invoke(const TReq& req, WriteCb<TRes, SSL>) = 0;
     };
 }

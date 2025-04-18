@@ -4,14 +4,19 @@ using porla::Methods::PresetsList;
 using porla::Methods::PresetsListReq;
 using porla::Methods::PresetsListRes;
 
-PresetsList::PresetsList(const std::map<std::string, Config::Preset>& presets)
+template <bool SSL> PresetsList<SSL>::PresetsList(const std::map<std::string, Config::Preset>& presets)
     : m_presets(presets)
 {
 }
 
-void PresetsList::Invoke(const PresetsListReq& req, WriteCb<PresetsListRes> cb)
+template <bool SSL> void PresetsList<SSL>::Invoke(const PresetsListReq& req, WriteCb<PresetsListRes, SSL> cb)
 {
     cb.Ok(PresetsListRes{
         .presets = m_presets
     });
+}
+
+namespace porla::Methods {
+    template class PresetsList<true>;
+    template class PresetsList<false>;
 }

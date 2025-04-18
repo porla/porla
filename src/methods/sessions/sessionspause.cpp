@@ -6,12 +6,12 @@ using porla::Methods::SessionsPause;
 using porla::Methods::SessionsPauseReq;
 using porla::Methods::SessionsPauseRes;
 
-SessionsPause::SessionsPause(porla::Sessions& sessions)
+template <bool SSL> SessionsPause<SSL>::SessionsPause(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
 }
 
-void SessionsPause::Invoke(const SessionsPauseReq& req, WriteCb<SessionsPauseRes> cb)
+template <bool SSL> void SessionsPause<SSL>::Invoke(const SessionsPauseReq& req, WriteCb<SessionsPauseRes, SSL> cb)
 {
     const auto& state = req.name.has_value()
         ? m_sessions.Get(req.name.value())
@@ -25,4 +25,9 @@ void SessionsPause::Invoke(const SessionsPauseReq& req, WriteCb<SessionsPauseRes
     state->session->pause();
 
     return cb.Ok(SessionsPauseRes{});
+}
+
+namespace porla::Methods {
+    template class SessionsPause<true>;
+    template class SessionsPause<false>;
 }
