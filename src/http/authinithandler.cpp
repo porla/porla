@@ -11,23 +11,14 @@
 
 using porla::Http::AuthInitHandler;
 
-AuthInitHandler::AuthInitHandler(boost::asio::io_context& io, sqlite3* db, int memlimit)
+template <bool SSL> AuthInitHandler<SSL>::AuthInitHandler(boost::asio::io_context& io, sqlite3* db, int memlimit)
     : m_io(io)
     , m_db(db)
     , m_memlimit(memlimit)
 {
 }
 
-void AuthInitHandler::operator()(uWS::HttpResponse<true> *res, uWS::HttpRequest *req)
-{
-    this->callHandler(res);
-}
-void AuthInitHandler::operator()(uWS::HttpResponse<false> *res, uWS::HttpRequest *req)
-{
-    this->callHandler(res);
-}
-
-template <bool SSL> void AuthInitHandler::callHandler(uWS::HttpResponse<SSL> *res)
+template <bool SSL> void AuthInitHandler<SSL>::operator()(uWS::HttpResponse<SSL> *res, uWS::HttpRequest *req)
 {
     if (porla::Data::Models::Users::Any(m_db))
     {
@@ -108,4 +99,10 @@ template <bool SSL> void AuthInitHandler::callHandler(uWS::HttpResponse<SSL> *re
 
         t.detach();
     });
+}
+
+namespace porla::Http
+{
+    template class AuthInitHandler<true>;
+    template class AuthInitHandler<false>;
 }

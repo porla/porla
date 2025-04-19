@@ -11,7 +11,7 @@ namespace porla
 
 namespace porla::Http
 {
-    
+
     template <bool SSL> class EventsHandler
     {
     public:

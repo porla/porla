@@ -19,18 +19,16 @@ namespace porla::Http
         std::string              secret_key;
     };
 
-    class AuthLoginHandler
+    template <bool SSL> class AuthLoginHandler
     {
     public:
         explicit AuthLoginHandler(const AuthLoginHandlerOptions& opts);
         ~AuthLoginHandler();
 
-        void operator()(uWS::HttpResponse<true> *res, uWS::HttpRequest *req);
-        void operator()(uWS::HttpResponse<false> *res, uWS::HttpRequest *req);
+        void operator()(uWS::HttpResponse<SSL> *res, uWS::HttpRequest *req);
 
     private:
         struct State;
         std::shared_ptr<State> m_state;
-        template <bool SSL> void callHandler(uWS::HttpResponse<SSL> *res, uWS::HttpRequest *req);
     };
-} // namespace porla::Http
+}

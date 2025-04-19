@@ -231,7 +231,7 @@ int main(int argc, char* argv[])
         if (cfg->ssl_enable.has_value() && cfg->ssl_enable.value())
         {
             uWS::Loop::get(&io);
-            
+
             BOOST_LOG_TRIVIAL(info) << "Starting HTTP server with SSL ON.";
 
             uWS::SSLApp http_server({.key_file_name = cfg->ssl_key_file.value().c_str(),
@@ -240,9 +240,9 @@ int main(int argc, char* argv[])
 
             http_server.post(
                 http_base_path + "/api/v1/auth/init",
-                porla::Http::AuthInitHandler(io, cfg->db, cfg->sodium_memlimit.value_or(crypto_pwhash_MEMLIMIT_MIN)));
+                porla::Http::AuthInitHandler<true>(io, cfg->db, cfg->sodium_memlimit.value_or(crypto_pwhash_MEMLIMIT_MIN)));
             http_server.post(http_base_path + "/api/v1/auth/login",
-                             porla::Http::AuthLoginHandler(porla::Http::AuthLoginHandlerOptions{
+                             porla::Http::AuthLoginHandler<true>(porla::Http::AuthLoginHandlerOptions{
                                  .db = cfg->db, .io = io, .secret_key = cfg->secret_key}));
 
             http_server.get(http_base_path + "/api/v1/events",
@@ -272,7 +272,7 @@ int main(int argc, char* argv[])
 
             http_server.listen(cfg->http_host.value_or("127.0.0.1"), cfg->http_port.value_or(1337),
                                [](const auto *t) { BOOST_LOG_TRIVIAL(info) << "HTTP server listening"; });
-            
+
             uWS::run();
         }
         else
@@ -280,14 +280,14 @@ int main(int argc, char* argv[])
             uWS::Loop::get(&io);
 
             BOOST_LOG_TRIVIAL(info) << "Starting HTTP server with SSL OFF.";
-            
+
             uWS::App http_server;
 
             http_server.post(
                 http_base_path + "/api/v1/auth/init",
-                porla::Http::AuthInitHandler(io, cfg->db, cfg->sodium_memlimit.value_or(crypto_pwhash_MEMLIMIT_MIN)));
+                porla::Http::AuthInitHandler<false>(io, cfg->db, cfg->sodium_memlimit.value_or(crypto_pwhash_MEMLIMIT_MIN)));
             http_server.post(http_base_path + "/api/v1/auth/login",
-                             porla::Http::AuthLoginHandler(porla::Http::AuthLoginHandlerOptions{
+                             porla::Http::AuthLoginHandler<false>(porla::Http::AuthLoginHandlerOptions{
                                  .db = cfg->db, .io = io, .secret_key = cfg->secret_key}));
 
             http_server.get(http_base_path + "/api/v1/events",
@@ -320,8 +320,6 @@ int main(int argc, char* argv[])
 
             uWS::run();
         }
-
-        // io.run() breaks SSLApp
 
         plugin_engine.UnloadAll();
     }
