@@ -238,6 +238,11 @@ int main(int argc, char* argv[])
                                      .cert_file_name = cfg->ssl_cert_file.value().c_str(),
                                      .passphrase = cfg->ssl_key_file_pass.value().c_str()});
 
+            if (http_server.constructorFailed())
+            {
+                BOOST_LOG_TRIVIAL(error) << "Cannot load SSL certificate. Please check key/cert file paths and key.";
+            }
+
             http_server.post(
                 http_base_path + "/api/v1/auth/init",
                 porla::Http::AuthInitHandler<true>(io, cfg->db, cfg->sodium_memlimit.value_or(crypto_pwhash_MEMLIMIT_MIN)));
