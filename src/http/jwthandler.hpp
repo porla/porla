@@ -7,15 +7,16 @@
 
 namespace porla::Http
 {
+    template <bool SSL>
     class JwtHandler
     {
     public:
-        explicit JwtHandler(const std::string& secret_key, Handler next);
+        explicit JwtHandler(const std::string& secret_key, Handler<SSL> next);
 
-        void operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+        void operator()(uWS::HttpResponse<SSL>* res, uWS::HttpRequest* req);
 
     private:
         std::string m_secret_key;
-        Handler m_next;
+        Handler<SSL> m_next;
     };
 }

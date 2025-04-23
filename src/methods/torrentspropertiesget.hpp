@@ -10,13 +10,13 @@ namespace porla
 
 namespace porla::Methods
 {
-    class TorrentsPropertiesGet : public Method<TorrentsPropertiesGetReq, TorrentsPropertiesGetRes>
+    template <bool SSL> class TorrentsPropertiesGet : public Method<TorrentsPropertiesGetReq, TorrentsPropertiesGetRes, SSL>
     {
     public:
         explicit TorrentsPropertiesGet(Sessions& sessions);
 
     protected:
-        void Invoke(const TorrentsPropertiesGetReq& req, WriteCb<TorrentsPropertiesGetRes> cb) override;
+        void Invoke(const TorrentsPropertiesGetReq& req, WriteCb<TorrentsPropertiesGetRes, SSL> cb) override;
 
     private:
         Sessions& m_sessions;

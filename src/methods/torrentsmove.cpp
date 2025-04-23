@@ -6,12 +6,12 @@ using porla::Methods::TorrentsMove;
 using porla::Methods::TorrentsMoveReq;
 using porla::Methods::TorrentsMoveRes;
 
-TorrentsMove::TorrentsMove(porla::Sessions &sessions)
+template <bool SSL> TorrentsMove<SSL>::TorrentsMove(porla::Sessions &sessions)
     : m_sessions(sessions)
 {
 }
 
-void TorrentsMove::Invoke(const TorrentsMoveReq &req, WriteCb<TorrentsMoveRes> cb)
+template <bool SSL> void TorrentsMove<SSL>::Invoke(const TorrentsMoveReq &req, WriteCb<TorrentsMoveRes, SSL> cb)
 {
     const auto& state = std::find_if(
         m_sessions.All().begin(),
@@ -52,4 +52,9 @@ void TorrentsMove::Invoke(const TorrentsMoveReq &req, WriteCb<TorrentsMoveRes> c
     th.move_storage(req.path, flags);
 
     return cb.Ok(TorrentsMoveRes{});
+}
+
+namespace porla::Methods {
+    template class TorrentsMove<true>;
+    template class TorrentsMove<false>;
 }

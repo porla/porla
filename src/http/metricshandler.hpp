@@ -11,13 +11,13 @@ namespace porla
 
 namespace porla::Http
 {
-    class MetricsHandler
+    template <bool SSL> class MetricsHandler
     {
     public:
         explicit MetricsHandler(Sessions& sessions);
         ~MetricsHandler();
 
-        void operator()(uWS::HttpResponse<false>* res, [[maybe_unused]] uWS::HttpRequest* req);
+        void operator()(uWS::HttpResponse<SSL>* res, [[maybe_unused]] uWS::HttpRequest* req);
 
     private:
         class State;

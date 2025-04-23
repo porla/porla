@@ -8,12 +8,12 @@
 
 using porla::Methods::TorrentsList;
 
-TorrentsList::TorrentsList(porla::Sessions& sessions)
+template <bool SSL> TorrentsList<SSL>::TorrentsList(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
 }
 
-void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> cb)
+template <bool SSL> void TorrentsList<SSL>::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes, SSL> cb)
 {
     static std::map<std::pair<std::string, bool>, std::function<bool(const TorrentsListRes::Item&, const TorrentsListRes::Item&)>> sorters =
     {
@@ -282,4 +282,9 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
         .torrents_total            = static_cast<int>(torrents.size()),
         .torrents_total_unfiltered = static_cast<int>(global_total_torrents)
     });
+}
+
+namespace porla::Methods {
+    template class TorrentsList<true>;
+    template class TorrentsList<false>;
 }

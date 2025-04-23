@@ -6,5 +6,5 @@
 
 namespace porla::Http
 {
-    typedef std::function<void((uWS::HttpResponse<false> * , uWS::HttpRequest *))> Handler;
+    template <bool SSL> using Handler = std::function<void((uWS::HttpResponse<SSL> * , uWS::HttpRequest *))>;
 }

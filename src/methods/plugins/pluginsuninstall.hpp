@@ -10,13 +10,13 @@ namespace porla::Lua
 
 namespace porla::Methods
 {
-    class PluginsUninstall : public Method<PluginsUninstallReq, PluginsUninstallRes>
+    template <bool SSL> class PluginsUninstall : public Method<PluginsUninstallReq, PluginsUninstallRes, SSL>
     {
     public:
         explicit PluginsUninstall(porla::Lua::PluginEngine& plugin_engine);
 
     protected:
-        void Invoke(const PluginsUninstallReq& req, WriteCb<PluginsUninstallRes> cb) override;
+        void Invoke(const PluginsUninstallReq& req, WriteCb<PluginsUninstallRes, SSL> cb) override;
 
     private:
         porla::Lua::PluginEngine& m_plugin_engine;

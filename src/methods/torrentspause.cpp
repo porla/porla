@@ -6,12 +6,12 @@ using porla::Methods::TorrentsPause;
 using porla::Methods::TorrentsPauseReq;
 using porla::Methods::TorrentsPauseRes;
 
-TorrentsPause::TorrentsPause(porla::Sessions& sessions)
+template <bool SSL> TorrentsPause<SSL>::TorrentsPause(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
 }
 
-void TorrentsPause::Invoke(const TorrentsPauseReq& req, WriteCb<TorrentsPauseRes> cb)
+template <bool SSL> void TorrentsPause<SSL>::Invoke(const TorrentsPauseReq& req, WriteCb<TorrentsPauseRes, SSL> cb)
 {
     const auto& state = std::find_if(
         m_sessions.All().begin(),
@@ -43,4 +43,9 @@ void TorrentsPause::Invoke(const TorrentsPauseReq& req, WriteCb<TorrentsPauseRes
     th.pause();
 
     cb.Ok(TorrentsPauseRes{});
+}
+
+namespace porla::Methods {
+    template class TorrentsPause<true>;
+    template class TorrentsPause<false>;
 }

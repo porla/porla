@@ -6,12 +6,12 @@ using porla::Methods::TorrentsResume;
 using porla::Methods::TorrentsResumeReq;
 using porla::Methods::TorrentsResumeRes;
 
-TorrentsResume::TorrentsResume(porla::Sessions& sessions)
+template <bool SSL> TorrentsResume<SSL>::TorrentsResume(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
 }
 
-void TorrentsResume::Invoke(const TorrentsResumeReq& req, WriteCb<TorrentsResumeRes> cb)
+template <bool SSL> void TorrentsResume<SSL>::Invoke(const TorrentsResumeReq& req, WriteCb<TorrentsResumeRes, SSL> cb)
 {
     const auto& state = std::find_if(
         m_sessions.All().begin(),
@@ -43,4 +43,9 @@ void TorrentsResume::Invoke(const TorrentsResumeReq& req, WriteCb<TorrentsResume
     th.resume();
 
     cb.Ok(TorrentsResumeRes{});
+}
+
+namespace porla::Methods {
+    template class TorrentsResume<true>;
+    template class TorrentsResume<false>;
 }

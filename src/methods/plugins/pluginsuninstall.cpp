@@ -13,12 +13,12 @@ using porla::Methods::PluginsUninstall;
 using porla::Methods::PluginsUninstallReq;
 using porla::Methods::PluginsUninstallRes;
 
-PluginsUninstall::PluginsUninstall(PluginEngine& plugin_engine)
+template <bool SSL>  PluginsUninstall<SSL>::PluginsUninstall(PluginEngine& plugin_engine)
     : m_plugin_engine(plugin_engine)
 {
 }
 
-void PluginsUninstall::Invoke(const PluginsUninstallReq& req, WriteCb<PluginsUninstallRes> cb)
+template <bool SSL>  void PluginsUninstall<SSL>::Invoke(const PluginsUninstallReq& req, WriteCb<PluginsUninstallRes, SSL> cb)
 {
     auto plugin = m_plugin_engine.Plugins().find(req.name);
 
@@ -55,4 +55,9 @@ void PluginsUninstall::Invoke(const PluginsUninstallReq& req, WriteCb<PluginsUni
     }
 
     cb.Ok({});
+}
+
+namespace porla::Methods {
+    template class PluginsUninstall<true>;
+    template class PluginsUninstall<false>;
 }

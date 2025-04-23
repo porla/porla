@@ -13,12 +13,12 @@ using porla::Methods::PluginsList;
 using porla::Methods::PluginsListReq;
 using porla::Methods::PluginsListRes;
 
-PluginsList::PluginsList(PluginEngine& plugin_engine)
+template <bool SSL> PluginsList<SSL>::PluginsList(PluginEngine& plugin_engine)
     : m_plugin_engine(plugin_engine)
 {
 }
 
-void PluginsList::Invoke(const PluginsListReq& req, WriteCb<PluginsListRes> cb)
+template <bool SSL> void PluginsList<SSL>::Invoke(const PluginsListReq& req, WriteCb<PluginsListRes, SSL> cb)
 {
     PluginsListRes res = {};
 
@@ -55,4 +55,9 @@ void PluginsList::Invoke(const PluginsListReq& req, WriteCb<PluginsListRes> cb)
     }
 
     cb.Ok(res);
+}
+
+namespace porla::Methods {
+    template class PluginsList<true>;
+    template class PluginsList<false>;
 }

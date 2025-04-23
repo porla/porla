@@ -7,9 +7,9 @@
 
 namespace porla::Methods
 {
-    class SysVersions : public Method<json, std::map<std::string, std::string>>
+    template <bool SSL> class SysVersions : public Method<json, std::map<std::string, std::string>, SSL>
     {
     protected:
-        void Invoke(const json& req, WriteCb<std::map<std::string, std::string>> cb) override;
+        void Invoke(const json& req, WriteCb<std::map<std::string, std::string>, SSL> cb) override;
     };
 }

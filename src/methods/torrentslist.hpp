@@ -12,12 +12,12 @@ namespace porla
 
 namespace porla::Methods
 {
-    class TorrentsList : public Method<TorrentsListReq, TorrentsListRes>
+    template <bool SSL> class TorrentsList : public Method<TorrentsListReq, TorrentsListRes, SSL>
     {
     public:
         explicit TorrentsList(porla::Sessions& sessions);
 
-        void Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> cb) override;
+        void Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes, SSL> cb) override;
 
     private:
         porla::Sessions& m_sessions;

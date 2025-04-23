@@ -30,13 +30,13 @@ static void ApplyPreset(lt::add_torrent_params& p, const porla::Config::Preset& 
         p.userdata.get<porla::TorrentClientData>()->tags = preset.tags;
 }
 
-TorrentsAdd::TorrentsAdd(Sessions& sessions, const std::map<std::string, Config::Preset>& presets)
+template <bool SSL> TorrentsAdd<SSL>::TorrentsAdd(Sessions& sessions, const std::map<std::string, Config::Preset>& presets)
     : m_sessions(sessions)
     , m_presets(presets)
 {
 }
 
-void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
+template <bool SSL> void TorrentsAdd<SSL>::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes, SSL> cb)
 {
     const auto& state = req.preset.has_value()
         ? m_presets.find(req.preset.value()) != m_presets.end()
@@ -183,4 +183,9 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
     cb.Ok(TorrentsAddRes{
         .info_hash = hash
     });
+}
+
+namespace porla::Methods {
+    template class TorrentsAdd<true>;
+    template class TorrentsAdd<false>;
 }

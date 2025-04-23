@@ -43,9 +43,9 @@ int FetchHeadForEachCallback(
     return 0;
 }
 
-struct UpdatePluginOptions
+template <bool SSL> struct UpdatePluginOptions
 {
-    porla::Methods::WriteCb<PluginsUpdateRes>            callback;
+    porla::Methods::WriteCb<PluginsUpdateRes, SSL>       callback;
     boost::asio::io_context&                             io;
     fs::path                                             path;
     PluginEngine&                                        plugin_engine;
@@ -53,8 +53,8 @@ struct UpdatePluginOptions
     std::map<std::string, std::shared_ptr<std::thread>>& running_updates;
 };
 
-static void UpdatePluginEnd(
-    const std::shared_ptr<UpdatePluginOptions>& opts,
+template <bool SSL> static void UpdatePluginEnd(
+    const std::shared_ptr<UpdatePluginOptions<SSL>>& opts,
     std::thread::id update_thread_id,
     bool is_error,
     const std::string& error = "")
@@ -92,11 +92,11 @@ static void UpdatePluginEnd(
     opts->callback.Ok({});
 }
 
-static void UpdatePlugin(const std::shared_ptr<UpdatePluginOptions>& opts)
+template <bool SSL> static void UpdatePlugin(const std::shared_ptr<UpdatePluginOptions<SSL>>& opts)
 {
     BOOST_LOG_TRIVIAL(info) << "Updating plugin at path " << opts->path;
 
-    const auto error = [](const std::shared_ptr<UpdatePluginOptions>& opts, const std::string& error)
+    const auto error = [](const std::shared_ptr<UpdatePluginOptions<SSL>>& opts, const std::string& error)
     {
         boost::asio::post(
             opts->io,
@@ -252,12 +252,12 @@ static void UpdatePlugin(const std::shared_ptr<UpdatePluginOptions>& opts)
         });
 }
 
-PluginsUpdate::PluginsUpdate(const PluginsUpdateOptions& options)
+template <bool SSL> PluginsUpdate<SSL>::PluginsUpdate(const PluginsUpdateOptions& options)
     : m_options(options)
 {
 }
 
-void PluginsUpdate::Invoke(const PluginsUpdateReq& req, WriteCb<PluginsUpdateRes> cb)
+template <bool SSL> void PluginsUpdate<SSL>::Invoke(const PluginsUpdateReq& req, WriteCb<PluginsUpdateRes, SSL> cb)
 {
     const auto plugin_state = m_options.plugin_engine.Plugins().find(req.name);
 
@@ -282,7 +282,7 @@ void PluginsUpdate::Invoke(const PluginsUpdateReq& req, WriteCb<PluginsUpdateRes
         return cb.Error(-3, "An update is already in progress for this plugin");
     }
 
-    auto options = std::make_shared<UpdatePluginOptions>(UpdatePluginOptions{
+    auto options = std::make_shared<UpdatePluginOptions<SSL>>(UpdatePluginOptions<SSL>{
         .callback        = std::move(cb),
         .io              = m_options.io,
         .path            = plugin_state->second.path,
@@ -293,4 +293,9 @@ void PluginsUpdate::Invoke(const PluginsUpdateReq& req, WriteCb<PluginsUpdateRes
 
     m_running_updates.insert(
         { req.name, std::make_shared<std::thread>([o = std::move(options)]() { UpdatePlugin(o); })});
+}
+
+namespace porla::Methods {
+    template class PluginsUpdate<true>;
+    template class PluginsUpdate<false>;
 }

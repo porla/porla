@@ -12,13 +12,13 @@ namespace porla
 
 namespace porla::Methods
 {
-    class TorrentsMetadataList : public Method<TorrentsMetadataListReq, TorrentsMetadataListRes>
+    template <bool SSL> class TorrentsMetadataList : public Method<TorrentsMetadataListReq, TorrentsMetadataListRes, SSL>
     {
     public:
         explicit TorrentsMetadataList(sqlite3* db, Sessions& sessions);
 
     protected:
-        void Invoke(const TorrentsMetadataListReq& req, WriteCb<TorrentsMetadataListRes> cb) override;
+        void Invoke(const TorrentsMetadataListReq& req, WriteCb<TorrentsMetadataListRes, SSL> cb) override;
 
     private:
         sqlite3* m_db;

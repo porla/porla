@@ -23,13 +23,13 @@ namespace porla::Methods
         porla::Lua::PluginEngine& plugin_engine;
     };
 
-    class PluginsInstall : public Method<PluginsInstallReq, PluginsInstallRes>
+    template <bool SSL> class PluginsInstall : public Method<PluginsInstallReq, PluginsInstallRes, SSL>
     {
     public:
         explicit PluginsInstall(PluginsInstallOptions options);
 
     protected:
-        void Invoke(const PluginsInstallReq& req, WriteCb<PluginsInstallRes> cb) override;
+        void Invoke(const PluginsInstallReq& req, WriteCb<PluginsInstallRes, SSL> cb) override;
 
     private:
         std::vector<std::shared_ptr<std::thread>> m_git_install_threads;

@@ -6,12 +6,12 @@ using porla::Methods::TorrentsRemove;
 using porla::Methods::TorrentsRemoveReq;
 using porla::Methods::TorrentsRemoveRes;
 
-TorrentsRemove::TorrentsRemove(porla::Sessions& sessions)
+template <bool SSL> TorrentsRemove<SSL>::TorrentsRemove(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
 }
 
-void TorrentsRemove::Invoke(const TorrentsRemoveReq &req, WriteCb<TorrentsRemoveRes> cb)
+template <bool SSL> void TorrentsRemove<SSL>::Invoke(const TorrentsRemoveReq &req, WriteCb<TorrentsRemoveRes, SSL> cb)
 {
     for (const auto& hash : req.info_hashes)
     {
@@ -48,4 +48,9 @@ void TorrentsRemove::Invoke(const TorrentsRemoveReq &req, WriteCb<TorrentsRemove
     }
 
     cb(TorrentsRemoveRes{});
+}
+
+namespace porla::Methods {
+    template class TorrentsRemove<true>;
+    template class TorrentsRemove<false>;
 }
