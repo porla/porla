@@ -1,4 +1,4 @@
-FROM ghcr.io/porla/alpine:3.19.1 AS base
+FROM alpine:edge AS base
 
 FROM base AS build-base
 ARG GITVERSION_SEMVER="0.0.0"
@@ -9,8 +9,8 @@ ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
 WORKDIR /src
 RUN apk add --no-cache \
     build-base \
-    boost1.82-dev \
-    boost1.82-static \
+    boost1.84-dev \
+    boost1.84-static \
     ccache \
     cmake \
     linux-headers \
@@ -20,7 +20,16 @@ RUN apk add --no-cache \
     zlib-dev \
     zlib-static \
     zstd-dev \
-    zstd-static
+    zstd-static \
+    git \
+    icu-static \
+    libsodium-dev \
+    libsodium-static \
+    libtorrent-rasterbar-dev \
+    libtorrent-rasterbar-static \
+    lua5.4-dev \
+    sqlite-dev \
+    sqlite-static
 
 # antlr4
 FROM build-base AS build-antlr4
@@ -105,20 +114,6 @@ COPY --from=build-uwebsockets /src/uSockets-0.8.8/uSockets.a /usr/local/lib/libu
 COPY --from=build-uwebsockets /src/uWebSockets-20.70.0/src/* /usr/local/include/uWebSockets/
 
 COPY . .
-
-RUN echo "@edge-community https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
-RUN echo "@edge-main https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
-
-RUN apk add --no-cache \
-    git \
-    icu-static \
-    libsodium-dev@edge-main \
-    libsodium-static@edge-main \
-    libtorrent-rasterbar-dev@edge-community \
-    libtorrent-rasterbar-static@edge-community \
-    lua5.4-dev \
-    sqlite-dev \
-    sqlite-static
 
 RUN cmake -S . -B build -G Ninja \
     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
