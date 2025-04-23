@@ -161,67 +161,7 @@ int main(int argc, char* argv[])
             .plugin_engine = plugin_engine
         };
 
-        porla::Http::JsonRpcHandler<true> rpcSSL({
-            {"fs.space", porla::Methods::FsSpace<true>()},
-            {"plugins.configure", porla::Methods::PluginsConfigure<true>(plugin_engine)},
-            {"plugins.get", porla::Methods::PluginsGet<true>(plugin_engine)},
-            {"plugins.install", porla::Methods::PluginsInstall<true>(plugins_install_options)},
-            {"plugins.list", porla::Methods::PluginsList<true>(plugin_engine)},
-            {"plugins.reload", porla::Methods::PluginsReload<true>(plugin_engine)},
-            {"plugins.uninstall", porla::Methods::PluginsUninstall<true>(plugin_engine)},
-            {"plugins.update", porla::Methods::PluginsUpdate<true>(plugins_update_options)},
-            {"presets.list", porla::Methods::PresetsList<true>(cfg->presets)},
-            {"sessions.list", porla::Methods::SessionsList<true>(sessions)},
-            {"sessions.pause", porla::Methods::SessionsPause<true>(sessions)},
-            {"sessions.resume", porla::Methods::SessionsResume<true>(sessions)},
-            {"sessions.settings.list", porla::Methods::SessionsSettingsList<true>(sessions)},
-            {"sys.versions", porla::Methods::SysVersions<true>()},
-            {"torrents.add", porla::Methods::TorrentsAdd<true>(sessions, cfg->presets)},
-            {"torrents.files.list", porla::Methods::TorrentsFilesList<true>(sessions)},
-            {"torrents.list", porla::Methods::TorrentsList<true>(sessions)},
-            {"torrents.metadata.list", porla::Methods::TorrentsMetadataList<true>(cfg->db, sessions)},
-            {"torrents.move", porla::Methods::TorrentsMove<true>(sessions)},
-            {"torrents.pause", porla::Methods::TorrentsPause<true>(sessions)},
-            {"torrents.peers.add", porla::Methods::TorrentsPeersAdd<true>(sessions)},
-            {"torrents.peers.list", porla::Methods::TorrentsPeersList<true>(sessions)},
-            {"torrents.properties.get", porla::Methods::TorrentsPropertiesGet<true>(sessions)},
-            {"torrents.properties.set", porla::Methods::TorrentsPropertiesSet<true>(sessions)},
-            {"torrents.recheck", porla::Methods::TorrentsRecheck<true>(sessions)},
-            {"torrents.remove", porla::Methods::TorrentsRemove<true>(sessions)},
-            {"torrents.resume", porla::Methods::TorrentsResume<true>(sessions)},
-            {"torrents.trackers.list", porla::Methods::TorrentsTrackersList<true>(sessions)}
-        });
 
-        porla::Http::JsonRpcHandler<false> rpc({
-            {"fs.space", porla::Methods::FsSpace<false>()},
-            {"plugins.configure", porla::Methods::PluginsConfigure<false>(plugin_engine)},
-            {"plugins.get", porla::Methods::PluginsGet<false>(plugin_engine)},
-            {"plugins.install", porla::Methods::PluginsInstall<false>(plugins_install_options)},
-            {"plugins.list", porla::Methods::PluginsList<false>(plugin_engine)},
-            {"plugins.reload", porla::Methods::PluginsReload<false>(plugin_engine)},
-            {"plugins.uninstall", porla::Methods::PluginsUninstall<false>(plugin_engine)},
-            {"plugins.update", porla::Methods::PluginsUpdate<false>(plugins_update_options)},
-            {"presets.list", porla::Methods::PresetsList<false>(cfg->presets)},
-            {"sessions.list", porla::Methods::SessionsList<false>(sessions)},
-            {"sessions.pause", porla::Methods::SessionsPause<false>(sessions)},
-            {"sessions.resume", porla::Methods::SessionsResume<false>(sessions)},
-            {"sessions.settings.list", porla::Methods::SessionsSettingsList<false>(sessions)},
-            {"sys.versions", porla::Methods::SysVersions<false>()},
-            {"torrents.add", porla::Methods::TorrentsAdd<false>(sessions, cfg->presets)},
-            {"torrents.files.list", porla::Methods::TorrentsFilesList<false>(sessions)},
-            {"torrents.list", porla::Methods::TorrentsList<false>(sessions)},
-            {"torrents.metadata.list", porla::Methods::TorrentsMetadataList<false>(cfg->db, sessions)},
-            {"torrents.move", porla::Methods::TorrentsMove<false>(sessions)},
-            {"torrents.pause", porla::Methods::TorrentsPause<false>(sessions)},
-            {"torrents.peers.add", porla::Methods::TorrentsPeersAdd<false>(sessions)},
-            {"torrents.peers.list", porla::Methods::TorrentsPeersList<false>(sessions)},
-            {"torrents.properties.get", porla::Methods::TorrentsPropertiesGet<false>(sessions)},
-            {"torrents.properties.set", porla::Methods::TorrentsPropertiesSet<false>(sessions)},
-            {"torrents.recheck", porla::Methods::TorrentsRecheck<false>(sessions)},
-            {"torrents.remove", porla::Methods::TorrentsRemove<false>(sessions)},
-            {"torrents.resume", porla::Methods::TorrentsResume<false>(sessions)},
-            {"torrents.trackers.list", porla::Methods::TorrentsTrackersList<false>(sessions)}
-        });
 
         std::string http_base_path = cfg->http_base_path.value_or("/");
         if (http_base_path.empty())        http_base_path = "/";
@@ -242,6 +182,37 @@ int main(int argc, char* argv[])
             {
                 BOOST_LOG_TRIVIAL(error) << "Cannot load SSL certificate. Please check key/cert file paths and key.";
             }
+
+            porla::Http::JsonRpcHandler<true> rpcSSL({
+                {"fs.space", porla::Methods::FsSpace<true>()},
+                {"plugins.configure", porla::Methods::PluginsConfigure<true>(plugin_engine)},
+                {"plugins.get", porla::Methods::PluginsGet<true>(plugin_engine)},
+                {"plugins.install", porla::Methods::PluginsInstall<true>(plugins_install_options)},
+                {"plugins.list", porla::Methods::PluginsList<true>(plugin_engine)},
+                {"plugins.reload", porla::Methods::PluginsReload<true>(plugin_engine)},
+                {"plugins.uninstall", porla::Methods::PluginsUninstall<true>(plugin_engine)},
+                {"plugins.update", porla::Methods::PluginsUpdate<true>(plugins_update_options)},
+                {"presets.list", porla::Methods::PresetsList<true>(cfg->presets)},
+                {"sessions.list", porla::Methods::SessionsList<true>(sessions)},
+                {"sessions.pause", porla::Methods::SessionsPause<true>(sessions)},
+                {"sessions.resume", porla::Methods::SessionsResume<true>(sessions)},
+                {"sessions.settings.list", porla::Methods::SessionsSettingsList<true>(sessions)},
+                {"sys.versions", porla::Methods::SysVersions<true>()},
+                {"torrents.add", porla::Methods::TorrentsAdd<true>(sessions, cfg->presets)},
+                {"torrents.files.list", porla::Methods::TorrentsFilesList<true>(sessions)},
+                {"torrents.list", porla::Methods::TorrentsList<true>(sessions)},
+                {"torrents.metadata.list", porla::Methods::TorrentsMetadataList<true>(cfg->db, sessions)},
+                {"torrents.move", porla::Methods::TorrentsMove<true>(sessions)},
+                {"torrents.pause", porla::Methods::TorrentsPause<true>(sessions)},
+                {"torrents.peers.add", porla::Methods::TorrentsPeersAdd<true>(sessions)},
+                {"torrents.peers.list", porla::Methods::TorrentsPeersList<true>(sessions)},
+                {"torrents.properties.get", porla::Methods::TorrentsPropertiesGet<true>(sessions)},
+                {"torrents.properties.set", porla::Methods::TorrentsPropertiesSet<true>(sessions)},
+                {"torrents.recheck", porla::Methods::TorrentsRecheck<true>(sessions)},
+                {"torrents.remove", porla::Methods::TorrentsRemove<true>(sessions)},
+                {"torrents.resume", porla::Methods::TorrentsResume<true>(sessions)},
+                {"torrents.trackers.list", porla::Methods::TorrentsTrackersList<true>(sessions)}
+            });
 
             http_server.post(
                 http_base_path + "/api/v1/auth/init",
@@ -287,6 +258,37 @@ int main(int argc, char* argv[])
             BOOST_LOG_TRIVIAL(info) << "Starting HTTP server with SSL OFF.";
 
             uWS::App http_server;
+
+            porla::Http::JsonRpcHandler<false> rpc({
+                {"fs.space", porla::Methods::FsSpace<false>()},
+                {"plugins.configure", porla::Methods::PluginsConfigure<false>(plugin_engine)},
+                {"plugins.get", porla::Methods::PluginsGet<false>(plugin_engine)},
+                {"plugins.install", porla::Methods::PluginsInstall<false>(plugins_install_options)},
+                {"plugins.list", porla::Methods::PluginsList<false>(plugin_engine)},
+                {"plugins.reload", porla::Methods::PluginsReload<false>(plugin_engine)},
+                {"plugins.uninstall", porla::Methods::PluginsUninstall<false>(plugin_engine)},
+                {"plugins.update", porla::Methods::PluginsUpdate<false>(plugins_update_options)},
+                {"presets.list", porla::Methods::PresetsList<false>(cfg->presets)},
+                {"sessions.list", porla::Methods::SessionsList<false>(sessions)},
+                {"sessions.pause", porla::Methods::SessionsPause<false>(sessions)},
+                {"sessions.resume", porla::Methods::SessionsResume<false>(sessions)},
+                {"sessions.settings.list", porla::Methods::SessionsSettingsList<false>(sessions)},
+                {"sys.versions", porla::Methods::SysVersions<false>()},
+                {"torrents.add", porla::Methods::TorrentsAdd<false>(sessions, cfg->presets)},
+                {"torrents.files.list", porla::Methods::TorrentsFilesList<false>(sessions)},
+                {"torrents.list", porla::Methods::TorrentsList<false>(sessions)},
+                {"torrents.metadata.list", porla::Methods::TorrentsMetadataList<false>(cfg->db, sessions)},
+                {"torrents.move", porla::Methods::TorrentsMove<false>(sessions)},
+                {"torrents.pause", porla::Methods::TorrentsPause<false>(sessions)},
+                {"torrents.peers.add", porla::Methods::TorrentsPeersAdd<false>(sessions)},
+                {"torrents.peers.list", porla::Methods::TorrentsPeersList<false>(sessions)},
+                {"torrents.properties.get", porla::Methods::TorrentsPropertiesGet<false>(sessions)},
+                {"torrents.properties.set", porla::Methods::TorrentsPropertiesSet<false>(sessions)},
+                {"torrents.recheck", porla::Methods::TorrentsRecheck<false>(sessions)},
+                {"torrents.remove", porla::Methods::TorrentsRemove<false>(sessions)},
+                {"torrents.resume", porla::Methods::TorrentsResume<false>(sessions)},
+                {"torrents.trackers.list", porla::Methods::TorrentsTrackersList<false>(sessions)}
+            });
 
             http_server.post(
                 http_base_path + "/api/v1/auth/init",
