@@ -1,7 +1,9 @@
 {
     "name": "Porla dev",
-    "context": "..",
-    "dockerFile": "./Dockerfile",
+    "build": {
+        "dockerfile": "./Dockerfile",
+        "context": ".."
+    },
     "forwardPorts": [
         1337,
         5173

@@ -1,0 +1,22 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "dev",
+      "displayName": "Development",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
+        "CMAKE_EXE_LINKER_FLAGS": "-static -Os",
+        "BUILD_SHARED_LIBS": "OFF",
+        "LINK_WITH_STATIC_LIBRARIES": "ON",
+        "OPENSSL_USE_STATIC_LIBS": "TRUE",
+        "Boost_USE_STATIC_LIBS": "ON",
+        "ENABLE_BZIP2": "OFF",
+        "ENABLE_LZMA": "OFF"
+      }
+    }
+  ]
+}
