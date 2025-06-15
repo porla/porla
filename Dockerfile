@@ -1,4 +1,4 @@
-FROM ghcr.io/porla/alpine:3.19.1 AS base
+FROM ghcr.io/porla/alpine:3.22.0 AS base
 
 FROM base AS build-base
 ARG GITVERSION_SEMVER="0.0.0"
@@ -9,8 +9,8 @@ ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
 WORKDIR /src
 RUN apk add --no-cache \
     build-base \
-    boost1.82-dev \
-    boost1.82-static \
+    boost1.84-dev \
+    boost1.84-static \
     ccache \
     cmake \
     linux-headers \
@@ -141,7 +141,6 @@ FROM base AS runtime
 ENV PORLA_HTTP_HOST=0.0.0.0
 EXPOSE 1337
 
-RUN apk --no-cache add curl bash
 WORKDIR /
 COPY --from=build-porla /src/build/porla /usr/bin/porla
 ENTRYPOINT [ "/usr/bin/porla" ]
