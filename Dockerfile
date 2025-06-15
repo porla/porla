@@ -9,8 +9,8 @@ ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
 WORKDIR /src
 RUN apk add --no-cache \
     build-base \
-    boost1.82-dev \
-    boost1.82-static \
+    boost1.84-dev \
+    boost1.84-static \
     ccache \
     cmake \
     linux-headers \
