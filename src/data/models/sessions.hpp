@@ -23,5 +23,6 @@ namespace porla::Data::Models
         static void Insert(sqlite3* db, const std::string& name, const libtorrent::settings_pack& settings);
         static void Remove(sqlite3* db, const std::string& name);
         static void Update(sqlite3* db, const std::string& name, const libtorrent::session_params& params);
+        static void Update(sqlite3* db, const std::string& name, const libtorrent::settings_pack& settings);
     };
 }

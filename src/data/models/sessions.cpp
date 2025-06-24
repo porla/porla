@@ -134,3 +134,17 @@ void Sessions::Update(sqlite3* db, const std::string& name, const lt::session_pa
     stmt.Bind(3, std::string_view(name));
     stmt.Execute();
 }
+
+void Sessions::Update(sqlite3* db, const std::string& name, const lt::settings_pack& settings)
+{
+    lt::entry::dictionary_type dict;
+    lt::save_settings_to_dict(settings, dict);
+
+    std::vector<char> settings_buffer;
+    lt::bencode(std::back_inserter(settings_buffer), dict);
+
+    auto stmt = Statement::Prepare(db, "UPDATE sessions SET settings = $1 WHERE name = $2");
+    stmt.Bind(1, settings_buffer);
+    stmt.Bind(2, std::string_view(name));
+    stmt.Execute();
+}

@@ -19,6 +19,7 @@
 #include "sessionsremove.hpp"
 #include "sessionsresume.hpp"
 #include "sessionssettingsget.hpp"
+#include "sessionssettingsset.hpp"
 #include "torrentsaddreq.hpp"
 #include "torrentsaddres.hpp"
 #include "torrentsfileslist.hpp"

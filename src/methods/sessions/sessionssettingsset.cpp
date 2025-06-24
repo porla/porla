@@ -1,13 +1,13 @@
-#include "sessionsadd.hpp"
+#include "sessionssettingsset.hpp"
 
 #include <boost/log/trivial.hpp>
 
 #include "../../sessions.hpp"
 #include "../../data/models/sessions.hpp"
 
-using porla::Methods::SessionsAdd;
-using porla::Methods::SessionsAddReq;
-using porla::Methods::SessionsAddRes;
+using porla::Methods::SessionsSettingsSet;
+using porla::Methods::SessionsSettingsSetReq;
+using porla::Methods::SessionsSettingsSetRes;
 
 static lt::settings_pack LoadFromJson(const std::map<std::string, nlohmann::json>& input)
 {
@@ -57,22 +57,36 @@ static lt::settings_pack LoadFromJson(const std::map<std::string, nlohmann::json
     return settings;
 }
 
-SessionsAdd::SessionsAdd(sqlite3* db, porla::Sessions& sessions)
+SessionsSettingsSet::SessionsSettingsSet(sqlite3* db, porla::Sessions& sessions)
     : m_db(db),
     m_sessions(sessions)
 {
 }
 
-void SessionsAdd::Invoke(const SessionsAddReq& req, WriteCb<SessionsAddRes> cb)
+void SessionsSettingsSet::Invoke(const SessionsSettingsSetReq& req, WriteCb<SessionsSettingsSetRes> cb)
 {
-    porla::Data::Models::Sessions::Insert(
+    const auto& state = req.name.has_value()
+        ? m_sessions.Get(req.name.value())
+        : m_sessions.Default();
+
+    if (state == nullptr)
+    {
+        return cb.Error(-1, "Session not found");
+    }
+
+    porla::Data::Models::Sessions::Update(
         m_db,
-        req.name,
+        state->name,
         LoadFromJson(req.settings));
 
-    BOOST_LOG_TRIVIAL(info) << "Session " << req.name << " added";
+    BOOST_LOG_TRIVIAL(info) << "Session settings for " << state->name << " updated";
 
-    m_sessions.LoadByName(req.name);
+    auto settings = porla::Data::Models::Sessions::GetByName(m_db, state->name);
 
-    cb.Ok(SessionsAddRes{});
+    if (settings.has_value())
+    {
+        state->session->apply_settings(settings.value().params.settings);
+    }
+
+    cb.Ok(SessionsSettingsSetRes{});
 }

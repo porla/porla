@@ -108,6 +108,7 @@ add_library(
     src/methods/sessions/sessionsremove.cpp
     src/methods/sessions/sessionsresume.cpp
     src/methods/sessions/sessionssettingslist.cpp
+    src/methods/sessions/sessionssettingsset.cpp
     src/methods/presetslist.cpp
     src/methods/sysversions.cpp
     src/methods/torrentsadd.cpp
