@@ -26,6 +26,7 @@ namespace porla::Data
         static Statement Prepare(sqlite3* db, const std::string_view& sql);
 
         Statement& Bind(int pos, int value);
+        Statement& Bind(int pos, const char* value);
         Statement& Bind(int pos, const std::string_view& value);
         Statement& Bind(int pos, const std::optional<std::string_view>& value);
         Statement& Bind(int pos, const std::vector<char>& buffer);
