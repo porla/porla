@@ -4,7 +4,10 @@
 #include <jwt-cpp/traits/nlohmann-json/defaults.h>
 #include <jwt-cpp/jwt.h>
 
+#include "../utils/string.hpp"
+
 using porla::Http::JwtHandler;
+using porla::Utils::String;
 
 JwtHandler::JwtHandler(const std::string &secret_key, Handler next)
     : m_secret_key(secret_key)
@@ -15,6 +18,38 @@ JwtHandler::JwtHandler(const std::string &secret_key, Handler next)
 void JwtHandler::operator()(uWS::HttpResponse<false> *res, uWS::HttpRequest *req)
 {
     static const std::string AltAuthHeader = "x-porla-token";
+
+    const auto cookie_finder = [](const std::string_view& value) -> std::optional<std::string>
+    {
+        if (value.empty())
+        {
+            return std::nullopt;
+        }
+
+        std::vector<std::string> values = String::Split(std::string(value), ";");
+
+        if (values.empty())
+        {
+            return std::nullopt;
+        }
+
+        for (const auto& cookie_item : values)
+        {
+            std::vector<std::string> pair = String::Split(cookie_item, "=");
+
+            if (pair.size() != 2)
+            {
+                continue;
+            }
+
+            if (pair[0] == "porla-auth-token")
+            {
+                return pair[1];
+            }
+        }
+
+        return std::nullopt;
+    };
 
     const auto header_finder = [&req](const std::string& header)
     {
@@ -41,6 +76,11 @@ void JwtHandler::operator()(uWS::HttpResponse<false> *res, uWS::HttpRequest *req
     if (!bearer_token.has_value())
     {
         bearer_token = header_finder("authorization");
+    }
+
+    if (!bearer_token.has_value())
+    {
+        bearer_token = cookie_finder(req->getHeader("cookie"));
     }
 
     if (!bearer_token.has_value())
