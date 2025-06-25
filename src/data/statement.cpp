@@ -75,6 +75,17 @@ Statement& Statement::Bind(int pos, int value)
     return *this;
 }
 
+Statement& Statement::Bind(int pos, const char* value)
+{
+    if (sqlite3_bind_text(m_stmt, pos, value, strlen(value), nullptr) != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value";
+        throw std::runtime_error("Failed to bind SQLite value");
+    }
+
+    return *this;
+}
+
 Statement& Statement::Bind(int pos, const std::string_view &value)
 {
     if (sqlite3_bind_text(m_stmt, pos, value.data(), static_cast<int>(value.size()), nullptr) != SQLITE_OK)

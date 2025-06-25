@@ -451,30 +451,10 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         throw std::runtime_error("Failed to enable WAL journal mode");
     }
 
-    if (!porla::Data::Migrate(cfg->db))
+    if (!porla::Data::Migrate(cfg->db, cfg))
     {
         BOOST_LOG_TRIVIAL(error) << "Failed to run migrations";
         throw std::runtime_error("Failed to apply migrations");
-    }
-
-    // Apply static libtorrent settings here. These are always set after all other settings from
-    // the config are applied, and cannot be overwritten by it.
-    lt::alert_category_t alerts =
-        lt::alert::status_notification
-        | lt::alert::storage_notification
-        | lt::alert::tracker_notification;
-
-    for (auto& [ _, settings ] : cfg->sessions)
-    {
-        settings.set_int(lt::settings_pack::alert_mask, alerts);
-        settings.set_str(
-            lt::settings_pack::peer_fingerprint,
-            lt::generate_fingerprint("PO", BuildInfo::VersionMajor(), BuildInfo::VersionMinor(), BuildInfo::VersionPatch()));
-
-        std::stringstream user_agent;
-        user_agent << "porla/" << BuildInfo::Version() << " libtorrent/" << LIBTORRENT_VERSION;
-
-        settings.set_str(lt::settings_pack::user_agent, user_agent.str());
     }
 
     // If we get here without having a secret key, we must generate one. Also log a warning because
