@@ -683,7 +683,10 @@ void Sessions::SaveState()
 
         for (const auto& ts : torrents)
         {
-            ts.handle.save_resume_data();
+            ts.handle.save_resume_data(
+                lt::torrent_handle::flush_disk_cache
+                | lt::torrent_handle::save_info_dict
+                | lt::torrent_handle::only_if_modified);
         }
     }
 }
