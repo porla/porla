@@ -5,6 +5,7 @@
 #include <jwt-cpp/jwt.h>
 #include <nlohmann/json.hpp>
 #include <sodium.h>
+#include <uWebSockets/HttpParser.h>
 
 #include "../data/models/users.hpp"
 
@@ -13,13 +14,13 @@ using porla::Data::Models::Users;
 using porla::Http::AuthLoginHandler;
 using porla::Http::AuthLoginHandlerOptions;
 
-struct AuthLoginHandler::State
+template <bool SSL> struct AuthLoginHandler<SSL>::State
 {
     AuthLoginHandlerOptions  options;
     std::vector<std::thread> threads;
 };
 
-AuthLoginHandler::AuthLoginHandler(const AuthLoginHandlerOptions& opts)
+template <bool SSL> AuthLoginHandler<SSL>::AuthLoginHandler(const AuthLoginHandlerOptions& opts)
 {
     m_state = std::make_shared<State>(State{
         .options = opts,
@@ -27,7 +28,7 @@ AuthLoginHandler::AuthLoginHandler(const AuthLoginHandlerOptions& opts)
     });
 }
 
-AuthLoginHandler::~AuthLoginHandler()
+template <bool SSL> AuthLoginHandler<SSL>::~AuthLoginHandler()
 {
     for (auto& thread : m_state->threads)
     {
@@ -35,7 +36,7 @@ AuthLoginHandler::~AuthLoginHandler()
     }
 }
 
-void AuthLoginHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
+template <bool SSL> void AuthLoginHandler<SSL>::operator()(uWS::HttpResponse<SSL> *res, uWS::HttpRequest *req)
 {
     if (m_state->threads.size() >= 5)
     {
@@ -146,4 +147,10 @@ void AuthLoginHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpReques
                     });
             });
     });
+}
+
+namespace porla::Http
+{
+    template class AuthLoginHandler<true>;
+    template class AuthLoginHandler<false>;
 }

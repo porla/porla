@@ -9,12 +9,12 @@ using porla::Methods::TorrentsRecheck;
 using porla::Methods::TorrentsRecheckReq;
 using porla::Methods::TorrentsRecheckRes;
 
-TorrentsRecheck::TorrentsRecheck(porla::Sessions& sessions)
+template <bool SSL> TorrentsRecheck<SSL>::TorrentsRecheck(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
 }
 
-void TorrentsRecheck::Invoke(const TorrentsRecheckReq &req, WriteCb<TorrentsRecheckRes> cb)
+template <bool SSL> void TorrentsRecheck<SSL>::Invoke(const TorrentsRecheckReq &req, WriteCb<TorrentsRecheckRes, SSL> cb)
 {
     const auto& state = std::find_if(
         m_sessions.All().begin(),
@@ -46,4 +46,9 @@ void TorrentsRecheck::Invoke(const TorrentsRecheckReq &req, WriteCb<TorrentsRech
     state->second->Recheck(th.info_hashes());
 
     return cb.Ok(TorrentsRecheckRes{});
+}
+
+namespace porla::Methods {
+    template class TorrentsRecheck<true>;
+    template class TorrentsRecheck<false>;
 }

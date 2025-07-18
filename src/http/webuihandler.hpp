@@ -8,12 +8,12 @@
 
 namespace porla::Http
 {
-    class WebUIHandler
+    template <bool SSL> class WebUIHandler
     {
     public:
         explicit WebUIHandler(std::string base_path);
 
-        void operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+        void operator()(uWS::HttpResponse<SSL>* res, uWS::HttpRequest* req);
 
     private:
         std::string m_base_path;

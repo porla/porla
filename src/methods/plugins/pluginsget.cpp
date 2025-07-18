@@ -13,12 +13,12 @@ using porla::Methods::PluginsGet;
 using porla::Methods::PluginsGetReq;
 using porla::Methods::PluginsGetRes;
 
-PluginsGet::PluginsGet(PluginEngine& plugin_engine)
+template <bool SSL> PluginsGet<SSL>::PluginsGet(PluginEngine& plugin_engine)
     : m_plugin_engine(plugin_engine)
 {
 }
 
-void PluginsGet::Invoke(const PluginsGetReq& req, WriteCb<PluginsGetRes> cb)
+template <bool SSL> void PluginsGet<SSL>::Invoke(const PluginsGetReq& req, WriteCb<PluginsGetRes, SSL> cb)
 {
     const auto plugin_state = m_plugin_engine.Plugins().find(req.name);
 
@@ -76,4 +76,10 @@ void PluginsGet::Invoke(const PluginsGetReq& req, WriteCb<PluginsGetRes> cb)
         .path   = fs::absolute(plugin_state->second.path),
         .tags   = tags
     });
+}
+
+
+namespace porla::Methods {
+    template class PluginsGet<true>;
+    template class PluginsGet<false>;
 }

@@ -4,12 +4,12 @@
 
 using porla::Methods::TorrentsPeersList;
 
-TorrentsPeersList::TorrentsPeersList(porla::Sessions& sessions)
+template <bool SSL> TorrentsPeersList<SSL>::TorrentsPeersList(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
 }
 
-void TorrentsPeersList::Invoke(const TorrentsPeersListReq& req, WriteCb<TorrentsPeersListRes> cb)
+template <bool SSL> void TorrentsPeersList<SSL>::Invoke(const TorrentsPeersListReq& req, WriteCb<TorrentsPeersListRes, SSL> cb)
 {
     const auto& state = std::find_if(
         m_sessions.All().begin(),
@@ -44,4 +44,9 @@ void TorrentsPeersList::Invoke(const TorrentsPeersListReq& req, WriteCb<Torrents
     cb.Ok(TorrentsPeersListRes{
         .peers = peers
     });
+}
+
+namespace porla::Methods {
+    template class TorrentsPeersList<true>;
+    template class TorrentsPeersList<false>;
 }

@@ -6,12 +6,12 @@
 
 namespace porla::Methods
 {
-    class FsSpace : public Method<FsSpaceReq, FsSpaceRes>
+    template <bool SSL> class FsSpace : public Method<FsSpaceReq, FsSpaceRes, SSL>
     {
     public:
         explicit FsSpace();
 
     protected:
-        void Invoke(const FsSpaceReq& req, WriteCb<FsSpaceRes> cb) override;
+        void Invoke(const FsSpaceReq& req, WriteCb<FsSpaceRes, SSL> cb) override;
     };
 }

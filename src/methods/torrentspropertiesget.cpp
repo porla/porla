@@ -6,12 +6,12 @@ using porla::Methods::TorrentsPropertiesGet;
 using porla::Methods::TorrentsPropertiesGetReq;
 using porla::Methods::TorrentsPropertiesGetRes;
 
-TorrentsPropertiesGet::TorrentsPropertiesGet(porla::Sessions& sessions)
+template <bool SSL> TorrentsPropertiesGet<SSL>::TorrentsPropertiesGet(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
 }
 
-void TorrentsPropertiesGet::Invoke(const TorrentsPropertiesGetReq& req, WriteCb<TorrentsPropertiesGetRes> cb)
+template <bool SSL> void TorrentsPropertiesGet<SSL>::Invoke(const TorrentsPropertiesGetReq& req, WriteCb<TorrentsPropertiesGetRes, SSL> cb)
 {
     const auto& state = std::find_if(
         m_sessions.All().begin(),
@@ -73,4 +73,9 @@ void TorrentsPropertiesGet::Invoke(const TorrentsPropertiesGetReq& req, WriteCb<
         .max_uploads     = th.max_uploads(),
         .upload_limit    = th.upload_limit()
     });
+}
+
+namespace porla::Methods {
+    template class TorrentsPropertiesGet<true>;
+    template class TorrentsPropertiesGet<false>;
 }

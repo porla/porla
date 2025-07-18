@@ -19,13 +19,13 @@ namespace porla::Methods
         porla::Lua::PluginEngine& plugin_engine;
     };
 
-    class PluginsUpdate : public Method<PluginsUpdateReq, PluginsUpdateRes>
+    template <bool SSL>  class PluginsUpdate : public Method<PluginsUpdateReq, PluginsUpdateRes, SSL>
     {
     public:
         explicit PluginsUpdate(const PluginsUpdateOptions& options);
 
     protected:
-        void Invoke(const PluginsUpdateReq& req, WriteCb<PluginsUpdateRes> cb) override;
+        void Invoke(const PluginsUpdateReq& req, WriteCb<PluginsUpdateRes, SSL> cb) override;
 
     private:
         PluginsUpdateOptions m_options;

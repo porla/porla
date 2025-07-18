@@ -8,12 +8,12 @@ using porla::Methods::TorrentsPeersAdd;
 using porla::Methods::TorrentsPeersAddReq;
 using porla::Methods::TorrentsPeersAddRes;
 
-TorrentsPeersAdd::TorrentsPeersAdd(porla::Sessions& sessions)
+template <bool SSL> TorrentsPeersAdd<SSL>::TorrentsPeersAdd(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
 }
 
-void TorrentsPeersAdd::Invoke(const TorrentsPeersAddReq& req, WriteCb<TorrentsPeersAddRes> cb)
+template <bool SSL> void TorrentsPeersAdd<SSL>::Invoke(const TorrentsPeersAddReq& req, WriteCb<TorrentsPeersAddRes, SSL> cb)
 {
     const auto& state = std::find_if(
         m_sessions.All().begin(),
@@ -57,4 +57,9 @@ void TorrentsPeersAdd::Invoke(const TorrentsPeersAddReq& req, WriteCb<TorrentsPe
     }
 
     cb(TorrentsPeersAddRes{});
+}
+
+namespace porla::Methods {
+    template class TorrentsPeersAdd<true>;
+    template class TorrentsPeersAdd<false>;
 }

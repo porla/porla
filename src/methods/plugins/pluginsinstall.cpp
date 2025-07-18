@@ -18,28 +18,28 @@ using porla::Methods::PluginsInstallOptions;
 using porla::Methods::PluginsInstallReq;
 using porla::Methods::PluginsInstallRes;
 
-struct InstallFromGitOptions
+template <bool SSL> struct InstallFromGitOptions
 {
-    porla::Methods::WriteCb<PluginsInstallRes> callback;
-    std::optional<std::string>                 config;
-    bool                                       enable;
-    std::string                                git_repository;
-    fs::path                                   install_dir;
-    boost::asio::io_context&                   io;
-    PluginEngine&                              plugin_engine;
-    std::vector<std::shared_ptr<std::thread>>& threads;
+    porla::Methods::WriteCb<PluginsInstallRes, SSL> callback;
+    std::optional<std::string>                      config;
+    bool                                            enable;
+    std::string                                     git_repository;
+    fs::path                                        install_dir;
+    boost::asio::io_context&                        io;
+    PluginEngine&                                   plugin_engine;
+    std::vector<std::shared_ptr<std::thread>>&      threads;
 };
 
-struct InstallFromDirectoryOptions
+template <bool SSL> struct InstallFromDirectoryOptions
 {
-    porla::Methods::WriteCb<PluginsInstallRes>  callback;
-    std::optional<std::string>                  config;
-    bool                                        enable;
-    fs::path                                    path;
-    PluginEngine&                               plugin_engine;
+    porla::Methods::WriteCb<PluginsInstallRes, SSL> callback;
+    std::optional<std::string>                      config;
+    bool                                            enable;
+    fs::path                                        path;
+    PluginEngine&                                   plugin_engine;
 };
 
-static void InstallFromDirectory(InstallFromDirectoryOptions& options)
+template <bool SSL> static void InstallFromDirectory(InstallFromDirectoryOptions<SSL>& options)
 {
     const PluginInstallOptions install_options{
         .config = options.config,
@@ -61,7 +61,7 @@ static void InstallFromDirectory(InstallFromDirectoryOptions& options)
 
 // This is the last step in the install-from-git flow. When we get here, we
 // must be in the main thread again. We'll remove the thread keep on trucking.
-static void InstallFromGitEnd(std::thread::id install_thread_id, const fs::path& path, const std::shared_ptr<InstallFromGitOptions>& options)
+template <bool SSL> static void InstallFromGitEnd(std::thread::id install_thread_id, const fs::path& path, const std::shared_ptr<InstallFromGitOptions<SSL>>& options)
 {
     auto install_thread = std::find_if(
         options->threads.begin(),
@@ -98,7 +98,7 @@ static void InstallFromGitEnd(std::thread::id install_thread_id, const fs::path&
 
 // This method runs in a separate thread. It will post to InstallFromGitEnd
 // when it's done (or has errored).
-static void InstallFromGit(const std::shared_ptr<InstallFromGitOptions>& options)
+template <bool SSL> static void InstallFromGit(const std::shared_ptr<InstallFromGitOptions<SSL>>& options)
 {
     BOOST_LOG_TRIVIAL(info) << "Installing plugin from repository " << options->git_repository;
 
@@ -159,12 +159,12 @@ static void InstallFromGit(const std::shared_ptr<InstallFromGitOptions>& options
     }
 }
 
-PluginsInstall::PluginsInstall(PluginsInstallOptions options)
+template <bool SSL> PluginsInstall<SSL>::PluginsInstall(PluginsInstallOptions options)
     : m_options(std::move(options))
 {
 }
 
-void PluginsInstall::Invoke(const PluginsInstallReq& req, WriteCb<PluginsInstallRes> cb)
+template <bool SSL> void PluginsInstall<SSL>::Invoke(const PluginsInstallReq& req, WriteCb<PluginsInstallRes, SSL> cb)
 {
     std::string real_path = req.path;
 
@@ -185,7 +185,7 @@ void PluginsInstall::Invoke(const PluginsInstallReq& req, WriteCb<PluginsInstall
             fs::create_directories(m_options.install_dir);
         }
 
-        auto options = std::make_shared<InstallFromGitOptions>(InstallFromGitOptions{
+        auto options = std::make_shared<InstallFromGitOptions<SSL>>(InstallFromGitOptions<SSL>{
             .callback       = std::move(cb),
             .config         = req.config,
             .enable         = req.enable.value_or(false),
@@ -211,4 +211,9 @@ void PluginsInstall::Invoke(const PluginsInstallReq& req, WriteCb<PluginsInstall
     };
 
     InstallFromDirectory(options);
+}
+
+namespace porla::Methods {
+    template class PluginsInstall<true>;
+    template class PluginsInstall<false>;
 }

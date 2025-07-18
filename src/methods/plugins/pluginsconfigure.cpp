@@ -12,12 +12,12 @@ using porla::Methods::PluginsConfigure;
 using porla::Methods::PluginsConfigureReq;
 using porla::Methods::PluginsConfigureRes;
 
-PluginsConfigure::PluginsConfigure(PluginEngine& plugin_engine)
+template <bool SSL> PluginsConfigure<SSL>::PluginsConfigure(PluginEngine& plugin_engine)
     : m_plugin_engine(plugin_engine)
 {
 }
 
-void PluginsConfigure::Invoke(const PluginsConfigureReq& req, WriteCb<PluginsConfigureRes> cb)
+template <bool SSL> void PluginsConfigure<SSL>::Invoke(const PluginsConfigureReq& req, WriteCb<PluginsConfigureRes, SSL> cb)
 {
     auto plugin_state = m_plugin_engine.Plugins().find(req.name);
 
@@ -29,4 +29,9 @@ void PluginsConfigure::Invoke(const PluginsConfigureReq& req, WriteCb<PluginsCon
     m_plugin_engine.Configure(req.name, req.config);
 
     cb.Ok({});
+}
+
+namespace porla::Methods {
+    template class PluginsConfigure<true>;
+    template class PluginsConfigure<false>;
 }

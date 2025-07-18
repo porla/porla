@@ -13,12 +13,12 @@ using porla::Methods::PluginsReload;
 using porla::Methods::PluginsReloadReq;
 using porla::Methods::PluginsReloadRes;
 
-PluginsReload::PluginsReload(PluginEngine& plugin_engine)
+template <bool SSL> PluginsReload<SSL>::PluginsReload(PluginEngine& plugin_engine)
     : m_plugin_engine(plugin_engine)
 {
 }
 
-void PluginsReload::Invoke(const PluginsReloadReq& req, WriteCb<PluginsReloadRes> cb)
+template <bool SSL> void PluginsReload<SSL>::Invoke(const PluginsReloadReq& req, WriteCb<PluginsReloadRes, SSL> cb)
 {
     auto plugin_state = m_plugin_engine.Plugins().find(req.name);
 
@@ -30,4 +30,9 @@ void PluginsReload::Invoke(const PluginsReloadReq& req, WriteCb<PluginsReloadRes
     m_plugin_engine.Reload(req.name);
 
     cb.Ok({});
+}
+
+namespace porla::Methods {
+    template class PluginsReload<true>;
+    template class PluginsReload<false>;
 }

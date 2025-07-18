@@ -6,12 +6,12 @@ using porla::Methods::SessionsList;
 using porla::Methods::SessionsListReq;
 using porla::Methods::SessionsListRes;
 
-SessionsList::SessionsList(porla::Sessions& sessions)
+template <bool SSL> SessionsList<SSL>::SessionsList(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
 }
 
-void SessionsList::Invoke(const SessionsListReq& req, WriteCb<SessionsListRes> cb)
+template <bool SSL> void SessionsList<SSL>::Invoke(const SessionsListReq& req, WriteCb<SessionsListRes, SSL> cb)
 {
     std::vector<SessionsListRes::Item> session_items;
 
@@ -29,4 +29,9 @@ void SessionsList::Invoke(const SessionsListReq& req, WriteCb<SessionsListRes> c
     cb.Ok(SessionsListRes{
         .sessions = session_items
     });
+}
+
+namespace porla::Methods {
+    template class SessionsList<true>;
+    template class SessionsList<false>;
 }

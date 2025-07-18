@@ -6,12 +6,12 @@ using porla::Methods::SessionsSettingsList;
 using porla::Methods::SessionsSettingsListReq;
 using porla::Methods::SessionsSettingsListRes;
 
-SessionsSettingsList::SessionsSettingsList(porla::Sessions& sessions)
+template <bool SSL> SessionsSettingsList<SSL>::SessionsSettingsList(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
 }
 
-void SessionsSettingsList::Invoke(const SessionsSettingsListReq &req, WriteCb<SessionsSettingsListRes> cb)
+template <bool SSL> void SessionsSettingsList<SSL>::Invoke(const SessionsSettingsListReq &req, WriteCb<SessionsSettingsListRes, SSL> cb)
 {
     SessionsSettingsListRes res;
 
@@ -54,4 +54,9 @@ void SessionsSettingsList::Invoke(const SessionsSettingsListReq &req, WriteCb<Se
     }
 
     cb.Ok(res);
+}
+
+namespace porla::Methods {
+    template class SessionsSettingsList<true>;
+    template class SessionsSettingsList<false>;
 }

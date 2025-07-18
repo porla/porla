@@ -15,7 +15,7 @@ using porla::Methods::FsSpaceReq;
 using porla::Methods::FsSpaceRes;
 using porla::Methods::FsSpaceQuota;
 
-FsSpace::FsSpace() = default;
+template <bool SSL> FsSpace<SSL>::FsSpace() = default;
 
 std::optional<std::string> GetBlockDeviceFromPath(const std::string& path)
 {
@@ -100,7 +100,7 @@ std::optional<FsSpaceQuota> GetQuota(const std::string& path)
     return std::nullopt;
 }
 
-void FsSpace::Invoke(const FsSpaceReq& req, WriteCb<FsSpaceRes> cb)
+template <bool SSL> void FsSpace<SSL>::Invoke(const FsSpaceReq& req, WriteCb<FsSpaceRes, SSL> cb)
 {
     std::error_code ec;
     const auto space_info = fs::space(req.path, ec);
@@ -116,4 +116,9 @@ void FsSpace::Invoke(const FsSpaceReq& req, WriteCb<FsSpaceRes> cb)
         .free      = space_info.free,
         .quota     = GetQuota(req.path)
     });
+}
+
+namespace porla::Methods {
+    template class FsSpace<true>;
+    template class FsSpace<false>;
 }

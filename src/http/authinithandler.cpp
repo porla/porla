@@ -5,19 +5,20 @@
 #include <boost/log/trivial.hpp>
 #include <nlohmann/json.hpp>
 #include <sodium.h>
+#include <uWebSockets/HttpResponse.h>
 
 #include "../data/models/users.hpp"
 
 using porla::Http::AuthInitHandler;
 
-AuthInitHandler::AuthInitHandler(boost::asio::io_context& io, sqlite3* db, int memlimit)
+template <bool SSL> AuthInitHandler<SSL>::AuthInitHandler(boost::asio::io_context& io, sqlite3* db, int memlimit)
     : m_io(io)
     , m_db(db)
     , m_memlimit(memlimit)
 {
 }
 
-void AuthInitHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
+template <bool SSL> void AuthInitHandler<SSL>::operator()(uWS::HttpResponse<SSL> *res, uWS::HttpRequest *req)
 {
     if (porla::Data::Models::Users::Any(m_db))
     {
@@ -98,4 +99,10 @@ void AuthInitHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest
 
         t.detach();
     });
+}
+
+namespace porla::Http
+{
+    template class AuthInitHandler<true>;
+    template class AuthInitHandler<false>;
 }
