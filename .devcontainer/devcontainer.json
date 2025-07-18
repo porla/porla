@@ -5,8 +5,7 @@
         "context": ".."
     },
     "forwardPorts": [
-        1337,
-        5173
+        1337
     ],
     "mounts": [],
     "remoteUser": "vscode",
