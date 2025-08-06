@@ -23,13 +23,13 @@ jobs:
           submodules: true
 
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v3.0.3
+        uses: gittools/actions/gitversion/setup@v4.1.0
         with:
           versionSpec: '6.0.x'
 
       - name: Calculate version
         id: gitversion
-        uses: gittools/actions/gitversion/execute@v3.0.3
+        uses: gittools/actions/gitversion/execute@v4.1.0
         with:
           useConfigFile: true
 
