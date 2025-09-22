@@ -94,6 +94,7 @@ void WebUIHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* r
         {".css", "text/css"},
         {".html", "text/html"},
         {".js", "text/javascript"},
+        {".json", "application/json"},
         {".svg", "image/svg+xml"}
     };
 
