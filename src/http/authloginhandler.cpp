@@ -13,6 +13,19 @@ using porla::Data::Models::Users;
 using porla::Http::AuthLoginHandler;
 using porla::Http::AuthLoginHandlerOptions;
 
+static std::string CreateAuthCookie(const std::string& name, const std::string& token, int max_age_seconds, bool secure)
+{
+    std::stringstream ss;
+    ss << name << "=" << token << "; Path=/; HttpOnly; Max-Age=" << max_age_seconds << "; SameSite=Strict";
+
+    if (secure)
+    {
+        ss << "; Secure";
+    }
+
+    return ss.str();
+}
+
 struct AuthLoginHandler::State
 {
     AuthLoginHandlerOptions  options;
@@ -139,6 +152,9 @@ void AuthLoginHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpReques
                             .set_subject(user->username)
                             .set_type("JWS")
                             .sign(jwt::algorithm::hs256(state->options.secret_key));
+
+                        res->writeHeader("Set-Cookie", CreateAuthCookie("porla-auth-token", token, 86400, false));
+                        res->writeStatus("200 OK");
 
                         res->end(json({
                             {"token", token}
