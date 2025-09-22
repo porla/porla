@@ -9,6 +9,7 @@
 #include "logger.hpp"
 #include "lua/pluginengine.hpp"
 #include "sessions.hpp"
+#include "webui.hpp"
 #include "tools/authtoken.hpp"
 #include "tools/generatesecretkey.hpp"
 #include "tools/versionjson.hpp"
@@ -230,7 +231,9 @@ int main(int argc, char* argv[])
 
             if (!fs::exists(webui_file))
             {
-                BOOST_LOG_TRIVIAL(info) << "Fetching latest web UI";
+                porla::WebUI::Download(
+                    cfg->http_webui_repository.value_or("porla/web"),
+                    webui_file);
             }
 
             if (fs::exists(webui_file))

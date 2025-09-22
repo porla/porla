@@ -39,6 +39,7 @@ add_library(
     src/config.cpp
     src/logger.cpp
     src/sessions.cpp
+    src/webui.cpp
     src/utils/eta.cpp
     src/utils/secretkey.cpp
     src/utils/string.cpp
