@@ -21,7 +21,6 @@ find_package(OpenSSL             REQUIRED)
 find_package(SQLite3             REQUIRED)
 find_package(ZLIB                REQUIRED)
 
-pkg_check_modules(libgit2 REQUIRED IMPORTED_TARGET libgit2)
 pkg_check_modules(Lua     REQUIRED IMPORTED_TARGET lua5.4)
 
 add_custom_command(
@@ -159,7 +158,6 @@ target_link_libraries(
     Boost::boost Boost::log Boost::program_options
     CURL::libcurl
     libzip::zip
-    PkgConfig::libgit2
     PkgConfig::Lua
     sodium
     SQLite::SQLite3

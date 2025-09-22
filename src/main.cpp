@@ -2,7 +2,6 @@
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
 #include <curl/curl.h>
-#include <git2.h>
 #include <sodium.h>
 
 #include "cmdargs.hpp"
@@ -63,7 +62,6 @@ int main(int argc, char* argv[])
     };
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
-    git_libgit2_init();
 
     const boost::program_options::variables_map cmd = porla::CmdArgs::Parse(argc, argv);
 
@@ -245,7 +243,6 @@ int main(int argc, char* argv[])
         plugin_engine.UnloadAll();
     }
 
-    git_libgit2_shutdown();
     curl_global_cleanup();
 
     return 0;
