@@ -226,8 +226,18 @@ int main(int argc, char* argv[])
 
         if (cfg->http_webui_enabled.value_or(true))
         {
-            BOOST_LOG_TRIVIAL(info) << "Enabling HTTP web UI";
-            http_server.get(http_base_path + "/*", porla::Http::WebUIHandler(http_base_path));
+            const auto webui_file = cfg->state_dir.value_or(fs::current_path()) / cfg->http_webui_file.value_or("webui.zip");
+
+            if (!fs::exists(webui_file))
+            {
+                BOOST_LOG_TRIVIAL(info) << "Fetching latest web UI";
+            }
+
+            if (fs::exists(webui_file))
+            {
+                BOOST_LOG_TRIVIAL(info) << "Enabling HTTP web UI";
+                http_server.get(http_base_path + "/*", porla::Http::WebUIHandler(webui_file, http_base_path));
+            }
         }
 
         http_server.listen(

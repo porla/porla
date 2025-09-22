@@ -1,6 +1,7 @@
 #include "webuihandler.hpp"
 
 #include <filesystem>
+#include <fstream>
 #include <regex>
 
 #include <boost/log/trivial.hpp>
@@ -9,13 +10,6 @@
 
 namespace fs = std::filesystem;
 using porla::Http::WebUIHandler;
-
-extern "C"
-{
-    extern const uint8_t* webui_zip_data();
-    extern const size_t webui_zip_size();
-}
-
 
 static void str_replace_all(std::string& str, const std::string& from, const std::string& to)
 {
@@ -33,48 +27,57 @@ static void str_replace_all(std::string& str, const std::string& from, const std
     }
 }
 
-WebUIHandler::WebUIHandler(std::string base_path)
+WebUIHandler::WebUIHandler(const std::filesystem::path& webui_file, std::string base_path)
     : m_base_path(std::move(base_path))
+    , m_webui_file(std::move(webui_file))
 {
-    if (webui_zip_size() == 0)
+    std::ifstream webui_file_stream(webui_file, std::ios::binary);
+
+    webui_file_stream.seekg(0, std::ios_base::end);
+    const std::streamsize webui_file_size = webui_file_stream.tellg();
+    webui_file_stream.seekg(0, std::ios_base::beg);
+
+    BOOST_LOG_TRIVIAL(info) << "Loading web UI (" << webui_file_size << " bytes)";
+
+    std::vector<char> webui_file_buffer;
+    webui_file_buffer.resize(webui_file_size);
+
+    webui_file_stream.read(webui_file_buffer.data(), webui_file_size);
+
+    zip_error_t err;
+    zip_source_t* source = zip_source_buffer_create(
+        webui_file_buffer.data(),
+        webui_file_buffer.size(),
+        0,
+        &err);
+
+    zip_t *webui = zip_open_from_source(source, ZIP_RDONLY, &err);
+    zip_int64_t num_entries = zip_get_num_entries(webui, ZIP_FL_UNCHANGED);
+
+    for (int i = 0; i < num_entries; i++)
     {
-        BOOST_LOG_TRIVIAL(warning) << "No embedded web UI found";
-    }
-    else
-    {
-        BOOST_LOG_TRIVIAL(debug) << "Loading embedded web UI (" << webui_zip_size()/1024 << " kB)";
+        zip_stat_t st;
+        zip_stat_init(&st);
+        zip_stat_index(webui, i, 0, &st);
 
-        zip_error_t err;
-        zip_source_t *source = zip_source_buffer_create(webui_zip_data(), webui_zip_size(), 0, &err);
-
-        zip_t *webui = zip_open_from_source(source, ZIP_RDONLY, &err);
-        zip_int64_t num_entries = zip_get_num_entries(webui, ZIP_FL_UNCHANGED);
-
-        for (int i = 0; i < num_entries; i++)
+        if (st.size == 0)
         {
-            zip_stat_t st;
-            zip_stat_init(&st);
-            zip_stat_index(webui, i, 0, &st);
-
-            if (st.size == 0)
-            {
-                continue;
-            }
-
-            zip_file* file = zip_fopen_index(webui, i, ZIP_FL_UNCHANGED);
-
-            std::vector<char> buffer;
-            buffer.resize(st.size);
-
-            zip_fread(file, &buffer[0], st.size);
-            zip_fclose(file);
-
-            m_files.emplace(st.name, buffer);
+            continue;
         }
 
-        zip_close(webui);
-        zip_source_close(source);
+        zip_file* file = zip_fopen_index(webui, i, ZIP_FL_UNCHANGED);
+
+        std::vector<char> buffer;
+        buffer.resize(st.size);
+
+        zip_fread(file, &buffer[0], st.size);
+        zip_fclose(file);
+
+        m_files.emplace(st.name, buffer);
     }
+
+    zip_close(webui);
+    zip_source_close(source);
 }
 
 void WebUIHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
