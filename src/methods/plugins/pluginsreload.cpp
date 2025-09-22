@@ -1,7 +1,6 @@
 #include "pluginsreload.hpp"
 
 #include <boost/log/trivial.hpp>
-#include <git2.h>
 
 #include "../../lua/plugin.hpp"
 #include "../../lua/pluginengine.hpp"

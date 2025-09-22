@@ -44,20 +44,6 @@ RUN cd curl-8.11.0 \
         -DBUILD_STATIC_LIBS=ON \
     && cmake --build build --target install
 
-# libgit2
-FROM build-base AS build-libgit2
-RUN wget -O libgit2-1.8.4.tar.gz https://github.com/libgit2/libgit2/archive/refs/tags/v1.8.4.tar.gz
-RUN tar zxf libgit2-1.8.4.tar.gz
-RUN cd libgit2-1.8.4 \
-    && cmake -S . -B build -G Ninja \
-        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-        -DBUILD_SHARED_LIBS=OFF \
-        -DBUILD_TESTS=OFF \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DLINK_WITH_STATIC_LIBRARIES=ON \
-        -DUSE_NTLMCLIENT=OFF \
-    && cmake --build build --target install
-
 # libzip
 FROM build-base AS build-libzip
 RUN wget https://github.com/nih-at/libzip/releases/download/v1.11.2/libzip-1.11.2.tar.gz
@@ -90,11 +76,6 @@ COPY --from=build-antlr4 /usr/local/lib/libantlr4* /usr/local/lib
 COPY --from=build-curl /usr/local/include/curl /usr/local/include/curl
 COPY --from=build-curl /usr/local/lib/cmake /usr/local/lib/cmake
 COPY --from=build-curl /usr/local/lib/libcurl* /usr/local/lib
-# libgit2
-COPY --from=build-libgit2 /usr/local/include/git2 /usr/local/include/git2
-COPY --from=build-libgit2 /usr/local/include/git2.h /usr/local/include/
-COPY --from=build-libgit2 /usr/local/lib/libgit2* /usr/local/lib
-COPY --from=build-libgit2 /usr/local/lib/pkgconfig/libgit2.pc /usr/local/lib/pkgconfig/libgit2.pc
 # libzip
 COPY --from=build-libzip /usr/local/include/* /usr/local/include/
 COPY --from=build-libzip /usr/local/lib/cmake /usr/local/lib/cmake
