@@ -115,6 +115,8 @@ RUN apk add --no-cache \
     libtorrent-rasterbar-dev@edge-community \
     libtorrent-rasterbar-static@edge-community \
     lua5.4-dev \
+    nodejs \
+    npm \
     sqlite-dev \
     sqlite-static \
     zsh
