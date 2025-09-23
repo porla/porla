@@ -48,6 +48,8 @@ namespace porla
         std::optional<bool>                      http_metrics_enabled;
         std::optional<uint16_t>                  http_port;
         std::optional<bool>                      http_webui_enabled;
+        std::optional<fs::path>                  http_webui_file;
+        std::optional<std::string>               http_webui_repository;
         std::optional<bool>                      plugins_allow_git;
         std::optional<fs::path>                  plugins_install_dir;
         std::map<std::string, Preset>            presets;

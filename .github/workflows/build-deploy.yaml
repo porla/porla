@@ -33,34 +33,6 @@ jobs:
         with:
           useConfigFile: true
 
-  build-web:
-    name: Build web UI
-    needs: [calc-version]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          submodules: true
-
-      - name: Install Node.js dependencies
-        run: npm ci
-        working-directory: ./html
-
-      - name: Build web UI
-        run: npm run build
-        working-directory: ./html
-
-      - name: Package web UI
-        run: pushd html/dist && zip -9 -r ../webui.zip * && popd && ls -la
-
-      - name: Upload web UI to artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: webui.zip
-          path: html/webui.zip
-
   build-app:
     strategy:
       matrix:
@@ -73,7 +45,7 @@ jobs:
             runner: buildjet-8vcpu-ubuntu-2204-arm
 
     name: Build Porla (${{ matrix.platform }})
-    needs: [build-web, calc-version]
+    needs: [calc-version]
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout
@@ -81,12 +53,6 @@ jobs:
         with:
           fetch-depth: 0
           submodules: 'recursive'
-
-      - name: Download web UI artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: webui.zip
-          path: html/
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

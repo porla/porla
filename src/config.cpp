@@ -236,6 +236,12 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
             if (auto val = config_file_tbl["http"]["webui_enabled"].value<bool>())
                 cfg->http_webui_enabled = *val;
 
+            if (auto val = config_file_tbl["http"]["webui_file"].value<std::string>())
+                cfg->http_webui_file = *val;
+
+            if (auto val = config_file_tbl["http"]["webui_repository"].value<std::string>())
+                cfg->http_webui_repository = *val;
+
             // Plugins
             if (auto val = config_file_tbl["plugins"]["allow_git"].value<bool>())
                 cfg->plugins_allow_git = *val;

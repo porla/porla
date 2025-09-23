@@ -29,23 +29,17 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -P
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateVersion.cmake)
 
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/webui.cpp
-    ${CMAKE_CURRENT_BINARY_DIR}/_webui.cpp
-    COMMAND ${CMAKE_COMMAND} -P
-    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FileEmbed.cmake)
-
 add_library(
     ${PROJECT_NAME}_core
     STATIC
     ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
-    ${CMAKE_CURRENT_BINARY_DIR}/webui.cpp
 
     src/buildinfo.cpp
     src/cmdargs.cpp
     src/config.cpp
     src/logger.cpp
     src/sessions.cpp
+    src/webui.cpp
     src/utils/eta.cpp
     src/utils/secretkey.cpp
     src/utils/string.cpp
@@ -119,6 +113,7 @@ add_library(
     src/methods/torrentsresume.cpp
     src/methods/torrentspropertiesset.cpp
     src/methods/torrentstrackerslist.cpp
+    src/methods/webui/webuiinstall.cpp
 
     src/query/_aux/PorlaQueryLangBaseVisitor.cpp
     src/query/_aux/PorlaQueryLangLexer.cpp

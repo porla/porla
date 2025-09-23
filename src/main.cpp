@@ -9,6 +9,7 @@
 #include "logger.hpp"
 #include "lua/pluginengine.hpp"
 #include "sessions.hpp"
+#include "webui.hpp"
 #include "tools/authtoken.hpp"
 #include "tools/generatesecretkey.hpp"
 #include "tools/versionjson.hpp"
@@ -51,6 +52,7 @@
 #include "methods/torrentspropertiesget.hpp"
 #include "methods/torrentspropertiesset.hpp"
 #include "methods/torrentstrackerslist.hpp"
+#include "methods/webui/webuiinstall.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -160,6 +162,8 @@ int main(int argc, char* argv[])
             .plugin_engine = plugin_engine
         };
 
+        boost::signals2::signal<void(const char*, size_t)> webui_installed_signal;
+
         porla::Http::JsonRpcHandler rpc({
             {"fs.space", porla::Methods::FsSpace()},
             {"plugins.configure", porla::Methods::PluginsConfigure(plugin_engine)},
@@ -188,7 +192,8 @@ int main(int argc, char* argv[])
             {"torrents.recheck", porla::Methods::TorrentsRecheck(sessions)},
             {"torrents.remove", porla::Methods::TorrentsRemove(sessions)},
             {"torrents.resume", porla::Methods::TorrentsResume(sessions)},
-            {"torrents.trackers.list", porla::Methods::TorrentsTrackersList(sessions)}
+            {"torrents.trackers.list", porla::Methods::TorrentsTrackersList(sessions)},
+            {"webui.install", porla::Methods::WebUI::WebUIInstall(*cfg, webui_installed_signal)}
         });
 
         std::string http_base_path = cfg->http_base_path.value_or("/");
@@ -226,8 +231,20 @@ int main(int argc, char* argv[])
 
         if (cfg->http_webui_enabled.value_or(true))
         {
-            BOOST_LOG_TRIVIAL(info) << "Enabling HTTP web UI";
-            http_server.get(http_base_path + "/*", porla::Http::WebUIHandler(http_base_path));
+            const auto webui_file = cfg->state_dir.value_or(fs::current_path()) / cfg->http_webui_file.value_or("webui.zip");
+
+            if (!fs::exists(webui_file))
+            {
+                porla::WebUI::Download(
+                    cfg->http_webui_repository.value_or("porla/web"),
+                    webui_file);
+            }
+
+            if (fs::exists(webui_file))
+            {
+                BOOST_LOG_TRIVIAL(info) << "Enabling HTTP web UI";
+                http_server.get(http_base_path + "/*", porla::Http::WebUIHandler(webui_file, http_base_path, webui_installed_signal));
+            }
         }
 
         http_server.listen(
