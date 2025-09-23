@@ -113,6 +113,7 @@ add_library(
     src/methods/torrentsresume.cpp
     src/methods/torrentspropertiesset.cpp
     src/methods/torrentstrackerslist.cpp
+    src/methods/webui/webuiinstall.cpp
 
     src/query/_aux/PorlaQueryLangBaseVisitor.cpp
     src/query/_aux/PorlaQueryLangLexer.cpp

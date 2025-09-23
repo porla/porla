@@ -52,6 +52,7 @@
 #include "methods/torrentspropertiesget.hpp"
 #include "methods/torrentspropertiesset.hpp"
 #include "methods/torrentstrackerslist.hpp"
+#include "methods/webui/webuiinstall.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -161,6 +162,8 @@ int main(int argc, char* argv[])
             .plugin_engine = plugin_engine
         };
 
+        boost::signals2::signal<void(const char*, size_t)> webui_installed_signal;
+
         porla::Http::JsonRpcHandler rpc({
             {"fs.space", porla::Methods::FsSpace()},
             {"plugins.configure", porla::Methods::PluginsConfigure(plugin_engine)},
@@ -189,7 +192,8 @@ int main(int argc, char* argv[])
             {"torrents.recheck", porla::Methods::TorrentsRecheck(sessions)},
             {"torrents.remove", porla::Methods::TorrentsRemove(sessions)},
             {"torrents.resume", porla::Methods::TorrentsResume(sessions)},
-            {"torrents.trackers.list", porla::Methods::TorrentsTrackersList(sessions)}
+            {"torrents.trackers.list", porla::Methods::TorrentsTrackersList(sessions)},
+            {"webui.install", porla::Methods::WebUI::WebUIInstall(*cfg, webui_installed_signal)}
         });
 
         std::string http_base_path = cfg->http_base_path.value_or("/");
@@ -239,7 +243,7 @@ int main(int argc, char* argv[])
             if (fs::exists(webui_file))
             {
                 BOOST_LOG_TRIVIAL(info) << "Enabling HTTP web UI";
-                http_server.get(http_base_path + "/*", porla::Http::WebUIHandler(webui_file, http_base_path));
+                http_server.get(http_base_path + "/*", porla::Http::WebUIHandler(webui_file, http_base_path, webui_installed_signal));
             }
         }
 
