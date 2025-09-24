@@ -457,7 +457,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         throw std::runtime_error("Failed to enable WAL journal mode");
     }
 
-    if (!porla::Data::Migrate(cfg->db))
+    if (!porla::Data::Migrate(cfg->db, cfg))
     {
         BOOST_LOG_TRIVIAL(error) << "Failed to run migrations";
         throw std::runtime_error("Failed to apply migrations");

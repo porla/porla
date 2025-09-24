@@ -6,6 +6,7 @@
 
 #include <boost/log/trivial.hpp>
 
+#include "../config.hpp"
 #include "migrations/0001_initialsetup.hpp"
 #include "migrations/0002_addsessionsettings.hpp"
 #include "migrations/0003_users.hpp"
@@ -15,6 +16,7 @@
 #include "migrations/0007_removesessionsettings.hpp"
 #include "migrations/0008_plugins.hpp"
 #include "migrations/0009_multisessions.hpp"
+#include "migrations/0010_sessions.hpp"
 #include "statement.hpp"
 
 int GetUserVersion(sqlite3* db)
@@ -37,7 +39,7 @@ void SetUserVersion(sqlite3* db, int version)
     sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
 }
 
-bool porla::Data::Migrate(sqlite3* db)
+bool porla::Data::Migrate(sqlite3* db, const std::unique_ptr<porla::Config>& cfg)
 {
     static std::vector<std::function<int(sqlite3*)>> Migrations =
     {
@@ -49,7 +51,8 @@ bool porla::Data::Migrate(sqlite3* db)
         &porla::Data::Migrations::ClientData::Migrate,
         &porla::Data::Migrations::RemoveSessionSettings::Migrate,
         &porla::Data::Migrations::Plugins::Migrate,
-        &porla::Data::Migrations::MultiSessions::Migrate
+        &porla::Data::Migrations::MultiSessions::Migrate,
+        [&cfg](sqlite3* db) { return porla::Data::Migrations::Sessions::Migrate(db, cfg); }
     };
 
     int user_version = GetUserVersion(db);
