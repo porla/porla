@@ -56,6 +56,7 @@ add_library(
     src/data/migrations/0009_multisessions.cpp
     src/data/migrations/0010_sessions.cpp
     src/data/models/addtorrentparams.cpp
+    src/data/models/sessions.cpp
     src/data/models/users.cpp
     src/data/statement.cpp
 
@@ -94,10 +95,13 @@ add_library(
     src/methods/plugins/pluginsreload.cpp
     src/methods/plugins/pluginsuninstall.cpp
     src/methods/plugins/pluginsupdate.cpp
+    src/methods/sessions/sessionsadd.cpp
     src/methods/sessions/sessionslist.cpp
     src/methods/sessions/sessionspause.cpp
+    src/methods/sessions/sessionsremove.cpp
     src/methods/sessions/sessionsresume.cpp
     src/methods/sessions/sessionssettingslist.cpp
+    src/methods/sessions/sessionssettingsset.cpp
     src/methods/presetslist.cpp
     src/methods/sysversions.cpp
     src/methods/torrentsadd.cpp
@@ -128,6 +132,7 @@ add_library(
     src/tools/versionjson.cpp
 
     src/utils/ratio.cpp
+    src/utils/ltsettings.cpp
 )
 
 target_compile_definitions(

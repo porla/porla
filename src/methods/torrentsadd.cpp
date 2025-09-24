@@ -30,7 +30,7 @@ static void ApplyPreset(lt::add_torrent_params& p, const porla::Config::Preset& 
         p.userdata.get<porla::TorrentClientData>()->tags = preset.tags;
 }
 
-TorrentsAdd::TorrentsAdd(Sessions& sessions, const std::map<std::string, Config::Preset>& presets)
+TorrentsAdd::TorrentsAdd(porla::Sessions& sessions, const std::map<std::string, Config::Preset>& presets)
     : m_sessions(sessions)
     , m_presets(presets)
 {

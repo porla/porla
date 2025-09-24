@@ -17,13 +17,13 @@ namespace porla::Methods
     class TorrentsAdd : public Method<TorrentsAddReq, TorrentsAddRes>
     {
     public:
-        explicit TorrentsAdd(Sessions& session, const std::map<std::string, Config::Preset>& presets);
+        explicit TorrentsAdd(porla::Sessions& session, const std::map<std::string, Config::Preset>& presets);
 
     protected:
         void Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb) override;
 
     private:
-        Sessions& m_sessions;
+        porla::Sessions& m_sessions;
         const std::map<std::string, Config::Preset>& m_presets;
     };
 }

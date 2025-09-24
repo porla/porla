@@ -23,18 +23,9 @@ namespace porla
         int                      timer_torrent_updates;
     };
 
-    struct SessionsLoadOptions
-    {
-        std::string           name;
-        std::filesystem::path session_params_file;
-        lt::settings_pack     settings;
-    };
-
     class Sessions
     {
     public:
-        static bool DisallowedSetting(const std::string& name);
-
         struct TorrentFileErrorEvent
         {
             std::string        file;
@@ -69,7 +60,9 @@ namespace porla
         std::shared_ptr<SessionState> Default();
         std::shared_ptr<SessionState> Get(const std::string& name);
 
-        void Load(const SessionsLoadOptions& options);
+        void LoadAll();
+        void LoadByName(const std::string& name);
+        void UnloadByName(const std::string& name);
 
         boost::signals2::connection OnSessionStats(const SessionStatsSignal::slot_type& subscriber)
         {
@@ -126,6 +119,7 @@ namespace porla
         void ReadAlerts(const std::shared_ptr<SessionState>& state);
 
         void SaveState();
+        void UnloadSession(const std::string& name, const std::shared_ptr<SessionState>& state);
 
         SessionsOptions m_options;
         std::map<std::string, std::shared_ptr<SessionState>> m_sessions;

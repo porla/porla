@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_set>
 
-#include <nlohmann/json.hpp>
+#include <libtorrent/settings_pack.hpp>
 
 namespace porla::Methods
 {
@@ -16,6 +16,6 @@ namespace porla::Methods
 
     struct SessionsSettingsListRes
     {
-        std::map<std::string, nlohmann::json> settings;
+        libtorrent::settings_pack settings;
     };
 }

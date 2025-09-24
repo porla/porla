@@ -13,12 +13,12 @@ namespace porla::Methods
     class TorrentsTrackersList : public Method<TorrentsTrackersListReq, TorrentsTrackersListRes>
     {
     public:
-        explicit TorrentsTrackersList(Sessions& sessions);
+        explicit TorrentsTrackersList(porla::Sessions& sessions);
 
     protected:
         void Invoke(const TorrentsTrackersListReq& req, WriteCb<TorrentsTrackersListRes> cb) override;
 
     private:
-        Sessions& m_sessions;
+        porla::Sessions& m_sessions;
     };
 }
