@@ -11,6 +11,10 @@ namespace porla
         {
             j[name] = *value;
         }
+        else
+        {
+            j[name] = nlohmann::json();
+        }
     }
 
     template<class J, class T>

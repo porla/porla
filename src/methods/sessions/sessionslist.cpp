@@ -18,6 +18,7 @@ void SessionsList::Invoke(const SessionsListReq& req, WriteCb<SessionsListRes> c
     for (const auto& [ name, state ] : m_sessions.All())
     {
         session_items.push_back(SessionsListRes::Item{
+            .id             = state->id,
             .name           = name,
             .is_dht_running = state->session->is_dht_running(),
             .is_listening   = state->session->is_listening(),

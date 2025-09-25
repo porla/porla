@@ -1,20 +1,20 @@
 #pragma once
 
-#include "../config.hpp"
-#include "method.hpp"
+#include "../../config.hpp"
+#include "../method.hpp"
 #include "presetslist_reqres.hpp"
 
-namespace porla::Methods
+namespace porla::Methods::Presets
 {
     class PresetsList : public Method<PresetsListReq, PresetsListRes>
     {
     public:
-        explicit PresetsList(const std::map<std::string, Config::Preset>& presets);
+        explicit PresetsList(sqlite3* db);
 
     protected:
         void Invoke(const PresetsListReq& req, WriteCb<PresetsListRes> cb) override;
 
     private:
-        const std::map<std::string, Config::Preset>& m_presets;
+        sqlite3* m_db;
     };
 }

@@ -13,6 +13,7 @@ namespace porla::Methods
 
     NLOHMANN_JSONIFY_ALL_THINGS(
         SessionsListRes::Item,
+        id,
         name,
         is_dht_running,
         is_listening,

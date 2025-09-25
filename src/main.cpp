@@ -32,7 +32,11 @@
 #include "methods/plugins/pluginsreload.hpp"
 #include "methods/plugins/pluginsuninstall.hpp"
 #include "methods/plugins/pluginsupdate.hpp"
-#include "methods/presetslist.hpp"
+#include "methods/presets/presetsget.hpp"
+#include "methods/presets/presetslist.hpp"
+#include "methods/presets/presetsadd.hpp"
+#include "methods/presets/presetsremove.hpp"
+#include "methods/presets/presetsupdate.hpp"
 #include "methods/sessions/sessionsadd.hpp"
 #include "methods/sessions/sessionslist.hpp"
 #include "methods/sessions/sessionspause.hpp"
@@ -151,7 +155,11 @@ int main(int argc, char* argv[])
             {"plugins.reload", porla::Methods::PluginsReload(plugin_engine)},
             {"plugins.uninstall", porla::Methods::PluginsUninstall(plugin_engine)},
             {"plugins.update", porla::Methods::PluginsUpdate(plugins_update_options)},
-            {"presets.list", porla::Methods::PresetsList(cfg->presets)},
+            {"presets.add", porla::Methods::Presets::PresetsAdd(cfg->db)},
+            {"presets.get", porla::Methods::Presets::PresetsGet(cfg->db)},
+            {"presets.list", porla::Methods::Presets::PresetsList(cfg->db)},
+            {"presets.remove", porla::Methods::Presets::PresetsRemove(cfg->db)},
+            {"presets.update", porla::Methods::Presets::PresetsUpdate(cfg->db)},
             {"sessions.add", porla::Methods::Sessions::SessionsAdd(cfg->db, sessions)},
             {"sessions.list", porla::Methods::SessionsList(sessions)},
             {"sessions.pause", porla::Methods::SessionsPause(sessions)},

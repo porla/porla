@@ -233,6 +233,7 @@ void Sessions::LoadAll()
         }
 
         auto state = std::make_shared<SessionState>();
+        state->id   = session.id;
         state->name = session.name;
         state->session = std::make_shared<lt::session>(std::move(session.params));
         state->session->add_extension(&lt::create_ut_metadata_plugin);
@@ -297,9 +298,8 @@ void Sessions::LoadByName(const std::string& name)
         return;
     }
 
-
-
     auto state = std::make_shared<SessionState>();
+    state->id   = session.id;
     state->name = session.name;
     state->session = std::make_shared<lt::session>(std::move(session.params));
     state->session->add_extension(&lt::create_ut_metadata_plugin);

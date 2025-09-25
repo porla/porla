@@ -36,6 +36,7 @@ namespace porla
         {
             friend class Sessions;
 
+            int                                                                           id;
             std::string                                                                   name;
             std::shared_ptr<lt::session>                                                  session;
             std::filesystem::path                                                         session_params_file;

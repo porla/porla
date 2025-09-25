@@ -40,7 +40,8 @@ static std::optional<Sessions::Session> LoadSessionFromRow(const Statement::IRow
     LibtorrentSettingsPack::UpdateStatic(params.settings);
 
     Sessions::Session s;
-    s.name = row.GetStdString(0);
+    s.id     = row.GetInt32(3); 
+    s.name   = row.GetStdString(0);
     s.params = params;
 
     return s;
@@ -48,7 +49,7 @@ static std::optional<Sessions::Session> LoadSessionFromRow(const Statement::IRow
 
 void Sessions::ForEach(sqlite3 *db, const std::function<void(const Sessions::Session&)>& cb)
 {
-    auto stmt = Statement::Prepare(db, "SELECT name,params,settings FROM sessions");
+    auto stmt = Statement::Prepare(db, "SELECT name,params,settings,id FROM sessions");
     stmt.Step(
         [&cb](const Statement::IRow& row)
         {
@@ -67,7 +68,7 @@ std::optional<Sessions::Session> Sessions::GetByName(sqlite3* db, const std::str
 {
     std::optional<Sessions::Session> session;
 
-    Statement::Prepare(db, "SELECT name,params,settings FROM sessions WHERE name = $1")
+    Statement::Prepare(db, "SELECT name,params,settings,id FROM sessions WHERE name = $1")
         .Bind(1, std::string_view(name))
         .Step(
             [&session](auto const& row)

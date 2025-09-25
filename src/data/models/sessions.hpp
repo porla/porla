@@ -14,7 +14,8 @@ namespace porla::Data::Models
     public:
         struct Session
         {
-            std::string name;
+            int                        id;
+            std::string                name;
             libtorrent::session_params params;
         };
 
