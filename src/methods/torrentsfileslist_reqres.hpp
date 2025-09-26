@@ -14,6 +14,7 @@ namespace porla::Methods
 
     struct TorrentsFilesListRes
     {
-        libtorrent::file_storage file_storage;
+        std::vector<std::int64_t> file_progress;
+        libtorrent::file_storage  file_storage;
     };
 }
