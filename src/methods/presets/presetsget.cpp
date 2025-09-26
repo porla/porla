@@ -28,7 +28,7 @@ void PresetsGet::Invoke(const PresetsGetReq &req, WriteCb<PresetsGetRes> cb)
         .max_connections = preset->max_connections,
         .max_uploads = preset->max_uploads,
         .metadata = preset->metadata,
-        .session = preset->session,
+        .session_id = preset->session_id,
         .save_path = preset->save_path,
         .storage_mode = preset->storage_mode,
         .tags = preset->tags,

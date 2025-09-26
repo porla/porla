@@ -10,7 +10,7 @@ namespace porla::Methods
 {
     struct SessionsSettingsListReq
     {
-        std::optional<std::string>                     name;
+        int                                            id;
         std::optional<std::unordered_set<std::string>> keys;
     };
 

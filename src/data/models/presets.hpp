@@ -21,7 +21,7 @@ namespace porla::Data::Models
             std::optional<int>              max_connections;
             std::optional<int>              max_uploads;
             std::optional<nlohmann::json>   metadata;
-            std::optional<std::string>      session;
+            std::optional<int>              session_id;
             std::optional<std::string>      save_path;
             std::optional<std::string>      storage_mode;
             std::unordered_set<std::string> tags;

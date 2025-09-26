@@ -64,12 +64,12 @@ void Sessions::ForEach(sqlite3 *db, const std::function<void(const Sessions::Ses
         });
 }
 
-std::optional<Sessions::Session> Sessions::GetByName(sqlite3* db, const std::string& name)
+std::optional<Sessions::Session> Sessions::GetById(sqlite3* db, int id)
 {
     std::optional<Sessions::Session> session;
 
-    Statement::Prepare(db, "SELECT name,params,settings,id FROM sessions WHERE name = $1")
-        .Bind(1, std::string_view(name))
+    Statement::Prepare(db, "SELECT name,params,settings,id FROM sessions WHERE id = $1")
+        .Bind(1, id)
         .Step(
             [&session](auto const& row)
             {
@@ -94,14 +94,14 @@ void Sessions::Insert(sqlite3* db, const std::string& name, const lt::settings_p
     stmt.Execute();
 }
 
-void Sessions::Remove(sqlite3* db, const std::string& name)
+void Sessions::Remove(sqlite3* db, int id)
 {
-    auto stmt = Statement::Prepare(db, "DELETE FROM sessions WHERE name = $1");
-    stmt.Bind(1, std::string_view(name));
+    auto stmt = Statement::Prepare(db, "DELETE FROM sessions WHERE id = $1");
+    stmt.Bind(1, id);
     stmt.Execute();
 }
 
-void Sessions::Update(sqlite3* db, const std::string& name, const lt::session_params& params)
+void Sessions::Update(sqlite3* db, int id, const lt::session_params& params)
 {
     std::vector params_buffer = lt::write_session_params_buf(
         params,
@@ -114,14 +114,14 @@ void Sessions::Update(sqlite3* db, const std::string& name, const lt::session_pa
     std::vector<char> settings_buffer;
     lt::bencode(std::back_inserter(settings_buffer), dict);
 
-    auto stmt = Statement::Prepare(db, "UPDATE sessions SET params = $1, settings = $2 WHERE name = $3");
+    auto stmt = Statement::Prepare(db, "UPDATE sessions SET params = $1, settings = $2 WHERE id = $3");
     stmt.Bind(1, params_buffer);
     stmt.Bind(2, settings_buffer);
-    stmt.Bind(3, std::string_view(name));
+    stmt.Bind(3, id);
     stmt.Execute();
 }
 
-void Sessions::Update(sqlite3* db, const std::string& name, const lt::settings_pack& settings)
+void Sessions::Update(sqlite3* db, int id, const lt::settings_pack& settings)
 {
     lt::entry::dictionary_type dict;
     lt::save_settings_to_dict(settings, dict);
@@ -129,8 +129,8 @@ void Sessions::Update(sqlite3* db, const std::string& name, const lt::settings_p
     std::vector<char> settings_buffer;
     lt::bencode(std::back_inserter(settings_buffer), dict);
 
-    auto stmt = Statement::Prepare(db, "UPDATE sessions SET settings = $1 WHERE name = $2");
+    auto stmt = Statement::Prepare(db, "UPDATE sessions SET settings = $1 WHERE id = $2");
     stmt.Bind(1, settings_buffer);
-    stmt.Bind(2, std::string_view(name));
+    stmt.Bind(2, id);
     stmt.Execute();
 }

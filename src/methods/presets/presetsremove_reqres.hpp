@@ -6,7 +6,7 @@ namespace porla::Methods::Presets
 {
     struct PresetsRemoveReq
     {
-        std::string name;
+        int id;
     };
 
     struct PresetsRemoveRes

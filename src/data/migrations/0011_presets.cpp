@@ -25,7 +25,7 @@ int Presets::Migrate(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
         "max_connections INTEGER,"
         "max_uploads INTEGER,"
         "metadata TEXT,"
-        "session TEXT,"
+        "session_id INTEGER,"
         "save_path TEXT,"
         "storage_mode TEXT,"
         "tags TEXT,"
@@ -57,19 +57,18 @@ int Presets::Migrate(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
 
         auto stmt = Statement::Prepare(
             db,
-            "INSERT INTO presets (name, category, download_limit, max_connections, max_uploads, metadata, session, save_path, storage_mode, tags, upload_limit) "
-            "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)");
+            "INSERT INTO presets (name, category, download_limit, max_connections, max_uploads, metadata, session_id, save_path, storage_mode, tags, upload_limit) "
+            "VALUES ($1, $2, $3, $4, $5, $6, NULL, $7, $8, $9, $10)");
         stmt.Bind(1, std::string_view(name));
         stmt.Bind(2, preset.category);
         stmt.Bind(3, preset.download_limit);
         stmt.Bind(4, preset.max_connections);
         stmt.Bind(5, preset.max_connections);
         stmt.Bind(6, std::string_view(metadata.dump()));
-        stmt.Bind(7, preset.session);
-        stmt.Bind(8, preset.save_path);
-        stmt.Bind(9, storage_mode);
-        stmt.Bind(10, std::string_view(json(preset.tags).dump()));
-        stmt.Bind(11, preset.upload_limit);
+        stmt.Bind(7, preset.save_path);
+        stmt.Bind(8, storage_mode);
+        stmt.Bind(9, std::string_view(json(preset.tags).dump()));
+        stmt.Bind(10, preset.upload_limit);
         stmt.Execute();
     }
 

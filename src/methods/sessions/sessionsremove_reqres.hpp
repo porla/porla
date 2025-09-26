@@ -9,7 +9,7 @@ namespace porla::Methods::Sessions
 {
     struct SessionsRemoveReq
     {
-        std::string name;
+        int id;
     };
 
     struct SessionsRemoveRes

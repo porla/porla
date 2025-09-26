@@ -205,11 +205,20 @@ std::shared_ptr<Sessions::SessionState> Sessions::Default()
     return m_sessions.at("default");
 }
 
-std::shared_ptr<Sessions::SessionState> Sessions::Get(const std::string& name)
+std::shared_ptr<Sessions::SessionState> Sessions::Get(const int id)
 {
-    return m_sessions.at(name);
-}
+    auto session = std::find_if(
+        m_sessions.begin(),
+        m_sessions.end(),
+        [&id](const std::pair<std::string, std::shared_ptr<Sessions::SessionState>>& s)
+        {
+            return s.second->id == id;
+        });
 
+    return session == m_sessions.end()
+        ? nullptr
+        : session->second;
+}
 
 void Sessions::LoadAll()
 {
@@ -280,7 +289,7 @@ void Sessions::LoadAll()
     }
 }
 
-void Sessions::LoadByName(const std::string& name)
+void Sessions::LoadById(int id)
 {
     auto s = Data::Models::Sessions::GetByName(m_options.db, name);
 

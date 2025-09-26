@@ -59,11 +59,11 @@ namespace porla
 
         std::map<std::string, std::shared_ptr<SessionState>>& All();
         std::shared_ptr<SessionState> Default();
-        std::shared_ptr<SessionState> Get(const std::string& name);
+        std::shared_ptr<SessionState> Get(const int id);
 
         void LoadAll();
-        void LoadByName(const std::string& name);
-        void UnloadByName(const std::string& name);
+        void LoadById(int id);
+        void UnloadById(int id);
 
         boost::signals2::connection OnSessionStats(const SessionStatsSignal::slot_type& subscriber)
         {

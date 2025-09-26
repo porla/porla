@@ -4,6 +4,7 @@
 #include <libtorrent/add_torrent_params.hpp>
 #include <libtorrent/magnet_uri.hpp>
 
+#include "../data/models/presets.hpp"
 #include "../sessions.hpp"
 #include "../torrentclientdata.hpp"
 #include "../utils/base64.hpp"
@@ -13,13 +14,13 @@ namespace lt = libtorrent;
 using porla::Methods::TorrentsAdd;
 using porla::Methods::TorrentsAddReq;
 
-static void ApplyPreset(lt::add_torrent_params& p, const porla::Config::Preset& preset)
+static void ApplyPreset(lt::add_torrent_params& p, const porla::Data::Models::Presets::Preset& preset)
 {
     if (preset.download_limit.has_value())  p.download_limit  = preset.download_limit.value();
     if (preset.max_connections.has_value()) p.max_connections = preset.max_connections.value();
     if (preset.max_uploads.has_value())     p.max_uploads     = preset.max_uploads.value();
     if (preset.save_path.has_value())       p.save_path       = preset.save_path.value();
-    if (preset.storage_mode.has_value())    p.storage_mode    = preset.storage_mode.value();
+    if (preset.storage_mode.has_value())    p.storage_mode    = lt::storage_mode_sparse; // preset.storage_mode.value();
     if (preset.upload_limit.has_value())    p.upload_limit    = preset.upload_limit.value();
 
     // Set our custom client data
@@ -30,24 +31,28 @@ static void ApplyPreset(lt::add_torrent_params& p, const porla::Config::Preset& 
         p.userdata.get<porla::TorrentClientData>()->tags = preset.tags;
 }
 
-TorrentsAdd::TorrentsAdd(porla::Sessions& sessions, const std::map<std::string, Config::Preset>& presets)
-    : m_sessions(sessions)
-    , m_presets(presets)
+TorrentsAdd::TorrentsAdd(sqlite3* db, porla::Sessions& sessions)
+    : m_db(db)
+    , m_sessions(sessions)
 {
 }
 
 void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
 {
-    const auto& state = req.preset.has_value()
-        ? m_presets.find(req.preset.value()) != m_presets.end()
-            ? m_presets.at(req.preset.value()).session.has_value()
-                ? m_sessions.Get(m_presets.at(req.preset.value()).session.value())
-                : m_sessions.Default()
-            : m_sessions.Default()
-        : m_presets.find("default") != m_presets.end()
-            ? m_presets.at("default").session.has_value()
-                ? m_sessions.Get(m_presets.at("default").session.value())
-                : m_sessions.Default()
+    // Which session should we add this torrent to?
+    // - If we have a session_id, use that
+    // - If we have a preset_id, and that preset has a session_id, use that
+    // - If there is a default preset, and that preset has a session_id, use that
+    // - If nothing, use the default
+
+    const auto& preset = req.preset_id.has_value()
+        ? Data::Models::Presets::GetById(m_db, req.preset_id.value())
+        : Data::Models::Presets::GetByName(m_db, "default");
+
+    const auto& state = req.session_id.has_value()
+        ? m_sessions.Get(req.session_id.value())
+        : preset.has_value() && preset->session_id.has_value()
+            ? m_sessions.Get(preset->session_id.value())
             : m_sessions.Default();
 
     if (state == nullptr)
@@ -59,28 +64,10 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
     p.userdata = lt::client_data_t(new TorrentClientData());
     p.userdata.get<TorrentClientData>()->state = state;
 
-    // Apply the 'default' preset if it exists
-    if (m_presets.find("default") != m_presets.end())
+    if (preset.has_value())
     {
         BOOST_LOG_TRIVIAL(debug) << "Applying default preset";
-        ApplyPreset(p, m_presets.at("default"));
-    }
-
-    if (req.preset.has_value() && !req.preset.value().empty())
-    {
-        auto const preset_name = req.preset.value();
-        auto const preset = m_presets.find(preset_name);
-
-        if (preset == m_presets.end())
-        {
-            BOOST_LOG_TRIVIAL(warning) << "Specified preset '" << preset_name << "' not found.";
-        }
-        // Only apply presets other than default here, since default is applied above..
-        else if (preset_name != "default")
-        {
-            BOOST_LOG_TRIVIAL(debug) << "Applying preset " << preset_name;
-            ApplyPreset(p, preset->second);
-        }
+        ApplyPreset(p, preset.value());
     }
 
     if (req.ti.has_value())

@@ -11,5 +11,6 @@ namespace porla::Methods::Presets
 
     struct PresetsAddRes
     {
+        int id;
     };
 }

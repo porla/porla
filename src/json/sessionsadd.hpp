@@ -13,8 +13,7 @@ namespace porla::Methods::Sessions
         settings,
         settings_base)
 
-    static void to_json(nlohmann::json& j, const SessionsAddRes& res)
-    {
-        j = {};
-    }
+    NLOHMANN_JSONIFY_ALL_THINGS(
+        SessionsAddRes,
+        id);
 }

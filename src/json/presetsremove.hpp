@@ -11,7 +11,7 @@ namespace porla::Methods::Presets
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         PresetsRemoveReq,
-        name)
+        id)
 
     static void to_json(json& j, const PresetsRemoveRes& res)
     {

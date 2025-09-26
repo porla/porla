@@ -9,7 +9,7 @@ namespace porla::Methods::Sessions
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         SessionsSettingsSetReq,
-        name,
+        id,
         settings)
 
     static void to_json(nlohmann::json& j, const SessionsSettingsSetRes& res)

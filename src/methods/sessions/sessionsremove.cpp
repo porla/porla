@@ -17,13 +17,23 @@ SessionsRemove::SessionsRemove(sqlite3* db, porla::Sessions& sessions)
 
 void SessionsRemove::Invoke(const SessionsRemoveReq& req, WriteCb<SessionsRemoveRes> cb)
 {
-    BOOST_LOG_TRIVIAL(info) << "Removing session " << req.name;
+    const auto& session = m_sessions.Get(req.id);
 
-    m_sessions.UnloadByName(req.name);
+    if (session == nullptr)
+    {
+        return cb.Error(-1, "Session not found");
+    }
 
-    porla::Data::Models::Sessions::Remove(m_db, req.name);
+    if (session->name == "default")
+    {
+        return cb.Error(-2, "Cannot remove default session");
+    }
 
-    BOOST_LOG_TRIVIAL(info) << "Session " << req.name << " removed";
+    m_sessions.UnloadByName(session->name);
+
+    porla::Data::Models::Sessions::Remove(m_db, session->name);
+
+    BOOST_LOG_TRIVIAL(info) << "Session " << session->name << " removed";
 
     cb.Ok(SessionsRemoveRes{});
 }

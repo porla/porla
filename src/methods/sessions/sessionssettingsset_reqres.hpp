@@ -10,7 +10,7 @@ namespace porla::Methods::Sessions
 {
     struct SessionsSettingsSetReq
     {
-        std::optional<std::string> name;
+        int                                   id;
         std::map<std::string, nlohmann::json> settings;
     };
 

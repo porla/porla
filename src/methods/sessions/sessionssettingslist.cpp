@@ -15,8 +15,8 @@ void SessionsSettingsList::Invoke(const SessionsSettingsListReq &req, WriteCb<Se
 {
     SessionsSettingsListRes res;
 
-    const auto& state = req.name.has_value()
-        ? m_sessions.Get(req.name.value())
+    const auto& state = req.id.has_value()
+        ? m_sessions.Get(req.id.value())
         : m_sessions.Default();
 
     if (state == nullptr)

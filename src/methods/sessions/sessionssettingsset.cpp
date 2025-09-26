@@ -19,9 +19,7 @@ SessionsSettingsSet::SessionsSettingsSet(sqlite3* db, porla::Sessions& sessions)
 
 void SessionsSettingsSet::Invoke(const SessionsSettingsSetReq& req, WriteCb<SessionsSettingsSetRes> cb)
 {
-    const auto& state = req.name.has_value()
-        ? m_sessions.Get(req.name.value())
-        : m_sessions.Default();
+    const auto& state = m_sessions.Get(req.id);
 
     if (state == nullptr)
     {
@@ -35,7 +33,7 @@ void SessionsSettingsSet::Invoke(const SessionsSettingsSetReq& req, WriteCb<Sess
 
     porla::Data::Models::Sessions::Update(
         m_db,
-        state->name,
+        req.id,
         session_settings);
 
     state->session->apply_settings(session_settings);

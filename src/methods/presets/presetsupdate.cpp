@@ -25,7 +25,7 @@ void PresetsUpdate::Invoke(const PresetsUpdateReq &req, WriteCb<PresetsUpdateRes
             .max_connections = req.max_connections,
             .max_uploads = req.max_uploads,
             .metadata = req.metadata,
-            .session = req.session,
+            .session_id = req.session_id,
             .save_path = req.save_path,
             .storage_mode = req.storage_mode,
             .tags = req.tags,

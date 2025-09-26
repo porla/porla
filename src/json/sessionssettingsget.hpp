@@ -9,8 +9,8 @@ namespace porla::Methods
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         SessionsSettingsListReq,
-        keys,
-        name)
+        id,
+        keys)
 
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
         SessionsSettingsListRes,

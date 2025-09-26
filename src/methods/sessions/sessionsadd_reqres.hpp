@@ -18,5 +18,6 @@ namespace porla::Methods::Sessions
 
     struct SessionsAddRes
     {
+        int id;
     };
 }

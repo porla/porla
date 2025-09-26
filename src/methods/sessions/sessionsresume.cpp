@@ -13,9 +13,7 @@ SessionsResume::SessionsResume(porla::Sessions& sessions)
 
 void SessionsResume::Invoke(const SessionsResumeReq& req, WriteCb<SessionsResumeRes> cb)
 {
-    const auto& state = req.name.has_value()
-        ? m_sessions.Get(req.name.value())
-        : m_sessions.Default();
+    const auto& state = m_sessions.Get(req.id);
 
     if (state == nullptr)
     {

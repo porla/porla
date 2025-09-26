@@ -168,7 +168,7 @@ int main(int argc, char* argv[])
             {"sessions.settings.list", porla::Methods::SessionsSettingsList(sessions)},
             {"sessions.settings.set", porla::Methods::Sessions::SessionsSettingsSet(cfg->db, sessions)},
             {"sys.versions", porla::Methods::SysVersions()},
-            {"torrents.add", porla::Methods::TorrentsAdd(sessions, cfg->presets)},
+            {"torrents.add", porla::Methods::TorrentsAdd(cfg->db, sessions)},
             {"torrents.files.list", porla::Methods::TorrentsFilesList(sessions)},
             {"torrents.list", porla::Methods::TorrentsList(sessions)},
             {"torrents.metadata.list", porla::Methods::TorrentsMetadataList(cfg->db, sessions)},
