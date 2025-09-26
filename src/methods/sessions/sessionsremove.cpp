@@ -29,9 +29,9 @@ void SessionsRemove::Invoke(const SessionsRemoveReq& req, WriteCb<SessionsRemove
         return cb.Error(-2, "Cannot remove default session");
     }
 
-    m_sessions.UnloadByName(session->name);
+    m_sessions.UnloadById(session->id);
 
-    porla::Data::Models::Sessions::Remove(m_db, session->name);
+    porla::Data::Models::Sessions::Remove(m_db, session->id);
 
     BOOST_LOG_TRIVIAL(info) << "Session " << session->name << " removed";
 

@@ -35,14 +35,16 @@ void SessionsAdd::Invoke(const SessionsAddReq& req, WriteCb<SessionsAddRes> cb)
 
     LibtorrentSettingsPack::Update(settings, req.settings.value_or(std::map<std::string, json>()));
 
-    porla::Data::Models::Sessions::Insert(
+    int session_id = porla::Data::Models::Sessions::Insert(
         m_db,
         req.name,
         settings);
 
     BOOST_LOG_TRIVIAL(info) << "Session " << req.name << " added - loading...";
 
-    m_sessions.LoadByName(req.name);
+    m_sessions.LoadById(session_id);
 
-    cb.Ok(SessionsAddRes{});
+    cb.Ok(SessionsAddRes{
+        .id = session_id
+    });
 }

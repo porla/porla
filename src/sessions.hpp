@@ -120,7 +120,7 @@ namespace porla
         void ReadAlerts(const std::shared_ptr<SessionState>& state);
 
         void SaveState();
-        void UnloadSession(const std::string& name, const std::shared_ptr<SessionState>& state);
+        void UnloadSession(const std::shared_ptr<SessionState>& state);
 
         SessionsOptions m_options;
         std::map<std::string, std::shared_ptr<SessionState>> m_sessions;

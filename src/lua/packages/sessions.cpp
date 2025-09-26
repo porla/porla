@@ -226,7 +226,12 @@ void Sessions::Register(sol::state& lua)
         {
             sol::state_view lua{s};
             const auto options = lua.globals()["__load_opts"].get<const PluginLoadOptions&>();
-            return options.sessions.Get(name);
+            const auto& sessions = options.sessions.All();
+            const auto& session = sessions.find(name);
+
+            return session == sessions.end()
+                ? nullptr
+                : session->second;
         };
 
         sessions["list"] = [](sol::this_state s)

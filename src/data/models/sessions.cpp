@@ -80,7 +80,23 @@ std::optional<Sessions::Session> Sessions::GetById(sqlite3* db, int id)
     return session;
 }
 
-void Sessions::Insert(sqlite3* db, const std::string& name, const lt::settings_pack& settings)
+std::optional<Sessions::Session> Sessions::GetByName(sqlite3* db, const std::string& name)
+{
+    std::optional<Sessions::Session> session;
+
+    Statement::Prepare(db, "SELECT name,params,settings,id FROM sessions WHERE name = $1")
+        .Bind(1, std::string_view(name))
+        .Step(
+            [&session](auto const& row)
+            {
+                session = LoadSessionFromRow(row);
+                return SQLITE_OK;
+            });
+
+    return session;
+}
+
+int Sessions::Insert(sqlite3* db, const std::string& name, const lt::settings_pack& settings)
 {
     lt::entry::dictionary_type dict;
     lt::save_settings_to_dict(settings, dict);
@@ -92,6 +108,8 @@ void Sessions::Insert(sqlite3* db, const std::string& name, const lt::settings_p
     stmt.Bind(1, std::string_view(name));
     stmt.Bind(2, buf);
     stmt.Execute();
+
+    return sqlite3_last_insert_rowid(db);
 }
 
 void Sessions::Remove(sqlite3* db, int id)

@@ -187,9 +187,9 @@ Sessions::~Sessions()
 
     m_timers.clear();
 
-    for (const auto& [ name, state ] : m_sessions)
+    for (const auto& [ _, state ] : m_sessions)
     {
-        UnloadSession(name, state);
+        UnloadSession(state);
     }
 
     BOOST_LOG_TRIVIAL(info) << "All state saved";
@@ -291,11 +291,11 @@ void Sessions::LoadAll()
 
 void Sessions::LoadById(int id)
 {
-    auto s = Data::Models::Sessions::GetByName(m_options.db, name);
+    auto s = Data::Models::Sessions::GetById(m_options.db, id);
 
     if (!s)
     {
-        BOOST_LOG_TRIVIAL(warning) << "No session with name " << name;
+        BOOST_LOG_TRIVIAL(warning) << "No session with id " << id;
         return;
     }
 
@@ -354,16 +354,22 @@ void Sessions::LoadById(int id)
     m_sessions.insert({ session.name, state });
 }
 
-void Sessions::UnloadByName(const std::string& name)
+void Sessions::UnloadById(int id)
 {
-    auto state = m_sessions.find(name);
+    auto state = std::find_if(
+        m_sessions.begin(),
+        m_sessions.end(),
+        [&id](const std::pair<std::string, std::shared_ptr<Sessions::SessionState>>& state)
+        {
+            return state.second->id == id;
+        });
 
     if (state != m_sessions.end())
     {
-        UnloadSession(state->first, state->second);
+        UnloadSession(state->second);
     }
 
-    m_sessions.erase(name);
+    m_sessions.erase(state->second->name);
 }
 
 void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
@@ -673,13 +679,13 @@ void Sessions::SaveState()
     }
 }
 
-void Sessions::UnloadSession(const std::string& name, const std::shared_ptr<SessionState>& state)
+void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
 {
     state->session->set_alert_notify([]{});
 
     Data::Models::Sessions::Update(
         m_options.db,
-        name,
+        state->id,
         state->session->session_state());
 
     state->session->pause();
