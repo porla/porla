@@ -31,7 +31,7 @@ namespace porla::Data::Models
         static void ForEach(sqlite3* db, const std::function<void(const Preset&)>& cb);
         static std::optional<Preset> GetById(sqlite3* db, int id);
         static std::optional<Preset> GetByName(sqlite3* db, const std::string& name);
-        static void Insert(sqlite3* db, const Preset& preset);
+        static int Insert(sqlite3* db, const std::string& name);
         static void Update(sqlite3* db, const Preset& preset);
     };
 }

@@ -67,8 +67,12 @@ std::optional<Presets::Preset> Presets::GetByName(sqlite3 *db, const std::string
     return preset;
 }
 
-void Presets::Insert(sqlite3 *db, const Presets::Preset &preset)
+int Presets::Insert(sqlite3 *db, const std::string& name)
 {
+    auto stmt = Statement::Prepare(db, "INSERT INTO presets (name) VALUES ($1);");
+    stmt.Bind(1, std::string_view(name));
+    stmt.Execute();
+    return sqlite3_last_insert_rowid(db);
 }
 
 void Presets::Update(sqlite3 *db, const Presets::Preset &preset)

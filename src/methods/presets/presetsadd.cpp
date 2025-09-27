@@ -1,6 +1,6 @@
 #include "presetsadd.hpp"
 
-namespace fs = std::filesystem;
+#include "../../data/models/presets.hpp"
 
 using porla::Methods::Presets::PresetsAdd;
 using porla::Methods::Presets::PresetsAddReq;
@@ -13,5 +13,11 @@ PresetsAdd::PresetsAdd(sqlite3* db)
 
 void PresetsAdd::Invoke(const PresetsAddReq& req, WriteCb<PresetsAddRes> cb)
 {
-    cb.Ok(PresetsAddRes{});
+    auto preset_id = Data::Models::Presets::Insert(
+        m_db,
+        req.name);
+
+    cb.Ok(PresetsAddRes{
+        .id = preset_id
+    });
 }
