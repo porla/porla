@@ -7,10 +7,12 @@
 #include "../plugin.hpp"
 #include "../../sessions.hpp"
 #include "../../torrentclientdata.hpp"
+#include "../../utils/ltsettings.hpp"
 
 using porla::Lua::Packages::Sessions;
 using porla::Lua::PluginLoadOptions;
 using porla::TorrentClientData;
+using porla::Utils::LibtorrentSettingsPack;
 
 class SessionsIter
 {
@@ -146,11 +148,6 @@ void Sessions::Register(sol::state& lua)
         {
             const auto key_str = key.as<std::optional<std::string>>();
 
-            if (!key_str.has_value() || porla::Sessions::DisallowedSetting(key_str.value()))
-            {
-                return;
-            }
-
             const int type = lt::setting_by_name(key_str.value());
 
             if (type == -1)
@@ -178,9 +175,14 @@ void Sessions::Register(sol::state& lua)
     auto session_type = lua.new_usertype<porla::Sessions::SessionState>(
         "porla.Session",
         sol::no_constructor,
-        "apply_settings", [](const porla::Sessions::SessionState& state, const lt::settings_pack& sp) { state.session->apply_settings(sp); },
         "name",           sol::readonly(&porla::Sessions::SessionState::name),
         "settings",       [](const porla::Sessions::SessionState& state) { return state.session->get_settings(); });
+
+    session_type["apply_settings"] = [](const porla::Sessions::SessionState& state, lt::settings_pack& sp)
+    {
+        LibtorrentSettingsPack::UpdateStatic(sp);
+        state.session->apply_settings(sp);
+    };
 
     session_type["add_torrent"] = [](const std::shared_ptr<porla::Sessions::SessionState>& state, lt::add_torrent_params& params)
     {
@@ -224,7 +226,12 @@ void Sessions::Register(sol::state& lua)
         {
             sol::state_view lua{s};
             const auto options = lua.globals()["__load_opts"].get<const PluginLoadOptions&>();
-            return options.sessions.Get(name);
+            const auto& sessions = options.sessions.All();
+            const auto& session = sessions.find(name);
+
+            return session == sessions.end()
+                ? nullptr
+                : session->second;
         };
 
         sessions["list"] = [](sol::this_state s)

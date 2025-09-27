@@ -13,12 +13,12 @@ namespace porla::Methods
     class TorrentsPause : public Method<TorrentsPauseReq, TorrentsPauseRes>
     {
     public:
-        explicit TorrentsPause(Sessions& session);
+        explicit TorrentsPause(porla::Sessions& session);
 
     protected:
         void Invoke(const TorrentsPauseReq& req, WriteCb<TorrentsPauseRes> cb) override;
 
     private:
-        Sessions& m_sessions;
+        porla::Sessions& m_sessions;
     };
 }

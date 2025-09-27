@@ -15,9 +15,9 @@ namespace porla::Methods
         std::optional<int>                                   max_uploads;
         std::optional<std::map<std::string, nlohmann::json>> metadata;
         std::optional<std::string>                           name;
-        std::optional<std::string>                           preset;
+        std::optional<int>                                   preset_id;
         std::optional<std::string>                           save_path;
-        std::optional<std::string>                           session;
+        std::optional<int>                                   session_id;
         std::optional<std::unordered_set<std::string>>       tags;
         std::optional<std::string>                           ti;
         std::optional<std::vector<std::string>>              trackers;

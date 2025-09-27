@@ -17,13 +17,13 @@ namespace porla::Methods
     class TorrentsAdd : public Method<TorrentsAddReq, TorrentsAddRes>
     {
     public:
-        explicit TorrentsAdd(Sessions& session, const std::map<std::string, Config::Preset>& presets);
+        explicit TorrentsAdd(sqlite3* db, porla::Sessions& session);
 
     protected:
         void Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb) override;
 
     private:
-        Sessions& m_sessions;
-        const std::map<std::string, Config::Preset>& m_presets;
+        sqlite3* m_db;
+        porla::Sessions& m_sessions;
     };
 }

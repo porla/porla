@@ -13,12 +13,12 @@ namespace porla::Methods
     class TorrentsPropertiesGet : public Method<TorrentsPropertiesGetReq, TorrentsPropertiesGetRes>
     {
     public:
-        explicit TorrentsPropertiesGet(Sessions& sessions);
+        explicit TorrentsPropertiesGet(porla::Sessions& sessions);
 
     protected:
         void Invoke(const TorrentsPropertiesGetReq& req, WriteCb<TorrentsPropertiesGetRes> cb) override;
 
     private:
-        Sessions& m_sessions;
+        porla::Sessions& m_sessions;
     };
 }

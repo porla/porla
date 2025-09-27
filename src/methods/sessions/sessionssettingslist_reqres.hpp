@@ -4,18 +4,18 @@
 #include <string>
 #include <unordered_set>
 
-#include <nlohmann/json.hpp>
+#include <libtorrent/settings_pack.hpp>
 
 namespace porla::Methods
 {
     struct SessionsSettingsListReq
     {
-        std::optional<std::string>                     name;
+        int                                            id;
         std::optional<std::unordered_set<std::string>> keys;
     };
 
     struct SessionsSettingsListRes
     {
-        std::map<std::string, nlohmann::json> settings;
+        libtorrent::settings_pack settings;
     };
 }
