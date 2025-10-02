@@ -120,9 +120,7 @@ int main(int argc, char* argv[])
             .timer_torrent_updates = cfg->timer_torrent_updates.value_or(1000)
         });
 
-        sessions.LoadAll();
-
-        // Load plugins before we load the torrents to give plugins a chance to run any hooks.
+        // Load plugins before we load the all sessions and torrents to give plugins a chance to run any hooks.
         porla::Lua::PluginEngine plugin_engine{porla::Lua::PluginEngineOptions{
             .config   = *cfg,
             .db       = cfg->db,
@@ -130,14 +128,9 @@ int main(int argc, char* argv[])
             .sessions = sessions
         }};
 
-        const fs::path default_plugin_install_dir = cfg->state_dir.value_or(fs::path()) / "installed_plugins";
+        plugin_engine.LoadAll();
 
-        const porla::Methods::PluginsInstallOptions plugins_install_options{
-            .allow_git     = cfg->plugins_allow_git.value_or(false),
-            .install_dir   = cfg->plugins_install_dir.value_or(default_plugin_install_dir),
-            .io            = io,
-            .plugin_engine = plugin_engine
-        };
+        sessions.LoadAll();
 
         const porla::Methods::PluginsUpdateOptions plugins_update_options{
             .io            = io,
@@ -150,7 +143,7 @@ int main(int argc, char* argv[])
             {"fs.space", porla::Methods::FsSpace()},
             {"plugins.configure", porla::Methods::PluginsConfigure(plugin_engine)},
             {"plugins.get", porla::Methods::PluginsGet(plugin_engine)},
-            {"plugins.install", porla::Methods::PluginsInstall(plugins_install_options)},
+            {"plugins.install", porla::Methods::PluginsInstall(plugin_engine)},
             {"plugins.list", porla::Methods::PluginsList(plugin_engine)},
             {"plugins.reload", porla::Methods::PluginsReload(plugin_engine)},
             {"plugins.uninstall", porla::Methods::PluginsUninstall(plugin_engine)},

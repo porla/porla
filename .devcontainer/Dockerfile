@@ -87,9 +87,11 @@ COPY --from=build-uwebsockets /src/uWebSockets-20.70.0/src/* /usr/local/include/
 
 RUN echo "@edge-community https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
 RUN echo "@edge-main https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
+RUN echo "@edge-testing https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
 
 RUN apk add --no-cache \
     git \
+    hurl@edge-testing \
     icu-static \
     libsodium-dev@edge-main \
     libsodium-static@edge-main \

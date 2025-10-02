@@ -56,6 +56,7 @@ add_library(
     src/data/migrations/0009_multisessions.cpp
     src/data/migrations/0010_sessions.cpp
     src/data/migrations/0011_presets.cpp
+    src/data/migrations/0012_alterplugins.cpp
     src/data/models/addtorrentparams.cpp
     src/data/models/presets.cpp
     src/data/models/sessions.cpp

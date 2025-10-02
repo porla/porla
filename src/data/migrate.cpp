@@ -18,6 +18,7 @@
 #include "migrations/0009_multisessions.hpp"
 #include "migrations/0010_sessions.hpp"
 #include "migrations/0011_presets.hpp"
+#include "migrations/0012_alterplugins.hpp"
 #include "statement.hpp"
 
 int GetUserVersion(sqlite3* db)
@@ -54,7 +55,8 @@ bool porla::Data::Migrate(sqlite3* db, const std::unique_ptr<porla::Config>& cfg
         &porla::Data::Migrations::Plugins::Migrate,
         &porla::Data::Migrations::MultiSessions::Migrate,
         [&cfg](sqlite3* db) { return porla::Data::Migrations::Sessions::Migrate(db, cfg); },
-        [&cfg](sqlite3* db) { return porla::Data::Migrations::Presets::Migrate(db, cfg); }
+        [&cfg](sqlite3* db) { return porla::Data::Migrations::Presets::Migrate(db, cfg); },
+        &porla::Data::Migrations::AlterPlugins::Migrate,
     };
 
     int user_version = GetUserVersion(db);

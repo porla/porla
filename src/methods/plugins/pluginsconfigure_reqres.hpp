@@ -8,7 +8,7 @@ namespace porla::Methods
 {
     struct PluginsConfigureReq
     {
-        std::string                name;
+        int                        id;
         std::optional<std::string> config;
     };
 

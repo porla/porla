@@ -3,17 +3,21 @@
 #include <map>
 #include <string>
 
+#include <nlohmann/json.hpp>
+
 namespace porla::Methods
 {
     struct PluginsInstallReq
     {
-        std::optional<std::string> config;
-        std::optional<bool>        enable;
-        std::string                path;
-        std::optional<std::string> source;
+        std::string                type;
+        std::string                data;
+
+        std::optional<std::string>                           config;
+        std::optional<std::map<std::string, nlohmann::json>> metadata;
     };
 
     struct PluginsInstallRes
     {
+        int id;
     };
 }

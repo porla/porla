@@ -1,0 +1,5 @@
+main = "plugin.lua"
+
+[plugin]
+name = "basic"
+version = "0.1"

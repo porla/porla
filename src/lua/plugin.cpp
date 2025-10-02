@@ -1,7 +1,9 @@
 #include "plugin.hpp"
 
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/log/trivial.hpp>
 #include <sol/sol.hpp>
+#include <zip.h>
 
 #include "packages.hpp"
 
@@ -11,28 +13,83 @@ using porla::Lua::PluginLoadOptions;
 
 struct Plugin::State
 {
-    PluginLoadOptions load_options;
-    sol::state        lua;
+    std::map<std::string, std::vector<char>> files;
+    PluginLoadOptions                        load_options;
+    sol::state                               lua;
 };
 
-std::unique_ptr<Plugin> Plugin::Load(const PluginLoadOptions& opts)
+static std::vector<char> LoadFile(const fs::path& path)
 {
-    if (!fs::exists(opts.path))
+    std::ifstream path_stream;
+    path_stream.open(path, std::ios::binary);
+    path_stream.seekg(0, std::ios_base::end);
+    const std::streamsize path_size = path_stream.tellg();
+    path_stream.seekg(0, std::ios_base::beg);
+
+    std::vector<char> path_buffer;
+    path_buffer.resize(path_size);
+
+    path_stream.read(&path_buffer[0], path_size);
+    path_stream.close();
+
+    return path_buffer;
+}
+
+static std::map<std::string, std::vector<char>> LoadArchive(const std::vector<char>& buffer)
+{
+    std::map<std::string, std::vector<char>> files;
+
+    zip_error_t err;
+    zip_source_t* source = zip_source_buffer_create(
+        buffer.data(),
+        buffer.size(),
+        0,
+        &err);
+
+    zip_t* archive = zip_open_from_source(source, ZIP_RDONLY, &err);
+    zip_int64_t num_entries = zip_get_num_entries(archive, ZIP_FL_UNCHANGED);
+
+    for (int i = 0; i < num_entries; i++)
     {
-        BOOST_LOG_TRIVIAL(error) << "Plugin path does not exist - " << opts.path;
-        return nullptr;
+        zip_stat_t st;
+        zip_stat_init(&st);
+        zip_stat_index(archive, i, 0, &st);
+
+        if (st.size == 0)
+        {
+            continue;
+        }
+
+        zip_file* file = zip_fopen_index(archive, i, ZIP_FL_UNCHANGED);
+
+        std::vector<char> buffer;
+        buffer.resize(st.size);
+
+        zip_fread(file, &buffer[0], st.size);
+        zip_fclose(file);
+
+        files.emplace(st.name, buffer);
     }
 
-    const auto plugin_main = fs::is_regular_file(opts.path)
-        ? opts.path
-        : opts.path / "plugin.lua";
+    zip_close(archive);
+    zip_source_close(source);
 
-    if (!fs::exists(plugin_main))
-    {
-        BOOST_LOG_TRIVIAL(error) << "Plugin entry point not found - " << plugin_main;
-        return nullptr;
-    }
+    return files;
+}
 
+std::unique_ptr<Plugin> Plugin::LoadFromArchive(
+    const std::vector<char>& buffer,
+    const std::optional<std::string>& config,
+    const PluginLoadOptions& opts)
+{
+    return nullptr;
+}
+
+std::unique_ptr<Plugin> Plugin::LoadFromPath(
+    const std::filesystem::path& path,
+    const std::optional<std::string>& config,
+    const PluginLoadOptions& opts)
+{
     auto state = std::make_unique<State>(State{
         .load_options = opts,
         .lua          = sol::state()
@@ -45,13 +102,6 @@ std::unique_ptr<Plugin> Plugin::Load(const PluginLoadOptions& opts)
         sol::lib::package,
         sol::lib::string,
         sol::lib::table);
-
-    // Put the plugin directory path in the Lua package path
-    if (fs::is_directory(opts.path))
-    {
-        const std::string package_path = state->lua["package"]["path"];
-        state->lua["package"]["path"] = package_path + (!package_path.empty() ? ";" : "") + opts.path.string() + "/?.lua";
-    }
 
     state->lua.globals()["__load_opts"] = state->load_options;
     state->lua.globals()["porla"]       = state->lua.create_table();
@@ -74,11 +124,17 @@ std::unique_ptr<Plugin> Plugin::Load(const PluginLoadOptions& opts)
 
     try
     {
-        state->lua.script_file(plugin_main.string());
+        const fs::path plugin_lua = path / "plugin.lua";
+        state->lua.script_file(plugin_lua.string());
 
         if (state->lua.globals()["porla"]["init"].is<sol::function>())
         {
-            state->lua.globals()["porla"]["init"]();
+            BOOST_LOG_TRIVIAL(info) << config.value_or("");
+
+            state->lua.globals()["porla"]["init"](
+                config.has_value()
+                    ? sol::object(state->lua.script(config.value()))
+                    : sol::nil);
         }
 
         return std::unique_ptr<Plugin>(new Plugin(std::move(state)));

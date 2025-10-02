@@ -1,72 +1,64 @@
 #include "pluginsinstall.hpp"
 
 #include <boost/log/trivial.hpp>
-#include <utility>
-#include <toml++/toml.hpp>
 
 #include "../../lua/plugin.hpp"
 #include "../../lua/pluginengine.hpp"
-
-#define MAX_CONCURRENT_INSTALLS 3
+#include "../../utils/base64.hpp"
 
 using porla::Lua::PluginEngine;
-using porla::Lua::PluginInstallOptions;
 
 using porla::Methods::PluginsInstall;
-using porla::Methods::PluginsInstallOptions;
 using porla::Methods::PluginsInstallReq;
 using porla::Methods::PluginsInstallRes;
+using porla::Utils::Base64;
 
-struct InstallFromDirectoryOptions
-{
-    porla::Methods::WriteCb<PluginsInstallRes>  callback;
-    std::optional<std::string>                  config;
-    bool                                        enable;
-    fs::path                                    path;
-    PluginEngine&                               plugin_engine;
-};
-
-static void InstallFromDirectory(InstallFromDirectoryOptions& options)
-{
-    const PluginInstallOptions install_options{
-        .config = options.config,
-        .enable = options.enable,
-        .path   = options.path
-    };
-
-    std::error_code ec;
-    options.plugin_engine.Install(install_options, ec);
-
-    if (ec)
-    {
-        options.callback.Error(-1, "Failed to install plugin");
-        return;
-    }
-
-    options.callback.Ok({});
-}
-
-PluginsInstall::PluginsInstall(PluginsInstallOptions options)
-    : m_options(std::move(options))
+PluginsInstall::PluginsInstall(porla::Lua::PluginEngine& plugins)
+    : m_plugins(plugins)
 {
 }
 
 void PluginsInstall::Invoke(const PluginsInstallReq& req, WriteCb<PluginsInstallRes> cb)
 {
-    std::string real_path = req.path;
-
-    if (req.source.value_or("dir") == "git")
+    if (req.type == "path")
     {
-        return cb.Error(-1, "Installing from Git has been removed");
+        fs::path plugin_path = req.data;
+
+        if (!plugin_path.is_absolute())
+        {
+            return cb.Error(-101, "Plugin path must be absolute");
+        }
+
+        if (!fs::exists(req.data))
+        {
+            return cb.Error(-102, "Plugin path does not exist");
+        }
+
+        return cb.Ok(PluginsInstallRes{
+            .id = m_plugins.InstallFromPath(
+                plugin_path,
+                req.config,
+                req.metadata.has_value()
+                    ? json(req.metadata.value())
+                    : json())
+        });
     }
 
-    InstallFromDirectoryOptions options{
-        .callback      = std::move(cb),
-        .config        = req.config,
-        .enable        = req.enable.value_or(false),
-        .path          = req.path,
-        .plugin_engine = m_options.plugin_engine
-    };
+    if (req.type == "archive")
+    {
+        const auto archive_buffer = Base64::Decode(req.data);
 
-    InstallFromDirectory(options);
+        return cb.Ok(PluginsInstallRes{
+            .id = m_plugins.InstallFromArchive(
+                std::vector<char>(
+                    archive_buffer.begin(),
+                    archive_buffer.end()),
+                req.config,
+                req.metadata.has_value()
+                    ? json(req.metadata.value())
+                    : json())
+        });
+    }
+
+    return cb.Error(-1, "Invalid plugin type");
 }

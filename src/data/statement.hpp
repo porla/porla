@@ -19,6 +19,7 @@ namespace porla::Data
             virtual int GetInt32(int index) const = 0;
             virtual std::optional<int> GetOptionalInt32(int index) const = 0;
             virtual std::string GetStdString(int index) const = 0;
+            virtual std::optional<std::string> GetOptionalStdString(int index) const = 0;
         };
 
         ~Statement();

@@ -40,6 +40,12 @@ public:
         };
     }
 
+    [[nodiscard]] std::optional<std::string> GetOptionalStdString(int pos) const override
+    {
+        if (sqlite3_column_type(m_stmt, pos) == SQLITE_NULL) return std::nullopt;
+        return GetStdString(pos);
+    }
+
 private:
     sqlite3_stmt* m_stmt;
 };

@@ -6,6 +6,7 @@
 #include <optional>
 
 #include <boost/asio.hpp>
+#include <nlohmann/json.hpp>
 #include <sqlite3.h>
 #include <toml++/toml.hpp>
 
@@ -29,19 +30,9 @@ namespace porla::Lua
 
     struct PluginState
     {
-        bool                       can_configure;
-        bool                       can_uninstall;
-        std::optional<std::string> config;
-        std::filesystem::path      path;
-        std::unique_ptr<Plugin>    plugin;
+        std::unique_ptr<Plugin> plugin;
     };
 
-    struct PluginInstallOptions
-    {
-        std::optional<std::string> config;
-        bool                       enable;
-        std::filesystem::path      path;
-    };
 
     class PluginEngine
     {
@@ -49,16 +40,30 @@ namespace porla::Lua
         explicit PluginEngine(PluginEngineOptions options);
         ~PluginEngine();
 
-        void Configure(const std::string& name, const std::optional<std::string>& config);
-        void Install(const PluginInstallOptions& options, std::error_code& ec);
-        std::map<std::string, PluginState>& Plugins();
-        void Reload(const std::string& name);
-        void Uninstall(const std::string& name, std::error_code& ec);
+        void Configure(int id, const std::optional<std::string>& config);
 
+        int InstallFromPath(
+            const std::filesystem::path& path,
+            std::optional<std::string> config,
+            const nlohmann::json& metadata);
+
+        int InstallFromArchive(
+            const std::vector<char>& buffer,
+            std::optional<std::string> config,
+            const nlohmann::json& metadata);
+
+        void LoadAll();
+
+        std::map<int, PluginState>& Plugins();
+        void Reload(int id);
+        void Uninstall(int id);
         void UnloadAll();
 
     private:
+        void Load(int id);
+        void Unload(int id);
+
         PluginEngineOptions m_options;
-        std::map<std::string, PluginState> m_plugins;
+        std::map<int, PluginState> m_plugins;
     };
 }

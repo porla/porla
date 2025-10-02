@@ -11,19 +11,11 @@ namespace porla::Methods
 
     struct PluginsListRes
     {
-        struct VersionInfo
-        {
-            std::string head_name;
-            std::string shorthand;
-        };
-
         struct Plugin
         {
-            bool                       can_configure;
-            bool                       can_uninstall;
-            std::string                name;
-            fs::path                   path;
-            std::optional<VersionInfo> version_info;
+            int                        id;
+            std::optional<std::string> name;
+            std::optional<std::string> version;
         };
 
         std::vector<Plugin> plugins;
