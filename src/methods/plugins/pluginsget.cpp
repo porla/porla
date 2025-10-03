@@ -18,15 +18,21 @@ PluginsGet::PluginsGet(PluginEngine& plugin_engine)
 
 void PluginsGet::Invoke(const PluginsGetReq& req, WriteCb<PluginsGetRes> cb)
 {
-    auto plugin = m_plugin_engine.Plugins().find(req.id);
+    const auto plugin_state = m_plugin_engine.Plugins().find(req.id);
 
-    if (plugin == m_plugin_engine.Plugins().end())
+    if (plugin_state == m_plugin_engine.Plugins().end())
     {
         return cb.Error(-1, "Plugin not found");
     }
 
+    const auto manifest = plugin_state->second.plugin->GetManifest();
+
     return cb.Ok(PluginsGetRes{
-        .config = "",
-        .path   = ""
+        .id       = req.id,
+        .type     = "",
+        .name     = manifest.has_value() ? manifest->name    : std::nullopt,
+        .version  = manifest.has_value() ? manifest->version : std::nullopt,
+        .config   = plugin_state->second.config,
+        .metadata = plugin_state->second.metadata
     });
 }

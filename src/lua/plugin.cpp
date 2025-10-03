@@ -16,24 +16,8 @@ struct Plugin::State
     std::map<std::string, std::vector<char>> files;
     PluginLoadOptions                        load_options;
     sol::state                               lua;
+    std::optional<Plugin::Manifest>          manifest;
 };
-
-static std::vector<char> LoadFile(const fs::path& path)
-{
-    std::ifstream path_stream;
-    path_stream.open(path, std::ios::binary);
-    path_stream.seekg(0, std::ios_base::end);
-    const std::streamsize path_size = path_stream.tellg();
-    path_stream.seekg(0, std::ios_base::beg);
-
-    std::vector<char> path_buffer;
-    path_buffer.resize(path_size);
-
-    path_stream.read(&path_buffer[0], path_size);
-    path_stream.close();
-
-    return path_buffer;
-}
 
 static std::map<std::string, std::vector<char>> LoadArchive(const std::vector<char>& buffer)
 {
@@ -82,17 +66,11 @@ std::unique_ptr<Plugin> Plugin::LoadFromArchive(
     const std::optional<std::string>& config,
     const PluginLoadOptions& opts)
 {
-    return nullptr;
-}
-
-std::unique_ptr<Plugin> Plugin::LoadFromPath(
-    const std::filesystem::path& path,
-    const std::optional<std::string>& config,
-    const PluginLoadOptions& opts)
-{
     auto state = std::make_unique<State>(State{
+        .files        = LoadArchive(buffer),
         .load_options = opts,
-        .lua          = sol::state()
+        .lua          = sol::state(),
+        .manifest     = std::nullopt
     });
 
     state->lua.open_libraries(
@@ -121,6 +99,108 @@ std::unique_ptr<Plugin> Plugin::LoadFromPath(
     Packages::Timers::Register(state->lua);
     Packages::Torrents::Register(state->lua);
     Packages::Workflows::Register(state->lua);
+
+    if (state->files.find("manifest.toml") != state->files.end())
+    {
+        const toml::table manifest_toml = toml::parse(
+            std::string(
+                state->files.at("manifest.toml").begin(),
+                state->files.at("manifest.toml").end()));
+
+        state->manifest = Plugin::Manifest{
+            .name    = std::nullopt,
+            .version = std::nullopt
+        };
+
+        if (auto val = manifest_toml["plugin"]["name"].value<std::string>())
+            state->manifest->name = *val;
+
+        if (auto val = manifest_toml["plugin"]["version"].value<std::string>())
+            state->manifest->version = *val;
+    }
+
+    try
+    {
+        state->lua.script(
+            std::string(
+                state->files.at("plugin.lua").begin(),
+                state->files.at("plugin.lua").end()));
+
+        if (state->lua.globals()["porla"]["init"].is<sol::function>())
+        {
+            state->lua.globals()["porla"]["init"](
+                config.has_value()
+                    ? sol::object(state->lua.script(config.value()))
+                    : sol::nil);
+        }
+
+        return std::unique_ptr<Plugin>(new Plugin(std::move(state)));
+    }
+    catch (const sol::error& err)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to load plugin: " << err.what();
+    }
+
+    return nullptr;
+}
+
+std::unique_ptr<Plugin> Plugin::LoadFromPath(
+    const std::filesystem::path& path,
+    const std::optional<std::string>& config,
+    const PluginLoadOptions& opts)
+{
+    auto state = std::make_unique<State>(State{
+        .files        = {},
+        .load_options = opts,
+        .lua          = sol::state(),
+        .manifest     = std::nullopt
+    });
+
+    state->lua.open_libraries(
+        sol::lib::base,
+        sol::lib::io,
+        sol::lib::os,
+        sol::lib::package,
+        sol::lib::string,
+        sol::lib::table);
+
+    state->lua.globals()["__load_opts"] = state->load_options;
+    state->lua.globals()["porla"]       = state->lua.create_table();
+
+    Packages::Config::Register(state->lua);
+    Packages::Cron::Register(state->lua);
+    Packages::Events::Register(state->lua);
+    Packages::FileSystem::Register(state->lua);
+    Packages::HttpClient::Register(state->lua);
+    Packages::Json::Register(state->lua);
+    Packages::Log::Register(state->lua);
+    Packages::PQL::Register(state->lua);
+    Packages::Presets::Register(state->lua);
+    Packages::Process::Register(state->lua);
+    Packages::Sessions::Register(state->lua);
+    Packages::Sqlite::Register(state->lua);
+    Packages::Timers::Register(state->lua);
+    Packages::Torrents::Register(state->lua);
+    Packages::Workflows::Register(state->lua);
+
+    const auto manifest_toml_path = path / "manifest.toml";
+
+    if (fs::exists(manifest_toml_path))
+    {
+        std::ifstream manifest_toml_data(manifest_toml_path, std::ios::binary);
+        const toml::table manifest_toml = toml::parse(manifest_toml_data);
+
+        state->manifest = Plugin::Manifest{
+            .name    = std::nullopt,
+            .version = std::nullopt
+        };
+
+        if (auto val = manifest_toml["plugin"]["name"].value<std::string>())
+            state->manifest->name = *val;
+
+        if (auto val = manifest_toml["plugin"]["version"].value<std::string>())
+            state->manifest->version = *val;
+    }
 
     try
     {
@@ -158,4 +238,9 @@ Plugin::~Plugin()
     {
         m_state->lua.globals()["porla"]["destroy"]();
     }
+}
+
+std::optional<Plugin::Manifest> Plugin::GetManifest()
+{
+    return m_state->manifest;
 }

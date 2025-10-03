@@ -22,7 +22,17 @@ void PluginsList::Invoke(const PluginsListReq& req, WriteCb<PluginsListRes> cb)
 
     for (const auto& [ id, state ] : m_plugin_engine.Plugins())
     {
+        const auto manifest = state.plugin->GetManifest();
+
         res.plugins.emplace_back(PluginsListRes::Plugin{
+            .id = id,
+            .type = "state.type",
+            .name = manifest.has_value()
+                ? manifest->name
+                : std::nullopt,
+            .version = manifest.has_value()
+                ? manifest->version
+                : std::nullopt
         });
     }
 

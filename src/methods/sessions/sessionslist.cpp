@@ -15,11 +15,11 @@ void SessionsList::Invoke(const SessionsListReq& req, WriteCb<SessionsListRes> c
 {
     std::vector<SessionsListRes::Item> session_items;
 
-    for (const auto& [ name, state ] : m_sessions.All())
+    for (const auto& [ _, state ] : m_sessions.All())
     {
         session_items.push_back(SessionsListRes::Item{
             .id             = state->id,
-            .name           = name,
+            .name           = state->name,
             .is_dht_running = state->session->is_dht_running(),
             .is_listening   = state->session->is_listening(),
             .is_paused      = state->session->is_paused(),

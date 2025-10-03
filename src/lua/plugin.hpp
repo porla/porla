@@ -26,6 +26,12 @@ namespace porla::Lua
     class Plugin
     {
     public:
+        struct Manifest
+        {
+            std::optional<std::string> name;
+            std::optional<std::string> version;
+        };
+
         static std::unique_ptr<Plugin> LoadFromArchive(
             const std::vector<char>& buffer,
             const std::optional<std::string>& config,
@@ -35,6 +41,8 @@ namespace porla::Lua
             const std::filesystem::path& path,
             const std::optional<std::string>& config,
             const PluginLoadOptions& opts);
+
+        std::optional<Manifest> GetManifest();
 
         virtual ~Plugin();
 

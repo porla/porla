@@ -14,6 +14,7 @@ namespace porla::Methods
     NLOHMANN_JSONIFY_ALL_THINGS(
         PluginsListRes::Plugin,
         id,
+        type,
         name,
         version)
 

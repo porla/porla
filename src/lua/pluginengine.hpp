@@ -30,9 +30,11 @@ namespace porla::Lua
 
     struct PluginState
     {
-        std::unique_ptr<Plugin> plugin;
+        std::string                                          type;
+        std::unique_ptr<Plugin>                              plugin;
+        std::optional<std::string>                           config;
+        std::optional<std::map<std::string, nlohmann::json>> metadata;
     };
-
 
     class PluginEngine
     {

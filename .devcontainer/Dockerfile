@@ -90,6 +90,8 @@ RUN echo "@edge-main https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/ap
 RUN echo "@edge-testing https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
 
 RUN apk add --no-cache \
+    bash \
+    curl \
     git \
     hurl@edge-testing \
     icu-static \
@@ -99,10 +101,9 @@ RUN apk add --no-cache \
     libtorrent-rasterbar-static@edge-community \
     lua5.4-dev \
     sqlite-dev \
-    sqlite-static \
-    zsh
+    sqlite-static
 
 RUN addgroup -S vscode \
-    && adduser -S vscode -G vscode --shell /bin/zsh
+    && adduser -S vscode -G vscode --shell /bin/bash
 
 USER vscode

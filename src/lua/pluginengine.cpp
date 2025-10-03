@@ -118,7 +118,7 @@ void PluginEngine::Load(int id)
 
     auto load_stmt = Statement::Prepare(
         m_options.db,
-        "SELECT id,type,data,config FROM plugins WHERE id = $1");
+        "SELECT id,type,data,config,metadata FROM plugins WHERE id = $1");
     load_stmt.Bind(1, id);
     load_stmt.Step(
         [this, id](const auto& row)
@@ -157,7 +157,10 @@ void PluginEngine::Load(int id)
             }
 
             m_plugins.emplace(id, PluginState{
-                .plugin   = std::move(plugin)
+                .type   = type,
+                .plugin = std::move(plugin),
+                .config = conf,
+                .metadata = std::nullopt
             });
 
             return SQLITE_OK;

@@ -14,6 +14,7 @@ namespace porla::Methods
         struct Plugin
         {
             int                        id;
+            std::string                type;
             std::optional<std::string> name;
             std::optional<std::string> version;
         };

@@ -81,33 +81,6 @@ private:
     std::function<void()> m_callback;
 };
 
-static lt::session_params ReadSessionParams(const fs::path& file)
-{
-    if (fs::exists(file))
-    {
-        std::ifstream session_params_file(file, std::ios::binary);
-
-        // Get the params file size
-        session_params_file.seekg(0, std::ios_base::end);
-        const std::streamsize session_params_size = session_params_file.tellg();
-        session_params_file.seekg(0, std::ios_base::beg);
-
-        BOOST_LOG_TRIVIAL(info) << "Reading session params (" << session_params_size << " bytes)";
-
-        // Create a buffer to hold the contents of the session params file
-        std::vector<char> session_params_buffer;
-        session_params_buffer.resize(session_params_size);
-
-        // Actually read the file
-        session_params_file.read(session_params_buffer.data(), session_params_size);
-
-        // Only load the DHT state from the session params. Settings are stored elsewhere.
-        return lt::read_session_params(session_params_buffer, lt::session::save_dht_state);
-    }
-
-    return {};
-}
-
 void Sessions::SessionState::Recheck(const lt::info_hash_t& hash)
 {
     const auto& [ handle, _ ] = torrents.at(hash);

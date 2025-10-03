@@ -13,6 +13,10 @@ namespace porla::Methods
 
     NLOHMANN_JSONIFY_ALL_THINGS(
         PluginsGetRes,
+        id,
+        type,
+        name,
+        version,
         config,
-        path)
+        metadata)
 }
