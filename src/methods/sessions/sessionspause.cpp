@@ -13,9 +13,7 @@ SessionsPause::SessionsPause(porla::Sessions& sessions)
 
 void SessionsPause::Invoke(const SessionsPauseReq& req, WriteCb<SessionsPauseRes> cb)
 {
-    const auto& state = req.name.has_value()
-        ? m_sessions.Get(req.name.value())
-        : m_sessions.Default();
+    const auto& state = m_sessions.Get(req.id);
 
     if (state == nullptr)
     {

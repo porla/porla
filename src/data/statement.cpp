@@ -17,6 +17,12 @@ public:
         return sqlite3_column_int(m_stmt, pos);
     }
 
+    [[nodiscard]] std::optional<int> GetOptionalInt32(int pos) const override
+    {
+        if (sqlite3_column_type(m_stmt, pos) == SQLITE_NULL) return std::nullopt;
+        return sqlite3_column_int(m_stmt, pos);
+    }
+
     [[nodiscard]] std::vector<char> GetBuffer(int pos) const override
     {
         int len = sqlite3_column_bytes(m_stmt, pos);
@@ -32,6 +38,12 @@ public:
             reinterpret_cast<const char*>(data),
             static_cast<unsigned long>(sqlite3_column_bytes(m_stmt, pos))
         };
+    }
+
+    [[nodiscard]] std::optional<std::string> GetOptionalStdString(int pos) const override
+    {
+        if (sqlite3_column_type(m_stmt, pos) == SQLITE_NULL) return std::nullopt;
+        return GetStdString(pos);
     }
 
 private:
@@ -67,6 +79,21 @@ Statement Statement::Prepare(sqlite3 *db, const std::string_view &sql)
 Statement& Statement::Bind(int pos, int value)
 {
     if (sqlite3_bind_int(m_stmt, pos, value) != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value";
+        throw std::runtime_error("Failed to bind SQLite value");
+    }
+
+    return *this;
+}
+
+Statement& Statement::Bind(int pos, const std::optional<int>& value)
+{
+    int res = value == std::nullopt
+        ? sqlite3_bind_null(m_stmt, pos)
+        : sqlite3_bind_int(m_stmt, pos, value.value());
+
+    if (res != SQLITE_OK)
     {
         BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value";
         throw std::runtime_error("Failed to bind SQLite value");

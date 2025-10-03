@@ -6,7 +6,6 @@
 #include "../../lua/pluginengine.hpp"
 
 using porla::Lua::PluginEngine;
-using porla::Lua::PluginInstallOptions;
 
 using porla::Methods::PluginsReload;
 using porla::Methods::PluginsReloadReq;
@@ -19,14 +18,6 @@ PluginsReload::PluginsReload(PluginEngine& plugin_engine)
 
 void PluginsReload::Invoke(const PluginsReloadReq& req, WriteCb<PluginsReloadRes> cb)
 {
-    auto plugin_state = m_plugin_engine.Plugins().find(req.name);
-
-    if (plugin_state == m_plugin_engine.Plugins().end())
-    {
-        return cb.Error(-1, "Plugin not found");
-    }
-
-    m_plugin_engine.Reload(req.name);
-
+    m_plugin_engine.Reload(req.id);
     cb.Ok({});
 }

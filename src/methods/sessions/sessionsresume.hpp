@@ -13,12 +13,12 @@ namespace porla::Methods
     class SessionsResume : public Method<SessionsResumeReq, SessionsResumeRes>
     {
     public:
-        explicit SessionsResume(Sessions& sessions);
+        explicit SessionsResume(porla::Sessions& sessions);
 
     protected:
         void Invoke(const SessionsResumeReq& req, WriteCb<SessionsResumeRes> cb) override;
 
     private:
-        Sessions& m_sessions;
+        porla::Sessions& m_sessions;
     };
 }

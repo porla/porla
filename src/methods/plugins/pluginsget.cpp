@@ -6,7 +6,6 @@
 #include "../../lua/pluginengine.hpp"
 
 using porla::Lua::PluginEngine;
-using porla::Lua::PluginInstallOptions;
 
 using porla::Methods::PluginsGet;
 using porla::Methods::PluginsGetReq;
@@ -19,19 +18,21 @@ PluginsGet::PluginsGet(PluginEngine& plugin_engine)
 
 void PluginsGet::Invoke(const PluginsGetReq& req, WriteCb<PluginsGetRes> cb)
 {
-    const auto plugin_state = m_plugin_engine.Plugins().find(req.name);
+    const auto plugin_state = m_plugin_engine.Plugins().find(req.id);
 
     if (plugin_state == m_plugin_engine.Plugins().end())
     {
         return cb.Error(-1, "Plugin not found");
     }
 
-    std::vector<std::string> branches;
-    std::vector<std::string> tags;
+    const auto manifest = plugin_state->second.plugin->GetManifest();
 
-    cb.Ok(PluginsGetRes{
-        .config = plugin_state->second.config,
-        .path   = fs::absolute(plugin_state->second.path),
-        .tags   = tags
+    return cb.Ok(PluginsGetRes{
+        .id       = req.id,
+        .type     = "",
+        .name     = manifest.has_value() ? manifest->name    : std::nullopt,
+        .version  = manifest.has_value() ? manifest->version : std::nullopt,
+        .config   = plugin_state->second.config,
+        .metadata = plugin_state->second.metadata
     });
 }

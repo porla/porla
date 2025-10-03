@@ -32,11 +32,18 @@
 #include "methods/plugins/pluginsreload.hpp"
 #include "methods/plugins/pluginsuninstall.hpp"
 #include "methods/plugins/pluginsupdate.hpp"
-#include "methods/presetslist.hpp"
+#include "methods/presets/presetsget.hpp"
+#include "methods/presets/presetslist.hpp"
+#include "methods/presets/presetsadd.hpp"
+#include "methods/presets/presetsremove.hpp"
+#include "methods/presets/presetsupdate.hpp"
+#include "methods/sessions/sessionsadd.hpp"
 #include "methods/sessions/sessionslist.hpp"
 #include "methods/sessions/sessionspause.hpp"
+#include "methods/sessions/sessionsremove.hpp"
 #include "methods/sessions/sessionsresume.hpp"
 #include "methods/sessions/sessionssettingslist.hpp"
+#include "methods/sessions/sessionssettingsset.hpp"
 #include "methods/sysversions.hpp"
 #include "methods/torrentsadd.hpp"
 #include "methods/torrentsfileslist.hpp"
@@ -113,35 +120,7 @@ int main(int argc, char* argv[])
             .timer_torrent_updates = cfg->timer_torrent_updates.value_or(1000)
         });
 
-        for (const auto& [name, settings] : cfg->sessions)
-        {
-            BOOST_LOG_TRIVIAL(info) << "Loading session " << name;
-
-            const auto state_dir = cfg->state_dir.value_or(fs::current_path());
-
-            const auto session_params_file_name = name == "default" ? "session.dat" : "session." + name + ".dat";
-            const auto session_params_file      = state_dir / session_params_file_name;
-
-            try
-            {
-                sessions.Load(porla::SessionsLoadOptions{
-                    .name                = name,
-                    .session_params_file = session_params_file,
-                    .settings            = settings
-                });
-            }
-            catch (const std::exception &ex)
-            {
-                BOOST_LOG_TRIVIAL(error) << "Failed to load session " << name << ": " << ex.what();
-
-                if (name == "default")
-                {
-                    return -1;
-                }
-            }
-        }
-
-        // Load plugins before we load the torrents to give plugins a chance to run any hooks.
+        // Load plugins before we load the all sessions and torrents to give plugins a chance to run any hooks.
         porla::Lua::PluginEngine plugin_engine{porla::Lua::PluginEngineOptions{
             .config   = *cfg,
             .db       = cfg->db,
@@ -149,14 +128,9 @@ int main(int argc, char* argv[])
             .sessions = sessions
         }};
 
-        const fs::path default_plugin_install_dir = cfg->state_dir.value_or(fs::path()) / "installed_plugins";
+        plugin_engine.LoadAll();
 
-        const porla::Methods::PluginsInstallOptions plugins_install_options{
-            .allow_git     = cfg->plugins_allow_git.value_or(false),
-            .install_dir   = cfg->plugins_install_dir.value_or(default_plugin_install_dir),
-            .io            = io,
-            .plugin_engine = plugin_engine
-        };
+        sessions.LoadAll();
 
         const porla::Methods::PluginsUpdateOptions plugins_update_options{
             .io            = io,
@@ -169,18 +143,25 @@ int main(int argc, char* argv[])
             {"fs.space", porla::Methods::FsSpace()},
             {"plugins.configure", porla::Methods::PluginsConfigure(plugin_engine)},
             {"plugins.get", porla::Methods::PluginsGet(plugin_engine)},
-            {"plugins.install", porla::Methods::PluginsInstall(plugins_install_options)},
+            {"plugins.install", porla::Methods::PluginsInstall(plugin_engine)},
             {"plugins.list", porla::Methods::PluginsList(plugin_engine)},
             {"plugins.reload", porla::Methods::PluginsReload(plugin_engine)},
             {"plugins.uninstall", porla::Methods::PluginsUninstall(plugin_engine)},
             {"plugins.update", porla::Methods::PluginsUpdate(plugins_update_options)},
-            {"presets.list", porla::Methods::PresetsList(cfg->presets)},
+            {"presets.add", porla::Methods::Presets::PresetsAdd(cfg->db)},
+            {"presets.get", porla::Methods::Presets::PresetsGet(cfg->db)},
+            {"presets.list", porla::Methods::Presets::PresetsList(cfg->db)},
+            {"presets.remove", porla::Methods::Presets::PresetsRemove(cfg->db)},
+            {"presets.update", porla::Methods::Presets::PresetsUpdate(cfg->db)},
+            {"sessions.add", porla::Methods::Sessions::SessionsAdd(cfg->db, sessions)},
             {"sessions.list", porla::Methods::SessionsList(sessions)},
             {"sessions.pause", porla::Methods::SessionsPause(sessions)},
+            {"sessions.remove", porla::Methods::Sessions::SessionsRemove(cfg->db, sessions)},
             {"sessions.resume", porla::Methods::SessionsResume(sessions)},
             {"sessions.settings.list", porla::Methods::SessionsSettingsList(sessions)},
+            {"sessions.settings.set", porla::Methods::Sessions::SessionsSettingsSet(cfg->db, sessions)},
             {"sys.versions", porla::Methods::SysVersions()},
-            {"torrents.add", porla::Methods::TorrentsAdd(sessions, cfg->presets)},
+            {"torrents.add", porla::Methods::TorrentsAdd(cfg->db, sessions)},
             {"torrents.files.list", porla::Methods::TorrentsFilesList(sessions)},
             {"torrents.list", porla::Methods::TorrentsList(sessions)},
             {"torrents.metadata.list", porla::Methods::TorrentsMetadataList(cfg->db, sessions)},

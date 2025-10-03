@@ -9,13 +9,12 @@ namespace porla::Methods
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         PluginsInstallReq,
+        type,
+        data,
         config,
-        enable,
-        path,
-        source)
+        metadata)
 
-    static void to_json(nlohmann::json& j, const PluginsInstallRes& res)
-    {
-        j = {};
-    }
+    NLOHMANN_JSONIFY_ALL_THINGS(
+        PluginsInstallRes,
+        id)
 }

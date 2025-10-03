@@ -9,8 +9,8 @@ namespace porla::Methods
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         PluginsConfigureReq,
-        config,
-        name)
+        id,
+        config)
 
     NLOHMANN_JSONIFY_ALL_THINGS(
         PluginsConfigureRes,

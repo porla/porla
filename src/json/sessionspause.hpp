@@ -9,7 +9,7 @@ namespace porla::Methods
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         SessionsPauseReq,
-        name)
+        id)
 
     static void to_json(nlohmann::json& j, const SessionsPauseRes& res)
     {

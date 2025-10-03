@@ -7,7 +7,7 @@ namespace porla::Methods
 {
     struct SessionsPauseReq
     {
-        std::optional<std::string> name;
+        int id;
     };
 
     struct SessionsPauseRes {};

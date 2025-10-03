@@ -7,7 +7,7 @@ namespace porla::Methods
 {
     struct PluginsUninstallReq
     {
-        std::string name;
+        int id;
     };
 
     struct PluginsUninstallRes

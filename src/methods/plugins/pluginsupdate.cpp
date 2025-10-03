@@ -6,7 +6,6 @@
 #include "../../lua/pluginengine.hpp"
 
 using porla::Lua::PluginEngine;
-using porla::Lua::PluginInstallOptions;
 
 using porla::Methods::PluginsUpdate;
 using porla::Methods::PluginsUpdateReq;

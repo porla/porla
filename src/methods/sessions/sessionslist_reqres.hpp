@@ -13,6 +13,7 @@ namespace porla::Methods
     {
         struct Item
         {
+            int         id;
             std::string name;
             bool        is_dht_running;
             bool        is_listening;

@@ -24,7 +24,7 @@ void Config::Register(sol::state& lua)
         sol::state_view lua{s};
         const auto& options = lua.globals()["__load_opts"].get<const PluginLoadOptions&>();
 
-        if (options.plugin_config.has_value())
+        /*if (options.plugin_config.has_value())
         {
             const fs::path actual_state_dir = options.config.state_dir.value_or(fs::current_path());
 
@@ -40,7 +40,7 @@ void Config::Register(sol::state& lua)
                 BOOST_LOG_TRIVIAL(error) << "Plugin configuration error: " << err.what();
                 throw;
             }
-        }
+        }*/
 
         return sol::nil;
     };

@@ -10,13 +10,13 @@
 #include <libtorrent/extensions/smart_ban.hpp>
 
 #include "data/models/addtorrentparams.hpp"
+#include "data/models/sessions.hpp"
 #include "torrentclientdata.hpp"
 
 namespace fs = std::filesystem;
 
 using porla::Data::Models::AddTorrentParams;
 using porla::Sessions;
-using porla::SessionsLoadOptions;
 using porla::SessionsOptions;
 
 class Sessions::Timer
@@ -81,57 +81,6 @@ private:
     std::function<void()> m_callback;
 };
 
-static lt::session_params ReadSessionParams(const fs::path& file)
-{
-    if (fs::exists(file))
-    {
-        std::ifstream session_params_file(file, std::ios::binary);
-
-        // Get the params file size
-        session_params_file.seekg(0, std::ios_base::end);
-        const std::streamsize session_params_size = session_params_file.tellg();
-        session_params_file.seekg(0, std::ios_base::beg);
-
-        BOOST_LOG_TRIVIAL(info) << "Reading session params (" << session_params_size << " bytes)";
-
-        // Create a buffer to hold the contents of the session params file
-        std::vector<char> session_params_buffer;
-        session_params_buffer.resize(session_params_size);
-
-        // Actually read the file
-        session_params_file.read(session_params_buffer.data(), session_params_size);
-
-        // Only load the DHT state from the session params. Settings are stored elsewhere.
-        return lt::read_session_params(session_params_buffer, lt::session::save_dht_state);
-    }
-
-    return {};
-}
-
-static void WriteSessionParams(const fs::path& file, const lt::session_params& params)
-{
-    std::vector<char> buf = lt::write_session_params_buf(
-        params,
-        lt::session::save_dht_state);
-
-    BOOST_LOG_TRIVIAL(info) << "Writing session params (" << buf.size() << " bytes)";
-
-    std::ofstream session_params_file(file, std::ios::binary | std::ios::trunc);
-
-    if (!session_params_file.is_open())
-    {
-        BOOST_LOG_TRIVIAL(error) << "Error while opening session_params.dat: " << strerror(errno);
-        return;
-    }
-
-    session_params_file.write(buf.data(), static_cast<std::streamsize>(buf.size()));
-
-    if (session_params_file.fail())
-    {
-        BOOST_LOG_TRIVIAL(error) << "Failed to write session_params.dat file: " << strerror(errno);
-    }
-}
-
 void Sessions::SessionState::Recheck(const lt::info_hash_t& hash)
 {
     const auto& [ handle, _ ] = torrents.at(hash);
@@ -188,17 +137,6 @@ void Sessions::SessionState::Recheck(const lt::info_hash_t& hash)
     handle.force_recheck();
 }
 
-bool Sessions::DisallowedSetting(const std::string& name)
-{
-    static const std::unordered_set<std::string> blocked_keys =
-    {
-        "peer_fingerprint",
-        "user_agent"
-    };
-
-    return blocked_keys.contains(name);
-}
-
 Sessions::Sessions(const SessionsOptions &options)
     : m_options(options)
 {
@@ -222,96 +160,9 @@ Sessions::~Sessions()
 
     m_timers.clear();
 
-    for (const auto& [ name, state ] : m_sessions)
+    for (const auto& [ _, state ] : m_sessions)
     {
-        state->session->set_alert_notify([]{});
-
-        WriteSessionParams(
-            state->session_params_file,
-            state->session->session_state());
-
-        state->session->pause();
-
-        int chunk_size = 1000;
-        int chunks = static_cast<int>(state->torrents.size() / chunk_size) + 1;
-
-        BOOST_LOG_TRIVIAL(info) << "Saving resume data in " << chunks << " chunk(s) - total torrents: "
-                                << state->torrents.size();
-
-        auto current = state->torrents.begin();
-
-        for (int i = 0; i < chunks; i++)
-        {
-            int chunk_items = std::min(
-                chunk_size,
-                static_cast<int>(std::distance(current, state->torrents.end())));
-
-            int outstanding = 0;
-
-            for (int j = 0; j < chunk_items; j++)
-            {
-                const auto& [ th, ts ] = current->second;
-
-                if (!th.is_valid() || !ts.has_metadata || !ts.need_save_resume)
-                {
-                    std::advance(current, 1);
-                    continue;
-                }
-
-                th.save_resume_data(
-                    lt::torrent_handle::flush_disk_cache
-                    | lt::torrent_handle::save_info_dict
-                    | lt::torrent_handle::only_if_modified);
-
-                outstanding++;
-
-                std::advance(current, 1);
-            }
-
-            BOOST_LOG_TRIVIAL(info) << "Chunk " << i + 1 << " - Saving state for " << outstanding
-                                    << " torrent(s) (out of " << chunk_items << ")";
-
-            while (outstanding > 0) {
-                lt::alert const *tmp = state->session->wait_for_alert(lt::seconds(10));
-                if (tmp == nullptr) { continue; }
-
-                std::vector<lt::alert *> alerts;
-                state->session->pop_alerts(&alerts);
-
-                for (lt::alert *a: alerts)
-                {
-                    if (lt::alert_cast<lt::torrent_paused_alert>(a))
-                    {
-                        continue;
-                    }
-
-                    if (auto fail = lt::alert_cast<lt::save_resume_data_failed_alert>(a))
-                    {
-                        outstanding--;
-
-                        BOOST_LOG_TRIVIAL(error)
-                            << "Failed to save resume data for "
-                            << fail->torrent_name()
-                            << ": " << fail->message();
-
-                        continue;
-                    }
-
-                    auto *rd = lt::alert_cast<lt::save_resume_data_alert>(a);
-                    if (!rd) { continue; }
-
-                    outstanding--;
-
-                    AddTorrentParams::Update(m_options.db, state->name, rd->handle.info_hashes(), AddTorrentParams{
-                        .client_data    = rd->handle.userdata().get<TorrentClientData>(),
-                        .name           = rd->params.name,
-                        .params         = rd->params,
-                        .queue_position = static_cast<int>(rd->handle.status().queue_position),
-                        .save_path      = rd->params.save_path
-                    });
-                }
-            }
-        }
+        UnloadSession(state);
     }
 
     BOOST_LOG_TRIVIAL(info) << "All state saved";
@@ -327,25 +178,115 @@ std::shared_ptr<Sessions::SessionState> Sessions::Default()
     return m_sessions.at("default");
 }
 
-std::shared_ptr<Sessions::SessionState> Sessions::Get(const std::string& name)
+std::shared_ptr<Sessions::SessionState> Sessions::Get(const int id)
 {
-    return m_sessions.at(name);
+    auto session = std::find_if(
+        m_sessions.begin(),
+        m_sessions.end(),
+        [&id](const std::pair<std::string, std::shared_ptr<Sessions::SessionState>>& s)
+        {
+            return s.second->id == id;
+        });
+
+    return session == m_sessions.end()
+        ? nullptr
+        : session->second;
 }
 
-void Sessions::Load(const SessionsLoadOptions& options)
+void Sessions::LoadAll()
 {
-    lt::session_params params = ReadSessionParams(options.session_params_file);
-    params.settings = options.settings;
+    std::vector<Data::Models::Sessions::Session> items;
+
+    Data::Models::Sessions::ForEach(
+        m_options.db,
+        [&items](const Data::Models::Sessions::Session& s)
+        {
+            items.push_back(s);
+        });
+
+    BOOST_LOG_TRIVIAL(info) << "Loading " << items.size() << " sessions";
+
+    for (const auto& session : items)
+    {
+        if (m_sessions.contains(session.name))
+        {
+            BOOST_LOG_TRIVIAL(warning) << "Session " << session.name << " already loaded";
+            continue;
+        }
+
+        auto state = std::make_shared<SessionState>();
+        state->id   = session.id;
+        state->name = session.name;
+        state->session = std::make_shared<lt::session>(std::move(session.params));
+        state->session->add_extension(&lt::create_ut_metadata_plugin);
+        state->session->add_extension(&lt::create_ut_pex_plugin);
+        state->session->add_extension(&lt::create_smart_ban_plugin);
+        state->torrents = {};
+
+        state->session->set_alert_notify(
+            [this, state]()
+            {
+                boost::asio::post(m_options.io, [this, state] { ReadAlerts(state); });
+            });
+
+        int count = AddTorrentParams::Count(m_options.db, session.name);
+        int current = 0;
+
+        BOOST_LOG_TRIVIAL(info) << "Loading " << count << " torrent(s) from storage";
+
+        AddTorrentParams::ForEach(
+            m_options.db,
+            state->name,
+            [&count, &current, state](lt::add_torrent_params& params)
+            {
+                current++;
+
+                params.userdata.get<TorrentClientData>()->ignore_alert = true;
+                params.userdata.get<TorrentClientData>()->state = state;
+
+                lt::torrent_handle th = state->session->add_torrent(params);
+                state->torrents.insert({ th.info_hashes(), std::make_pair(th, th.status()) });
+
+                if (current % 1000 == 0 && current != count)
+                {
+                    BOOST_LOG_TRIVIAL(info) << current << " torrents (of " << count << ") added";
+                }
+            });
+
+        if (count > 0)
+        {
+            BOOST_LOG_TRIVIAL(info) << "Added " << current << " (of " << count << ") torrent(s) to session";
+        }
+
+        m_sessions.insert({ session.name, state });
+    }
+}
+
+void Sessions::LoadById(int id)
+{
+    auto s = Data::Models::Sessions::GetById(m_options.db, id);
+
+    if (!s)
+    {
+        BOOST_LOG_TRIVIAL(warning) << "No session with id " << id;
+        return;
+    }
+
+    auto session = s.value();
+
+    if (m_sessions.contains(session.name))
+    {
+        BOOST_LOG_TRIVIAL(warning) << "Session " << session.name << " already loaded";
+        return;
+    }
 
     auto state = std::make_shared<SessionState>();
-    m_sessions.insert({ options.name, state });
-
-    state->name = options.name;
-    state->session = std::make_shared<lt::session>(std::move(params));
+    state->id   = session.id;
+    state->name = session.name;
+    state->session = std::make_shared<lt::session>(std::move(session.params));
     state->session->add_extension(&lt::create_ut_metadata_plugin);
     state->session->add_extension(&lt::create_ut_pex_plugin);
     state->session->add_extension(&lt::create_smart_ban_plugin);
-    state->session_params_file = options.session_params_file;
     state->torrents = {};
 
     state->session->set_alert_notify(
@@ -354,7 +295,7 @@ void Sessions::Load(const SessionsLoadOptions& options)
             boost::asio::post(m_options.io, [this, state] { ReadAlerts(state); });
         });
 
-    int count = AddTorrentParams::Count(m_options.db, options.name);
+    int count = AddTorrentParams::Count(m_options.db, session.name);
     int current = 0;
 
     BOOST_LOG_TRIVIAL(info) << "Loading " << count << " torrent(s) from storage";
@@ -382,6 +323,26 @@ void Sessions::Load(const SessionsLoadOptions& options)
     {
         BOOST_LOG_TRIVIAL(info) << "Added " << current << " (of " << count << ") torrent(s) to session";
     }
+
+    m_sessions.insert({ session.name, state });
+}
+
+void Sessions::UnloadById(int id)
+{
+    auto state = std::find_if(
+        m_sessions.begin(),
+        m_sessions.end(),
+        [&id](const std::pair<std::string, std::shared_ptr<Sessions::SessionState>>& state)
+        {
+            return state.second->id == id;
+        });
+
+    if (state != m_sessions.end())
+    {
+        UnloadSession(state->second);
+    }
+
+    m_sessions.erase(state->second->name);
 }
 
 void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
@@ -687,6 +648,99 @@ void Sessions::SaveState()
                 lt::torrent_handle::flush_disk_cache
                 | lt::torrent_handle::save_info_dict
                 | lt::torrent_handle::only_if_modified);
+        }
+    }
+}
+
+void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
+{
+    state->session->set_alert_notify([]{});
+
+    Data::Models::Sessions::Update(
+        m_options.db,
+        state->id,
+        state->session->session_state());
+
+    state->session->pause();
+
+    int chunk_size = 1000;
+    int chunks = static_cast<int>(state->torrents.size() / chunk_size) + 1;
+
+    BOOST_LOG_TRIVIAL(info) << "Saving resume data in " << chunks << " chunk(s) - total torrents: "
+                            << state->torrents.size();
+
+    auto current = state->torrents.begin();
+
+    for (int i = 0; i < chunks; i++)
+    {
+        int chunk_items = std::min(
+            chunk_size,
+            static_cast<int>(std::distance(current, state->torrents.end())));
+
+        int outstanding = 0;
+
+        for (int j = 0; j < chunk_items; j++)
+        {
+            const auto& [ th, ts ] = current->second;
+
+            if (!th.is_valid() || !ts.has_metadata || !ts.need_save_resume)
+            {
+                std::advance(current, 1);
+                continue;
+            }
+
+            th.save_resume_data(
+                lt::torrent_handle::flush_disk_cache
+                | lt::torrent_handle::save_info_dict
+                | lt::torrent_handle::only_if_modified);
+
+            outstanding++;
+
+            std::advance(current, 1);
+        }
+
+        BOOST_LOG_TRIVIAL(info) << "Chunk " << i + 1 << " - Saving state for " << outstanding
+                                << " torrent(s) (out of " << chunk_items << ")";
+
+        while (outstanding > 0) {
+            lt::alert const *tmp = state->session->wait_for_alert(lt::seconds(10));
+            if (tmp == nullptr) { continue; }
+
+            std::vector<lt::alert *> alerts;
+            state->session->pop_alerts(&alerts);
+
+            for (lt::alert *a: alerts)
+            {
+                if (lt::alert_cast<lt::torrent_paused_alert>(a))
+                {
+                    continue;
+                }
+
+                if (auto fail = lt::alert_cast<lt::save_resume_data_failed_alert>(a))
+                {
+                    outstanding--;
+
+                    BOOST_LOG_TRIVIAL(error)
+                        << "Failed to save resume data for "
+                        << fail->torrent_name()
+                        << ": " << fail->message();
+
+                    continue;
+                }
+
+                auto *rd = lt::alert_cast<lt::save_resume_data_alert>(a);
+                if (!rd) { continue; }
+
+                outstanding--;
+
+                AddTorrentParams::Update(m_options.db, state->name, rd->handle.info_hashes(), AddTorrentParams{
+                    .client_data    = rd->handle.userdata().get<TorrentClientData>(),
+                    .name           = rd->params.name,
+                    .params         = rd->params,
+                    .queue_position = static_cast<int>(rd->handle.status().queue_position),
+                    .save_path      = rd->params.save_path
+                });
+            }
         }
     }
 }

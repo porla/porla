@@ -6,7 +6,7 @@ namespace porla::Methods
 {
     struct PluginsReloadReq
     {
-        std::string name;
+        int id;
     };
 
     struct PluginsReloadRes

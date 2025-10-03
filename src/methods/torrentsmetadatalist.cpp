@@ -7,7 +7,7 @@ using porla::Methods::TorrentsMetadataList;
 using porla::Methods::TorrentsMetadataListReq;
 using porla::Methods::TorrentsMetadataListRes;
 
-TorrentsMetadataList::TorrentsMetadataList(sqlite3 *db, Sessions& sessions)
+TorrentsMetadataList::TorrentsMetadataList(sqlite3 *db, porla::Sessions& sessions)
     : m_db(db)
     , m_sessions(sessions)
 {

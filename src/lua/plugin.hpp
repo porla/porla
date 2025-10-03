@@ -2,6 +2,8 @@
 
 #include <filesystem>
 #include <memory>
+#include <variant>
+#include <vector>
 
 #include <boost/asio.hpp>
 #include <toml++/toml.hpp>
@@ -16,17 +18,31 @@ namespace porla::Lua
 {
     struct PluginLoadOptions
     {
-        Config&                    config;
-        boost::asio::io_context&   io;
-        std::filesystem::path      path;
-        std::optional<std::string> plugin_config;
-        porla::Sessions&           sessions;
+        Config&                                                config;
+        boost::asio::io_context&                               io;
+        porla::Sessions&                                       sessions;
     };
 
     class Plugin
     {
     public:
-        static std::unique_ptr<Plugin> Load(const PluginLoadOptions& opts);
+        struct Manifest
+        {
+            std::optional<std::string> name;
+            std::optional<std::string> version;
+        };
+
+        static std::unique_ptr<Plugin> LoadFromArchive(
+            const std::vector<char>& buffer,
+            const std::optional<std::string>& config,
+            const PluginLoadOptions& opts);
+
+        static std::unique_ptr<Plugin> LoadFromPath(
+            const std::filesystem::path& path,
+            const std::optional<std::string>& config,
+            const PluginLoadOptions& opts);
+
+        std::optional<Manifest> GetManifest();
 
         virtual ~Plugin();
 
