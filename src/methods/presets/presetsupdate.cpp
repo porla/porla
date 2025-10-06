@@ -1,7 +1,5 @@
 #include "presetsupdate.hpp"
 
-#include <boost/log/trivial.hpp>
-
 #include "../../data/models/presets.hpp"
 
 using porla::Methods::Presets::PresetsUpdate;

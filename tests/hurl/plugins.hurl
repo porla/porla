@@ -110,3 +110,88 @@ POST http://localhost:1337/api/v1/jsonrpc
 HTTP 200
 [Asserts]
 jsonpath "$.result.plugins" count == 1
+
+POST http://localhost:1337/api/v1/jsonrpc
+{
+    "id": 2,
+    "method": "plugins.uninstall",
+    "params": {
+        "id": {{plugin-id}}
+    }
+}
+HTTP 200
+
+POST http://localhost:1337/api/v1/jsonrpc
+{
+    "id": 2,
+    "method": "plugins.list",
+    "params": {}
+}
+HTTP 200
+[Asserts]
+jsonpath "$.result.plugins" count == 0
+
+##
+# Install plugin from invalid zip archive
+##
+POST http://localhost:1337/api/v1/jsonrpc
+{
+    "id": 1,
+    "method": "plugins.install",
+    "params": {
+        "type": "archive",
+        "data": "abcd"
+    }
+}
+HTTP 200
+[Asserts]
+jsonpath "$.error.code" == -201
+
+POST http://localhost:1337/api/v1/jsonrpc
+{
+    "id": 2,
+    "method": "plugins.list",
+    "params": {}
+}
+HTTP 200
+[Asserts]
+jsonpath "$.result.plugins" count == 0
+
+##
+# Install plugin from invalid path
+##
+POST http://localhost:1337/api/v1/jsonrpc
+{
+    "id": 1,
+    "method": "plugins.install",
+    "params": {
+        "type": "path",
+        "data": "not-absolute"
+    }
+}
+HTTP 200
+[Asserts]
+jsonpath "$.error.code" == -101
+
+POST http://localhost:1337/api/v1/jsonrpc
+{
+    "id": 1,
+    "method": "plugins.install",
+    "params": {
+        "type": "path",
+        "data": "/absolute/but-non-existing"
+    }
+}
+HTTP 200
+[Asserts]
+jsonpath "$.error.code" == -102
+
+POST http://localhost:1337/api/v1/jsonrpc
+{
+    "id": 2,
+    "method": "plugins.list",
+    "params": {}
+}
+HTTP 200
+[Asserts]
+jsonpath "$.result.plugins" count == 0

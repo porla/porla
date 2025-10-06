@@ -3,9 +3,9 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/log/trivial.hpp>
 #include <sol/sol.hpp>
-#include <zip.h>
 
 #include "packages.hpp"
+#include "../zip.hpp"
 
 namespace fs = std::filesystem;
 using porla::Lua::Plugin;
@@ -19,46 +19,38 @@ struct Plugin::State
     std::optional<Plugin::Manifest>          manifest;
 };
 
-static std::map<std::string, std::vector<char>> LoadArchive(const std::vector<char>& buffer)
+static sol::state CreateLuaState(const PluginLoadOptions& opts)
 {
-    std::map<std::string, std::vector<char>> files;
+    sol::state lua;
 
-    zip_error_t err;
-    zip_source_t* source = zip_source_buffer_create(
-        buffer.data(),
-        buffer.size(),
-        0,
-        &err);
+    lua.open_libraries(
+        sol::lib::base,
+        sol::lib::io,
+        sol::lib::os,
+        sol::lib::package,
+        sol::lib::string,
+        sol::lib::table);
 
-    zip_t* archive = zip_open_from_source(source, ZIP_RDONLY, &err);
-    zip_int64_t num_entries = zip_get_num_entries(archive, ZIP_FL_UNCHANGED);
+    lua.globals()["__load_opts"] = opts;
+    lua.globals()["porla"]       = lua.create_table();
 
-    for (int i = 0; i < num_entries; i++)
-    {
-        zip_stat_t st;
-        zip_stat_init(&st);
-        zip_stat_index(archive, i, 0, &st);
+    porla::Lua::Packages::Config::Register(lua);
+    porla::Lua::Packages::Cron::Register(lua);
+    porla::Lua::Packages::Events::Register(lua);
+    porla::Lua::Packages::FileSystem::Register(lua);
+    porla::Lua::Packages::HttpClient::Register(lua);
+    porla::Lua::Packages::Json::Register(lua);
+    porla::Lua::Packages::Log::Register(lua);
+    porla::Lua::Packages::PQL::Register(lua);
+    porla::Lua::Packages::Presets::Register(lua);
+    porla::Lua::Packages::Process::Register(lua);
+    porla::Lua::Packages::Sessions::Register(lua);
+    porla::Lua::Packages::Sqlite::Register(lua);
+    porla::Lua::Packages::Timers::Register(lua);
+    porla::Lua::Packages::Torrents::Register(lua);
+    porla::Lua::Packages::Workflows::Register(lua);
 
-        if (st.size == 0)
-        {
-            continue;
-        }
-
-        zip_file* file = zip_fopen_index(archive, i, ZIP_FL_UNCHANGED);
-
-        std::vector<char> buffer;
-        buffer.resize(st.size);
-
-        zip_fread(file, &buffer[0], st.size);
-        zip_fclose(file);
-
-        files.emplace(st.name, buffer);
-    }
-
-    zip_close(archive);
-    zip_source_close(source);
-
-    return files;
+    return lua;
 }
 
 std::unique_ptr<Plugin> Plugin::LoadFromArchive(
@@ -67,38 +59,11 @@ std::unique_ptr<Plugin> Plugin::LoadFromArchive(
     const PluginLoadOptions& opts)
 {
     auto state = std::make_unique<State>(State{
-        .files        = LoadArchive(buffer),
+        .files        = Zip::Load(buffer),
         .load_options = opts,
-        .lua          = sol::state(),
+        .lua          = CreateLuaState(opts),
         .manifest     = std::nullopt
     });
-
-    state->lua.open_libraries(
-        sol::lib::base,
-        sol::lib::io,
-        sol::lib::os,
-        sol::lib::package,
-        sol::lib::string,
-        sol::lib::table);
-
-    state->lua.globals()["__load_opts"] = state->load_options;
-    state->lua.globals()["porla"]       = state->lua.create_table();
-
-    Packages::Config::Register(state->lua);
-    Packages::Cron::Register(state->lua);
-    Packages::Events::Register(state->lua);
-    Packages::FileSystem::Register(state->lua);
-    Packages::HttpClient::Register(state->lua);
-    Packages::Json::Register(state->lua);
-    Packages::Log::Register(state->lua);
-    Packages::PQL::Register(state->lua);
-    Packages::Presets::Register(state->lua);
-    Packages::Process::Register(state->lua);
-    Packages::Sessions::Register(state->lua);
-    Packages::Sqlite::Register(state->lua);
-    Packages::Timers::Register(state->lua);
-    Packages::Torrents::Register(state->lua);
-    Packages::Workflows::Register(state->lua);
 
     if (state->files.find("manifest.toml") != state->files.end())
     {
@@ -152,36 +117,9 @@ std::unique_ptr<Plugin> Plugin::LoadFromPath(
     auto state = std::make_unique<State>(State{
         .files        = {},
         .load_options = opts,
-        .lua          = sol::state(),
+        .lua          = CreateLuaState(opts),
         .manifest     = std::nullopt
     });
-
-    state->lua.open_libraries(
-        sol::lib::base,
-        sol::lib::io,
-        sol::lib::os,
-        sol::lib::package,
-        sol::lib::string,
-        sol::lib::table);
-
-    state->lua.globals()["__load_opts"] = state->load_options;
-    state->lua.globals()["porla"]       = state->lua.create_table();
-
-    Packages::Config::Register(state->lua);
-    Packages::Cron::Register(state->lua);
-    Packages::Events::Register(state->lua);
-    Packages::FileSystem::Register(state->lua);
-    Packages::HttpClient::Register(state->lua);
-    Packages::Json::Register(state->lua);
-    Packages::Log::Register(state->lua);
-    Packages::PQL::Register(state->lua);
-    Packages::Presets::Register(state->lua);
-    Packages::Process::Register(state->lua);
-    Packages::Sessions::Register(state->lua);
-    Packages::Sqlite::Register(state->lua);
-    Packages::Timers::Register(state->lua);
-    Packages::Torrents::Register(state->lua);
-    Packages::Workflows::Register(state->lua);
 
     const auto manifest_toml_path = path / "manifest.toml";
 

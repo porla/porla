@@ -13,8 +13,7 @@ namespace porla::Methods::Presets
         PresetsAddReq,
         name)
 
-    static void to_json(json& j, const PresetsAddRes& res)
-    {
-        j = {};
-    }
+    NLOHMANN_JSONIFY_ALL_THINGS(
+        PresetsAddRes,
+        id)
 }

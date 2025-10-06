@@ -48,16 +48,27 @@ void PluginsInstall::Invoke(const PluginsInstallReq& req, WriteCb<PluginsInstall
     {
         const auto archive_buffer = Base64::Decode(req.data);
 
-        return cb.Ok(PluginsInstallRes{
-            .id = m_plugins.InstallFromArchive(
-                std::vector<char>(
-                    archive_buffer.begin(),
-                    archive_buffer.end()),
-                req.config,
-                req.metadata.has_value()
-                    ? json(req.metadata.value())
-                    : json())
-        });
+        try
+        {
+            return cb.Ok(PluginsInstallRes{
+                .id = m_plugins.InstallFromArchive(
+                    std::vector<char>(
+                        archive_buffer.begin(),
+                        archive_buffer.end()),
+                    req.config,
+                    req.metadata.has_value()
+                        ? json(req.metadata.value())
+                        : json())
+            });
+        }
+        catch(const std::exception& e)
+        {
+            std::stringstream ss;
+            ss << "Failed to install plugin: ";
+            ss << e.what();
+
+            return cb.Error(-201, ss.str());
+        }
     }
 
     return cb.Error(-1, "Invalid plugin type");

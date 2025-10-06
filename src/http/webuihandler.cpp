@@ -6,7 +6,8 @@
 
 #include <boost/log/trivial.hpp>
 #include <utility>
-#include <zip.h>
+
+#include "../zip.hpp"
 
 namespace fs = std::filesystem;
 using porla::Http::WebUIHandler;
@@ -132,39 +133,5 @@ void WebUIHandler::LoadUI()
 void WebUIHandler::LoadUIFromBuffer(const char* buffer, size_t size)
 {
     m_files.clear();
-
-    zip_error_t err;
-    zip_source_t* source = zip_source_buffer_create(
-        buffer,
-        size,
-        0,
-        &err);
-
-    zip_t *webui = zip_open_from_source(source, ZIP_RDONLY, &err);
-    zip_int64_t num_entries = zip_get_num_entries(webui, ZIP_FL_UNCHANGED);
-
-    for (int i = 0; i < num_entries; i++)
-    {
-        zip_stat_t st;
-        zip_stat_init(&st);
-        zip_stat_index(webui, i, 0, &st);
-
-        if (st.size == 0)
-        {
-            continue;
-        }
-
-        zip_file* file = zip_fopen_index(webui, i, ZIP_FL_UNCHANGED);
-
-        std::vector<char> buffer;
-        buffer.resize(st.size);
-
-        zip_fread(file, &buffer[0], st.size);
-        zip_fclose(file);
-
-        m_files.emplace(st.name, buffer);
-    }
-
-    zip_close(webui);
-    zip_source_close(source);
+    m_files = Zip::Load(std::vector<char>(buffer, buffer + size));
 }

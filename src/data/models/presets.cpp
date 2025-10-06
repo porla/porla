@@ -1,13 +1,19 @@
 #include "presets.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include "../statement.hpp"
 
+using json = nlohmann::json;
 using porla::Data::Models::Presets;
 
 const std::string PresetSelectPrefix = "SELECT id,name,category,download_limit,max_connections,max_uploads,metadata,session_id,save_path,storage_mode,tags,upload_limit FROM presets";
 
 static Presets::Preset LoadFromRow(const porla::Data::Statement::IRow &row)
 {
+    const auto metadata = row.GetOptionalStdString(6);
+    const auto tags     = row.GetOptionalStdString(10);
+
     return Presets::Preset{
         .id = row.GetInt32(0),
         .name = row.GetStdString(1),
@@ -15,11 +21,15 @@ static Presets::Preset LoadFromRow(const porla::Data::Statement::IRow &row)
         .download_limit = row.GetOptionalInt32(3),
         .max_connections = row.GetOptionalInt32(4),
         .max_uploads = row.GetOptionalInt32(5),
-        .metadata = {},
+        .metadata = metadata.has_value()
+            ? std::optional(json::parse(metadata.value()).get<std::map<std::string, json>>())
+            : std::nullopt,
         .session_id = row.GetOptionalInt32(7),
         .save_path = row.GetStdString(8),
         .storage_mode = row.GetStdString(9),
-        .tags = {},
+        .tags = tags.has_value()
+            ? json::parse(tags.value()).get<std::unordered_set<std::string>>()
+            : std::unordered_set<std::string>(),
         .upload_limit = row.GetOptionalInt32(11)
     };
 }
@@ -75,8 +85,23 @@ int Presets::Insert(sqlite3 *db, const std::string& name)
     return sqlite3_last_insert_rowid(db);
 }
 
+void Presets::Remove(sqlite3* db, int id)
+{
+    auto stmt = Statement::Prepare(db, "DELETE FROM presets WHERE id = $1");
+    stmt.Bind(1, id);
+    stmt.Execute();
+}
+
 void Presets::Update(sqlite3 *db, const Presets::Preset &preset)
 {
+    std::optional<std::string> metadata;
+    std::optional<std::string> tags = json(preset.tags).dump();
+
+    if (preset.metadata.has_value())
+    {
+        metadata = json(preset.metadata.value()).dump();
+    }
+
     auto stmt = Statement::Prepare(
         db,
         "UPDATE presets SET\n"
@@ -98,11 +123,11 @@ void Presets::Update(sqlite3 *db, const Presets::Preset &preset)
     stmt.Bind(3, preset.download_limit);
     stmt.Bind(4, preset.max_connections);
     stmt.Bind(5, preset.max_uploads);
-    stmt.Bind(6, preset.metadata ? std::optional<std::string_view>(preset.metadata->dump()) : std::nullopt);
+    stmt.Bind(6, metadata);
     stmt.Bind(7, preset.session_id);
     stmt.Bind(8, preset.save_path);
     stmt.Bind(9, preset.storage_mode);
-    stmt.Bind(10, std::string_view(nlohmann::json(preset.tags).dump()));
+    stmt.Bind(10, tags);
     stmt.Bind(11, preset.upload_limit);
     stmt.Bind(12, preset.id);
     stmt.Execute();

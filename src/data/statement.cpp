@@ -32,12 +32,18 @@ public:
 
     [[nodiscard]] std::string GetStdString(int pos) const override
     {
-        auto data = sqlite3_column_text(m_stmt, pos);
-        return
+        const auto* data = sqlite3_column_text(m_stmt, pos);
+
+        if (data == nullptr)
         {
-            reinterpret_cast<const char*>(data),
-            static_cast<unsigned long>(sqlite3_column_bytes(m_stmt, pos))
-        };
+            return {};
+        }
+
+        const auto bytes = sqlite3_column_bytes(m_stmt, pos);
+
+        return std::string(
+            reinterpret_cast<const char*>(data), 
+            static_cast<std::size_t>(bytes));
     }
 
     [[nodiscard]] std::optional<std::string> GetOptionalStdString(int pos) const override
