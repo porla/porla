@@ -38,7 +38,7 @@ namespace porla
 
             int                                                                           id;
             std::string                                                                   name;
-            std::shared_ptr<lt::session>                                                  session;
+            std::unique_ptr<lt::session>                                                  session;
             std::filesystem::path                                                         session_params_file;
             std::map<lt::info_hash_t, std::tuple<lt::torrent_handle, lt::torrent_status>> torrents;
 

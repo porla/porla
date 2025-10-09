@@ -25,7 +25,6 @@
 #include "http/webuihandler.hpp"
 
 #include "methods/fsspace.hpp"
-#include "methods/plugins/pluginsconfigure.hpp"
 #include "methods/plugins/pluginsget.hpp"
 #include "methods/plugins/pluginsinstall.hpp"
 #include "methods/plugins/pluginslist.hpp"
@@ -133,7 +132,6 @@ int main(int argc, char* argv[])
         sessions.LoadAll();
 
         const porla::Methods::PluginsUpdateOptions plugins_update_options{
-            .io            = io,
             .plugin_engine = plugin_engine
         };
 
@@ -141,7 +139,6 @@ int main(int argc, char* argv[])
 
         porla::Http::JsonRpcHandler rpc({
             {"fs.space", porla::Methods::FsSpace()},
-            {"plugins.configure", porla::Methods::PluginsConfigure(plugin_engine)},
             {"plugins.get", porla::Methods::PluginsGet(plugin_engine)},
             {"plugins.install", porla::Methods::PluginsInstall(plugin_engine)},
             {"plugins.list", porla::Methods::PluginsList(plugin_engine)},

@@ -1,8 +1,5 @@
 #pragma once
 
-#include <map>
-#include <thread>
-
 #include "../method.hpp"
 #include "pluginsupdate_reqres.hpp"
 
@@ -15,7 +12,6 @@ namespace porla::Methods
 {
     struct PluginsUpdateOptions
     {
-        boost::asio::io_context&  io;
         porla::Lua::PluginEngine& plugin_engine;
     };
 
@@ -29,6 +25,5 @@ namespace porla::Methods
 
     private:
         PluginsUpdateOptions m_options;
-        std::map<std::string, std::shared_ptr<std::thread>> m_running_updates;
     };
 }

@@ -9,7 +9,10 @@ namespace porla::Methods
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         PluginsUpdateReq,
-        name)
+        id,
+        config,
+        metadata,
+        data)
 
     static void to_json(nlohmann::json& j, const PluginsUpdateRes& res)
     {

@@ -92,7 +92,6 @@ add_library(
     src/lua/pluginengine.cpp
 
     src/methods/fsspace.cpp
-    src/methods/plugins/pluginsconfigure.cpp
     src/methods/plugins/pluginsget.cpp
     src/methods/plugins/pluginsinstall.cpp
     src/methods/plugins/pluginslist.cpp

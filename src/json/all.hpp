@@ -6,7 +6,6 @@
 #include "ltinfohash.hpp"
 #include "ltpeerinfo.hpp"
 #include "ltsettingspack.hpp"
-#include "pluginsconfigure.hpp"
 #include "pluginsget.hpp"
 #include "pluginsinstall.hpp"
 #include "pluginslist.hpp"

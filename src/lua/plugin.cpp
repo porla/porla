@@ -147,8 +147,6 @@ std::unique_ptr<Plugin> Plugin::LoadFromPath(
 
         if (state->lua.globals()["porla"]["init"].is<sol::function>())
         {
-            BOOST_LOG_TRIVIAL(info) << config.value_or("");
-
             state->lua.globals()["porla"]["init"](
                 config.has_value()
                     ? sol::object(state->lua.script(config.value()))
