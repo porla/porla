@@ -4,10 +4,10 @@
 #include <libtorrent/add_torrent_params.hpp>
 #include <libtorrent/magnet_uri.hpp>
 
-#include "../data/models/presets.hpp"
-#include "../sessions.hpp"
-#include "../torrentclientdata.hpp"
-#include "../utils/base64.hpp"
+#include "../../data/models/presets.hpp"
+#include "../../sessions.hpp"
+#include "../../torrentclientdata.hpp"
+#include "../../utils/base64.hpp"
 
 namespace lt = libtorrent;
 

@@ -2,8 +2,8 @@
 
 #include <nlohmann/json.hpp>
 
-#include "../methods/torrentsremovereq.hpp"
-#include "../methods/torrentsremoveres.hpp"
+#include "../methods/torrents/torrentsremovereq.hpp"
+#include "../methods/torrents/torrentsremoveres.hpp"
 
 using json = nlohmann::json;
 

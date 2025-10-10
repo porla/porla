@@ -1,6 +1,6 @@
 #include "torrentsremove.hpp"
 
-#include "../sessions.hpp"
+#include "../../sessions.hpp"
 
 using porla::Methods::TorrentsRemove;
 using porla::Methods::TorrentsRemoveReq;

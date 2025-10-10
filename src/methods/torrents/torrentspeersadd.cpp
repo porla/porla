@@ -2,7 +2,7 @@
 
 #include <boost/log/trivial.hpp>
 
-#include "../sessions.hpp"
+#include "../../sessions.hpp"
 
 using porla::Methods::TorrentsPeersAdd;
 using porla::Methods::TorrentsPeersAddReq;

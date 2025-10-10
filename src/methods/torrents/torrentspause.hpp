@@ -1,6 +1,6 @@
 #pragma once
 
-#include "method.hpp"
+#include "../method.hpp"
 #include "torrentspause_reqres.hpp"
 
 namespace porla

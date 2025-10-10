@@ -1,7 +1,7 @@
 #include "torrentsmetadatalist.hpp"
 
-#include "../sessions.hpp"
-#include "../torrentclientdata.hpp"
+#include "../../sessions.hpp"
+#include "../../torrentclientdata.hpp"
 
 using porla::Methods::TorrentsMetadataList;
 using porla::Methods::TorrentsMetadataListReq;

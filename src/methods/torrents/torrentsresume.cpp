@@ -1,6 +1,6 @@
 #include "torrentsresume.hpp"
 
-#include "../sessions.hpp"
+#include "../../sessions.hpp"
 
 using porla::Methods::TorrentsResume;
 using porla::Methods::TorrentsResumeReq;

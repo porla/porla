@@ -1,15 +1,20 @@
-#include "torrentspeerslist.hpp"
+#include "torrentsrecheck.hpp"
 
-#include "../sessions.hpp"
+#include <libtorrent/torrent_handle.hpp>
+#include <libtorrent/torrent_status.hpp>
 
-using porla::Methods::TorrentsPeersList;
+#include "../../sessions.hpp"
 
-TorrentsPeersList::TorrentsPeersList(porla::Sessions& sessions)
+using porla::Methods::TorrentsRecheck;
+using porla::Methods::TorrentsRecheckReq;
+using porla::Methods::TorrentsRecheckRes;
+
+TorrentsRecheck::TorrentsRecheck(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
 }
 
-void TorrentsPeersList::Invoke(const TorrentsPeersListReq& req, WriteCb<TorrentsPeersListRes> cb)
+void TorrentsRecheck::Invoke(const TorrentsRecheckReq &req, WriteCb<TorrentsRecheckRes> cb)
 {
     const auto& state = std::find_if(
         m_sessions.All().begin(),
@@ -38,10 +43,7 @@ void TorrentsPeersList::Invoke(const TorrentsPeersListReq& req, WriteCb<Torrents
         return cb.Error(-2, "Torrent not valid");
     }
 
-    std::vector<lt::peer_info> peers;
-    th.get_peer_info(peers);
+    state->second->Recheck(th.info_hashes());
 
-    cb.Ok(TorrentsPeersListRes{
-        .peers = peers
-    });
+    return cb.Ok(TorrentsRecheckRes{});
 }

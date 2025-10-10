@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "../methods/torrentsmove_reqres.hpp"
+#include "../methods/torrents/torrentsmove_reqres.hpp"
 #include "ltinfohash.hpp"
 #include "utils.hpp"
 

@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "../methods/torrentsfileslist_reqres.hpp"
+#include "../methods/torrents/torrentsfileslist_reqres.hpp"
 
 namespace porla::Methods
 {

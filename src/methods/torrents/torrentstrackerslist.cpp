@@ -1,6 +1,6 @@
 #include "torrentstrackerslist.hpp"
 
-#include "../sessions.hpp"
+#include "../../sessions.hpp"
 
 using porla::Methods::TorrentsTrackersList;
 using porla::Methods::TorrentsTrackersListReq;

@@ -111,20 +111,20 @@ add_library(
     src/methods/sessions/sessionssettingslist.cpp
     src/methods/sessions/sessionssettingsset.cpp
     src/methods/sysversions.cpp
-    src/methods/torrentsadd.cpp
-    src/methods/torrentsfileslist.cpp
-    src/methods/torrentslist.cpp
-    src/methods/torrentsmetadatalist.cpp
-    src/methods/torrentsmove.cpp
-    src/methods/torrentspause.cpp
-    src/methods/torrentspeersadd.cpp
-    src/methods/torrentspeerslist.cpp
-    src/methods/torrentspropertiesget.cpp
-    src/methods/torrentsrecheck.cpp
-    src/methods/torrentsremove.cpp
-    src/methods/torrentsresume.cpp
-    src/methods/torrentspropertiesset.cpp
-    src/methods/torrentstrackerslist.cpp
+    src/methods/torrents/torrentsadd.cpp
+    src/methods/torrents/torrentsfileslist.cpp
+    src/methods/torrents/torrentslist.cpp
+    src/methods/torrents/torrentsmetadatalist.cpp
+    src/methods/torrents/torrentsmove.cpp
+    src/methods/torrents/torrentspause.cpp
+    src/methods/torrents/torrentspeersadd.cpp
+    src/methods/torrents/torrentspeerslist.cpp
+    src/methods/torrents/torrentspropertiesget.cpp
+    src/methods/torrents/torrentsrecheck.cpp
+    src/methods/torrents/torrentsremove.cpp
+    src/methods/torrents/torrentsresume.cpp
+    src/methods/torrents/torrentspropertiesset.cpp
+    src/methods/torrents/torrentstrackerslist.cpp
     src/methods/torrents/torrentsoverview.cpp
     src/methods/webui/webuiinstall.cpp
 

@@ -1,6 +1,6 @@
 #include "torrentsmove.hpp"
 
-#include "../sessions.hpp"
+#include "../../sessions.hpp"
 
 using porla::Methods::TorrentsMove;
 using porla::Methods::TorrentsMoveReq;

@@ -1,10 +1,10 @@
 #include "torrentslist.hpp"
 
-#include "../query/pql.hpp"
-#include "../sessions.hpp"
-#include "../torrentclientdata.hpp"
-#include "../utils/eta.hpp"
-#include "../utils/ratio.hpp"
+#include "../../query/pql.hpp"
+#include "../../sessions.hpp"
+#include "../../torrentclientdata.hpp"
+#include "../../utils/eta.hpp"
+#include "../../utils/ratio.hpp"
 
 using porla::Methods::TorrentsList;
 

@@ -3,7 +3,7 @@
 #include <nlohmann/json.hpp>
 
 #include "utils.hpp"
-#include "../methods/torrentsaddreq.hpp"
+#include "../methods/torrents/torrentsaddreq.hpp"
 
 using json = nlohmann::json;
 

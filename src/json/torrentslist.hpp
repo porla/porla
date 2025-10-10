@@ -5,7 +5,7 @@
 #include "lterrorcode.hpp"
 #include "ltinfohash.hpp"
 #include "utils.hpp"
-#include "../methods/torrentslist_reqres.hpp"
+#include "../methods/torrents/torrentslist_reqres.hpp"
 
 namespace porla::Methods
 {

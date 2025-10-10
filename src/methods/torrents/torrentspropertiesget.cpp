@@ -1,6 +1,6 @@
 #include "torrentspropertiesget.hpp"
 
-#include "../sessions.hpp"
+#include "../../sessions.hpp"
 
 using porla::Methods::TorrentsPropertiesGet;
 using porla::Methods::TorrentsPropertiesGetReq;

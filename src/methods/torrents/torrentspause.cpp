@@ -1,20 +1,17 @@
-#include "torrentsrecheck.hpp"
+#include "torrentspause.hpp"
 
-#include <libtorrent/torrent_handle.hpp>
-#include <libtorrent/torrent_status.hpp>
+#include "../../sessions.hpp"
 
-#include "../sessions.hpp"
+using porla::Methods::TorrentsPause;
+using porla::Methods::TorrentsPauseReq;
+using porla::Methods::TorrentsPauseRes;
 
-using porla::Methods::TorrentsRecheck;
-using porla::Methods::TorrentsRecheckReq;
-using porla::Methods::TorrentsRecheckRes;
-
-TorrentsRecheck::TorrentsRecheck(porla::Sessions& sessions)
+TorrentsPause::TorrentsPause(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
 }
 
-void TorrentsRecheck::Invoke(const TorrentsRecheckReq &req, WriteCb<TorrentsRecheckRes> cb)
+void TorrentsPause::Invoke(const TorrentsPauseReq& req, WriteCb<TorrentsPauseRes> cb)
 {
     const auto& state = std::find_if(
         m_sessions.All().begin(),
@@ -43,7 +40,7 @@ void TorrentsRecheck::Invoke(const TorrentsRecheckReq &req, WriteCb<TorrentsRech
         return cb.Error(-2, "Torrent not valid");
     }
 
-    state->second->Recheck(th.info_hashes());
+    th.pause();
 
-    return cb.Ok(TorrentsRecheckRes{});
+    cb.Ok(TorrentsPauseRes{});
 }

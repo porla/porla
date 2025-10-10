@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../methods/torrentspropertiesget_reqres.hpp"
+#include "../methods/torrents/torrentspropertiesget_reqres.hpp"
 
 #include "ltinfohash.hpp"
 #include "lttorrentflags.hpp"

@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "../methods/torrentsaddres.hpp"
+#include "../methods/torrents/torrentsaddres.hpp"
 
 using json = nlohmann::json;
 

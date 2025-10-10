@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "../methods/torrentstrackerslist_reqres.hpp"
+#include "../methods/torrents/torrentstrackerslist_reqres.hpp"
 
 namespace porla::Methods
 {

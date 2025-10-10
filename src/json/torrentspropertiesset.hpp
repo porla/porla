@@ -5,7 +5,7 @@
 #include "ltinfohash.hpp"
 #include "lttorrentflags.hpp"
 #include "utils.hpp"
-#include "../methods/torrentspropertiesset_reqres.hpp"
+#include "../methods/torrents/torrentspropertiesset_reqres.hpp"
 
 using json = nlohmann::json;
 

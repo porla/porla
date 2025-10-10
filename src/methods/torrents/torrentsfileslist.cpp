@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "../sessions.hpp"
+#include "../../sessions.hpp"
 
 using porla::Methods::TorrentsFilesList;
 using porla::Methods::TorrentsFilesListReq;

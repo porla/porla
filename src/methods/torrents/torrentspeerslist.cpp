@@ -1,17 +1,15 @@
-#include "torrentspause.hpp"
+#include "torrentspeerslist.hpp"
 
-#include "../sessions.hpp"
+#include "../../sessions.hpp"
 
-using porla::Methods::TorrentsPause;
-using porla::Methods::TorrentsPauseReq;
-using porla::Methods::TorrentsPauseRes;
+using porla::Methods::TorrentsPeersList;
 
-TorrentsPause::TorrentsPause(porla::Sessions& sessions)
+TorrentsPeersList::TorrentsPeersList(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
 }
 
-void TorrentsPause::Invoke(const TorrentsPauseReq& req, WriteCb<TorrentsPauseRes> cb)
+void TorrentsPeersList::Invoke(const TorrentsPeersListReq& req, WriteCb<TorrentsPeersListRes> cb)
 {
     const auto& state = std::find_if(
         m_sessions.All().begin(),
@@ -40,7 +38,10 @@ void TorrentsPause::Invoke(const TorrentsPauseReq& req, WriteCb<TorrentsPauseRes
         return cb.Error(-2, "Torrent not valid");
     }
 
-    th.pause();
+    std::vector<lt::peer_info> peers;
+    th.get_peer_info(peers);
 
-    cb.Ok(TorrentsPauseRes{});
+    cb.Ok(TorrentsPeersListRes{
+        .peers = peers
+    });
 }

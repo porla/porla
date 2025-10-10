@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "../methods/torrentsmetadatalist_reqres.hpp"
+#include "../methods/torrents/torrentsmetadatalist_reqres.hpp"
 
 #include "ltinfohash.hpp"
 #include "utils.hpp"

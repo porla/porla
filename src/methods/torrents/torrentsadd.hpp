@@ -2,8 +2,8 @@
 
 #include <sqlite3.h>
 
-#include "../config.hpp"
-#include "method.hpp"
+#include "../../config.hpp"
+#include "../method.hpp"
 #include "torrentsaddreq.hpp"
 #include "torrentsaddres.hpp"
 

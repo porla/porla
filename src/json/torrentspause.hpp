@@ -4,7 +4,7 @@
 #include <nlohmann/json.hpp>
 
 #include "ltinfohash.hpp"
-#include "../methods/torrentspause_reqres.hpp"
+#include "../methods/torrents/torrentspause_reqres.hpp"
 
 namespace porla::Methods
 {

@@ -3,7 +3,7 @@
 #include <nlohmann/json.hpp>
 
 #include "ltinfohash.hpp"
-#include "../methods/torrentspeersadd_reqres.hpp"
+#include "../methods/torrents/torrentspeersadd_reqres.hpp"
 
 namespace porla::Methods
 {
