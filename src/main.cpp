@@ -25,6 +25,8 @@
 #include "http/webuihandler.hpp"
 
 #include "methods/fsspace.hpp"
+#include "methods/keyvalueget.hpp"
+#include "methods/keyvalueset.hpp"
 #include "methods/plugins/pluginsget.hpp"
 #include "methods/plugins/pluginsinstall.hpp"
 #include "methods/plugins/pluginslist.hpp"
@@ -139,6 +141,8 @@ int main(int argc, char* argv[])
 
         porla::Http::JsonRpcHandler rpc({
             {"fs.space", porla::Methods::FsSpace()},
+            {"kv.get", porla::Methods::KeyValueGet(cfg->db)},
+            {"kv.set", porla::Methods::KeyValueSet(cfg->db)},
             {"plugins.get", porla::Methods::PluginsGet(plugin_engine)},
             {"plugins.install", porla::Methods::PluginsInstall(plugin_engine)},
             {"plugins.list", porla::Methods::PluginsList(plugin_engine)},

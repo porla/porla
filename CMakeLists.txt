@@ -58,7 +58,9 @@ add_library(
     src/data/migrations/0010_sessions.cpp
     src/data/migrations/0011_presets.cpp
     src/data/migrations/0012_alterplugins.cpp
+    src/data/migrations/0013_addkeyvaluestore.cpp
     src/data/models/addtorrentparams.cpp
+    src/data/models/keyvaluestore.cpp
     src/data/models/presets.cpp
     src/data/models/sessions.cpp
     src/data/models/users.cpp
@@ -92,6 +94,8 @@ add_library(
     src/lua/pluginengine.cpp
 
     src/methods/fsspace.cpp
+    src/methods/keyvalueget.cpp
+    src/methods/keyvalueset.cpp
     src/methods/plugins/pluginsget.cpp
     src/methods/plugins/pluginsinstall.cpp
     src/methods/plugins/pluginslist.cpp
