@@ -129,10 +129,6 @@ int main(int argc, char* argv[])
 
         sessions.LoadAll();
 
-        const porla::Methods::PluginsUpdateOptions plugins_update_options{
-            .plugin_engine = plugin_engine
-        };
-
         boost::signals2::signal<void(const char*, size_t)> webui_installed_signal;
 
         porla::Http::JsonRpcHandler rpc({
@@ -144,7 +140,7 @@ int main(int argc, char* argv[])
             {"plugins.list", porla::Methods::PluginsList(plugin_engine)},
             {"plugins.reload", porla::Methods::PluginsReload(plugin_engine)},
             {"plugins.remove", porla::Methods::PluginsRemove(plugin_engine)},
-            {"plugins.update", porla::Methods::PluginsUpdate(plugins_update_options)},
+            {"plugins.update", porla::Methods::PluginsUpdate(plugin_engine)},
             {"presets.add", porla::Methods::Presets::PresetsAdd(cfg->db)},
             {"presets.get", porla::Methods::Presets::PresetsGet(cfg->db)},
             {"presets.list", porla::Methods::Presets::PresetsList(cfg->db)},

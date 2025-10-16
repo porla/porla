@@ -10,20 +10,15 @@ namespace porla::Lua
 
 namespace porla::Methods
 {
-    struct PluginsUpdateOptions
-    {
-        porla::Lua::PluginEngine& plugin_engine;
-    };
-
     class PluginsUpdate : public Method<PluginsUpdateReq, PluginsUpdateRes>
     {
     public:
-        explicit PluginsUpdate(const PluginsUpdateOptions& options);
+        explicit PluginsUpdate(porla::Lua::PluginEngine& plugin_engine);
 
     protected:
         void Invoke(const PluginsUpdateReq& req, WriteCb<PluginsUpdateRes> cb) override;
 
     private:
-        PluginsUpdateOptions m_options;
+        porla::Lua::PluginEngine& m_plugin_engine;
     };
 }
