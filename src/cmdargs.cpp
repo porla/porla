@@ -17,16 +17,12 @@ static po::options_description Options()
         ("http-metrics-enabled",  po::value<bool>(),        "Set to true if the metrics endpoint should be enabled")
         ("http-port",             po::value<uint16_t>(),    "The port to listen on for HTTP traffic.")
         ("http-webui-enabled",    po::value<bool>(),        "Set to true if the web UI should be enabled")
+        ("http-webui-file",       po::value<std::string>(), "The path to a zip file with a web UI")
+        ("http-webui-repository", po::value<std::string>(), "The name of a GitHub repo (in org/repo format) that has web UI releases")
         ("log-level",             po::value<std::string>(), "The minimum log level to print.")
         ("secret-key",            po::value<std::string>(), "The secret key to use when protecting various pieces of data.")
         ("session-settings-base", po::value<std::string>(), "The libtorrent base settings to use")
         ("state-dir",             po::value<std::string>(), "The path to a directory where Porla state will be saved.")
-        ("supervised-interval",   po::value<int>(),         "The interval to use when checking the supervisor pid.")
-        ("supervised-pid",        po::value<pid_t>(),       "A pid to a parent process. If this pid dies, we shut down.")
-        ("timer-dht-stats",       po::value<int>(),         "The interval to use for the DHT stats updates.")
-        ("timer-session-stats",   po::value<int>(),         "The interval to use for the session stats updates.")
-        ("timer-torrent-updates", po::value<int>(),         "The interval to use for the torrent updates.")
-        ("workflow-dir",          po::value<std::string>(), "The directory where workflow files are stored.")
         ;
 
     return desc;

@@ -96,15 +96,10 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         if (strcmp("true", val) == 0)  cfg->http_webui_enabled = true;
         if (strcmp("false", val) == 0) cfg->http_webui_enabled = false;
     }
-    if (auto val = std::getenv("PORLA_SECRET_KEY"))            cfg->secret_key      = val;
-    if (auto val = std::getenv("PORLA_SESSION_SETTINGS_BASE"))
-    {
-        if (strcmp("default", val) == 0)               cfg->sessions.at("default") = lt::default_settings();
-        if (strcmp("high_performance_seed", val) == 0) cfg->sessions.at("default") = lt::high_performance_seed();
-        if (strcmp("min_memory_usage", val) == 0)      cfg->sessions.at("default") = lt::min_memory_usage();
-    }
+    if (auto val = std::getenv("PORLA_HTTP_WEBUI_FILE"))       cfg->http_webui_file       = val;
+    if (auto val = std::getenv("PORLA_HTTP_WEBUI_REPOSITORY")) cfg->http_webui_repository = val;
+    if (auto val = std::getenv("PORLA_SECRET_KEY"))            cfg->secret_key            = val;
     if (auto val = std::getenv("PORLA_STATE_DIR"))             cfg->state_dir             = val;
-    if (auto val = std::getenv("PORLA_WORKFLOW_DIR"))          cfg->workflow_dir          = val;
 
     if (cmd.count("config-file"))
     {
@@ -214,13 +209,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
             if (auto val = config_file_tbl["http"]["webui_repository"].value<std::string>())
                 cfg->http_webui_repository = *val;
-
-            // Plugins
-            if (auto val = config_file_tbl["plugins"]["allow_git"].value<bool>())
-                cfg->plugins_allow_git = *val;
-
-            if (auto val = config_file_tbl["plugins"]["install_dir"].value<std::string>())
-                cfg->plugins_install_dir = *val;
 
             // Load presets
             if (auto const* presets_tbl = config_file_tbl["presets"].as_table())
@@ -339,9 +327,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
             if (auto val = config_file_tbl["state_dir"].value<std::string>())
                 cfg->state_dir = *val;
-
-            if (auto val = config_file_tbl["workflow_dir"].value<std::string>())
-                cfg->workflow_dir = *val;
         }
         catch (const toml::parse_error& err)
         {
@@ -362,6 +347,14 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     {
         cfg->http_webui_enabled = cmd["http-webui-enabled"].as<bool>();
     }
+    if (cmd.count("http-webui-file"))
+    {
+        cfg->http_webui_file = cmd["http-webui-file"].as<std::string>();
+    }
+    if (cmd.count("http-webui-repository"))
+    {
+        cfg->http_webui_repository = cmd["http-webui-repository"].as<std::string>();
+    }
     if (cmd.count("secret-key"))            cfg->secret_key            = cmd["secret-key"].as<std::string>();
     if (cmd.count("session-settings-base"))
     {
@@ -372,13 +365,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         if (val == "min_memory_usage")      cfg->sessions.at("default") = lt::min_memory_usage();
     }
     if (cmd.count("state-dir"))             cfg->state_dir             = cmd["state-dir"].as<std::string>();
-    if (cmd.count("workflow-dir"))          cfg->workflow_dir          = cmd["workflow-dir"].as<std::string>();
-
-    // Set the plugins install dir
-    if (!cfg->plugins_install_dir.has_value())
-    {
-        cfg->plugins_install_dir = cfg->state_dir.value_or(fs::path()) / "installed_plugins";
-    }
 
     // If no db_file is set, default to a file in state_dir.
     if (!cfg->db_file.has_value())

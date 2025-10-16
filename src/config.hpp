@@ -50,13 +50,10 @@ namespace porla
         std::optional<bool>                      http_webui_enabled;
         std::optional<fs::path>                  http_webui_file;
         std::optional<std::string>               http_webui_repository;
-        std::optional<bool>                      plugins_allow_git;
-        std::optional<fs::path>                  plugins_install_dir;
         std::map<std::string, Preset>            presets;
         std::string                              secret_key;
         std::map<std::string, lt::settings_pack> sessions;
         std::optional<fs::path>                  state_dir;
-        std::optional<fs::path>                  workflow_dir;
 
         static std::unique_ptr<Config> Load(const boost::program_options::variables_map& cmd);
 
