@@ -10,10 +10,9 @@
 
 using porla::Http::AuthInitHandler;
 
-AuthInitHandler::AuthInitHandler(boost::asio::io_context& io, sqlite3* db, int memlimit)
+AuthInitHandler::AuthInitHandler(boost::asio::io_context& io, sqlite3* db)
     : m_io(io)
     , m_db(db)
-    , m_memlimit(memlimit)
 {
 }
 
@@ -27,7 +26,7 @@ void AuthInitHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest
     res->onAborted([](){});
 
     std::string buffer;
-    res->onData([db = m_db, &io = m_io, memlimit = m_memlimit, res, buffer = std::move(buffer)](std::string_view d, bool last) mutable
+    res->onData([db = m_db, &io = m_io, res, buffer = std::move(buffer)](std::string_view d, bool last) mutable
     {
         buffer.append(d.data(), d.length());
 
@@ -55,7 +54,7 @@ void AuthInitHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest
         BOOST_LOG_TRIVIAL(info) << "Initializing auth with username " << username;
 
         std::thread t(
-            [res, db, &io, memlimit, username, password]()
+            [res, db, &io, username, password]()
             {
                 std::string password_hashed;
                 password_hashed.resize(crypto_pwhash_STRBYTES);
@@ -65,7 +64,7 @@ void AuthInitHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest
                     password.c_str(),
                     password.size(),
                     crypto_pwhash_OPSLIMIT_INTERACTIVE,
-                    memlimit);
+                    crypto_pwhash_MEMLIMIT_MIN);
 
                 boost::asio::dispatch(
                     io,

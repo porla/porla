@@ -55,7 +55,6 @@ namespace porla
         std::map<std::string, Preset>            presets;
         std::string                              secret_key;
         std::map<std::string, lt::settings_pack> sessions;
-        std::optional<int>                       sodium_memlimit;
         std::optional<fs::path>                  state_dir;
         std::optional<int>                       timer_dht_stats;
         std::optional<int>                       timer_save_state;
