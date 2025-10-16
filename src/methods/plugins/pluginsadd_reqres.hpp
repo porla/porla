@@ -7,7 +7,7 @@
 
 namespace porla::Methods
 {
-    struct PluginsInstallReq
+    struct PluginsAddReq
     {
         std::string                type;
         std::string                data;
@@ -16,7 +16,7 @@ namespace porla::Methods
         std::optional<std::map<std::string, nlohmann::json>> metadata;
     };
 
-    struct PluginsInstallRes
+    struct PluginsAddRes
     {
         int id;
     };

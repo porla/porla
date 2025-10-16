@@ -1,4 +1,4 @@
-#include "pluginsinstall.hpp"
+#include "pluginsadd.hpp"
 
 #include <boost/log/trivial.hpp>
 
@@ -8,17 +8,17 @@
 
 using porla::Lua::PluginEngine;
 
-using porla::Methods::PluginsInstall;
-using porla::Methods::PluginsInstallReq;
-using porla::Methods::PluginsInstallRes;
+using porla::Methods::PluginsAdd;
+using porla::Methods::PluginsAddReq;
+using porla::Methods::PluginsAddRes;
 using porla::Utils::Base64;
 
-PluginsInstall::PluginsInstall(porla::Lua::PluginEngine& plugins)
+PluginsAdd::PluginsAdd(porla::Lua::PluginEngine& plugins)
     : m_plugins(plugins)
 {
 }
 
-void PluginsInstall::Invoke(const PluginsInstallReq& req, WriteCb<PluginsInstallRes> cb)
+void PluginsAdd::Invoke(const PluginsAddReq& req, WriteCb<PluginsAddRes> cb)
 {
     if (req.type == "path")
     {
@@ -34,7 +34,7 @@ void PluginsInstall::Invoke(const PluginsInstallReq& req, WriteCb<PluginsInstall
             return cb.Error(-102, "Plugin path does not exist");
         }
 
-        return cb.Ok(PluginsInstallRes{
+        return cb.Ok(PluginsAddRes{
             .id = m_plugins.InstallFromPath(
                 plugin_path,
                 req.config,
@@ -50,7 +50,7 @@ void PluginsInstall::Invoke(const PluginsInstallReq& req, WriteCb<PluginsInstall
 
         try
         {
-            return cb.Ok(PluginsInstallRes{
+            return cb.Ok(PluginsAddRes{
                 .id = m_plugins.InstallFromArchive(
                     std::vector<char>(
                         archive_buffer.begin(),

@@ -2,19 +2,19 @@
 
 #include <nlohmann/json.hpp>
 
-#include "../methods/plugins/pluginsinstall_reqres.hpp"
+#include "../methods/plugins/pluginsadd_reqres.hpp"
 #include "utils.hpp"
 
 namespace porla::Methods
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
-        PluginsInstallReq,
+        PluginsAddReq,
         type,
         data,
         config,
         metadata)
 
     NLOHMANN_JSONIFY_ALL_THINGS(
-        PluginsInstallRes,
+        PluginsAddRes,
         id)
 }

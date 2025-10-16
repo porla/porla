@@ -1,10 +1,12 @@
 #include "sysversions.hpp"
 
 #include <boost/version.hpp>
+#include <curl/curl.h>
 #include <libtorrent/version.hpp>
 #include <openssl/opensslv.h>
 #include <sqlite3.h>
 #include <toml++/toml.hpp>
+#include <zip.h>
 
 #include "../buildinfo.hpp"
 
@@ -39,6 +41,12 @@ void SysVersions::Invoke(const json &req, WriteCb<std::map<std::string, std::str
         }},
         {"boost", {
             {"version", boost_version.str()}
+        }},
+        {"curl", {
+            {"version", curl_version_info(CURLVERSION_NOW)->version}
+        }},
+        {"libzip", {
+            {"version", zip_libzip_version()}
         }},
         {"nlohmann_json", {
             {"version", nljson.str()}

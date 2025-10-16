@@ -5,12 +5,12 @@
 
 namespace porla::Methods
 {
-    struct PluginsUninstallReq
+    struct PluginsRemoveReq
     {
         int id;
     };
 
-    struct PluginsUninstallRes
+    struct PluginsRemoveRes
     {
     };
 }

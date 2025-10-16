@@ -28,10 +28,10 @@
 #include "methods/keyvalueget.hpp"
 #include "methods/keyvalueset.hpp"
 #include "methods/plugins/pluginsget.hpp"
-#include "methods/plugins/pluginsinstall.hpp"
+#include "methods/plugins/pluginsadd.hpp"
 #include "methods/plugins/pluginslist.hpp"
 #include "methods/plugins/pluginsreload.hpp"
-#include "methods/plugins/pluginsuninstall.hpp"
+#include "methods/plugins/pluginsremove.hpp"
 #include "methods/plugins/pluginsupdate.hpp"
 #include "methods/presets/presetsget.hpp"
 #include "methods/presets/presetslist.hpp"
@@ -143,11 +143,11 @@ int main(int argc, char* argv[])
             {"fs.space", porla::Methods::FsSpace()},
             {"kv.get", porla::Methods::KeyValueGet(cfg->db)},
             {"kv.set", porla::Methods::KeyValueSet(cfg->db)},
+            {"plugins.add", porla::Methods::PluginsAdd(plugin_engine)},
             {"plugins.get", porla::Methods::PluginsGet(plugin_engine)},
-            {"plugins.install", porla::Methods::PluginsInstall(plugin_engine)},
             {"plugins.list", porla::Methods::PluginsList(plugin_engine)},
             {"plugins.reload", porla::Methods::PluginsReload(plugin_engine)},
-            {"plugins.uninstall", porla::Methods::PluginsUninstall(plugin_engine)},
+            {"plugins.remove", porla::Methods::PluginsRemove(plugin_engine)},
             {"plugins.update", porla::Methods::PluginsUpdate(plugins_update_options)},
             {"presets.add", porla::Methods::Presets::PresetsAdd(cfg->db)},
             {"presets.get", porla::Methods::Presets::PresetsGet(cfg->db)},
