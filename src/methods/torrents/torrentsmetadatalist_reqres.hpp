@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <optional>
 #include <string>
 
 #include <libtorrent/info_hash.hpp>
@@ -11,6 +12,7 @@ namespace porla::Methods
     struct TorrentsMetadataListReq
     {
         libtorrent::info_hash_t info_hash;
+        std::optional<int>      session_id;
     };
 
     struct TorrentsMetadataListRes

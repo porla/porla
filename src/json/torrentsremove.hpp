@@ -12,7 +12,8 @@ namespace porla::Methods
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsRemoveReq,
         info_hashes,
-        remove_data)
+        remove_data,
+        session_id)
 
     static void to_json(json& j, const porla::Methods::TorrentsRemoveRes& res)
     {

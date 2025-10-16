@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -11,6 +12,7 @@ namespace porla::Methods
     struct TorrentsTrackersListReq
     {
         libtorrent::info_hash_t info_hash;
+        std::optional<int>      session_id;
     };
 
     struct TorrentsTrackersListRes

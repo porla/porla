@@ -10,8 +10,9 @@ namespace porla::Methods
     struct TorrentsMoveReq
     {
         std::optional<std::string> flags;
-        libtorrent::info_hash_t info_hash;
-        std::string path;
+        libtorrent::info_hash_t    info_hash;
+        std::string                path;
+        std::optional<int>         session_id;
     };
 
     struct TorrentsMoveRes

@@ -12,7 +12,8 @@ namespace porla::Methods
         TorrentsMoveReq,
         flags,
         info_hash,
-        path)
+        path,
+        session_id)
 
     static void to_json(json& j, const TorrentsMoveRes& res)
     {

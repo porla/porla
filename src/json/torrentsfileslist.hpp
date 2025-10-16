@@ -3,22 +3,24 @@
 #include <nlohmann/json.hpp>
 
 #include "../methods/torrents/torrentsfileslist_reqres.hpp"
+#include "utils.hpp"
 
 namespace porla::Methods
 {
-    static void from_json(const nlohmann::json& j, TorrentsFilesListReq& req)
-    {
-        j.at("info_hash").get_to(req.info_hash);
-    }
+    NLOHMANN_JSONIFY_ALL_THINGS(
+        TorrentsFilesListReq,
+        info_hash,
+        session_id)
 
     static void to_json(nlohmann::json& j, const TorrentsFilesListRes& res)
     {
         json files = json::array();
 
-        for (int i = 0; i < res.file_storage.num_files(); i++)
+        const auto& storage = res.file_storage;
+
+        for (int i = 0; i < storage.num_files(); i++)
         {
             lt::file_index_t idx{i};
-            auto const& storage = res.file_storage;
 
             files.push_back({
                 {"absolute_path",    storage.file_absolute_path(idx)},

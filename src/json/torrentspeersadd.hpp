@@ -3,15 +3,17 @@
 #include <nlohmann/json.hpp>
 
 #include "ltinfohash.hpp"
+#include "utils.hpp"
+
 #include "../methods/torrents/torrentspeersadd_reqres.hpp"
 
 namespace porla::Methods
 {
-    static void from_json(const json& j, porla::Methods::TorrentsPeersAddReq& req)
-    {
-        j.at("info_hash").get_to(req.info_hash);
-        j.at("peers").get_to(req.peers);
-    }
+    NLOHMANN_JSONIFY_ALL_THINGS(
+        porla::Methods::TorrentsPeersAddReq,
+        info_hash,
+        peers,
+        session_id)
 
     static void to_json(json& j, const porla::Methods::TorrentsPeersAddRes& res)
     {

@@ -13,31 +13,27 @@ TorrentsPropertiesGet::TorrentsPropertiesGet(porla::Sessions& sessions)
 
 void TorrentsPropertiesGet::Invoke(const TorrentsPropertiesGetReq& req, WriteCb<TorrentsPropertiesGetRes> cb)
 {
-    const auto& state = std::find_if(
-        m_sessions.All().begin(),
-        m_sessions.All().end(),
-        [hash = req.info_hash](const auto& state)
-        {
-            return state.second->torrents.find(hash) != state.second->torrents.end();
-        });
+    const auto& session_state = req.session_id.has_value()
+        ? m_sessions.Get(req.session_id.value())
+        : m_sessions.Default();
 
-    if (state == m_sessions.All().end())
+    if (session_state == nullptr)
     {
-        return cb.Error(-1, "Torrent not found in any session");
+        return cb.Error(-1, "Session not found");
     }
 
-    const auto& handle = state->second->torrents.find(req.info_hash);
+    const auto& handle = session_state->torrents.find(req.info_hash);
 
-    if (handle == state->second->torrents.end())
+    if (handle == session_state->torrents.end())
     {
-        return cb.Error(-1, "Torrent not found");
+        return cb.Error(-2, "Torrent not found in session");
     }
 
     const auto& [ th, _ ] = handle->second;
 
     if (!th.is_valid())
     {
-        return cb.Error(-2, "Torrent not valid");
+        return cb.Error(-3, "Torrent not valid");
     }
 
     const auto handle_flags = th.flags();

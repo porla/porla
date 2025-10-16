@@ -10,6 +10,7 @@ namespace porla::Methods
     struct TorrentsRecheckReq
     {
         libtorrent::info_hash_t info_hash;
+        std::optional<int>      session_id;
     };
 
     struct TorrentsRecheckRes

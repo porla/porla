@@ -10,7 +10,8 @@ namespace porla::Methods
 {
 NLOHMANN_JSONIFY_ALL_THINGS(
     TorrentsPropertiesGetReq,
-    info_hash)
+    info_hash,
+    session_id)
 
 NLOHMANN_JSONIFY_ALL_THINGS(
     TorrentsPropertiesGetRes,

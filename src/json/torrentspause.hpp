@@ -4,14 +4,16 @@
 #include <nlohmann/json.hpp>
 
 #include "ltinfohash.hpp"
+#include "utils.hpp"
+
 #include "../methods/torrents/torrentspause_reqres.hpp"
 
 namespace porla::Methods
 {
-    static void from_json(const nlohmann::json& j, TorrentsPauseReq& req)
-    {
-        j.at("info_hash").get_to(req.info_hash);
-    }
+    NLOHMANN_JSONIFY_ALL_THINGS(
+        TorrentsPauseReq,
+        info_hash,
+        session_id)
 
     static void to_json(nlohmann::json& j, const TorrentsPauseRes& res)
     {
