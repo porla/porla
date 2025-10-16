@@ -92,6 +92,7 @@ RUN echo "@edge-testing https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /
 RUN apk add --no-cache \
     bash \
     curl \
+    gdb \
     git \
     hurl@edge-testing \
     icu-static \

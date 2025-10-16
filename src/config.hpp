@@ -56,10 +56,6 @@ namespace porla
         std::string                              secret_key;
         std::map<std::string, lt::settings_pack> sessions;
         std::optional<fs::path>                  state_dir;
-        std::optional<int>                       timer_dht_stats;
-        std::optional<int>                       timer_save_state;
-        std::optional<int>                       timer_session_stats;
-        std::optional<int>                       timer_torrent_updates;
         std::optional<fs::path>                  workflow_dir;
 
         static std::unique_ptr<Config> Load(const boost::program_options::variables_map& cmd);

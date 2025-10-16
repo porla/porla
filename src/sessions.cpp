@@ -19,68 +19,6 @@ using porla::Data::Models::AddTorrentParams;
 using porla::Sessions;
 using porla::SessionsOptions;
 
-class Sessions::Timer
-{
-public:
-    explicit Timer(boost::asio::io_context& io, int interval, std::function<void()> cb)
-        : m_timer(io)
-        , m_interval(interval)
-        , m_callback(std::move(cb))
-    {
-        boost::system::error_code ec;
-
-        m_timer.expires_from_now(boost::posix_time::milliseconds(m_interval), ec);
-        if (ec) { BOOST_LOG_TRIVIAL(error) << "Failed to set timer expiry: " << ec.message(); }
-
-        m_timer.async_wait([this](auto &&PH1) { OnExpired(std::forward<decltype(PH1)>(PH1)); });
-    }
-
-    Timer(Timer&& t) noexcept
-        : m_timer(std::move(t.m_timer))
-        , m_interval(std::exchange(t.m_interval, 0))
-        , m_callback(std::move(t.m_callback))
-    {
-        boost::system::error_code ec;
-
-        m_timer.cancel(ec);
-        if (ec) { BOOST_LOG_TRIVIAL(error) << "Failed to cancel timer: " << ec.message(); }
-
-        m_timer.expires_from_now(boost::posix_time::milliseconds(m_interval), ec);
-        if (ec) { BOOST_LOG_TRIVIAL(error) << "Failed to set timer expiry: " << ec.message(); }
-
-        m_timer.async_wait([this](auto &&PH1) { OnExpired(std::forward<decltype(PH1)>(PH1)); });
-    }
-
-    Timer(const Timer&) = delete;
-    Timer& operator=(const Timer&) = delete;
-    Timer& operator=(Timer&&) = delete; // noexcept {}
-
-private:
-    void OnExpired(boost::system::error_code ec)
-    {
-        if (ec == boost::system::errc::operation_canceled)
-        {
-            return;
-        }
-        else if (ec)
-        {
-            BOOST_LOG_TRIVIAL(error) << "Error in timer: " << ec.message();
-            return;
-        }
-
-        m_callback();
-
-        m_timer.expires_from_now(boost::posix_time::milliseconds(m_interval), ec);
-        if (ec) { BOOST_LOG_TRIVIAL(error) << "Failed to set timer expiry: " << ec; }
-
-        m_timer.async_wait([this](auto &&PH1) { OnExpired(std::forward<decltype(PH1)>(PH1)); });
-    }
-
-    boost::asio::deadline_timer m_timer;
-    int m_interval;
-    std::function<void()> m_callback;
-};
-
 void Sessions::SessionState::Recheck(const lt::info_hash_t& hash)
 {
     const auto& [ handle, _ ] = torrents.at(hash);
@@ -140,25 +78,11 @@ void Sessions::SessionState::Recheck(const lt::info_hash_t& hash)
 Sessions::Sessions(const SessionsOptions &options)
     : m_options(options)
 {
-    if (options.timer_dht_stats > 0)
-        m_timers.emplace_back(options.io, options.timer_dht_stats, [&] { PostDhtStats(); });
-
-    if (options.timer_save_state > 0)
-        m_timers.emplace_back(options.io, options.timer_save_state, [&] { SaveState(); });
-
-    if (options.timer_session_stats > 0)
-        m_timers.emplace_back(options.io, options.timer_session_stats, [&] { PostSessionStats(); });
-
-    if (options.timer_torrent_updates > 0)
-        m_timers.emplace_back(options.io, options.timer_torrent_updates, [&] { PostTorrentUpdates(); });
-
 }
 
 Sessions::~Sessions()
 {
     BOOST_LOG_TRIVIAL(info) << "Shutting down sessions";
-
-    m_timers.clear();
 
     for (const auto& [ _, state ] : m_sessions)
     {
@@ -228,6 +152,11 @@ void Sessions::LoadAll()
             {
                 boost::asio::post(m_options.io, [this, state] { ReadAlerts(state); });
             });
+
+        state->m_timers.emplace_back(m_options.io, session.timer_dht_stats, [this, state] { PostDhtStats(state); });
+        state->m_timers.emplace_back(m_options.io, session.timer_save_state, [this, state] { SaveState(state); });
+        state->m_timers.emplace_back(m_options.io, session.timer_session_stats, [this, state] { PostSessionStats(state); });
+        state->m_timers.emplace_back(m_options.io, session.timer_torrent_updates, [this, state] { PostTorrentUpdates(state); });
 
         int count = AddTorrentParams::Count(m_options.db, session.name);
         int current = 0;
@@ -601,59 +530,48 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
     }
 }
 
-void Sessions::PostDhtStats()
+void Sessions::PostDhtStats(const std::shared_ptr<SessionState>& state)
 {
-    for (const auto &state: m_sessions | std::views::values)
-    {
-        state->session->post_dht_stats();
-    }
+    state->session->post_dht_stats();
 }
 
-void Sessions::PostSessionStats()
+void Sessions::PostSessionStats(const std::shared_ptr<SessionState>& state)
 {
-    for (const auto &state: m_sessions | std::views::values)
-    {
-        state->session->post_session_stats();
-    }
+    state->session->post_session_stats();
 }
 
-void Sessions::PostTorrentUpdates()
+void Sessions::PostTorrentUpdates(const std::shared_ptr<SessionState>& state)
 {
-    for (const auto &state: m_sessions | std::views::values)
-    {
-        state->session->post_torrent_updates();
-    }
+    state->session->post_torrent_updates();
 }
 
-void Sessions::SaveState()
+void Sessions::SaveState(const std::shared_ptr<SessionState>& state)
 {
-    for (const auto &state: m_sessions | std::views::values)
-    {
-        std::vector<lt::torrent_status> torrents = state->session->get_torrent_status(
-            [](lt::torrent_status const& ts)
-            {
-                return ts.need_save_resume;
-            });
-
-        if (torrents.empty())
+    std::vector<lt::torrent_status> torrents = state->session->get_torrent_status(
+        [](lt::torrent_status const& ts)
         {
-            continue;
-        }
+            return ts.need_save_resume;
+        });
 
-        BOOST_LOG_TRIVIAL(info) << "Saving state for " << torrents.size() << " torrent(s) in session " << state->name;
+    if (torrents.empty())
+    {
+        return;
+    }
 
-        for (const auto& ts : torrents)
-        {
-            ts.handle.save_resume_data(
-                lt::torrent_handle::flush_disk_cache
-                | lt::torrent_handle::save_info_dict
-                | lt::torrent_handle::only_if_modified);
-        }
+    BOOST_LOG_TRIVIAL(info) << "Saving state for " << torrents.size() << " torrent(s) in session " << state->name;
+
+    for (const auto& ts : torrents)
+    {
+        ts.handle.save_resume_data(
+            lt::torrent_handle::flush_disk_cache
+            | lt::torrent_handle::save_info_dict
+            | lt::torrent_handle::only_if_modified);
     }
 }
 
 void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
 {
+    state->m_timers.clear();
     state->session->set_alert_notify([]{});
 
     Data::Models::Sessions::Update(

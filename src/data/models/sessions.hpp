@@ -17,6 +17,10 @@ namespace porla::Data::Models
             int                        id;
             std::string                name;
             libtorrent::session_params params;
+            int                        timer_dht_stats;
+            int                        timer_save_state;
+            int                        timer_session_stats;
+            int                        timer_torrent_updates;
         };
 
         static void ForEach(sqlite3* db, const std::function<void(const Session&)>& cb);

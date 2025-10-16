@@ -104,10 +104,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         if (strcmp("min_memory_usage", val) == 0)      cfg->sessions.at("default") = lt::min_memory_usage();
     }
     if (auto val = std::getenv("PORLA_STATE_DIR"))             cfg->state_dir             = val;
-    if (auto val = std::getenv("PORLA_TIMER_DHT_STATS"))       cfg->timer_dht_stats       = std::stoi(val);
-    if (auto val = std::getenv("PORLA_TIMER_SAVE_STATE"))      cfg->timer_save_state      = std::stoi(val);
-    if (auto val = std::getenv("PORLA_TIMER_SESSION_STATS"))   cfg->timer_session_stats   = std::stoi(val);
-    if (auto val = std::getenv("PORLA_TIMER_TORRENT_UPDATES")) cfg->timer_torrent_updates = std::stoi(val);
     if (auto val = std::getenv("PORLA_WORKFLOW_DIR"))          cfg->workflow_dir          = val;
 
     if (cmd.count("config-file"))
@@ -344,18 +340,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
             if (auto val = config_file_tbl["state_dir"].value<std::string>())
                 cfg->state_dir = *val;
 
-            if (auto val = config_file_tbl["timer"]["dht_stats"].value<int>())
-                cfg->timer_dht_stats = *val;
-
-            if (auto val = config_file_tbl["timer"]["save_state"].value<int>())
-                cfg->timer_save_state = *val;
-
-            if (auto val = config_file_tbl["timer"]["session_stats"].value<int>())
-                cfg->timer_session_stats = *val;
-
-            if (auto val = config_file_tbl["timer"]["torrent_updates"].value<int>())
-                cfg->timer_torrent_updates = *val;
-
             if (auto val = config_file_tbl["workflow_dir"].value<std::string>())
                 cfg->workflow_dir = *val;
         }
@@ -388,9 +372,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         if (val == "min_memory_usage")      cfg->sessions.at("default") = lt::min_memory_usage();
     }
     if (cmd.count("state-dir"))             cfg->state_dir             = cmd["state-dir"].as<std::string>();
-    if (cmd.count("timer-dht-stats"))       cfg->timer_dht_stats       = cmd["timer-dht-stats"].as<int>();
-    if (cmd.count("timer-session-stats"))   cfg->timer_session_stats   = cmd["timer-session-stats"].as<pid_t>();
-    if (cmd.count("timer-torrent-updates")) cfg->timer_torrent_updates = cmd["timer-torrent-updates"].as<pid_t>();
     if (cmd.count("workflow-dir"))          cfg->workflow_dir          = cmd["workflow-dir"].as<std::string>();
 
     // Set the plugins install dir

@@ -23,7 +23,11 @@ int Sessions::Migrate(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
         "id INTEGER PRIMARY KEY,"
         "name TEXT NOT NULL UNIQUE,"
         "params BLOB NULL,"
-        "settings BLOB NOT NULL"
+        "settings BLOB NOT NULL,"
+        "timer_dht_stats INTEGER NOT NULL DEFAULT 5000,"
+        "timer_save_state INTEGER NOT NULL DEFAULT 300000,"
+        "timer_session_stats INTEGER NOT NULL DEFAULT 5000,"
+        "timer_torrent_updates INTEGER NOT NULL DEFAULT 1000"
         ");",
         nullptr,
         nullptr,

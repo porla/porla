@@ -39,17 +39,20 @@ static std::optional<Sessions::Session> LoadSessionFromRow(const Statement::IRow
     params.settings = lt::load_pack_from_dict(node);
     LibtorrentSettingsPack::UpdateStatic(params.settings);
 
-    Sessions::Session s;
-    s.id     = row.GetInt32(3); 
-    s.name   = row.GetStdString(0);
-    s.params = params;
-
-    return s;
+    return Sessions::Session{
+        .id                    = row.GetInt32(3),
+        .name                  = row.GetStdString(0),
+        .params                = params,
+        .timer_dht_stats       = row.GetInt32(4),
+        .timer_save_state      = row.GetInt32(5),
+        .timer_session_stats   = row.GetInt32(6),
+        .timer_torrent_updates = row.GetInt32(7)
+    };
 }
 
 void Sessions::ForEach(sqlite3 *db, const std::function<void(const Sessions::Session&)>& cb)
 {
-    auto stmt = Statement::Prepare(db, "SELECT name,params,settings,id FROM sessions");
+    auto stmt = Statement::Prepare(db, "SELECT name,params,settings,id,timer_dht_stats,timer_save_state,timer_session_stats,timer_torrent_updates FROM sessions");
     stmt.Step(
         [&cb](const Statement::IRow& row)
         {
@@ -68,7 +71,7 @@ std::optional<Sessions::Session> Sessions::GetById(sqlite3* db, int id)
 {
     std::optional<Sessions::Session> session;
 
-    Statement::Prepare(db, "SELECT name,params,settings,id FROM sessions WHERE id = $1")
+    Statement::Prepare(db, "SELECT name,params,settings,id,timer_dht_stats,timer_save_state,timer_session_stats,timer_torrent_updates FROM sessions WHERE id = $1")
         .Bind(1, id)
         .Step(
             [&session](auto const& row)
@@ -84,7 +87,7 @@ std::optional<Sessions::Session> Sessions::GetByName(sqlite3* db, const std::str
 {
     std::optional<Sessions::Session> session;
 
-    Statement::Prepare(db, "SELECT name,params,settings,id FROM sessions WHERE name = $1")
+    Statement::Prepare(db, "SELECT name,params,settings,id,timer_dht_stats,timer_save_state,timer_session_stats,timer_torrent_updates FROM sessions WHERE name = $1")
         .Bind(1, std::string_view(name))
         .Step(
             [&session](auto const& row)

@@ -11,16 +11,14 @@
 #include <libtorrent/settings_pack.hpp>
 #include <sqlite3.h>
 
+#include "timer.hpp"
+
 namespace porla
 {
     struct SessionsOptions
     {
         sqlite3*                 db;
         boost::asio::io_context& io;
-        int                      timer_dht_stats;
-        int                      timer_save_state;
-        int                      timer_session_stats;
-        int                      timer_torrent_updates;
     };
 
     class Sessions
@@ -45,6 +43,7 @@ namespace porla
             void Recheck(const lt::info_hash_t& hash);
 
         private:
+            std::vector<Timer> m_timers;
             std::map<std::pair<int, libtorrent::info_hash_t>, std::vector<std::function<void()>>> m_oneshot_torrent_callbacks;
         };
 
@@ -111,20 +110,17 @@ namespace porla
         }
 
     private:
-        class Timer;
-
-        void PostDhtStats();
-        void PostSessionStats();
-        void PostTorrentUpdates();
+        void PostDhtStats(const std::shared_ptr<SessionState>& state);
+        void PostSessionStats(const std::shared_ptr<SessionState>& state);
+        void PostTorrentUpdates(const std::shared_ptr<SessionState>& state);
 
         void ReadAlerts(const std::shared_ptr<SessionState>& state);
 
-        void SaveState();
+        void SaveState(const std::shared_ptr<SessionState>& state);
         void UnloadSession(const std::shared_ptr<SessionState>& state);
 
         SessionsOptions m_options;
         std::map<std::string, std::shared_ptr<SessionState>> m_sessions;
-        std::vector<Timer> m_timers;
 
         SessionStatsSignal m_session_stats;
         TorrentStatusListSignal m_state_update;
