@@ -21,7 +21,8 @@ find_package(OpenSSL             REQUIRED)
 find_package(SQLite3             REQUIRED)
 find_package(ZLIB                REQUIRED)
 
-pkg_check_modules(Lua     REQUIRED IMPORTED_TARGET lua5.4)
+pkg_check_modules(Lua       REQUIRED IMPORTED_TARGET lua5.4)
+pkg_check_modules(MAXMINDDB REQUIRED libmaxminddb)
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
@@ -38,6 +39,7 @@ add_library(
     src/cmdargs.cpp
     src/config.cpp
     src/logger.cpp
+    src/mmdb.cpp
     src/sessions.cpp
     src/timer.cpp
     src/webui.cpp
@@ -97,6 +99,7 @@ add_library(
     src/methods/fsspace.cpp
     src/methods/keyvalueget.cpp
     src/methods/keyvalueset.cpp
+    src/methods/mmdblookup.cpp
     src/methods/plugins/pluginsadd.cpp
     src/methods/plugins/pluginsget.cpp
     src/methods/plugins/pluginslist.cpp
@@ -157,6 +160,7 @@ target_include_directories(
     ${PROJECT_NAME}_core
     PUBLIC
     ${ANTLR4_INCLUDE_DIRS}
+    ${MAXMINDDB_INCLUDE_DIRS}
     vendor/croncpp/include
     vendor/jwt-cpp/include
     vendor/nlohmann-json/include
@@ -168,6 +172,7 @@ target_link_libraries(
     ${PROJECT_NAME}_core
 
     ${ANTLR4_LIBRARIES}
+    ${MAXMINDDB_LIBRARIES}
 
     Boost::boost Boost::log Boost::program_options
     CURL::libcurl

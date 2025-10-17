@@ -8,6 +8,7 @@
 #include "ltinfohash.hpp"
 #include "ltpeerinfo.hpp"
 #include "ltsettingspack.hpp"
+#include "mmdblookup.hpp"
 #include "pluginsget.hpp"
 #include "pluginsadd.hpp"
 #include "pluginslist.hpp"

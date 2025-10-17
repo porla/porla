@@ -98,6 +98,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     }
     if (auto val = std::getenv("PORLA_HTTP_WEBUI_FILE"))       cfg->http_webui_file       = val;
     if (auto val = std::getenv("PORLA_HTTP_WEBUI_REPOSITORY")) cfg->http_webui_repository = val;
+    if (auto val = std::getenv("PORLA_MMDB_FILE"))             cfg->mmdb_file             = val;
     if (auto val = std::getenv("PORLA_SECRET_KEY"))            cfg->secret_key            = val;
     if (auto val = std::getenv("PORLA_STATE_DIR"))             cfg->state_dir             = val;
 
@@ -355,6 +356,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     {
         cfg->http_webui_repository = cmd["http-webui-repository"].as<std::string>();
     }
+    if (cmd.count("mmdb-file"))             cfg->mmdb_file             = cmd["mmdb-file"].as<std::string>();
     if (cmd.count("secret-key"))            cfg->secret_key            = cmd["secret-key"].as<std::string>();
     if (cmd.count("session-settings-base"))
     {

@@ -13,6 +13,8 @@ RUN apk add --no-cache \
     boost1.84-static \
     ccache \
     cmake \
+    libmaxminddb-dev \
+    libmaxminddb-static \
     linux-headers \
     ninja \
     openssl-dev \

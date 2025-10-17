@@ -3,6 +3,7 @@
 #include <boost/version.hpp>
 #include <curl/curl.h>
 #include <libtorrent/version.hpp>
+#include <maxminddb.h>
 #include <openssl/opensslv.h>
 #include <sqlite3.h>
 #include <toml++/toml.hpp>
@@ -47,6 +48,9 @@ void SysVersions::Invoke(const json &req, WriteCb<std::map<std::string, std::str
         }},
         {"libzip", {
             {"version", zip_libzip_version()}
+        }},
+        {"maxminddb", {
+            {"version", MMDB_lib_version()}
         }},
         {"nlohmann_json", {
             {"version", nljson.str()}

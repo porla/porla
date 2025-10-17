@@ -27,6 +27,7 @@
 #include "methods/fsspace.hpp"
 #include "methods/keyvalueget.hpp"
 #include "methods/keyvalueset.hpp"
+#include "methods/mmdblookup.hpp"
 #include "methods/plugins/pluginsget.hpp"
 #include "methods/plugins/pluginsadd.hpp"
 #include "methods/plugins/pluginslist.hpp"
@@ -135,6 +136,7 @@ int main(int argc, char* argv[])
             {"fs.space", porla::Methods::FsSpace()},
             {"kv.get", porla::Methods::KeyValueGet(cfg->db)},
             {"kv.set", porla::Methods::KeyValueSet(cfg->db)},
+            {"mmdb.lookup", porla::Methods::MmdbLookup(cfg->mmdb_file)},
             {"plugins.add", porla::Methods::PluginsAdd(plugin_engine)},
             {"plugins.get", porla::Methods::PluginsGet(plugin_engine)},
             {"plugins.list", porla::Methods::PluginsList(plugin_engine)},

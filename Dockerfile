@@ -14,6 +14,8 @@ RUN apk add --no-cache \
     ccache \
     cmake \
     linux-headers \
+    libmaxminddb-dev \
+    libmaxminddb-static \
     ninja \
     openssl-dev \
     openssl-libs-static \

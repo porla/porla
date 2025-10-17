@@ -50,6 +50,7 @@ namespace porla
         std::optional<bool>                      http_webui_enabled;
         std::optional<fs::path>                  http_webui_file;
         std::optional<std::string>               http_webui_repository;
+        std::optional<fs::path>                  mmdb_file;
         std::map<std::string, Preset>            presets;
         std::string                              secret_key;
         std::map<std::string, lt::settings_pack> sessions;
