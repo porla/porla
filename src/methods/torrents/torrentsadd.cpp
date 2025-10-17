@@ -16,6 +16,8 @@ using porla::Methods::TorrentsAddReq;
 
 static void ApplyPreset(lt::add_torrent_params& p, const porla::Data::Models::Presets::Preset& preset)
 {
+    BOOST_LOG_TRIVIAL(debug) << "Applying preset " << preset.name;
+
     if (preset.download_limit.has_value())  p.download_limit  = preset.download_limit.value();
     if (preset.max_connections.has_value()) p.max_connections = preset.max_connections.value();
     if (preset.max_uploads.has_value())     p.max_uploads     = preset.max_uploads.value();
@@ -39,34 +41,59 @@ TorrentsAdd::TorrentsAdd(sqlite3* db, porla::Sessions& sessions)
 
 void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
 {
+    if (!req.magnet_uri.has_value() && !req.ti.has_value())
+    {
+        return cb.Error(-3, "Either 'ti' or 'magnet_uri' must be set");
+    }
+
     // Which session should we add this torrent to?
     // - If we have a session_id, use that
     // - If we have a preset_id, and that preset has a session_id, use that
     // - If there is a default preset, and that preset has a session_id, use that
     // - If nothing, use the default
 
+    const auto& default_preset = Data::Models::Presets::GetByName(m_db, "default");
+
     const auto& preset = req.preset_id.has_value()
         ? Data::Models::Presets::GetById(m_db, req.preset_id.value())
-        : Data::Models::Presets::GetByName(m_db, "default");
+        : default_preset;
 
-    const auto& state = req.session_id.has_value()
+    const auto& session_state = req.session_id.has_value()
         ? m_sessions.Get(req.session_id.value())
         : preset.has_value() && preset->session_id.has_value()
             ? m_sessions.Get(preset->session_id.value())
-            : m_sessions.Default();
+            : default_preset.has_value() && default_preset->session_id.has_value()
+                ? m_sessions.Get(default_preset->session_id.value())
+                : m_sessions.Default();
 
-    if (state == nullptr)
+    if (session_state == nullptr)
     {
-        return cb.Error(-10, "Session not found");
+        const json error_details = {
+            "session_id", req.session_id.has_value()
+                ? json(req.session_id.value())
+                : preset.has_value() && preset->session_id.has_value()
+                    ? json(preset->session_id.value())
+                    : default_preset.has_value() && default_preset->session_id.has_value()
+                        ? json(default_preset->session_id.value())
+                        : json(-1)
+        };
+
+        return cb.Error(-1, "Session not found", error_details);
     }
 
     lt::add_torrent_params p;
     p.userdata = lt::client_data_t(new TorrentClientData());
-    p.userdata.get<TorrentClientData>()->state = state;
+    p.userdata.get<TorrentClientData>()->state = session_state;
 
-    if (preset.has_value())
+    if (default_preset.has_value())
     {
-        BOOST_LOG_TRIVIAL(debug) << "Applying default preset";
+        ApplyPreset(p, default_preset.value());
+    }
+
+    // Apply the user-specified preset unless it is also the default preset, which has
+    // already been applied above.
+    if (preset.has_value() && (!default_preset.has_value() || preset->id != default_preset->id))
+    {
         ApplyPreset(p, preset.value());
     }
 
@@ -80,23 +107,20 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
         if (ec)
         {
             BOOST_LOG_TRIVIAL(error) << "Failed to decode torrent file: " << ec.message();
-            return cb.Error(-1, "Failed to bdecode 'ti' parameter");
+            return cb.Error(-10, "Failed to bdecode 'ti' parameter");
         }
 
         p.ti = std::make_shared<lt::torrent_info>(node, ec);
 
         if (ec)
         {
-            BOOST_LOG_TRIVIAL(error) << "Failed to parse torrent file to info: " << ec.message();
-            return cb.Error(-2, "Failed to parse torrent_info from bdecoded data");
+            BOOST_LOG_TRIVIAL(error) << "Failed to parse torrent file to torrent info: " << ec.message();
+            return cb.Error(-11, "Failed to parse torrent_info from bdecoded data");
         }
 
-        for (const auto& [ name, s ]: m_sessions.All())
+        if (session_state->torrents.find(p.ti->info_hashes()) != session_state->torrents.end())
         {
-            if (s->torrents.find(p.ti->info_hashes()) != s->torrents.end())
-            {
-                return cb.Error(-3, "Torrent already in session '" + name + "'");
-            }
+            return cb.Error(-6, "Torrent already in session");
         }
     }
     else if (req.magnet_uri.has_value())
@@ -107,15 +131,12 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
         if (ec)
         {
             BOOST_LOG_TRIVIAL(error) << "Failed to parse magnet uri: " << ec.message();
-            return cb.Error(-3, "Could not parse 'magnet_uri' param");
+            return cb.Error(-20, "Could not parse 'magnet_uri' param");
         }
 
-        for (const auto& [ name, s ]: m_sessions.All())
+        if (session_state->torrents.find(p.info_hashes) != session_state->torrents.end())
         {
-            if (s->torrents.find(p.info_hashes) != s->torrents.end())
-            {
-                return cb.Error(-3, "Torrent already in session '" + name + "'");
-            }
+            return cb.Error(-6, "Torrent already in session");
         }
     }
 
@@ -141,30 +162,30 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
 
     if (p.save_path.empty())
     {
-        return cb.Error(-4, "'save_path' missing");
+        return cb.Error(-2, "'save_path' missing");
     }
 
     if (!p.ti && p.info_hashes == lt::info_hash_t())
     {
-        return cb.Error(-4, "Either 'ti' or 'magnet_uri' must be set");
+        return cb.Error(-3, "Either 'ti' or 'magnet_uri' must be set");
     }
 
     lt::info_hash_t hash;
 
     try
     {
-        state->session->async_add_torrent(p);
+        session_state->session->async_add_torrent(p);
         hash = p.ti ? p.ti->info_hashes() : p.info_hashes;
     }
     catch (const std::exception& ex)
     {
         BOOST_LOG_TRIVIAL(error) << "Failed to add torrent to session: " << ex.what();
-        return cb.Error(-5, "Failed to add torrent to session");
+        return cb.Error(-4, "Failed to add torrent to session", {"what", ex.what()});
     }
 
     if (hash == lt::info_hash_t())
     {
-        return cb.Error(-4, "Failed to add torrent");
+        return cb.Error(-5, "Failed to add torrent");
     }
 
     cb.Ok(TorrentsAddRes{

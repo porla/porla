@@ -119,75 +119,20 @@ std::shared_ptr<Sessions::SessionState> Sessions::Get(const int id)
 
 void Sessions::LoadAll()
 {
-    std::vector<Data::Models::Sessions::Session> items;
+    std::vector<int> session_ids;
 
     Data::Models::Sessions::ForEach(
         m_options.db,
-        [&items](const Data::Models::Sessions::Session& s)
+        [&session_ids](const Data::Models::Sessions::Session& s)
         {
-            items.push_back(s);
+            session_ids.push_back(s.id);
         });
 
-    BOOST_LOG_TRIVIAL(info) << "Loading " << items.size() << " sessions";
+    BOOST_LOG_TRIVIAL(info) << "Loading " << session_ids.size() << " sessions";
 
-    for (const auto& session : items)
+    for (const auto& session_id : session_ids)
     {
-        if (m_sessions.contains(session.name))
-        {
-            BOOST_LOG_TRIVIAL(warning) << "Session " << session.name << " already loaded";
-            continue;
-        }
-
-        auto state = std::make_shared<SessionState>();
-        state->id   = session.id;
-        state->name = session.name;
-        state->session = std::make_unique<lt::session>(std::move(session.params));
-        state->session->add_extension(&lt::create_ut_metadata_plugin);
-        state->session->add_extension(&lt::create_ut_pex_plugin);
-        state->session->add_extension(&lt::create_smart_ban_plugin);
-        state->torrents = {};
-
-        state->session->set_alert_notify(
-            [this, state]()
-            {
-                boost::asio::post(m_options.io, [this, state] { ReadAlerts(state); });
-            });
-
-        state->m_timers.emplace_back(m_options.io, session.timer_dht_stats, [this, state] { PostDhtStats(state); });
-        state->m_timers.emplace_back(m_options.io, session.timer_save_state, [this, state] { SaveState(state); });
-        state->m_timers.emplace_back(m_options.io, session.timer_session_stats, [this, state] { PostSessionStats(state); });
-        state->m_timers.emplace_back(m_options.io, session.timer_torrent_updates, [this, state] { PostTorrentUpdates(state); });
-
-        int count = AddTorrentParams::Count(m_options.db, session.name);
-        int current = 0;
-
-        BOOST_LOG_TRIVIAL(info) << "Loading " << count << " torrent(s) from storage";
-
-        AddTorrentParams::ForEach(
-            m_options.db,
-            state->name,
-            [&count, &current, state](lt::add_torrent_params& params)
-            {
-                current++;
-
-                params.userdata.get<TorrentClientData>()->ignore_alert = true;
-                params.userdata.get<TorrentClientData>()->state = state;
-
-                lt::torrent_handle th = state->session->add_torrent(params);
-                state->torrents.insert({ th.info_hashes(), std::make_pair(th, th.status()) });
-
-                if (current % 1000 == 0 && current != count)
-                {
-                    BOOST_LOG_TRIVIAL(info) << current << " torrents (of " << count << ") added";
-                }
-            });
-
-        if (count > 0)
-        {
-            BOOST_LOG_TRIVIAL(info) << "Added " << current << " (of " << count << ") torrent(s) to session";
-        }
-
-        m_sessions.insert({ session.name, state });
+        LoadById(session_id);
     }
 }
 
@@ -223,6 +168,11 @@ void Sessions::LoadById(int id)
         {
             boost::asio::post(m_options.io, [this, state] { ReadAlerts(state); });
         });
+
+    state->m_timers.emplace_back(m_options.io, session.timer_dht_stats, [this, state] { PostDhtStats(state); });
+    state->m_timers.emplace_back(m_options.io, session.timer_save_state, [this, state] { SaveState(state); });
+    state->m_timers.emplace_back(m_options.io, session.timer_session_stats, [this, state] { PostSessionStats(state); });
+    state->m_timers.emplace_back(m_options.io, session.timer_torrent_updates, [this, state] { PostTorrentUpdates(state); });
 
     int count = AddTorrentParams::Count(m_options.db, session.name);
     int current = 0;
