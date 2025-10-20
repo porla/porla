@@ -1,10 +1,12 @@
 #pragma once
 
+#include <map>
 #include <optional>
 #include <string>
 
 #include <libtorrent/session_params.hpp>
 #include <libtorrent/settings_pack.hpp>
+#include <nlohmann/json.hpp>
 #include <sqlite3.h>
 
 namespace porla::Data::Models
@@ -14,13 +16,14 @@ namespace porla::Data::Models
     public:
         struct Session
         {
-            int                        id;
-            std::string                name;
-            libtorrent::session_params params;
-            int                        timer_dht_stats;
-            int                        timer_save_state;
-            int                        timer_session_stats;
-            int                        timer_torrent_updates;
+            int                                   id;
+            std::string                           name;
+            std::map<std::string, nlohmann::json> metadata;
+            libtorrent::session_params            params;
+            int                                   timer_dht_stats;
+            int                                   timer_save_state;
+            int                                   timer_session_stats;
+            int                                   timer_torrent_updates;
         };
 
         static void ForEach(sqlite3* db, const std::function<void(const Session&)>& cb);

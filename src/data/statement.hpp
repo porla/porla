@@ -16,9 +16,12 @@ namespace porla::Data
         {
         public:
             virtual std::vector<char> GetBuffer(int index) const = 0;
+            virtual std::vector<char> GetBuffer(const std::string& col) const = 0;
             virtual int GetInt32(int index) const = 0;
+            virtual int GetInt32(const std::string& col) const = 0;
             virtual std::optional<int> GetOptionalInt32(int index) const = 0;
             virtual std::string GetStdString(int index) const = 0;
+            virtual std::string GetStdString(const std::string& col) const = 0;
             virtual std::optional<std::string> GetOptionalStdString(int index) const = 0;
         };
 

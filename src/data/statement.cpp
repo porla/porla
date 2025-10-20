@@ -1,5 +1,7 @@
 #include "statement.hpp"
 
+#include <map>
+
 #include <boost/log/trivial.hpp>
 
 using porla::Data::Statement;
@@ -7,14 +9,20 @@ using porla::Data::Statement;
 class InternalRow : public Statement::IRow
 {
 public:
-    explicit InternalRow(sqlite3_stmt* stmt)
+    explicit InternalRow(sqlite3_stmt* stmt, const std::map<std::string, int>& cols)
         : m_stmt(stmt)
+        , m_cols(cols)
     {
     }
 
     [[nodiscard]] int GetInt32(int pos) const override
     {
         return sqlite3_column_int(m_stmt, pos);
+    }
+
+    [[nodiscard]] int GetInt32(const std::string& col) const override
+    {
+        return GetInt32(m_cols.at(col));
     }
 
     [[nodiscard]] std::optional<int> GetOptionalInt32(int pos) const override
@@ -28,6 +36,11 @@ public:
         int len = sqlite3_column_bytes(m_stmt, pos);
         const char* buf = static_cast<const char*>(sqlite3_column_blob(m_stmt, pos));
         return {buf, buf + len};
+    }
+
+    [[nodiscard]] std::vector<char> GetBuffer(const std::string& col) const override
+    {
+        return GetBuffer(m_cols.at(col));
     }
 
     [[nodiscard]] std::string GetStdString(int pos) const override
@@ -46,6 +59,11 @@ public:
             static_cast<std::size_t>(bytes));
     }
 
+    [[nodiscard]] std::string GetStdString(const std::string& col) const override
+    {
+        return GetStdString(m_cols.at(col));
+    }
+
     [[nodiscard]] std::optional<std::string> GetOptionalStdString(int pos) const override
     {
         if (sqlite3_column_type(m_stmt, pos) == SQLITE_NULL) return std::nullopt;
@@ -54,6 +72,7 @@ public:
 
 private:
     sqlite3_stmt* m_stmt;
+    const std::map<std::string, int>& m_cols;
 };
 
 Statement::Statement(sqlite3_stmt *stmt)
@@ -161,6 +180,13 @@ void Statement::Execute()
 
 void Statement::Step(const std::function<int(const Statement::IRow&)>& cb)
 {
+    std::map<std::string, int> cols;
+
+    for (int i = 0; i < sqlite3_column_count(m_stmt); i++)
+    {
+        cols.insert({ sqlite3_column_name(m_stmt, i), i });
+    }
+
     do
     {
         switch (int res = sqlite3_step(m_stmt))
@@ -169,7 +195,7 @@ void Statement::Step(const std::function<int(const Statement::IRow&)>& cb)
             return;
         case SQLITE_ROW:
         {
-            InternalRow r(m_stmt);
+            InternalRow r(m_stmt, cols);
             cb(r);
             break;
         }

@@ -18,20 +18,35 @@ using porla::Utils::LibtorrentSettingsPack;
 
 namespace lt = libtorrent;
 
+const std::string SessionsSelectPrefix = R"sql(
+    SELECT
+        id,
+        name,
+        metadata,
+        params,
+        settings,
+        timer_dht_stats,
+        timer_save_state,
+        timer_session_stats,
+        timer_torrent_updates
+    FROM sessions
+)sql";
+
 static std::optional<Sessions::Session> LoadSessionFromRow(const Statement::IRow& row)
 {
-    std::vector<char> settings_buffer = row.GetBuffer(2);
+    std::vector<char> metadata_buffer = row.GetBuffer("metadata");
+    std::vector<char> settings_buffer = row.GetBuffer("settings");
 
     lt::error_code ec;
     lt::bdecode_node node = lt::bdecode(settings_buffer, ec);
 
     if (ec)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to bdecode settings for session " << row.GetStdString(0) << ": " << ec.message();
+        BOOST_LOG_TRIVIAL(error) << "Failed to bdecode settings for session " << row.GetStdString("name") << ": " << ec.message();
         return std::nullopt;
     }
 
-    std::vector<char> params_buffer = row.GetBuffer(1);
+    std::vector<char> params_buffer = row.GetBuffer("params");
     lt::session_params params = params_buffer.size() > 0
         ? lt::read_session_params(params_buffer, lt::session::save_dht_state)
         : lt::session_params();
@@ -40,19 +55,22 @@ static std::optional<Sessions::Session> LoadSessionFromRow(const Statement::IRow
     LibtorrentSettingsPack::UpdateStatic(params.settings);
 
     return Sessions::Session{
-        .id                    = row.GetInt32(3),
-        .name                  = row.GetStdString(0),
+        .id                    = row.GetInt32("id"),
+        .name                  = row.GetStdString("name"),
+        .metadata              = metadata_buffer.empty()
+                                     ? std::map<std::string, nlohmann::json>()
+                                     : nlohmann::json::parse(metadata_buffer).get<std::map<std::string, nlohmann::json>>(),
         .params                = params,
-        .timer_dht_stats       = row.GetInt32(4),
-        .timer_save_state      = row.GetInt32(5),
-        .timer_session_stats   = row.GetInt32(6),
-        .timer_torrent_updates = row.GetInt32(7)
+        .timer_dht_stats       = row.GetInt32("timer_dht_stats"),
+        .timer_save_state      = row.GetInt32("timer_save_state"),
+        .timer_session_stats   = row.GetInt32("timer_session_stats"),
+        .timer_torrent_updates = row.GetInt32("timer_torrent_updates")
     };
 }
 
 void Sessions::ForEach(sqlite3 *db, const std::function<void(const Sessions::Session&)>& cb)
 {
-    auto stmt = Statement::Prepare(db, "SELECT name,params,settings,id,timer_dht_stats,timer_save_state,timer_session_stats,timer_torrent_updates FROM sessions");
+    auto stmt = Statement::Prepare(db, SessionsSelectPrefix + " ORDER BY name ASC");
     stmt.Step(
         [&cb](const Statement::IRow& row)
         {
@@ -71,7 +89,7 @@ std::optional<Sessions::Session> Sessions::GetById(sqlite3* db, int id)
 {
     std::optional<Sessions::Session> session;
 
-    Statement::Prepare(db, "SELECT name,params,settings,id,timer_dht_stats,timer_save_state,timer_session_stats,timer_torrent_updates FROM sessions WHERE id = $1")
+    Statement::Prepare(db, SessionsSelectPrefix + " WHERE id = $1")
         .Bind(1, id)
         .Step(
             [&session](auto const& row)
@@ -87,7 +105,7 @@ std::optional<Sessions::Session> Sessions::GetByName(sqlite3* db, const std::str
 {
     std::optional<Sessions::Session> session;
 
-    Statement::Prepare(db, "SELECT name,params,settings,id,timer_dht_stats,timer_save_state,timer_session_stats,timer_torrent_updates FROM sessions WHERE name = $1")
+    Statement::Prepare(db, SessionsSelectPrefix + " WHERE name = $1")
         .Bind(1, std::string_view(name))
         .Step(
             [&session](auto const& row)

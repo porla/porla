@@ -22,6 +22,7 @@ int Sessions::Migrate(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
         "CREATE TABLE sessions ("
         "id INTEGER PRIMARY KEY,"
         "name TEXT NOT NULL UNIQUE,"
+        "metadata BLOB NULL,"
         "params BLOB NULL,"
         "settings BLOB NOT NULL,"
         "timer_dht_stats INTEGER NOT NULL DEFAULT 5000,"
