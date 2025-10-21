@@ -20,9 +20,7 @@ void SessionsList::Invoke(const SessionsListReq& req, WriteCb<SessionsListRes> c
         session_items.push_back(SessionsListRes::Item{
             .id             = state->id,
             .name           = state->name,
-            .is_dht_running = state->session->is_dht_running(),
-            .is_listening   = state->session->is_listening(),
-            .is_paused      = state->session->is_paused(),
+            .metadata       = state->metadata,
             .torrents_total = static_cast<int>(state->torrents.size())
         });
     }

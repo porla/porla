@@ -7,13 +7,17 @@
 
 namespace porla::Methods::Torrents
 {
-    static void from_json(const nlohmann::json& j, TorrentsOverviewReq& res)
-    {
-    }
+    NLOHMANN_JSONIFY_ALL_THINGS(
+        TorrentsOverviewReq,
+        filters)
 
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsOverviewSession,
+        session_id,
+        session_name,
+        torrents_errors,
         torrents_per_category,
+        torrents_per_flags,
         torrents_per_state,
         torrents_per_tag,
         torrents_per_tracker,

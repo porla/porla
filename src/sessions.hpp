@@ -9,6 +9,7 @@
 #include <boost/signals2.hpp>
 #include <libtorrent/session.hpp>
 #include <libtorrent/settings_pack.hpp>
+#include <nlohmann/json.hpp>
 #include <sqlite3.h>
 
 #include "timer.hpp"
@@ -36,6 +37,7 @@ namespace porla
 
             int                                                                           id;
             std::string                                                                   name;
+            std::map<std::string, nlohmann::json>                                         metadata;
             std::unique_ptr<lt::session>                                                  session;
             std::filesystem::path                                                         session_params_file;
             std::map<lt::info_hash_t, std::tuple<lt::torrent_handle, lt::torrent_status>> torrents;

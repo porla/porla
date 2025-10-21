@@ -15,9 +15,7 @@ namespace porla::Methods
         SessionsListRes::Item,
         id,
         name,
-        is_dht_running,
-        is_listening,
-        is_paused,
+        metadata,
         torrents_total)
 
     NLOHMANN_JSONIFY_ALL_THINGS(

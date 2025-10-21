@@ -13,12 +13,10 @@ namespace porla::Methods
     {
         struct Item
         {
-            int         id;
-            std::string name;
-            bool        is_dht_running;
-            bool        is_listening;
-            bool        is_paused;
-            int         torrents_total;
+            int                                                  id;
+            std::string                                          name;
+            std::optional<std::map<std::string, nlohmann::json>> metadata;
+            int                                                  torrents_total;
         };
 
         std::vector<Item> sessions;

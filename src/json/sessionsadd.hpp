@@ -10,6 +10,7 @@ namespace porla::Methods::Sessions
     NLOHMANN_JSONIFY_ALL_THINGS(
         SessionsAddReq,
         name,
+        metadata,
         settings,
         settings_base)
 

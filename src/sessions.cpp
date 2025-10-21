@@ -157,6 +157,7 @@ void Sessions::LoadById(int id)
     auto state = std::make_shared<SessionState>();
     state->id   = session.id;
     state->name = session.name;
+    state->metadata = session.metadata;
     state->session = std::make_unique<lt::session>(std::move(session.params));
     state->session->add_extension(&lt::create_ut_metadata_plugin);
     state->session->add_extension(&lt::create_ut_pex_plugin);
