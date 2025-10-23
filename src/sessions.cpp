@@ -92,29 +92,34 @@ Sessions::~Sessions()
     BOOST_LOG_TRIVIAL(info) << "All state saved";
 }
 
-std::map<std::string, std::shared_ptr<Sessions::SessionState>>& Sessions::All()
+std::map<int, std::shared_ptr<Sessions::SessionState>>& Sessions::All()
 {
     return m_sessions;
 }
 
 std::shared_ptr<Sessions::SessionState> Sessions::Default()
 {
-    return m_sessions.at("default");
-}
-
-std::shared_ptr<Sessions::SessionState> Sessions::Get(const int id)
-{
     auto session = std::find_if(
         m_sessions.begin(),
         m_sessions.end(),
-        [&id](const std::pair<std::string, std::shared_ptr<Sessions::SessionState>>& s)
+        [](const auto& s)
         {
-            return s.second->id == id;
+            return s.second->name == "default";
         });
 
     return session == m_sessions.end()
         ? nullptr
         : session->second;
+}
+
+std::shared_ptr<Sessions::SessionState> Sessions::Get(const int id)
+{
+    if (m_sessions.contains(id))
+    {
+        return m_sessions.at(id);
+    }
+
+    return nullptr;
 }
 
 void Sessions::LoadAll()
@@ -148,7 +153,7 @@ void Sessions::LoadById(int id)
 
     auto session = s.value();
 
-    if (m_sessions.contains(session.name))
+    if (m_sessions.contains(session.id))
     {
         BOOST_LOG_TRIVIAL(warning) << "Session " << session.name << " already loaded";
         return;
@@ -204,25 +209,19 @@ void Sessions::LoadById(int id)
         BOOST_LOG_TRIVIAL(info) << "Added " << current << " (of " << count << ") torrent(s) to session";
     }
 
-    m_sessions.insert({ session.name, state });
+    m_sessions.insert({ state->id, state });
 }
 
 void Sessions::UnloadById(int id)
 {
-    auto state = std::find_if(
-        m_sessions.begin(),
-        m_sessions.end(),
-        [&id](const std::pair<std::string, std::shared_ptr<Sessions::SessionState>>& state)
-        {
-            return state.second->id == id;
-        });
-
-    if (state != m_sessions.end())
+    if (!m_sessions.contains(id))
     {
-        UnloadSession(state->second);
+        return;
     }
+    
+    UnloadSession(m_sessions.at(id));
 
-    m_sessions.erase(state->second->name);
+    m_sessions.erase(id);
 }
 
 void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)

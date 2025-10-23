@@ -48,7 +48,8 @@ namespace porla::Methods
             double                          ratio;
             std::string                     save_path;
             std::int64_t                    seeding_duration;
-            std::string                     session;
+            int                             session_id;
+            std::string                     session_name;
             std::int64_t                    size;
             int                             state;
             std::unordered_set<std::string> tags;

@@ -58,7 +58,7 @@ namespace porla
         explicit Sessions(const SessionsOptions& options);
         ~Sessions();
 
-        std::map<std::string, std::shared_ptr<SessionState>>& All();
+        std::map<int, std::shared_ptr<SessionState>>& All();
         std::shared_ptr<SessionState> Default();
         std::shared_ptr<SessionState> Get(const int id);
 
@@ -122,7 +122,7 @@ namespace porla
         void UnloadSession(const std::shared_ptr<SessionState>& state);
 
         SessionsOptions m_options;
-        std::map<std::string, std::shared_ptr<SessionState>> m_sessions;
+        std::map<int, std::shared_ptr<SessionState>> m_sessions;
 
         SessionStatsSignal m_session_stats;
         TorrentStatusListSignal m_state_update;

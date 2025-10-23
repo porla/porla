@@ -17,7 +17,7 @@ using porla::Utils::LibtorrentSettingsPack;
 class SessionsIter
 {
 public:
-    explicit SessionsIter(std::map<std::string, std::shared_ptr<porla::Sessions::SessionState>>::const_iterator begin)
+    explicit SessionsIter(std::map<int, std::shared_ptr<porla::Sessions::SessionState>>::const_iterator begin)
         : m_iter(begin)
     {
     }
@@ -35,7 +35,7 @@ public:
     }
 
 private:
-    std::map<std::string, std::shared_ptr<porla::Sessions::SessionState>>::const_iterator m_iter;
+    std::map<int, std::shared_ptr<porla::Sessions::SessionState>>::const_iterator m_iter;
 };
 
 class TorrentsIter
@@ -227,7 +227,13 @@ void Sessions::Register(sol::state& lua)
             sol::state_view lua{s};
             const auto options = lua.globals()["__load_opts"].get<const PluginLoadOptions&>();
             const auto& sessions = options.sessions.All();
-            const auto& session = sessions.find(name);
+            const auto& session = std::find_if(
+                sessions.begin(),
+                sessions.end(),
+                [&name](const auto& iter)
+                {
+                    return iter.second->name == name;
+                });
 
             return session == sessions.end()
                 ? nullptr
