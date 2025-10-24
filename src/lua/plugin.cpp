@@ -3,8 +3,12 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/log/trivial.hpp>
 #include <sol/sol.hpp>
+#include <sqlite3.h>
 
 #include "packages.hpp"
+#include "registry.hpp"
+
+#include "../config.hpp"
 #include "../zip.hpp"
 
 namespace fs = std::filesystem;
@@ -33,6 +37,7 @@ static sol::state CreateLuaState(const PluginLoadOptions& opts)
 
     lua.globals()["__load_opts"] = opts;
     lua.globals()["porla"]       = lua.create_table();
+    lua.registry()["db"]         = porla::Lua::Registry::Sqlite3{.db = opts.config.db};
 
     porla::Lua::Packages::Config::Register(lua);
     porla::Lua::Packages::Cron::Register(lua);
