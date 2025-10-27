@@ -20,7 +20,7 @@ struct Plugin::State
     std::map<std::string, std::vector<char>> files;
     PluginLoadOptions                        load_options;
     sol::state                               lua;
-    std::optional<Plugin::Manifest>          manifest;
+    std::optional<Plugin::Meta>              meta;
 };
 
 static sol::state CreateLuaState(const PluginLoadOptions& opts)
@@ -67,27 +67,8 @@ std::unique_ptr<Plugin> Plugin::LoadFromArchive(
         .files        = Zip::Load(buffer),
         .load_options = opts,
         .lua          = CreateLuaState(opts),
-        .manifest     = std::nullopt
+        .meta         = std::nullopt
     });
-
-    if (state->files.find("manifest.toml") != state->files.end())
-    {
-        const toml::table manifest_toml = toml::parse(
-            std::string(
-                state->files.at("manifest.toml").begin(),
-                state->files.at("manifest.toml").end()));
-
-        state->manifest = Plugin::Manifest{
-            .name    = std::nullopt,
-            .version = std::nullopt
-        };
-
-        if (auto val = manifest_toml["plugin"]["name"].value<std::string>())
-            state->manifest->name = *val;
-
-        if (auto val = manifest_toml["plugin"]["version"].value<std::string>())
-            state->manifest->version = *val;
-    }
 
     try
     {
@@ -123,32 +104,29 @@ std::unique_ptr<Plugin> Plugin::LoadFromPath(
         .files        = {},
         .load_options = opts,
         .lua          = CreateLuaState(opts),
-        .manifest     = std::nullopt
+        .meta         = std::nullopt
     });
-
-    const auto manifest_toml_path = path / "manifest.toml";
-
-    if (fs::exists(manifest_toml_path))
-    {
-        std::ifstream manifest_toml_data(manifest_toml_path, std::ios::binary);
-        const toml::table manifest_toml = toml::parse(manifest_toml_data);
-
-        state->manifest = Plugin::Manifest{
-            .name    = std::nullopt,
-            .version = std::nullopt
-        };
-
-        if (auto val = manifest_toml["plugin"]["name"].value<std::string>())
-            state->manifest->name = *val;
-
-        if (auto val = manifest_toml["plugin"]["version"].value<std::string>())
-            state->manifest->version = *val;
-    }
 
     try
     {
         const fs::path plugin_lua = path / "plugin.lua";
         state->lua.script_file(plugin_lua.string());
+
+        std::optional<sol::table> plugin_meta = state->lua["plugin"];
+
+        if (plugin_meta)
+        {
+            state->meta = Plugin::Meta{
+                .name    = std::nullopt,
+                .version = std::nullopt
+            };
+
+            if (plugin_meta.value()["name"].is<std::string>())
+                state->meta->name = plugin_meta.value()["name"];
+
+            if (plugin_meta.value()["version"].is<std::string>())
+                state->meta->version = plugin_meta.value()["version"];
+        }
 
         if (state->lua.globals()["porla"]["init"].is<sol::function>())
         {
@@ -181,7 +159,7 @@ Plugin::~Plugin()
     }
 }
 
-std::optional<Plugin::Manifest> Plugin::GetManifest()
+std::optional<Plugin::Meta> Plugin::GetMeta()
 {
-    return m_state->manifest;
+    return m_state->meta;
 }

@@ -25,13 +25,13 @@ void PluginsGet::Invoke(const PluginsGetReq& req, WriteCb<PluginsGetRes> cb)
         return cb.Error(-1, "Plugin not found");
     }
 
-    const auto manifest = plugin_state->second.plugin->GetManifest();
+    const auto meta = plugin_state->second.plugin->GetMeta();
 
     return cb.Ok(PluginsGetRes{
         .id       = req.id,
         .type     = "",
-        .name     = manifest.has_value() ? manifest->name    : std::nullopt,
-        .version  = manifest.has_value() ? manifest->version : std::nullopt,
+        .name     = meta.has_value() ? meta->name    : std::nullopt,
+        .version  = meta.has_value() ? meta->version : std::nullopt,
         .config   = plugin_state->second.config,
         .metadata = plugin_state->second.metadata
     });

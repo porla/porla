@@ -26,7 +26,7 @@ namespace porla::Lua
     class Plugin
     {
     public:
-        struct Manifest
+        struct Meta
         {
             std::optional<std::string> name;
             std::optional<std::string> version;
@@ -42,7 +42,7 @@ namespace porla::Lua
             const std::optional<std::string>& config,
             const PluginLoadOptions& opts);
 
-        std::optional<Manifest> GetManifest();
+        std::optional<Meta> GetMeta();
 
         virtual ~Plugin();
 
