@@ -121,6 +121,8 @@ add_library(
     src/methods/sysversions.cpp
     src/methods/torrents/torrentsadd.cpp
     src/methods/torrents/torrentsfileslist.cpp
+    src/methods/torrents/torrentsfilesprogress.cpp
+    src/methods/torrents/torrentsget.cpp
     src/methods/torrents/torrentslist.cpp
     src/methods/torrents/torrentsmetadatalist.cpp
     src/methods/torrents/torrentsmove.cpp

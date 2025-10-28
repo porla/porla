@@ -33,8 +33,6 @@ void TorrentsFilesList::Invoke(const TorrentsFilesListReq& req, WriteCb<Torrents
 
     const auto& [ _, status ] = handle->second;
 
-    TorrentsFilesListRes res;
-
     if (auto tf = status.torrent_file.lock())
     {
         return cb.Ok(TorrentsFilesListRes{

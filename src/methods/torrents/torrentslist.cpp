@@ -10,7 +10,7 @@ using porla::Methods::TorrentsList;
 using porla::Methods::TorrentsListReq;
 using porla::Methods::TorrentsListRes;
 
-static const std::map<std::pair<std::string, bool>, std::function<bool(const TorrentsListRes::Item&, const TorrentsListRes::Item&)>> TorrentSort =
+static const std::map<std::pair<std::string, bool>, std::function<bool(const lt::torrent_status&, const lt::torrent_status&)>> TorrentSort =
 {
     {{"download_rate", false},  [](auto const& lhs, auto const& rhs) { return lhs.download_rate > rhs.download_rate; }},
     {{"download_rate", true},   [](auto const& lhs, auto const& rhs) { return lhs.download_rate < rhs.download_rate; }},
@@ -18,18 +18,22 @@ static const std::map<std::pair<std::string, bool>, std::function<bool(const Tor
         {"eta", false},
         [](auto const& lhs, auto const& rhs)
         {
-            if (lhs.eta < 0) return false;
-            if (rhs.eta < 0) return true;
-            return lhs.eta > rhs.eta;
+            const auto lhs_eta = porla::Utils::Ratio(lhs);
+            const auto rhs_eta = porla::Utils::Ratio(rhs);
+            if (lhs_eta < 0) return false;
+            if (rhs_eta < 0) return true;
+            return lhs_eta > rhs_eta;
         }
     },
     {
         {"eta", true},
         [](auto const& lhs, auto const& rhs)
         {
-            if (lhs.eta < 0) return false;
-            if (rhs.eta < 0) return true;
-            return lhs.eta < rhs.eta;
+            const auto lhs_eta = porla::Utils::Ratio(lhs);
+            const auto rhs_eta = porla::Utils::Ratio(rhs);
+            if (lhs_eta < 0) return false;
+            if (rhs_eta < 0) return true;
+            return lhs_eta < rhs_eta;
         }
     },
     {{"list_peers", false},     [](auto const& lhs, auto const& rhs) { return lhs.list_peers > rhs.list_peers; }},
@@ -62,12 +66,10 @@ static const std::map<std::pair<std::string, bool>, std::function<bool(const Tor
             return lhs.queue_position < rhs.queue_position;
         }
     },
-    {{"ratio", false},          [](auto const& lhs, auto const& rhs) { return lhs.ratio > rhs.ratio; }},
-    {{"ratio", true},           [](auto const& lhs, auto const& rhs) { return lhs.ratio < rhs.ratio; }},
+    {{"ratio", false},          [](auto const& lhs, auto const& rhs) { return porla::Utils::Ratio(lhs) > porla::Utils::Ratio(rhs); }},
+    {{"ratio", true},           [](auto const& lhs, auto const& rhs) { return porla::Utils::Ratio(lhs) < porla::Utils::Ratio(rhs); }},
     {{"save_path", false},      [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) > 0; }},
     {{"save_path", true},       [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) < 0; }},
-    {{"size", false},           [](auto const& lhs, auto const& rhs) { return lhs.size > rhs.size; }},
-    {{"size", true},            [](auto const& lhs, auto const& rhs) { return lhs.size < rhs.size; }},
     {{"total", false},          [](auto const& lhs, auto const& rhs) { return lhs.total > rhs.total; }},
     {{"total", true},           [](auto const& lhs, auto const& rhs) { return lhs.total < rhs.total; }},
     {{"total_done", false},     [](auto const& lhs, auto const& rhs) { return lhs.total_done > rhs.total_done; }},
@@ -81,7 +83,7 @@ static const auto MapTorrentItem = [](
         const std::shared_ptr<porla::Sessions::SessionState>& state,
         const std::optional<std::function<bool(const lt::torrent_status&)>>& filter_query,
         const std::tuple<lt::torrent_handle, lt::torrent_status>& pair,
-        std::vector<TorrentsListRes::Item>& t)
+        std::vector<lt::torrent_status>& t)
 {
     const auto& [ handle, ts ] = pair;
 
@@ -91,33 +93,6 @@ static const auto MapTorrentItem = [](
     }
 
     const auto client_data = handle.userdata().get<porla::TorrentClientData>();
-
-    std::map<std::string, json> metadata = {};
-    std::int64_t size                    = -1;
-
-    if (req.include_metadata.has_value())
-    {
-        const auto metadata_keys   = req.include_metadata.value();
-        const auto metadata_client = client_data->metadata.value_or(std::map<std::string, nlohmann::json>());
-
-        // Include metadata for all the keys specified. If ["*"], include everything.
-
-        if (metadata_keys.size() == 1 && metadata_keys.at(0) == "*")
-        {
-            metadata = metadata_client;
-        }
-        else
-        {
-            for (const auto& key : metadata_keys)
-            {
-                if (!metadata_client.contains(key)) continue;
-                metadata[key] = metadata_client.at(key);
-            }
-        }
-    }
-
-    if (auto ti = ts.torrent_file.lock())
-        size = ti->total_size();
 
     // Filter torrents here.
     bool filter_includes_torrent = true;
@@ -154,70 +129,7 @@ static const auto MapTorrentItem = [](
         return;
     }
 
-#define INSERT_FLAG(name) if ((ts.flags & lt::torrent_flags:: name) == lt::torrent_flags:: name) flags.emplace_back(#name);
-
-    std::vector<std::string> flags;
-    INSERT_FLAG(seed_mode)
-    INSERT_FLAG(upload_mode)
-    INSERT_FLAG(share_mode)
-    INSERT_FLAG(apply_ip_filter)
-    INSERT_FLAG(paused)
-    INSERT_FLAG(auto_managed)
-    INSERT_FLAG(duplicate_is_error)
-    INSERT_FLAG(update_subscribe)
-    INSERT_FLAG(super_seeding)
-    INSERT_FLAG(sequential_download)
-    INSERT_FLAG(stop_when_ready)
-    INSERT_FLAG(override_trackers)
-    INSERT_FLAG(override_web_seeds)
-    INSERT_FLAG(need_save_resume)
-    INSERT_FLAG(disable_dht)
-    INSERT_FLAG(disable_lsd)
-    INSERT_FLAG(disable_pex)
-    INSERT_FLAG(no_verify_files)
-    INSERT_FLAG(default_dont_download)
-    INSERT_FLAG(i2p_torrent)
-
-    t.emplace_back(TorrentsListRes::Item{
-        .active_duration   = ts.active_duration.count(),
-        .all_time_download = ts.all_time_download,
-        .all_time_upload   = ts.all_time_upload,
-        .category          = client_data->category,
-        .download_rate     = ts.download_rate,
-        .error             = ts.errc,
-        .eta               = porla::Utils::ETA(ts).count(),
-        .finished_duration = ts.finished_duration.count(),
-        .flags             = flags,
-        .info_hash         = ts.info_hashes,
-        .last_download     = ts.last_download.time_since_epoch().count() > 0
-            ? lt::total_seconds(lt::clock_type::now() - ts.last_download)
-            : -1,
-        .last_upload       = ts.last_upload.time_since_epoch().count() > 0
-            ? lt::total_seconds(lt::clock_type::now() - ts.last_upload)
-            : -1,
-        .list_peers        = ts.list_peers,
-        .list_seeds        = ts.list_seeds,
-        .metadata          = metadata,
-        .moving_storage    = ts.moving_storage,
-        .name              = ts.name,
-        .num_peers         = ts.num_peers,
-        .num_seeds         = ts.num_seeds,
-        .num_complete      = ts.num_complete,
-        .num_incomplete    = ts.num_incomplete,
-        .progress          = ts.progress,
-        .queue_position    = static_cast<int>(ts.queue_position),
-        .ratio             = porla::Utils::Ratio(ts),
-        .save_path         = ts.save_path,
-        .seeding_duration  = ts.seeding_duration.count(),
-        .session_id        = state->id,
-        .session_name      = state->name,
-        .size              = size,
-        .state             = ts.state,
-        .tags              = client_data->tags,
-        .total             = ts.total,
-        .total_done        = ts.total_done,
-        .upload_rate       = ts.upload_rate,
-    });
+    t.emplace_back(ts);
 };
 
 TorrentsList::TorrentsList(porla::Sessions& sessions)
@@ -273,7 +185,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             return current + state.second->torrents.size();
         });
 
-    std::vector<TorrentsListRes::Item> torrents;
+    std::vector<lt::torrent_status> torrents;
 
     if (filter_session_id.has_value())
     {

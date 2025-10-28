@@ -75,7 +75,7 @@ void AddTorrentParams::ForEach(sqlite3 *db, const std::string_view& session, con
                     return SQLITE_OK;
                 }
 
-                if (client_data_json.contains("category"))
+                if (client_data_json.contains("category") && client_data_json.at("category").is_string())
                 {
                     atp.userdata.get<TorrentClientData>()->category = client_data_json["category"];
                 }
