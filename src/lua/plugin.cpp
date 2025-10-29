@@ -112,7 +112,12 @@ std::unique_ptr<Plugin> Plugin::LoadFromPath(
         const fs::path plugin_lua = path / "plugin.lua";
         state->lua.script_file(plugin_lua.string());
 
-        std::optional<sol::table> plugin_meta = state->lua["plugin"];
+        std::optional<sol::table> plugin_meta;
+
+        if (state->lua["plugin"].is<sol::table>())
+        {
+            plugin_meta = state->lua["plugin"];
+        }
 
         if (plugin_meta)
         {
