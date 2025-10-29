@@ -40,12 +40,12 @@
 #include "methods/presets/presetsremove.hpp"
 #include "methods/presets/presetsupdate.hpp"
 #include "methods/sessions/sessionsadd.hpp"
+#include "methods/sessions/sessionsget.hpp"
 #include "methods/sessions/sessionslist.hpp"
 #include "methods/sessions/sessionspause.hpp"
 #include "methods/sessions/sessionsremove.hpp"
 #include "methods/sessions/sessionsresume.hpp"
-#include "methods/sessions/sessionssettingslist.hpp"
-#include "methods/sessions/sessionssettingsset.hpp"
+#include "methods/sessions/sessionsupdate.hpp"
 #include "methods/sysversions.hpp"
 #include "methods/torrents/torrentsadd.hpp"
 #include "methods/torrents/torrentsfileslist.hpp"
@@ -151,12 +151,12 @@ int main(int argc, char* argv[])
             {"presets.remove", porla::Methods::Presets::PresetsRemove(cfg->db)},
             {"presets.update", porla::Methods::Presets::PresetsUpdate(cfg->db)},
             {"sessions.add", porla::Methods::Sessions::SessionsAdd(cfg->db, sessions)},
+            {"sessions.get", porla::Methods::Sessions::SessionsGet(sessions)},
             {"sessions.list", porla::Methods::SessionsList(sessions)},
             {"sessions.pause", porla::Methods::SessionsPause(sessions)},
             {"sessions.remove", porla::Methods::Sessions::SessionsRemove(cfg->db, sessions)},
             {"sessions.resume", porla::Methods::SessionsResume(sessions)},
-            {"sessions.settings.list", porla::Methods::SessionsSettingsList(sessions)},
-            {"sessions.settings.set", porla::Methods::Sessions::SessionsSettingsSet(cfg->db, sessions)},
+            {"sessions.update", porla::Methods::Sessions::SessionsUpdate(cfg->db, sessions)},
             {"sys.versions", porla::Methods::SysVersions()},
             {"torrents.add", porla::Methods::TorrentsAdd(cfg->db, sessions)},
             {"torrents.files.list", porla::Methods::TorrentsFilesList(sessions)},

@@ -72,8 +72,6 @@ namespace porla::Methods
     struct SessionsPauseRes;
     struct SessionsResumeReq;
     struct SessionsResumeRes;
-    struct SessionsSettingsListReq;
-    struct SessionsSettingsListRes;
 
     struct TorrentsAddReq;
     struct TorrentsAddRes;
@@ -137,18 +135,22 @@ namespace porla::Methods
     {
         struct SessionsAddReq;
         struct SessionsAddRes;
+        struct SessionsGetReq;
+        struct SessionsGetRes;
         struct SessionsRemoveReq;
         struct SessionsRemoveRes;
-        struct SessionsSettingsSetReq;
-        struct SessionsSettingsSetRes;
+        struct SessionsUpdateReq;
+        struct SessionsUpdateRes;
 
         void from_json(const nlohmann::json& json, SessionsAddReq& req);
+        void from_json(const nlohmann::json& json, SessionsGetReq& req);
         void from_json(const nlohmann::json& json, SessionsRemoveReq& req);
-        void from_json(const nlohmann::json& json, SessionsSettingsSetReq& req);
+        void from_json(const nlohmann::json& json, SessionsUpdateReq& req);
 
         void to_json(nlohmann::json& json, const SessionsAddRes& res);
+        void to_json(nlohmann::json& json, const SessionsGetRes& res);
         void to_json(nlohmann::json& json, const SessionsRemoveRes& res);
-        void to_json(nlohmann::json& json, const SessionsSettingsSetRes& res);
+        void to_json(nlohmann::json& json, const SessionsUpdateRes& res);
     }
 
     namespace Torrents
@@ -182,7 +184,6 @@ namespace porla::Methods
     void from_json(const nlohmann::json& json, SessionsListReq& req);
     void from_json(const nlohmann::json& json, SessionsPauseReq& req);
     void from_json(const nlohmann::json& json, SessionsResumeReq& req);
-    void from_json(const nlohmann::json& json, SessionsSettingsListReq& req);
     void from_json(const nlohmann::json& json, TorrentsAddReq& req);
     void from_json(const nlohmann::json& json, TorrentsFilesListReq& req);
     void from_json(const nlohmann::json& json, TorrentsFilesProgressReq& req);
@@ -213,7 +214,6 @@ namespace porla::Methods
     void to_json(nlohmann::json& json, const SessionsListRes& res);
     void to_json(nlohmann::json& json, const SessionsPauseRes& res);
     void to_json(nlohmann::json& json, const SessionsResumeRes& res);
-    void to_json(nlohmann::json& json, const SessionsSettingsListRes& res);
     void to_json(nlohmann::json& json, const TorrentsAddRes& res);
     void to_json(nlohmann::json& json, const TorrentsFilesListRes& res);
     void to_json(nlohmann::json& json, const TorrentsFilesProgressRes& res);

@@ -100,12 +100,12 @@ add_library(
     src/json/_/presetsremove.cpp
     src/json/_/presetsupdate.cpp
     src/json/_/sessionsadd.cpp
+    src/json/_/sessionsget.cpp
     src/json/_/sessionslist.cpp
     src/json/_/sessionspause.cpp
     src/json/_/sessionsremove.cpp
     src/json/_/sessionsresume.cpp
-    src/json/_/sessionssettingsget.cpp
-    src/json/_/sessionssettingsset.cpp
+    src/json/_/sessionsupdate.cpp
     src/json/_/torrentclientdata.cpp
     src/json/_/torrentsadd.cpp
     src/json/_/torrentsfileslist.cpp
@@ -160,12 +160,12 @@ add_library(
     src/methods/presets/presetsremove.cpp
     src/methods/presets/presetsupdate.cpp
     src/methods/sessions/sessionsadd.cpp
+    src/methods/sessions/sessionsget.cpp
     src/methods/sessions/sessionslist.cpp
     src/methods/sessions/sessionspause.cpp
     src/methods/sessions/sessionsremove.cpp
     src/methods/sessions/sessionsresume.cpp
-    src/methods/sessions/sessionssettingslist.cpp
-    src/methods/sessions/sessionssettingsset.cpp
+    src/methods/sessions/sessionsupdate.cpp
     src/methods/sysversions.cpp
     src/methods/torrents/torrentsadd.cpp
     src/methods/torrents/torrentsfileslist.cpp
