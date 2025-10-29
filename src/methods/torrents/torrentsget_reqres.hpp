@@ -1,7 +1,6 @@
 #pragma once
 
 #include <optional>
-#include <vector>
 
 #include <libtorrent/info_hash.hpp>
 #include <libtorrent/torrent_status.hpp>

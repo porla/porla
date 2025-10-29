@@ -6,7 +6,7 @@
 #include <nlohmann/json.hpp>
 
 #include "../statement.hpp"
-#include "../../json/torrentclientdata.hpp"
+#include "../../json/all.hpp"
 #include "../../torrentclientdata.hpp"
 
 using json = nlohmann::json;

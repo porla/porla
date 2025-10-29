@@ -78,6 +78,54 @@ add_library(
     src/http/systemhandler.cpp
     src/http/webuihandler.cpp
 
+    src/json/_/errorcode.cpp
+    src/json/_/fsspace.cpp
+    src/json/_/keyvalueget.cpp
+    src/json/_/keyvalueset.cpp
+    src/json/_/ltannounceentry.cpp
+    src/json/_/ltinfohash.cpp
+    src/json/_/ltpeerinfo.cpp
+    src/json/_/ltsettingspack.cpp
+    src/json/_/lttorrentstatus.cpp
+    src/json/_/mmdblookup.cpp
+    src/json/_/pluginsadd.cpp
+    src/json/_/pluginsget.cpp
+    src/json/_/pluginslist.cpp
+    src/json/_/pluginsreload.cpp
+    src/json/_/pluginsremove.cpp
+    src/json/_/pluginsupdate.cpp
+    src/json/_/presetsadd.cpp
+    src/json/_/presetsget.cpp
+    src/json/_/presetslist.cpp
+    src/json/_/presetsremove.cpp
+    src/json/_/presetsupdate.cpp
+    src/json/_/sessionsadd.cpp
+    src/json/_/sessionslist.cpp
+    src/json/_/sessionspause.cpp
+    src/json/_/sessionsremove.cpp
+    src/json/_/sessionsresume.cpp
+    src/json/_/sessionssettingsget.cpp
+    src/json/_/sessionssettingsset.cpp
+    src/json/_/torrentclientdata.cpp
+    src/json/_/torrentsadd.cpp
+    src/json/_/torrentsfileslist.cpp
+    src/json/_/torrentsfilesprogress.cpp
+    src/json/_/torrentsget.cpp
+    src/json/_/torrentslist.cpp
+    src/json/_/torrentsmetadatalist.cpp
+    src/json/_/torrentsmove.cpp
+    src/json/_/torrentsoverview.cpp
+    src/json/_/torrentspause.cpp
+    src/json/_/torrentspeersadd.cpp
+    src/json/_/torrentspeerslist.cpp
+    src/json/_/torrentspropertiesget.cpp
+    src/json/_/torrentspropertiesset.cpp
+    src/json/_/torrentsrecheck.cpp
+    src/json/_/torrentsremove.cpp
+    src/json/_/torrentsresume.cpp
+    src/json/_/torrentstrackerslist.cpp
+    src/json/_/webuiinstall.cpp
+
     src/lua/packages/config.cpp
     src/lua/packages/cron.cpp
     src/lua/packages/events.cpp

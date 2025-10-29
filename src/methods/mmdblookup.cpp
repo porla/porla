@@ -3,6 +3,8 @@
 #include "../data/models/keyvaluestore.hpp"
 #include "../mmdb.hpp"
 
+namespace fs = std::filesystem;
+
 using porla::Data::Models::KeyValueStore;
 using porla::Methods::MmdbLookup;
 using porla::Methods::MmdbLookupReq;
