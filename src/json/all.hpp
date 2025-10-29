@@ -83,8 +83,6 @@ namespace porla::Methods
     struct TorrentsGetRes;
     struct TorrentsListReq;
     struct TorrentsListRes;
-    struct TorrentsMetadataListReq;
-    struct TorrentsMetadataListRes;
     struct TorrentsMoveReq;
     struct TorrentsMoveRes;
     struct TorrentsPauseReq;
@@ -189,7 +187,6 @@ namespace porla::Methods
     void from_json(const nlohmann::json& json, TorrentsFilesProgressReq& req);
     void from_json(const nlohmann::json& json, TorrentsGetReq& req);
     void from_json(const nlohmann::json& json, TorrentsListReq& req);
-    void from_json(const nlohmann::json& json, TorrentsMetadataListReq& req);
     void from_json(const nlohmann::json& json, TorrentsMoveReq& req);
     void from_json(const nlohmann::json& json, TorrentsPauseReq& req);
     void from_json(const nlohmann::json& json, TorrentsPeersAddReq& req);
@@ -219,7 +216,6 @@ namespace porla::Methods
     void to_json(nlohmann::json& json, const TorrentsFilesProgressRes& res);
     void to_json(nlohmann::json& json, const TorrentsGetRes& res);
     void to_json(nlohmann::json& json, const TorrentsListRes& res);
-    void to_json(nlohmann::json& json, const TorrentsMetadataListRes& res);
     void to_json(nlohmann::json& json, const TorrentsMoveRes& res);
     void to_json(nlohmann::json& json, const TorrentsPauseRes& res);
     void to_json(nlohmann::json& json, const TorrentsPeersAddRes& res);

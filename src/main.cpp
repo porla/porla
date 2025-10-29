@@ -52,7 +52,6 @@
 #include "methods/torrents/torrentsfilesprogress.hpp"
 #include "methods/torrents/torrentsget.hpp"
 #include "methods/torrents/torrentslist.hpp"
-#include "methods/torrents/torrentsmetadatalist.hpp"
 #include "methods/torrents/torrentsmove.hpp"
 #include "methods/torrents/torrentspause.hpp"
 #include "methods/torrents/torrentspeersadd.hpp"
@@ -163,7 +162,6 @@ int main(int argc, char* argv[])
             {"torrents.files.progress", porla::Methods::TorrentsFilesProgress(sessions)},
             {"torrents.get", porla::Methods::TorrentsGet(sessions)},
             {"torrents.list", porla::Methods::TorrentsList(sessions)},
-            {"torrents.metadata.list", porla::Methods::TorrentsMetadataList(cfg->db, sessions)},
             {"torrents.move", porla::Methods::TorrentsMove(sessions)},
             {"torrents.overview", porla::Methods::Torrents::TorrentsOverview(sessions)},
             {"torrents.pause", porla::Methods::TorrentsPause(sessions)},

@@ -112,7 +112,6 @@ add_library(
     src/json/_/torrentsfilesprogress.cpp
     src/json/_/torrentsget.cpp
     src/json/_/torrentslist.cpp
-    src/json/_/torrentsmetadatalist.cpp
     src/json/_/torrentsmove.cpp
     src/json/_/torrentsoverview.cpp
     src/json/_/torrentspause.cpp
@@ -172,7 +171,6 @@ add_library(
     src/methods/torrents/torrentsfilesprogress.cpp
     src/methods/torrents/torrentsget.cpp
     src/methods/torrents/torrentslist.cpp
-    src/methods/torrents/torrentsmetadatalist.cpp
     src/methods/torrents/torrentsmove.cpp
     src/methods/torrents/torrentspause.cpp
     src/methods/torrents/torrentspeersadd.cpp
