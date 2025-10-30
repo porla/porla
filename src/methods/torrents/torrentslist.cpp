@@ -1,5 +1,7 @@
 #include "torrentslist.hpp"
 
+#include <boost/log/trivial.hpp>
+
 #include "../../query/pql.hpp"
 #include "../../sessions.hpp"
 #include "../../torrentclientdata.hpp"
@@ -110,9 +112,31 @@ static const auto MapTorrentItem = [](
             {
                 filter_includes_torrent = client_data->category == args.get<std::string>();
             }
+            else if (filter_field == "errc" && args.is_boolean())
+            {
+                const auto errc = args.get<bool>();
+                filter_includes_torrent = errc
+                    ? ts.errc.value() != 0
+                    : ts.errc.value() == 0;
+            }
+            else if (filter_field == "flags" && args.is_number())
+            {
+                const auto flags = args.get<std::uint64_t>();
+                filter_includes_torrent = ts.flags & flags == flags;
+            }
             else if (filter_field == "save_path" && args.is_string())
             {
                 filter_includes_torrent = ts.save_path == args.get<std::string>();
+            }
+            else if (filter_field == "state" && args.is_string())
+            {
+                const auto state = args.get<std::string>();
+                if (state == "checking_files")       filter_includes_torrent = ts.state == lt::torrent_status::checking_files;
+                if (state == "downloading_metadata") filter_includes_torrent = ts.state == lt::torrent_status::downloading_metadata;
+                if (state == "downloading")          filter_includes_torrent = ts.state == lt::torrent_status::downloading;
+                if (state == "finished")             filter_includes_torrent = ts.state == lt::torrent_status::finished;
+                if (state == "seeding")              filter_includes_torrent = ts.state == lt::torrent_status::seeding;
+                if (state == "checking_resume_data") filter_includes_torrent = ts.state == lt::torrent_status::checking_resume_data;
             }
             else if (filter_field == "tags" && args.is_string())
             {

@@ -26,6 +26,7 @@ void SessionsGet::Invoke(const SessionsGetReq &req, WriteCb<SessionsGetRes> cb)
         .session = SessionsGetRes::Session{
             .id       = state->id,
             .name     = state->name,
+            .metadata = state->metadata,
             .settings = state->session->get_settings()
         }
     });

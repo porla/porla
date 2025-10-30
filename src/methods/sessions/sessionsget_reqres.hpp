@@ -1,8 +1,10 @@
 #pragma once
 
+#include <map>
 #include <string>
 
 #include <libtorrent/settings_pack.hpp>
+#include <nlohmann/json.hpp>
 
 namespace porla::Methods::Sessions
 {
@@ -15,9 +17,10 @@ namespace porla::Methods::Sessions
     {
         struct Session
         {
-            int                       id;
-            std::string               name;
-            libtorrent::settings_pack settings;
+            int                                   id;
+            std::string                           name;
+            std::map<std::string, nlohmann::json> metadata;
+            libtorrent::settings_pack             settings;
         };
 
         Session session;

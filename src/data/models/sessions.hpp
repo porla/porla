@@ -31,6 +31,8 @@ namespace porla::Data::Models
         static std::optional<Session> GetByName(sqlite3* db, const std::string& name);
         static int Insert(sqlite3* db, const std::string& name, const libtorrent::settings_pack& settings);
         static void Remove(sqlite3* db, int id);
+
+        static void Update(sqlite3* db, int id, const std::map<std::string, nlohmann::json>& metadata);
         static void Update(sqlite3* db, int id, const libtorrent::session_params& params);
         static void Update(sqlite3* db, int id, const libtorrent::settings_pack& settings);
     };

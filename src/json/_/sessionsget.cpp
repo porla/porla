@@ -13,6 +13,7 @@ namespace porla::Methods::Sessions
         SessionsGetRes::Session,
         id,
         name,
+        metadata,
         settings)
 
     NLOHMANN_JSONIFY_ALL_THINGS(

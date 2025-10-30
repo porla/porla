@@ -140,6 +140,16 @@ void Sessions::Remove(sqlite3* db, int id)
     stmt.Execute();
 }
 
+void Sessions::Update(sqlite3* db, int id, const std::map<std::string, nlohmann::json>& metadata)
+{
+    const auto json = nlohmann::json(metadata).dump();
+
+    auto stmt = Statement::Prepare(db, "UPDATE sessions SET metadata = $1 WHERE id = $2");
+    stmt.Bind(1, std::string_view(json));
+    stmt.Bind(2, id);
+    stmt.Execute();
+}
+
 void Sessions::Update(sqlite3* db, int id, const lt::session_params& params)
 {
     std::vector params_buffer = lt::write_session_params_buf(

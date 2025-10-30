@@ -26,6 +26,16 @@ void SessionsUpdate::Invoke(const SessionsUpdateReq& req, WriteCb<SessionsUpdate
         return cb.Error(-1, "Session not found");
     }
 
+    if (req.metadata)
+    {
+        porla::Data::Models::Sessions::Update(
+            m_db,
+            req.id,
+            req.metadata.value());
+
+        state->metadata = req.metadata.value();
+    }
+
     if (req.settings)
     {
         lt::settings_pack session_settings = state->session->get_settings();
