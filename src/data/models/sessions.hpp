@@ -18,6 +18,7 @@ namespace porla::Data::Models
         {
             int                                   id;
             std::string                           name;
+            bool                                  is_default;
             std::map<std::string, nlohmann::json> metadata;
             libtorrent::session_params            params;
             int                                   timer_dht_stats;
@@ -32,6 +33,7 @@ namespace porla::Data::Models
         static int Insert(sqlite3* db, const std::string& name, const libtorrent::settings_pack& settings);
         static void Remove(sqlite3* db, int id);
 
+        static void SetDefault(sqlite3* db, int id);
         static void Update(sqlite3* db, int id, const std::map<std::string, nlohmann::json>& metadata);
         static void Update(sqlite3* db, int id, const libtorrent::session_params& params);
         static void Update(sqlite3* db, int id, const libtorrent::settings_pack& settings);

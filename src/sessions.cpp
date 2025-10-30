@@ -102,10 +102,7 @@ std::shared_ptr<Sessions::SessionState> Sessions::Default()
     auto session = std::find_if(
         m_sessions.begin(),
         m_sessions.end(),
-        [](const auto& s)
-        {
-            return s.second->name == "default";
-        });
+        [](const auto& s) { return s.second->is_default; });
 
     return session == m_sessions.end()
         ? nullptr
@@ -160,8 +157,9 @@ void Sessions::LoadById(int id)
     }
 
     auto state = std::make_shared<SessionState>();
-    state->id   = session.id;
+    state->id = session.id;
     state->name = session.name;
+    state->is_default = session.is_default;
     state->metadata = session.metadata;
     state->session = std::make_unique<lt::session>(std::move(session.params));
     state->session->add_extension(&lt::create_ut_metadata_plugin);

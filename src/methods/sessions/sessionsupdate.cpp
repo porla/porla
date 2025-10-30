@@ -26,6 +26,28 @@ void SessionsUpdate::Invoke(const SessionsUpdateReq& req, WriteCb<SessionsUpdate
         return cb.Error(-1, "Session not found");
     }
 
+    if (req.is_default.value_or(false)
+        && !state->is_default)
+    {
+        // If we send is_default=true and this session is not the default,
+        // then make this session the default.
+
+        porla::Data::Models::Sessions::SetDefault(
+            m_db,
+            req.id);
+
+        const auto& current_default = m_sessions.Default();
+
+        if (current_default != nullptr)
+        {
+            current_default->is_default = false;
+        }
+
+        state->is_default = true;
+
+        BOOST_LOG_TRIVIAL(info) << "Default session is now '" << state->name << "'";
+    }
+
     if (req.metadata)
     {
         porla::Data::Models::Sessions::Update(

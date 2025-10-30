@@ -13,6 +13,7 @@ namespace porla::Methods
         SessionsListRes::Item,
         id,
         name,
+        is_default,
         metadata,
         torrents_total)
 

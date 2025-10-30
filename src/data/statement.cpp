@@ -103,9 +103,10 @@ Statement Statement::Prepare(sqlite3 *db, const std::string_view &sql)
 
 Statement& Statement::Bind(int pos, int value)
 {
-    if (sqlite3_bind_int(m_stmt, pos, value) != SQLITE_OK)
+    int res = sqlite3_bind_int(m_stmt, pos, value);
+    if (res != SQLITE_OK)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value";
+        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value: " << res;
         throw std::runtime_error("Failed to bind SQLite value");
     }
 

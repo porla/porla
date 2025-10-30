@@ -24,10 +24,11 @@ void SessionsGet::Invoke(const SessionsGetReq &req, WriteCb<SessionsGetRes> cb)
 
     cb.Ok(SessionsGetRes{
         .session = SessionsGetRes::Session{
-            .id       = state->id,
-            .name     = state->name,
-            .metadata = state->metadata,
-            .settings = state->session->get_settings()
+            .id         = state->id,
+            .name       = state->name,
+            .is_default = state->is_default,
+            .metadata   = state->metadata,
+            .settings   = state->session->get_settings()
         }
     });
 }

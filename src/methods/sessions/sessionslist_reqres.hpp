@@ -15,6 +15,7 @@ namespace porla::Methods
         {
             int                                                  id;
             std::string                                          name;
+            bool                                                 is_default;
             std::optional<std::map<std::string, nlohmann::json>> metadata;
             int                                                  torrents_total;
         };

@@ -22,6 +22,7 @@ const std::string SessionsSelectPrefix = R"sql(
     SELECT
         id,
         name,
+        is_default,
         metadata,
         params,
         settings,
@@ -57,6 +58,7 @@ static std::optional<Sessions::Session> LoadSessionFromRow(const Statement::IRow
     return Sessions::Session{
         .id                    = row.GetInt32("id"),
         .name                  = row.GetStdString("name"),
+        .is_default            = row.GetInt32("is_default") == 1,
         .metadata              = metadata_buffer.empty()
                                      ? std::map<std::string, nlohmann::json>()
                                      : nlohmann::json::parse(metadata_buffer).get<std::map<std::string, nlohmann::json>>(),
@@ -138,6 +140,16 @@ void Sessions::Remove(sqlite3* db, int id)
     auto stmt = Statement::Prepare(db, "DELETE FROM sessions WHERE id = $1");
     stmt.Bind(1, id);
     stmt.Execute();
+}
+
+void Sessions::SetDefault(sqlite3* db, int id)
+{
+    Statement::Prepare(db, "UPDATE sessions SET is_default = 0")
+        .Execute();
+
+    Statement::Prepare(db, "UPDATE sessions SET is_default = 1 WHERE id = ?")
+        .Bind(1, id)
+        .Execute();
 }
 
 void Sessions::Update(sqlite3* db, int id, const std::map<std::string, nlohmann::json>& metadata)

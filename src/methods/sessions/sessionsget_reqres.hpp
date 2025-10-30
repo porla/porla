@@ -19,6 +19,7 @@ namespace porla::Methods::Sessions
         {
             int                                   id;
             std::string                           name;
+            bool                                  is_default;
             std::map<std::string, nlohmann::json> metadata;
             libtorrent::settings_pack             settings;
         };

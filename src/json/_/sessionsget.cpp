@@ -13,6 +13,7 @@ namespace porla::Methods::Sessions
         SessionsGetRes::Session,
         id,
         name,
+        is_default,
         metadata,
         settings)
 

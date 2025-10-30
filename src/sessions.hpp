@@ -37,6 +37,7 @@ namespace porla
 
             int                                                                           id;
             std::string                                                                   name;
+            bool                                                                          is_default;
             std::map<std::string, nlohmann::json>                                         metadata;
             std::unique_ptr<lt::session>                                                  session;
             std::filesystem::path                                                         session_params_file;
