@@ -3,12 +3,10 @@
 #include <boost/log/trivial.hpp>
 #include <libtorrent/bencode.hpp>
 #include <libtorrent/settings_pack.hpp>
-#include <nlohmann/json.hpp>
 
 #include "../../config.hpp"
 #include "../statement.hpp"
 
-using json = nlohmann::json;
 using porla::Data::Migrations::Sessions;
 
 namespace lt = libtorrent;
@@ -57,9 +55,9 @@ int Sessions::Migrate(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
         std::vector<char> buf;
         lt::bencode(std::back_inserter(buf), dict);
 
-        auto stmt = Statement::Prepare(db, "INSERT INTO sessions (name, settings) VALUES ($1, $2);");
-        stmt.Bind(1, std::string_view(name));
-        stmt.Bind(2, buf);
+        auto stmt = Statement::Prepare(db, "INSERT INTO sessions (name, settings) VALUES ($name, $settings);");
+        stmt.Bind("$name",     name);
+        stmt.Bind("$settings", buf);
         stmt.Execute();
     }
 

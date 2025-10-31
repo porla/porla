@@ -12,7 +12,9 @@ namespace porla::Methods::Presets
     NLOHMANN_JSONIFY_ALL_THINGS(
         PresetsListRes::ListItem,
         id,
-        name);
+        name,
+        is_default,
+        metadata);
 
     NLOHMANN_JSONIFY_ALL_THINGS(
         PresetsListRes,

@@ -91,8 +91,8 @@ std::optional<Sessions::Session> Sessions::GetById(sqlite3* db, int id)
 {
     std::optional<Sessions::Session> session;
 
-    Statement::Prepare(db, SessionsSelectPrefix + " WHERE id = $1")
-        .Bind(1, id)
+    Statement::Prepare(db, SessionsSelectPrefix + " WHERE id = $id")
+        .Bind("$id", id)
         .Step(
             [&session](auto const& row)
             {
@@ -107,8 +107,8 @@ std::optional<Sessions::Session> Sessions::GetByName(sqlite3* db, const std::str
 {
     std::optional<Sessions::Session> session;
 
-    Statement::Prepare(db, SessionsSelectPrefix + " WHERE name = $1")
-        .Bind(1, std::string_view(name))
+    Statement::Prepare(db, SessionsSelectPrefix + " WHERE name = $name")
+        .Bind("$name", name)
         .Step(
             [&session](auto const& row)
             {
@@ -127,9 +127,9 @@ int Sessions::Insert(sqlite3* db, const std::string& name, const lt::settings_pa
     std::vector<char> buf;
     lt::bencode(std::back_inserter(buf), dict);
 
-    auto stmt = Statement::Prepare(db, "INSERT INTO sessions (name, settings) VALUES ($1, $2);");
-    stmt.Bind(1, std::string_view(name));
-    stmt.Bind(2, buf);
+    auto stmt = Statement::Prepare(db, "INSERT INTO sessions (name, settings) VALUES ($name, $settings);");
+    stmt.Bind("$name",     name);
+    stmt.Bind("$settings", buf);
     stmt.Execute();
 
     return sqlite3_last_insert_rowid(db);
@@ -137,8 +137,8 @@ int Sessions::Insert(sqlite3* db, const std::string& name, const lt::settings_pa
 
 void Sessions::Remove(sqlite3* db, int id)
 {
-    auto stmt = Statement::Prepare(db, "DELETE FROM sessions WHERE id = $1");
-    stmt.Bind(1, id);
+    auto stmt = Statement::Prepare(db, "DELETE FROM sessions WHERE id = $id");
+    stmt.Bind("$id", id);
     stmt.Execute();
 }
 
@@ -147,8 +147,8 @@ void Sessions::SetDefault(sqlite3* db, int id)
     Statement::Prepare(db, "UPDATE sessions SET is_default = 0")
         .Execute();
 
-    Statement::Prepare(db, "UPDATE sessions SET is_default = 1 WHERE id = ?")
-        .Bind(1, id)
+    Statement::Prepare(db, "UPDATE sessions SET is_default = 1 WHERE id = $id")
+        .Bind("$id", id)
         .Execute();
 }
 
@@ -156,9 +156,9 @@ void Sessions::Update(sqlite3* db, int id, const std::map<std::string, nlohmann:
 {
     const auto json = nlohmann::json(metadata).dump();
 
-    auto stmt = Statement::Prepare(db, "UPDATE sessions SET metadata = $1 WHERE id = $2");
-    stmt.Bind(1, std::string_view(json));
-    stmt.Bind(2, id);
+    auto stmt = Statement::Prepare(db, "UPDATE sessions SET metadata = $metadata WHERE id = $id");
+    stmt.Bind("$id",       id);
+    stmt.Bind("$metadata", json);
     stmt.Execute();
 }
 
@@ -175,10 +175,10 @@ void Sessions::Update(sqlite3* db, int id, const lt::session_params& params)
     std::vector<char> settings_buffer;
     lt::bencode(std::back_inserter(settings_buffer), dict);
 
-    auto stmt = Statement::Prepare(db, "UPDATE sessions SET params = $1, settings = $2 WHERE id = $3");
-    stmt.Bind(1, params_buffer);
-    stmt.Bind(2, settings_buffer);
-    stmt.Bind(3, id);
+    auto stmt = Statement::Prepare(db, "UPDATE sessions SET params = $params, settings = $settings WHERE id = $id");
+    stmt.Bind("$id",       id);
+    stmt.Bind("$params",   params_buffer);
+    stmt.Bind("$settings", settings_buffer);
     stmt.Execute();
 }
 
@@ -190,8 +190,8 @@ void Sessions::Update(sqlite3* db, int id, const lt::settings_pack& settings)
     std::vector<char> settings_buffer;
     lt::bencode(std::back_inserter(settings_buffer), dict);
 
-    auto stmt = Statement::Prepare(db, "UPDATE sessions SET settings = $1 WHERE id = $2");
-    stmt.Bind(1, settings_buffer);
-    stmt.Bind(2, id);
+    auto stmt = Statement::Prepare(db, "UPDATE sessions SET settings = $settings WHERE id = $id");
+    stmt.Bind("$id",       id);
+    stmt.Bind("$settings", settings_buffer);
     stmt.Execute();
 }

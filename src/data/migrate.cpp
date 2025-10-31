@@ -29,7 +29,7 @@ int GetUserVersion(sqlite3* db)
     porla::Data::Statement::Prepare(db, "PRAGMA user_version;")
         .Step([&version](const auto& row)
         {
-            version = row.GetInt32(0);
+            version = row.GetInt32("user_version");
             return SQLITE_OK;
         });
 

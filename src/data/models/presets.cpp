@@ -7,30 +7,47 @@
 using json = nlohmann::json;
 using porla::Data::Models::Presets;
 
-const std::string PresetSelectPrefix = "SELECT id,name,category,download_limit,max_connections,max_uploads,metadata,session_id,save_path,storage_mode,tags,upload_limit FROM presets";
+const std::string PresetSelectPrefix = R"sql(
+    SELECT
+        id,
+        name,
+        is_default,
+        category,
+        download_limit,
+        max_connections,
+        max_uploads,
+        metadata,
+        session_id,
+        save_path,
+        storage_mode,
+        tags,
+        upload_limit
+    FROM presets
+)sql";
 
 static Presets::Preset LoadFromRow(const porla::Data::Statement::IRow &row)
 {
-    const auto metadata = row.GetOptionalStdString(6);
-    const auto tags     = row.GetOptionalStdString(10);
+    const auto metadata = row.GetOptionalStdString("metadata");
+    const auto tags     = row.GetOptionalStdString("tags");
 
     return Presets::Preset{
-        .id = row.GetInt32(0),
-        .name = row.GetStdString(1),
-        .category = row.GetStdString(2),
-        .download_limit = row.GetOptionalInt32(3),
-        .max_connections = row.GetOptionalInt32(4),
-        .max_uploads = row.GetOptionalInt32(5),
+        .id = row.GetInt32("id"),
+        .name = row.GetStdString("name"),
+        .is_default = row.GetInt32("is_default") == 1,
+        .category = row.GetOptionalStdString("category"),
+        .download_limit = row.GetOptionalInt32("download_limit"),
+        .max_connections = row.GetOptionalInt32("max_connections"),
+        .max_uploads = row.GetOptionalInt32("max_uploads"),
         .metadata = metadata.has_value()
             ? std::optional(json::parse(metadata.value()).get<std::map<std::string, json>>())
             : std::nullopt,
-        .session_id = row.GetOptionalInt32(7),
-        .save_path = row.GetStdString(8),
-        .storage_mode = row.GetStdString(9),
+        .session_id = row.GetOptionalInt32("session_id"),
+        .save_path = row.GetOptionalStdString("save_path"),
+        .storage_mode = row.GetOptionalStdString("storage_mode"),
         .tags = tags.has_value()
             ? json::parse(tags.value()).get<std::unordered_set<std::string>>()
             : std::unordered_set<std::string>(),
-        .upload_limit = row.GetOptionalInt32(11)
+        .upload_limit = row.GetOptionalInt32("upload_limit")
     };
 }
 
@@ -49,8 +66,8 @@ std::optional<Presets::Preset> Presets::GetById(sqlite3 *db, int id)
 {
     std::optional<Preset> preset;
 
-    Statement::Prepare(db, PresetSelectPrefix + " WHERE id = $1")
-        .Bind(1, id)
+    Statement::Prepare(db, PresetSelectPrefix + " WHERE id = $id")
+        .Bind("$id", id)
         .Step(
             [&preset](auto const &row)
             {
@@ -61,12 +78,11 @@ std::optional<Presets::Preset> Presets::GetById(sqlite3 *db, int id)
     return preset;
 }
 
-std::optional<Presets::Preset> Presets::GetByName(sqlite3 *db, const std::string &name)
+std::optional<Presets::Preset> Presets::GetDefault(sqlite3 *db)
 {
     std::optional<Preset> preset;
 
-    Statement::Prepare(db, PresetSelectPrefix + " WHERE name = $1")
-        .Bind(1, std::string_view(name))
+    Statement::Prepare(db, PresetSelectPrefix + " WHERE is_default = 1")
         .Step(
             [&preset](auto const &row)
             {
@@ -79,16 +95,17 @@ std::optional<Presets::Preset> Presets::GetByName(sqlite3 *db, const std::string
 
 int Presets::Insert(sqlite3 *db, const std::string& name)
 {
-    auto stmt = Statement::Prepare(db, "INSERT INTO presets (name) VALUES ($1);");
-    stmt.Bind(1, std::string_view(name));
+    auto stmt = Statement::Prepare(db, "INSERT INTO presets (name) VALUES ($name);");
+    stmt.Bind("$name", name);
     stmt.Execute();
+
     return sqlite3_last_insert_rowid(db);
 }
 
 void Presets::Remove(sqlite3* db, int id)
 {
-    auto stmt = Statement::Prepare(db, "DELETE FROM presets WHERE id = $1");
-    stmt.Bind(1, id);
+    auto stmt = Statement::Prepare(db, "DELETE FROM presets WHERE id = $id");
+    stmt.Bind("$id", id);
     stmt.Execute();
 }
 
@@ -102,33 +119,50 @@ void Presets::Update(sqlite3 *db, const Presets::Preset &preset)
         metadata = json(preset.metadata.value()).dump();
     }
 
+    const auto current_default = GetDefault(db);
+
+    if (preset.is_default && current_default.has_value() && current_default->id != preset.id)
+    {
+        // The current default is different than ours. Remove it from our default
+        // and let the update below set ours as default.
+        Statement::Prepare(db, "UPDATE presets SET is_default = 0")
+            .Execute();
+    }
+
     auto stmt = Statement::Prepare(
         db,
-        "UPDATE presets SET\n"
-        "name = $1,"
-        "category = $2,"
-        "download_limit = $3,"
-        "max_connections = $4,"
-        "max_uploads = $5,"
-        "metadata = $6,"
-        "session_id = $7,"
-        "save_path = $8,"
-        "storage_mode = $9,"
-        "tags = $10,"
-        "upload_limit = $11\n"
-        "WHERE id = $12");
+        R"sql(
+        UPDATE
+            presets
+        SET
+            name            = $name,
+            is_default      = $is_default,
+            category        = $category,
+            download_limit  = $download_limit,
+            max_connections = $max_connections,
+            max_uploads     = $max_uploads,
+            metadata        = $metadata,
+            session_id      = $session_id,
+            save_path       = $save_path,
+            storage_mode    = $storage_mode,
+            tags            = $tags,
+            upload_limit    = $upload_limit
+        WHERE
+            id = $id
+        )sql");
 
-    stmt.Bind(1, std::string_view(preset.name));
-    stmt.Bind(2, preset.category);
-    stmt.Bind(3, preset.download_limit);
-    stmt.Bind(4, preset.max_connections);
-    stmt.Bind(5, preset.max_uploads);
-    stmt.Bind(6, metadata);
-    stmt.Bind(7, preset.session_id);
-    stmt.Bind(8, preset.save_path);
-    stmt.Bind(9, preset.storage_mode);
-    stmt.Bind(10, tags);
-    stmt.Bind(11, preset.upload_limit);
-    stmt.Bind(12, preset.id);
+    stmt.Bind("$id",              preset.id);
+    stmt.Bind("$name",            preset.name);
+    stmt.Bind("$is_default",      preset.is_default ? 1 : 0);
+    stmt.Bind("$category",        preset.category);
+    stmt.Bind("$download_limit",  preset.download_limit);
+    stmt.Bind("$max_connections", preset.max_connections);
+    stmt.Bind("$max_uploads",     preset.max_uploads);
+    stmt.Bind("$metadata",        metadata);
+    stmt.Bind("$session_id",      preset.session_id);
+    stmt.Bind("$save_path",       preset.save_path);
+    stmt.Bind("$storage_mode",    preset.storage_mode);
+    stmt.Bind("$tags",            tags);
+    stmt.Bind("$upload_limit",    preset.upload_limit);
     stmt.Execute();
 }

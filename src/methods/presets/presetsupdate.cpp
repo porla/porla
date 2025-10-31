@@ -13,11 +13,19 @@ PresetsUpdate::PresetsUpdate(sqlite3 *db)
 
 void PresetsUpdate::Invoke(const PresetsUpdateReq &req, WriteCb<PresetsUpdateRes> cb)
 {
+    const auto preset = Data::Models::Presets::GetById(m_db, req.id);
+
+    if (!preset.has_value())
+    {
+        return cb.Error(-1, "Preset not found", {{"id", req.id}});
+    }
+
     Data::Models::Presets::Update(
         m_db,
         Data::Models::Presets::Preset{
             .id = req.id,
             .name = req.name,
+            .is_default = req.is_default.value_or(preset->is_default),
             .category = req.category,
             .download_limit = req.download_limit,
             .max_connections = req.max_connections,

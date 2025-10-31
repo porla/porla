@@ -15,59 +15,77 @@ public:
     {
     }
 
-    [[nodiscard]] int GetInt32(int pos) const override
-    {
-        return sqlite3_column_int(m_stmt, pos);
-    }
-
     [[nodiscard]] int GetInt32(const std::string& col) const override
     {
-        return GetInt32(m_cols.at(col));
+        const auto type = sqlite3_column_type(m_stmt, m_cols.at(col));
+
+        if (type != SQLITE_INTEGER)
+        {
+            throw std::runtime_error("Invalid column type - expected INTEGER, found: " + std::to_string(type));
+        }
+
+        return sqlite3_column_int(m_stmt, m_cols.at(col));
     }
 
-    [[nodiscard]] std::optional<int> GetOptionalInt32(int pos) const override
+    [[nodiscard]] std::optional<int> GetOptionalInt32(const std::string& col) const override
     {
-        if (sqlite3_column_type(m_stmt, pos) == SQLITE_NULL) return std::nullopt;
-        return sqlite3_column_int(m_stmt, pos);
-    }
+        const auto type = sqlite3_column_type(m_stmt, m_cols.at(col));
 
-    [[nodiscard]] std::vector<char> GetBuffer(int pos) const override
-    {
-        int len = sqlite3_column_bytes(m_stmt, pos);
-        const char* buf = static_cast<const char*>(sqlite3_column_blob(m_stmt, pos));
-        return {buf, buf + len};
+        if (type == SQLITE_NULL)
+        {
+            return std::nullopt;
+        }
+
+        return GetInt32(col);
     }
 
     [[nodiscard]] std::vector<char> GetBuffer(const std::string& col) const override
     {
-        return GetBuffer(m_cols.at(col));
+        const auto len = sqlite3_column_bytes(m_stmt, m_cols.at(col));
+        const auto blob = sqlite3_column_blob(m_stmt, m_cols.at(col));
+        const auto buf = static_cast<const char*>(blob);
+
+        return {buf, buf + len};
     }
 
-    [[nodiscard]] std::string GetStdString(int pos) const override
+    [[nodiscard]] std::string GetStdString(const std::string& col) const override
     {
-        const auto* data = sqlite3_column_text(m_stmt, pos);
+        const auto type = sqlite3_column_type(m_stmt, m_cols.at(col));
+
+        if (type == SQLITE_NULL)
+        {
+            throw std::runtime_error("Null value found - if null values are expected, use GetOptionalStdString: " + col);
+        }
+
+        const auto bytes = sqlite3_column_bytes(m_stmt, m_cols.at(col));
+
+        if (bytes == 0)
+        {
+            return {};
+        }
+
+        const auto* data = sqlite3_column_text(m_stmt, m_cols.at(col));
 
         if (data == nullptr)
         {
             return {};
         }
 
-        const auto bytes = sqlite3_column_bytes(m_stmt, pos);
-
         return std::string(
             reinterpret_cast<const char*>(data), 
             static_cast<std::size_t>(bytes));
     }
 
-    [[nodiscard]] std::string GetStdString(const std::string& col) const override
+    [[nodiscard]] std::optional<std::string> GetOptionalStdString(const std::string& col) const override
     {
-        return GetStdString(m_cols.at(col));
-    }
+        const auto type = sqlite3_column_type(m_stmt, m_cols.at(col));
 
-    [[nodiscard]] std::optional<std::string> GetOptionalStdString(int pos) const override
-    {
-        if (sqlite3_column_type(m_stmt, pos) == SQLITE_NULL) return std::nullopt;
-        return GetStdString(pos);
+        if (type == SQLITE_NULL)
+        {
+            return std::nullopt;
+        }
+
+        return GetStdString(col);
     }
 
 private:
@@ -101,64 +119,114 @@ Statement Statement::Prepare(sqlite3 *db, const std::string_view &sql)
     return Statement(stmt);
 }
 
-Statement& Statement::Bind(int pos, int value)
+Statement& Statement::Bind(const std::string& portal, int value)
 {
-    int res = sqlite3_bind_int(m_stmt, pos, value);
+    const int index = sqlite3_bind_parameter_index(m_stmt, portal.c_str());
+
+    if (index == 0)
+    {
+        throw std::runtime_error("No parameter named " + portal);
+    }
+
+    int res = sqlite3_bind_int(m_stmt, index, value);
+
     if (res != SQLITE_OK)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value: " << res;
+        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value: " << sqlite3_errstr(res);
         throw std::runtime_error("Failed to bind SQLite value");
     }
 
     return *this;
 }
 
-Statement& Statement::Bind(int pos, const std::optional<int>& value)
+Statement& Statement::Bind(const std::string& portal, const std::optional<int>& value)
 {
+    const int index = sqlite3_bind_parameter_index(m_stmt, portal.c_str());
+
+    if (index == 0)
+    {
+        throw std::runtime_error("No parameter named " + portal);
+    }
+
     int res = value == std::nullopt
-        ? sqlite3_bind_null(m_stmt, pos)
-        : sqlite3_bind_int(m_stmt, pos, value.value());
+        ? sqlite3_bind_null(m_stmt, index)
+        : sqlite3_bind_int(m_stmt, index, value.value());
 
     if (res != SQLITE_OK)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value";
+        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value: " << sqlite3_errstr(res);
         throw std::runtime_error("Failed to bind SQLite value");
     }
 
     return *this;
 }
 
-Statement& Statement::Bind(int pos, const std::string_view &value)
+Statement& Statement::Bind(const std::string& portal, const std::string &value)
 {
-    if (sqlite3_bind_text(m_stmt, pos, value.data(), static_cast<int>(value.size()), nullptr) != SQLITE_OK)
+    const int index = sqlite3_bind_parameter_index(m_stmt, portal.c_str());
+
+    if (index == 0)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value";
+        throw std::runtime_error("No parameter named " + portal);
+    }
+
+    int res = sqlite3_bind_text(
+        m_stmt,
+        index,
+        value.c_str(),
+        static_cast<int>(value.size()),
+        nullptr);
+
+    if (res != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value: " << sqlite3_errstr(res);
         throw std::runtime_error("Failed to bind SQLite value");
     }
 
     return *this;
 }
 
-Statement& Statement::Bind(int pos, const std::optional<std::string_view> &value)
+Statement& Statement::Bind(const std::string& portal, const std::optional<std::string> &value)
 {
+    const int index = sqlite3_bind_parameter_index(m_stmt, portal.c_str());
+
+    if (index == 0)
+    {
+        throw std::runtime_error("No parameter named " + portal);
+    }
+
     int res = value == std::nullopt
-        ? sqlite3_bind_null(m_stmt, pos)
-        : sqlite3_bind_text(m_stmt, pos, value->data(), static_cast<int>(value->size()), nullptr);
+        ? sqlite3_bind_null(m_stmt, index)
+        : sqlite3_bind_text(m_stmt, index, value->data(), static_cast<int>(value->size()), nullptr);
 
     if (res != SQLITE_OK)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value";
+        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value: " << sqlite3_errstr(res);
         throw std::runtime_error("Failed to bind SQLite value");
     }
 
     return *this;
 }
 
-Statement& Statement::Bind(int pos, const std::vector<char>& buffer)
+Statement& Statement::Bind(const std::string& portal, const std::vector<char>& buffer)
 {
-    if (sqlite3_bind_blob(m_stmt, pos, buffer.data(), static_cast<int>(buffer.size()), SQLITE_TRANSIENT) != SQLITE_OK)
+    const int index = sqlite3_bind_parameter_index(m_stmt, portal.c_str());
+
+    if (index == 0)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value";
+        throw std::runtime_error("No parameter named " + portal);
+    }
+
+    int res = sqlite3_bind_blob(
+        m_stmt,
+        index,
+        buffer.data(),
+        static_cast<int>(buffer.size()),
+        SQLITE_TRANSIENT);
+
+    if (res != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value: " << sqlite3_errstr(res);
         throw std::runtime_error("Failed to bind SQLite value");
     }
 

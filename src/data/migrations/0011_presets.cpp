@@ -17,20 +17,27 @@ int Presets::Migrate(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
 
     int res = sqlite3_exec(
         db,
-        "CREATE TABLE presets ("
-        "id INTEGER PRIMARY KEY,"
-        "name TEXT NOT NULL UNIQUE,"
-        "category TEXT,"
-        "download_limit INTEGER,"
-        "max_connections INTEGER,"
-        "max_uploads INTEGER,"
-        "metadata TEXT,"
-        "session_id INTEGER,"
-        "save_path TEXT,"
-        "storage_mode TEXT,"
-        "tags TEXT,"
-        "upload_limit INTEGER"
-        ");",
+        R"sql(
+        CREATE TABLE presets (
+            id              INTEGER PRIMARY KEY,
+            name            TEXT NOT NULL UNIQUE,
+            is_default      INTEGER NOT NULL DEFAULT 0,
+            category        TEXT,
+            download_limit  INTEGER,
+            max_connections INTEGER,
+            max_uploads     INTEGER,
+            metadata        TEXT,
+            session_id      INTEGER REFERENCES sessions(id),
+            save_path       TEXT,
+            storage_mode    TEXT,
+            tags            TEXT,
+            upload_limit    INTEGER
+        );
+
+        CREATE UNIQUE INDEX uq_presets_default
+        ON presets(is_default)
+        WHERE is_default = 1;
+        )sql",
         nullptr,
         nullptr,
         nullptr);
@@ -57,20 +64,54 @@ int Presets::Migrate(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
 
         auto stmt = Statement::Prepare(
             db,
-            "INSERT INTO presets (name, category, download_limit, max_connections, max_uploads, metadata, session_id, save_path, storage_mode, tags, upload_limit) "
-            "VALUES ($1, $2, $3, $4, $5, $6, NULL, $7, $8, $9, $10)");
-        stmt.Bind(1, std::string_view(name));
-        stmt.Bind(2, preset.category);
-        stmt.Bind(3, preset.download_limit);
-        stmt.Bind(4, preset.max_connections);
-        stmt.Bind(5, preset.max_connections);
-        stmt.Bind(6, std::string_view(metadata.dump()));
-        stmt.Bind(7, preset.save_path);
-        stmt.Bind(8, storage_mode);
-        stmt.Bind(9, std::string_view(json(preset.tags).dump()));
-        stmt.Bind(10, preset.upload_limit);
+            R"sql(
+            INSERT INTO presets (
+                name,
+                category,
+                download_limit,
+                max_connections,
+                max_uploads,
+                metadata,
+                session_id,
+                save_path,
+                storage_mode,
+                tags,
+                upload_limit
+            )
+            VALUES (
+                $name,
+                $category,
+                $download_limit,
+                $max_connections,
+                $max_uploads,
+                $metadata,
+                NULL,
+                $save_path,
+                $storage_mode,
+                $tags,
+                $upload_limit
+            );
+            )sql");
+
+        stmt.Bind("$name",            name);
+        stmt.Bind("$category",        preset.category);
+        stmt.Bind("$download_limit",  preset.download_limit);
+        stmt.Bind("$max_connections", preset.max_connections);
+        stmt.Bind("$max_uploads",     preset.max_uploads);
+        stmt.Bind("$metadata",        metadata.dump());
+        stmt.Bind("$save_path",       preset.save_path);
+        stmt.Bind("$storage_mode",    storage_mode);
+        stmt.Bind("$tags",            json(preset.tags).dump());
+        stmt.Bind("$upload_limit",    preset.upload_limit);
         stmt.Execute();
     }
+
+    res = sqlite3_exec(
+        db,
+        "UPDATE presets SET is_default = 1 WHERE name = 'default'",
+        nullptr,
+        nullptr,
+        nullptr);
 
     return res;
 }

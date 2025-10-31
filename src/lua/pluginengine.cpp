@@ -36,9 +36,9 @@ void PluginEngine::Configure(int id, const std::optional<std::string>& config)
 
     auto update_stmt = Statement::Prepare(
         m_options.db,
-        "UPDATE plugins SET config = $1 WHERE id = $2");
-    update_stmt.Bind(1, config);
-    update_stmt.Bind(2, id);
+        "UPDATE plugins SET config = $config WHERE id = $id");
+    update_stmt.Bind("$id",     id);
+    update_stmt.Bind("$config", config);
     update_stmt.Execute();
 
     Reload(id);
@@ -48,12 +48,12 @@ int PluginEngine::InstallFromPath(const fs::path& path, std::optional<std::strin
 {
     auto install_stmt = Statement::Prepare(
         m_options.db,
-        "INSERT INTO plugins (type, data, config, metadata) VALUES ('path', $1, $2, $3)");
-    install_stmt.Bind(1, std::string_view(path.string()));
-    install_stmt.Bind(2, config);
-    install_stmt.Bind(3, metadata.is_null()
-        ? std::optional<std::string_view>()
-        : std::string_view(metadata.dump()));
+        "INSERT INTO plugins (type, data, config, metadata) VALUES ('path', $data, $config, $metadata)");
+    install_stmt.Bind("$data", path.string());
+    install_stmt.Bind("$config", config);
+    install_stmt.Bind("$metadata", metadata.is_null()
+        ? std::nullopt
+        : std::optional(metadata.dump()));
 
     install_stmt.Execute();
 
@@ -70,12 +70,12 @@ int PluginEngine::InstallFromArchive(const std::vector<char>& buffer, std::optio
 {
     auto install_stmt = Statement::Prepare(
         m_options.db,
-        "INSERT INTO plugins (type, data, config, metadata) VALUES ('archive', $1, $2, $3)");
-    install_stmt.Bind(1, buffer);
-    install_stmt.Bind(2, config);
-    install_stmt.Bind(3, metadata.is_null()
-        ? std::optional<std::string_view>()
-        : std::string_view(metadata.dump()));
+        "INSERT INTO plugins (type, data, config, metadata) VALUES ('archive', $data, $config, $metadata)");
+    install_stmt.Bind("$data", buffer);
+    install_stmt.Bind("$config", config);
+    install_stmt.Bind("$metadata", metadata.is_null()
+        ? std::nullopt
+        : std::optional(metadata.dump()));
 
     install_stmt.Execute();
 
@@ -98,7 +98,7 @@ void PluginEngine::LoadAll()
 
     load_stmt.Step([&plugin_ids](const auto& row)
     {
-        plugin_ids.insert(row.GetInt32(0));
+        plugin_ids.insert(row.GetInt32("id"));
         return SQLITE_OK;
     });
 
@@ -118,8 +118,8 @@ void PluginEngine::Load(int id)
 
     auto load_stmt = Statement::Prepare(
         m_options.db,
-        "SELECT id,type,data,config,metadata FROM plugins WHERE id = $1");
-    load_stmt.Bind(1, id);
+        "SELECT id,type,data,config,metadata FROM plugins WHERE id = $id");
+    load_stmt.Bind("$id", id);
     load_stmt.Step(
         [this, id](const auto& row)
         {
@@ -131,18 +131,18 @@ void PluginEngine::Load(int id)
 
             std::unique_ptr<Plugin> plugin = nullptr;
 
-            const auto type = row.GetStdString(1);
-            const auto conf = row.GetOptionalStdString(3);
+            const auto type = row.GetStdString("type");
+            const auto conf = row.GetOptionalStdString("config");
 
             if (type == "path")
             {
                 BOOST_LOG_TRIVIAL(info) << "plugin[" << id << "] Loading from path";
-                plugin = Plugin::LoadFromPath(row.GetStdString(2), conf, load_options);
+                plugin = Plugin::LoadFromPath(row.GetStdString("data"), conf, load_options);
             }
             else if (type == "archive")
             {
                 BOOST_LOG_TRIVIAL(info) << "plugin[" << id << "] Loading from archive";
-                plugin = Plugin::LoadFromArchive(row.GetBuffer(2), conf, load_options);
+                plugin = Plugin::LoadFromArchive(row.GetBuffer("data"), conf, load_options);
             }
             else
             {
@@ -186,8 +186,8 @@ void PluginEngine::Uninstall(int id)
 {
     auto uninstall_stmt = Statement::Prepare(
         m_options.db,
-        "DELETE FROM plugins WHERE id = $1");
-    uninstall_stmt.Bind(1, id);
+        "DELETE FROM plugins WHERE id = $id");
+    uninstall_stmt.Bind("$id", id);
     uninstall_stmt.Execute();
 
     if (m_plugins.find(id) != m_plugins.end())

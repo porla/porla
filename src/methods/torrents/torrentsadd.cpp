@@ -52,7 +52,7 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
     // - If there is a default preset, and that preset has a session_id, use that
     // - If nothing, use the default
 
-    const auto& default_preset = Data::Models::Presets::GetByName(m_db, "default");
+    const auto& default_preset = Data::Models::Presets::GetDefault(m_db);
 
     const auto& preset = req.preset_id.has_value()
         ? Data::Models::Presets::GetById(m_db, req.preset_id.value())

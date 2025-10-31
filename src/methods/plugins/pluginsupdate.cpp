@@ -25,6 +25,11 @@ void PluginsUpdate::Invoke(const PluginsUpdateReq& req, WriteCb<PluginsUpdateRes
         return cb.Error(-1, "Plugin not found");
     }
 
+    if (req.config.has_value())
+    {
+        m_plugin_engine.Configure(req.id, req.config.value());
+    }
+
     if (plugin->second.type == "archive")
     {
         return cb.Ok(PluginsUpdateRes{});

@@ -13,6 +13,7 @@ namespace porla::Methods::Presets
         PresetsGetRes,
         id,
         name,
+        is_default,
         category,
         download_limit,
         max_connections,

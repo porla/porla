@@ -16,11 +16,12 @@ namespace porla::Methods::Presets
     {
         int                                                    id;
         std::string                                            name;
+        bool                                                   is_default;
         std::optional<std::string>                             category;
         std::optional<int>                                     download_limit;
         std::optional<int>                                     max_connections;
         std::optional<int>                                     max_uploads;
-        std::optional<std::map<std::string, nlohmann::json>>   metadata;
+        std::map<std::string, nlohmann::json>                  metadata;
         std::optional<int>                                     session_id;
         std::optional<std::string>                             save_path;
         std::optional<std::string>                             storage_mode;

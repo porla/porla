@@ -1,7 +1,10 @@
 #pragma once
 
+#include <map>
 #include <string>
 #include <vector>
+
+#include <nlohmann/json.hpp>
 
 namespace porla::Methods::Presets
 {
@@ -11,8 +14,10 @@ namespace porla::Methods::Presets
     {
         struct ListItem
         {
-            int         id;
-            std::string name;
+            int                                   id;
+            std::string                           name;
+            bool                                  is_default;
+            std::map<std::string, nlohmann::json> metadata;
         };
 
         std::vector<ListItem> presets;

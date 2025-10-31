@@ -12,6 +12,7 @@ namespace porla::Methods::Presets
     {
         int                                                    id;
         std::string                                            name;
+        std::optional<bool>                                    is_default;
         std::optional<std::string>                             category;
         std::optional<int>                                     download_limit;
         std::optional<int>                                     max_connections;
