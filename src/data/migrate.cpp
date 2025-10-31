@@ -63,21 +63,34 @@ bool porla::Data::Migrate(sqlite3* db, const std::unique_ptr<porla::Config>& cfg
 
     int user_version = GetUserVersion(db);
 
-    if (user_version < Migrations.size())
+    if (user_version > Migrations.size())
     {
-        BOOST_LOG_TRIVIAL(info) << "Migrating database from version " << user_version << " to " << Migrations.size();
+        BOOST_LOG_TRIVIAL(error) << "Unsupported database version: " << user_version;
+        return false;
     }
 
-    for (int i = GetUserVersion(db); i < Migrations.size(); i++)
+    if (user_version == Migrations.size())
+    {
+        return true;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "Migrating database from version " << user_version + 1 << " to " << Migrations.size();
+
+    sqlite3_exec(db, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr);
+
+    for (int i = user_version; i < Migrations.size(); i++)
     {
         if (Migrations.at(i)(db) != SQLITE_OK)
         {
-            BOOST_LOG_TRIVIAL(error) << "Failed to apply migration " << i << ": " << sqlite3_errmsg(db);
+            BOOST_LOG_TRIVIAL(error) << "Failed to apply migration " << i + 1 << ": " << sqlite3_errmsg(db);
+            sqlite3_exec(db, "ROLLBACK;", nullptr, nullptr, nullptr);
             return false;
         }
     }
 
     SetUserVersion(db, static_cast<int>(Migrations.size()));
+
+    sqlite3_exec(db, "COMMIT;", nullptr, nullptr, nullptr);
 
     return true;
 }

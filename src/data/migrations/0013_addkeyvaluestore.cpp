@@ -10,7 +10,14 @@ int AddKeyValueStore::Migrate(sqlite3* db)
 
     int res = sqlite3_exec(
         db,
-        "CREATE TABLE kvs (id INTEGER PRIMARY KEY, key TEXT NOT NULL UNIQUE, value BLOB NOT NULL, readonly INTEGER NOT NULL)\n;",
+        R"sql(
+        CREATE TABLE kvs (
+            id INTEGER PRIMARY KEY,
+            key TEXT NOT NULL UNIQUE,
+            value BLOB NOT NULL,
+            readonly INTEGER NOT NULL
+        );
+        )sql",
         nullptr,
         nullptr,
         nullptr);

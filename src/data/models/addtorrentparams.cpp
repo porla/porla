@@ -21,12 +21,12 @@ static std::string ToString(const T &hash)
     return ss.str();
 }
 
-int AddTorrentParams::Count(sqlite3 *db, const std::string& session)
+int AddTorrentParams::Count(sqlite3 *db, const int session_id)
 {
     int count = 0;
 
     auto stmt = Statement::Prepare(db, "SELECT COUNT(*) AS count FROM addtorrentparams WHERE session_id = $session_id");
-    stmt.Bind("$session_id", session);
+    stmt.Bind("$session_id", session_id);
     stmt.Step(
         [&](const Statement::IRow& row)
         {
@@ -37,12 +37,12 @@ int AddTorrentParams::Count(sqlite3 *db, const std::string& session)
     return count;
 }
 
-void AddTorrentParams::ForEach(sqlite3 *db, const std::string& session, const std::function<void(lt::add_torrent_params&)>& cb)
+void AddTorrentParams::ForEach(sqlite3 *db, const int session_id, const std::function<void(lt::add_torrent_params&)>& cb)
 {
     auto stmt = Statement::Prepare(db, "SELECT client_data,name,resume_data_buf,save_path FROM addtorrentparams\n"
                                        "WHERE session_id = $session_id\n"
                                        "ORDER BY queue_position ASC");
-    stmt.Bind("$session_id", session);
+    stmt.Bind("$session_id", session_id);
     stmt.Step(
         [&cb](const Statement::IRow& row)
         {
@@ -97,7 +97,7 @@ void AddTorrentParams::ForEach(sqlite3 *db, const std::string& session, const st
         });
 }
 
-void AddTorrentParams::Insert(sqlite3 *db, const std::string& session, const libtorrent::info_hash_t& hash, const AddTorrentParams& params)
+void AddTorrentParams::Insert(sqlite3 *db, const int session_id, const libtorrent::info_hash_t& hash, const AddTorrentParams& params)
 {
     const std::vector<char> buf = lt::write_resume_data_buf(params.params);
     const std::string client_data_json = json(*params.client_data).dump();
@@ -134,11 +134,11 @@ void AddTorrentParams::Insert(sqlite3 *db, const std::string& session, const lib
         .Bind("$queue_position", params.queue_position)
         .Bind("$resume_data_buf", buf)
         .Bind("$save_path", params.save_path)
-        .Bind("$session_id", session)
+        .Bind("$session_id", session_id)
         .Execute();
 }
 
-void AddTorrentParams::Remove(sqlite3 *db, const std::string& session, const libtorrent::info_hash_t& hash)
+void AddTorrentParams::Remove(sqlite3 *db, const int session_id, const libtorrent::info_hash_t& hash)
 {
     auto stmt = Statement::Prepare(
         db,
@@ -153,11 +153,11 @@ void AddTorrentParams::Remove(sqlite3 *db, const std::string& session, const lib
     stmt
         .Bind("$info_hash_v1", hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
         .Bind("$info_hash_v2", hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
-        .Bind("$session_id",   session)
+        .Bind("$session_id",   session_id)
         .Execute();
 }
 
-void AddTorrentParams::Update(sqlite3 *db, const std::string& session, const libtorrent::info_hash_t& hash, const AddTorrentParams& params)
+void AddTorrentParams::Update(sqlite3 *db, const int session_id, const libtorrent::info_hash_t& hash, const AddTorrentParams& params)
 {
     const std::vector<char> buf = lt::write_resume_data_buf(params.params);
     const std::string client_data_json = json(*params.client_data).dump();
@@ -189,6 +189,6 @@ void AddTorrentParams::Update(sqlite3 *db, const std::string& session, const lib
         .Bind("$save_path",       params.save_path)
         .Bind("$info_hash_v1",    hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
         .Bind("$info_hash_v2",    hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
-        .Bind("$session_id",      session)
+        .Bind("$session_id",      session_id)
         .Execute();
 }

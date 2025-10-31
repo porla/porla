@@ -178,14 +178,14 @@ void Sessions::LoadById(int id)
     state->m_timers.emplace_back(m_options.io, session.timer_session_stats, [this, state] { PostSessionStats(state); });
     state->m_timers.emplace_back(m_options.io, session.timer_torrent_updates, [this, state] { PostTorrentUpdates(state); });
 
-    int count = AddTorrentParams::Count(m_options.db, session.name);
+    int count = AddTorrentParams::Count(m_options.db, session.id);
     int current = 0;
 
     BOOST_LOG_TRIVIAL(info) << "Loading " << count << " torrent(s) from storage";
 
     AddTorrentParams::ForEach(
         m_options.db,
-        state->name,
+        state->id,
         [&count, &current, state](lt::add_torrent_params& params)
         {
             current++;
@@ -256,7 +256,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
 
                 const auto status = ata->handle.status();
 
-                AddTorrentParams::Insert(m_options.db, state->name, ata->handle.info_hashes(), AddTorrentParams{
+                AddTorrentParams::Insert(m_options.db, state->id, ata->handle.info_hashes(), AddTorrentParams{
                     .client_data    = ata->handle.userdata().get<TorrentClientData>(),
                     .name           = status.name,
                     .params         = ata->params,
@@ -309,7 +309,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                 auto srda = lt::alert_cast<lt::save_resume_data_alert>(alert);
                 auto const& status = srda->handle.status();
 
-                AddTorrentParams::Update(m_options.db, state->name, status.info_hashes, AddTorrentParams{
+                AddTorrentParams::Update(m_options.db, state->id, status.info_hashes, AddTorrentParams{
                     .client_data    = srda->handle.userdata().get<TorrentClientData>(),
                     .name           = status.name,
                     .params         = srda->params,
@@ -446,7 +446,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
             {
                 auto tra = lt::alert_cast<lt::torrent_removed_alert>(alert);
 
-                AddTorrentParams::Remove(m_options.db, state->name, tra->info_hashes);
+                AddTorrentParams::Remove(m_options.db, state->id, tra->info_hashes);
 
                 state->torrents.erase(tra->info_hashes);
 
@@ -599,7 +599,7 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
 
                 outstanding--;
 
-                AddTorrentParams::Update(m_options.db, state->name, rd->handle.info_hashes(), AddTorrentParams{
+                AddTorrentParams::Update(m_options.db, state->id, rd->handle.info_hashes(), AddTorrentParams{
                     .client_data    = rd->handle.userdata().get<TorrentClientData>(),
                     .name           = rd->params.name,
                     .params         = rd->params,

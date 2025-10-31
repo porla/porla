@@ -10,19 +10,28 @@ int AlterPlugins::Migrate(sqlite3* db)
 
     int res = sqlite3_exec(
         db,
-        "CREATE TEMPORARY TABLE plugins_backup (id, path, config);\n"
+        R"sql(
+        CREATE TEMPORARY TABLE plugins_backup (id, path, config);
 
-        "INSERT INTO plugins_backup SELECT id,path,config FROM plugins;\n"
+        INSERT INTO plugins_backup
+        SELECT id,path,config FROM plugins;
 
-        "DROP TABLE plugins;\n"
+        DROP TABLE plugins;
 
-        "CREATE TABLE plugins (id INTEGER PRIMARY KEY, type TEXT NOT NULL, data BLOB NOT NULL, config TEXT, metadata TEXT)\n;"
+        CREATE TABLE plugins(
+            id INTEGER PRIMARY KEY,
+            type TEXT NOT NULL,
+            data BLOB NOT NULL,
+            config TEXT,
+            metadata TEXT
+        );
 
-        "INSERT INTO plugins (id, type, data, config, metadata)\n"
-        "SELECT pb.id,\"path\",pb.path,pb.config,NULL\n"
-        "FROM plugins_backup pb;\n"
+        INSERT INTO plugins (id, type, data, config, metadata)
+        SELECT pb.id,"path",pb.path,pb.config,NULL
+        FROM plugins_backup pb;
 
-        "DROP TABLE plugins_backup;\n",
+        DROP TABLE plugins_backup;
+        )sql",
         nullptr,
         nullptr,
         nullptr);
