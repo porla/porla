@@ -242,5 +242,7 @@ int main(int argc, char* argv[])
 
     curl_global_cleanup();
 
+    BOOST_LOG_TRIVIAL(info) << "Bye";
+
     return 0;
 }

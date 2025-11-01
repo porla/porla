@@ -121,8 +121,9 @@ static const auto MapTorrentItem = [](
             }
             else if (filter_field == "flags" && args.is_number())
             {
-                const auto flags = args.get<std::uint64_t>();
-                filter_includes_torrent = ts.flags & flags == flags;
+                const auto flags_uint = args.get<std::uint64_t>();
+                const auto flags = lt::torrent_flags_t{flags_uint};
+                filter_includes_torrent = (ts.flags & flags) == flags;
             }
             else if (filter_field == "save_path" && args.is_string())
             {
