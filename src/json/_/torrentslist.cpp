@@ -6,6 +6,17 @@
 namespace porla::Methods
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
+        TorrentsListFilters,
+        category,
+        errc,
+        flags,
+        query,
+        session_id,
+        save_path,
+        state,
+        tags)
+
+    NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsListReq,
         filters,
         order_by,

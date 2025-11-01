@@ -27,13 +27,15 @@ void TorrentsCount::Invoke(const TorrentsCountReq& req, WriteCb<TorrentsCountRes
     {
         const auto& [ th, ts ] = pair;
 
-        if (ts.state == lt::torrent_status::state_t::downloading
+        if ((ts.state == lt::torrent_status::state_t::downloading
+            || ts.state == lt::torrent_status::state_t::downloading_metadata)
             && !(ts.flags & lt::torrent_flags::paused))
         {
             res.downloading++;
         }
 
-        if (ts.state == lt::torrent_status::state_t::downloading
+        if ((ts.state == lt::torrent_status::state_t::downloading
+            || ts.state == lt::torrent_status::state_t::downloading_metadata)
             && (ts.flags & lt::torrent_flags::auto_managed)
             && (ts.flags & lt::torrent_flags::paused))
         {
@@ -53,7 +55,9 @@ void TorrentsCount::Invoke(const TorrentsCountReq& req, WriteCb<TorrentsCountRes
             res.finished++;
         }
 
-        if (!(ts.flags & lt::torrent_flags::auto_managed)
+        if ((ts.state == lt::torrent_status::state_t::downloading
+            || ts.state == lt::torrent_status::state_t::downloading_metadata)
+            && !(ts.flags & lt::torrent_flags::auto_managed)
             && (ts.flags & lt::torrent_flags::paused))
         {
             res.paused++;

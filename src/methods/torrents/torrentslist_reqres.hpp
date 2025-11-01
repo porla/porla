@@ -9,9 +9,21 @@
 
 namespace porla::Methods
 {
+    struct TorrentsListFilters
+    {
+        std::optional<std::string>                     category;
+        std::optional<bool>                            errc;
+        std::optional<std::unordered_set<std::string>> flags;
+        std::optional<std::string>                     query;
+        std::optional<int>                             session_id;
+        std::optional<std::string>                     save_path;
+        std::optional<std::unordered_set<std::string>> state;
+        std::optional<std::unordered_set<std::string>> tags;
+    };
+
     struct TorrentsListReq
     {
-        std::optional<std::map<std::string, nlohmann::json>> filters;
+        std::optional<TorrentsListFilters> filters;
         std::optional<int> page;
         std::optional<int> page_size;
         std::optional<std::string> order_by;
