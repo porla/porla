@@ -80,12 +80,12 @@ void AddTorrentParams::ForEach(sqlite3 *db, const int session_id, const std::fun
                     atp.userdata.get<TorrentClientData>()->category = client_data_json["category"];
                 }
 
-                if (client_data_json.contains("metadata"))
+                if (client_data_json.contains("metadata") && client_data_json.at("metadata").is_object())
                 {
                     atp.userdata.get<TorrentClientData>()->metadata = client_data_json["metadata"];
                 }
 
-                if (client_data_json.contains("tags"))
+                if (client_data_json.contains("tags") && client_data_json.at("tags").is_array())
                 {
                     atp.userdata.get<TorrentClientData>()->tags = client_data_json["tags"];
                 }
