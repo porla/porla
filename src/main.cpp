@@ -48,6 +48,7 @@
 #include "methods/sessions/sessionsupdate.hpp"
 #include "methods/sysversions.hpp"
 #include "methods/torrents/torrentsadd.hpp"
+#include "methods/torrents/torrentscount.hpp"
 #include "methods/torrents/torrentsfileslist.hpp"
 #include "methods/torrents/torrentsfilesprogress.hpp"
 #include "methods/torrents/torrentsget.hpp"
@@ -62,7 +63,6 @@
 #include "methods/torrents/torrentspropertiesget.hpp"
 #include "methods/torrents/torrentspropertiesset.hpp"
 #include "methods/torrents/torrentstrackerslist.hpp"
-#include "methods/torrents/torrentsoverview.hpp"
 #include "methods/webui/webuiinstall.hpp"
 
 int main(int argc, char* argv[])
@@ -158,12 +158,12 @@ int main(int argc, char* argv[])
             {"sessions.update", porla::Methods::Sessions::SessionsUpdate(cfg->db, sessions)},
             {"sys.versions", porla::Methods::SysVersions()},
             {"torrents.add", porla::Methods::TorrentsAdd(cfg->db, sessions)},
+            {"torrents.count", porla::Methods::Torrents::TorrentsCount(sessions)},
             {"torrents.files.list", porla::Methods::TorrentsFilesList(sessions)},
             {"torrents.files.progress", porla::Methods::TorrentsFilesProgress(sessions)},
             {"torrents.get", porla::Methods::TorrentsGet(sessions)},
             {"torrents.list", porla::Methods::TorrentsList(sessions)},
             {"torrents.move", porla::Methods::TorrentsMove(sessions)},
-            {"torrents.overview", porla::Methods::Torrents::TorrentsOverview(sessions)},
             {"torrents.pause", porla::Methods::TorrentsPause(sessions)},
             {"torrents.peers.add", porla::Methods::TorrentsPeersAdd(sessions)},
             {"torrents.peers.list", porla::Methods::TorrentsPeersList(sessions)},

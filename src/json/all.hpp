@@ -153,10 +153,14 @@ namespace porla::Methods
 
     namespace Torrents
     {
-        class TorrentsOverviewReq;
-        class TorrentsOverviewRes;
+        struct TorrentsCountReq;
+        struct TorrentsCountRes;
+        struct TorrentsOverviewReq;
+        struct TorrentsOverviewRes;
 
+        void from_json(const nlohmann::json& json, TorrentsCountReq& req);
         void from_json(const nlohmann::json& json, TorrentsOverviewReq& req);
+        void to_json(nlohmann::json& json, const TorrentsCountRes& res);
         void to_json(nlohmann::json& json, const TorrentsOverviewRes& res);
     }
 

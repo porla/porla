@@ -108,12 +108,12 @@ add_library(
     src/json/_/sessionsupdate.cpp
     src/json/_/torrentclientdata.cpp
     src/json/_/torrentsadd.cpp
+    src/json/_/torrentscount.cpp
     src/json/_/torrentsfileslist.cpp
     src/json/_/torrentsfilesprogress.cpp
     src/json/_/torrentsget.cpp
     src/json/_/torrentslist.cpp
     src/json/_/torrentsmove.cpp
-    src/json/_/torrentsoverview.cpp
     src/json/_/torrentspause.cpp
     src/json/_/torrentspeersadd.cpp
     src/json/_/torrentspeerslist.cpp
@@ -167,6 +167,7 @@ add_library(
     src/methods/sessions/sessionsupdate.cpp
     src/methods/sysversions.cpp
     src/methods/torrents/torrentsadd.cpp
+    src/methods/torrents/torrentscount.cpp
     src/methods/torrents/torrentsfileslist.cpp
     src/methods/torrents/torrentsfilesprogress.cpp
     src/methods/torrents/torrentsget.cpp
@@ -181,7 +182,6 @@ add_library(
     src/methods/torrents/torrentsresume.cpp
     src/methods/torrents/torrentspropertiesset.cpp
     src/methods/torrents/torrentstrackerslist.cpp
-    src/methods/torrents/torrentsoverview.cpp
     src/methods/webui/webuiinstall.cpp
 
     src/query/_aux/PorlaQueryLangBaseVisitor.cpp
