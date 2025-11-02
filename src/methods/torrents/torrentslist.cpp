@@ -120,10 +120,10 @@ static const auto MapTorrentItem = [](
             filters.flags->end(),
             [&ts](const auto& flag)
             {
-                if (flag == "auto_managed")  return (ts.flags & lt::torrent_flags::auto_managed) != 0;
-                if (flag == "!auto_managed") return (ts.flags & lt::torrent_flags::auto_managed) == 0;
-                if (flag == "paused")        return (ts.flags & lt::torrent_flags::paused)       != 0;
-                if (flag == "!paused")       return (ts.flags & lt::torrent_flags::paused)       == 0;
+                if (flag == "auto_managed")  return  ((ts.flags & lt::torrent_flags::auto_managed) == lt::torrent_flags::auto_managed);
+                if (flag == "!auto_managed") return !((ts.flags & lt::torrent_flags::auto_managed) == lt::torrent_flags::auto_managed);
+                if (flag == "paused")        return  ((ts.flags & lt::torrent_flags::paused)       == lt::torrent_flags::paused);
+                if (flag == "!paused")       return !((ts.flags & lt::torrent_flags::paused)       == lt::torrent_flags::paused);
                 return false;
             });
     }
