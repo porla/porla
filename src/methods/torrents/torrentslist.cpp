@@ -177,7 +177,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
         if (req.filters->save_path.has_value() && req.filters->save_path.value() != ts.save_path)
         {
-            return;
+            continue;
         }
 
         if (req.filters->state.has_value())
@@ -198,7 +198,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
             if (!has_any_state)
             {
-                return;
+                continue;
             }
         }
 
@@ -266,7 +266,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
             if (!has_any_status)
             {
-                return;
+                continue;
             }
         }
 
@@ -279,7 +279,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
             if (!has_all_tags)
             {
-                return;
+                continue;
             }
         }
 
