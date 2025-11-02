@@ -18,6 +18,7 @@ namespace porla::Methods
         std::optional<int>                             session_id;
         std::optional<std::string>                     save_path;
         std::optional<std::unordered_set<std::string>> state;
+        std::optional<std::unordered_set<std::string>> status;
         std::optional<std::unordered_set<std::string>> tags;
     };
 

@@ -81,101 +81,6 @@ static const std::map<std::pair<std::string, bool>, std::function<bool(const lt:
     {{"upload_rate", true},     [](auto const& lhs, auto const& rhs) { return lhs.upload_rate < rhs.upload_rate; }},
 };
 
-static const auto MapTorrentItem = [](
-    const TorrentsListFilters& filters,
-    const std::shared_ptr<porla::Sessions::SessionState>& state,
-    const std::optional<std::function<bool(const lt::torrent_status&)>>& filter_query,
-    const std::tuple<lt::torrent_handle, lt::torrent_status>& pair,
-    std::vector<lt::torrent_status>& t)
-{
-    const auto& [ handle, ts ] = pair;
-
-    if (!handle.is_valid())
-    {
-        return;
-    }
-
-    const auto client_data = handle.userdata().get<porla::TorrentClientData>();
-
-    if (filter_query.has_value() && !filter_query.value()(ts))
-    {
-        return;
-    }
-
-    if (filters.category.has_value() && filters.category.value() != client_data->category)
-    {
-        return;
-    }
-
-    if (filters.errc.has_value())
-    {
-        if (filters.errc.value() == false && ts.errc.value() != 0) return;
-        if (filters.errc.value() == true  && ts.errc.value() == 0) return;
-    }
-
-    if (filters.flags.has_value())
-    {
-        const auto has_all_flags = std::all_of(
-            filters.flags->begin(),
-            filters.flags->end(),
-            [&ts](const auto& flag)
-            {
-                if (flag == "auto_managed")  return  ((ts.flags & lt::torrent_flags::auto_managed) == lt::torrent_flags::auto_managed);
-                if (flag == "!auto_managed") return !((ts.flags & lt::torrent_flags::auto_managed) == lt::torrent_flags::auto_managed);
-                if (flag == "paused")        return  ((ts.flags & lt::torrent_flags::paused)       == lt::torrent_flags::paused);
-                if (flag == "!paused")       return !((ts.flags & lt::torrent_flags::paused)       == lt::torrent_flags::paused);
-                return false;
-            });
-
-        if (!has_all_flags)
-        {
-            return;
-        }
-    }
-
-    if (filters.save_path.has_value() && filters.save_path.value() != ts.save_path)
-    {
-        return;
-    }
-
-    if (filters.state.has_value())
-    {
-        const auto has_any_state = std::any_of(
-            filters.state->begin(),
-            filters.state->end(),
-            [&ts](const auto& state)
-            {
-                if (state == "checking_files"       && ts.state == lt::torrent_status::checking_files)       return true;
-                if (state == "checking_resume_data" && ts.state == lt::torrent_status::checking_resume_data) return true;
-                if (state == "downloading_metadata" && ts.state == lt::torrent_status::downloading_metadata) return true;
-                if (state == "downloading"          && ts.state == lt::torrent_status::downloading)          return true;
-                if (state == "finished"             && ts.state == lt::torrent_status::finished)             return true;
-                if (state == "seeding"              && ts.state == lt::torrent_status::seeding)              return true;
-                return false;
-            });
-
-        if (!has_any_state)
-        {
-            return;
-        }
-    }
-
-    if (filters.tags.has_value())
-    {
-        const auto has_all_tags = std::all_of(
-            filters.tags->begin(),
-            filters.tags->end(),
-            [&client_data](const auto& tag) { return client_data->tags.contains(tag); });
-
-        if (!has_all_tags)
-        {
-            return;
-        }
-    }
-
-    t.emplace_back(ts);
-};
-
 TorrentsList::TorrentsList(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
@@ -243,12 +148,142 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
     for (const auto& [_, pair] : session_state->torrents)
     {
-        MapTorrentItem(
-            req.filters.value_or(TorrentsListFilters{}),
-            session_state,
-            filter_query,
-            pair,
-            torrents);
+        const auto& [ handle, ts ] = pair;
+
+        if (!handle.is_valid())
+        {
+            continue;
+        }
+
+        // If we have no filters, just add
+        if (!req.filters.has_value())
+        {
+            torrents.emplace_back(ts);
+            continue;
+        }
+
+        const auto client_data = handle.userdata().get<porla::TorrentClientData>();
+
+        if (filter_query.has_value() && !filter_query.value()(ts))
+        {
+            continue;
+        }
+
+        if (req.filters->category.has_value() && req.filters->category.value() != client_data->category)
+        {
+            continue;
+        }
+
+
+        if (req.filters->save_path.has_value() && req.filters->save_path.value() != ts.save_path)
+        {
+            return;
+        }
+
+        if (req.filters->state.has_value())
+        {
+            const auto has_any_state = std::any_of(
+                req.filters->state->begin(),
+                req.filters->state->end(),
+                [&ts](const auto& state)
+                {
+                    if (state == "checking_files"       && ts.state == lt::torrent_status::checking_files)       return true;
+                    if (state == "checking_resume_data" && ts.state == lt::torrent_status::checking_resume_data) return true;
+                    if (state == "downloading_metadata" && ts.state == lt::torrent_status::downloading_metadata) return true;
+                    if (state == "downloading"          && ts.state == lt::torrent_status::downloading)          return true;
+                    if (state == "finished"             && ts.state == lt::torrent_status::finished)             return true;
+                    if (state == "seeding"              && ts.state == lt::torrent_status::seeding)              return true;
+                    return false;
+                });
+
+            if (!has_any_state)
+            {
+                return;
+            }
+        }
+
+        if (req.filters->status.has_value())
+        {
+            const auto has_any_status = std::any_of(
+                req.filters->status->begin(),
+                req.filters->status->end(),
+                [&ts](const auto& status)
+                {
+                    if (status == "downloading"
+                        && (ts.state == lt::torrent_status::downloading || ts.state == lt::torrent_status::downloading_metadata)
+                        && !(ts.flags & lt::torrent_flags::paused))
+                    {
+                        return true;
+                    }
+
+                    if (status == "downloading_queued"
+                        && (ts.state == lt::torrent_status::downloading || ts.state == lt::torrent_status::downloading_metadata)
+                        && (ts.flags & lt::torrent_flags::auto_managed)
+                        && (ts.flags & lt::torrent_flags::paused))
+                    {
+                        return true;
+                    }
+
+                    if (status == "error"
+                        && ts.errc)
+                    {
+                        return true;
+                    }
+
+                    if (status == "finished"
+                        && (ts.state == lt::torrent_status::finished || ts.state == lt::torrent_status::seeding)
+                        && !(ts.flags & lt::torrent_flags::auto_managed)
+                        && (ts.flags & lt::torrent_flags::paused))
+                    {
+                        return true;
+                    }
+
+                    if (status == "paused"
+                        && (ts.state == lt::torrent_status::downloading || ts.state == lt::torrent_status::downloading_metadata)
+                        && !(ts.flags & lt::torrent_flags::auto_managed)
+                        && (ts.flags & lt::torrent_flags::paused))
+                    {
+                        return true;
+                    }
+
+                    if (status == "seeding"
+                        && (ts.state == lt::torrent_status::finished || ts.state == lt::torrent_status::seeding)
+                        && !(ts.flags & lt::torrent_flags::paused))
+                    {
+                        return true;
+                    }
+
+                    if (status == "seeding_queued"
+                        && (ts.state == lt::torrent_status::finished || ts.state == lt::torrent_status::seeding)
+                        && (ts.flags & lt::torrent_flags::auto_managed)
+                        && (ts.flags & lt::torrent_flags::paused))
+                    {
+                        return true;
+                    }
+
+                    return false;
+                });
+
+            if (!has_any_status)
+            {
+                return;
+            }
+        }
+
+        if (req.filters->tags.has_value())
+        {
+            const auto has_all_tags = std::all_of(
+                req.filters->tags->begin(),
+                req.filters->tags->end(),
+                [&client_data](const auto& tag) { return client_data->tags.contains(tag); });
+
+            if (!has_all_tags)
+            {
+                return;
+            }
+        }
+
+        torrents.emplace_back(ts);
     }
 
     std::sort(

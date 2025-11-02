@@ -14,6 +14,7 @@ namespace porla::Methods
         session_id,
         save_path,
         state,
+        status,
         tags)
 
     NLOHMANN_JSONIFY_ALL_THINGS(

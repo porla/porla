@@ -30,6 +30,10 @@ static Presets::Preset LoadFromRow(const porla::Data::Statement::IRow &row)
     const auto metadata = row.GetOptionalStdString("metadata");
     const auto tags     = row.GetOptionalStdString("tags");
 
+    const auto metadata_json = metadata.has_value()
+        ? json::parse(metadata.value())
+        : json();
+
     return Presets::Preset{
         .id = row.GetInt32("id"),
         .name = row.GetStdString("name"),
@@ -38,8 +42,8 @@ static Presets::Preset LoadFromRow(const porla::Data::Statement::IRow &row)
         .download_limit = row.GetOptionalInt32("download_limit"),
         .max_connections = row.GetOptionalInt32("max_connections"),
         .max_uploads = row.GetOptionalInt32("max_uploads"),
-        .metadata = metadata.has_value()
-            ? std::optional(json::parse(metadata.value()).get<std::map<std::string, json>>())
+        .metadata = metadata_json.is_object()
+            ? std::optional(metadata_json.get<std::map<std::string, json>>())
             : std::nullopt,
         .session_id = row.GetOptionalInt32("session_id"),
         .save_path = row.GetOptionalStdString("save_path"),
