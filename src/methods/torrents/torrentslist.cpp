@@ -126,6 +126,11 @@ static const auto MapTorrentItem = [](
                 if (flag == "!paused")       return !((ts.flags & lt::torrent_flags::paused)       == lt::torrent_flags::paused);
                 return false;
             });
+
+        if (!has_all_flags)
+        {
+            return;
+        }
     }
 
     if (filters.save_path.has_value() && filters.save_path.value() != ts.save_path)
