@@ -14,6 +14,8 @@ namespace porla::Methods
         id,
         name,
         is_default,
+        is_listening,
+        is_paused,
         metadata,
         torrents_total)
 

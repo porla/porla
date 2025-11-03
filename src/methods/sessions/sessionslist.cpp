@@ -21,6 +21,8 @@ void SessionsList::Invoke(const SessionsListReq& req, WriteCb<SessionsListRes> c
             .id             = state->id,
             .name           = state->name,
             .is_default     = state->is_default,
+            .is_listening   = state->session->is_listening(),
+            .is_paused      = state->session->is_paused(),
             .metadata       = state->metadata,
             .torrents_total = static_cast<int>(state->torrents.size())
         });

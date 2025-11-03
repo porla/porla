@@ -14,8 +14,11 @@ namespace porla::Methods::Sessions
         id,
         name,
         is_default,
+        is_listening,
+        is_paused,
         metadata,
-        settings)
+        settings,
+        torrents_total)
 
     NLOHMANN_JSONIFY_ALL_THINGS(
         SessionsGetRes,

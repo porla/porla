@@ -13,8 +13,6 @@ SessionsGet::SessionsGet(porla::Sessions& sessions)
 
 void SessionsGet::Invoke(const SessionsGetReq &req, WriteCb<SessionsGetRes> cb)
 {
-    SessionsGetRes res;
-
     const auto& state = m_sessions.Get(req.id);
 
     if (state == nullptr)
@@ -24,11 +22,14 @@ void SessionsGet::Invoke(const SessionsGetReq &req, WriteCb<SessionsGetRes> cb)
 
     cb.Ok(SessionsGetRes{
         .session = SessionsGetRes::Session{
-            .id         = state->id,
-            .name       = state->name,
-            .is_default = state->is_default,
-            .metadata   = state->metadata,
-            .settings   = state->session->get_settings()
+            .id             = state->id,
+            .name           = state->name,
+            .is_default     = state->is_default,
+            .is_listening   = state->session->is_listening(),
+            .is_paused      = state->session->is_paused(),
+            .metadata       = state->metadata,
+            .settings       = state->session->get_settings(),
+            .torrents_total = static_cast<int>(state->torrents.size())
         }
     });
 }
