@@ -291,6 +291,18 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
 
                 break;
             }
+            case lt::listen_failed_alert::alert_type:
+            {
+                const auto lfa = lt::alert_cast<lt::listen_failed_alert>(alert);
+                BOOST_LOG_TRIVIAL(warning) << "session[" << state->name << "] " << lfa->message();
+                break;
+            }
+            case lt::listen_succeeded_alert::alert_type:
+            {
+                const auto lsa = lt::alert_cast<lt::listen_succeeded_alert>(alert);
+                BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] " << lsa->message();
+                break;
+            }
             case lt::metadata_received_alert::alert_type:
             {
                 auto mra = lt::alert_cast<lt::metadata_received_alert>(alert);
