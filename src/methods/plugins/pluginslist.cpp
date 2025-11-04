@@ -26,9 +26,12 @@ void PluginsList::Invoke(const PluginsListReq& req, WriteCb<PluginsListRes> cb)
 
         res.plugins.emplace_back(PluginsListRes::Plugin{
             .id = id,
-            .type = "state.type",
+            .type = state.type,
             .name = meta.has_value() ? meta->name : std::nullopt,
-            .version = meta.has_value() ? meta->version : std::nullopt
+            .version = meta.has_value() ? meta->version : std::nullopt,
+            .metadata = state.metadata.has_value()
+                ? state.metadata.value()
+                : std::map<std::string, nlohmann::json>()
         });
     }
 

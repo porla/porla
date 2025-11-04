@@ -22,6 +22,6 @@ namespace porla::Methods
         std::optional<std::string>                           name;
         std::optional<std::string>                           version;
         std::optional<std::string>                           config;
-        std::optional<std::map<std::string, nlohmann::json>> metadata;
+        std::map<std::string, nlohmann::json>                metadata;
     };
 }

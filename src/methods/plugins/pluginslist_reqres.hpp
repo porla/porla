@@ -15,8 +15,11 @@ namespace porla::Methods
         {
             int                        id;
             std::string                type;
+
             std::optional<std::string> name;
             std::optional<std::string> version;
+
+            std::map<std::string, nlohmann::json> metadata;
         };
 
         std::vector<Plugin> plugins;

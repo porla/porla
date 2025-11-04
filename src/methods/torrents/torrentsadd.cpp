@@ -16,8 +16,6 @@ using porla::Methods::TorrentsAddReq;
 
 static void ApplyPreset(lt::add_torrent_params& p, const porla::Data::Models::Presets::Preset& preset)
 {
-    BOOST_LOG_TRIVIAL(debug) << "Applying preset " << preset.name;
-
     if (preset.download_limit.has_value())  p.download_limit  = preset.download_limit.value();
     if (preset.max_connections.has_value()) p.max_connections = preset.max_connections.value();
     if (preset.max_uploads.has_value())     p.max_uploads     = preset.max_uploads.value();
@@ -87,6 +85,7 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
 
     if (default_preset.has_value())
     {
+        BOOST_LOG_TRIVIAL(info) << "Applying default preset";
         ApplyPreset(p, default_preset.value());
     }
 
@@ -94,6 +93,7 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
     // already been applied above.
     if (preset.has_value() && (!default_preset.has_value() || preset->id != default_preset->id))
     {
+        BOOST_LOG_TRIVIAL(info) << "Applying preset " << preset->name;
         ApplyPreset(p, preset.value());
     }
 
@@ -189,6 +189,7 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
     }
 
     cb.Ok(TorrentsAddRes{
-        .info_hash = hash
+        .info_hash  = hash,
+        .session_id = session_state->id
     });
 }

@@ -101,7 +101,16 @@ void WebUI::Download(const std::string& repo, const fs::path& target_file)
 
     BOOST_LOG_TRIVIAL(info) << "Downloaded " << asset_data.body.size() << " bytes of fresh web UI";
 
-    std::ofstream asset_output_file(target_file, std::ios::binary);
-    asset_output_file << asset_data.body;
-    asset_output_file.flush();
+    try
+    {
+        std::ofstream asset_output_file(target_file, std::ios::binary);
+        asset_output_file.exceptions(~std::ios::goodbit);
+        asset_output_file << asset_data.body;
+        asset_output_file.flush();
+        asset_output_file.close();
+    }
+    catch (const std::exception& e)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to write web UI file: " << e.what();
+    }
 }

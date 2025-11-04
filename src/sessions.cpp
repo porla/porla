@@ -130,7 +130,7 @@ void Sessions::LoadAll()
             session_ids.push_back(s.id);
         });
 
-    BOOST_LOG_TRIVIAL(info) << "Loading " << session_ids.size() << " sessions";
+    BOOST_LOG_TRIVIAL(info) << "Loading " << session_ids.size() << " session(s)";
 
     for (const auto& session_id : session_ids)
     {
@@ -152,7 +152,7 @@ void Sessions::LoadById(int id)
 
     if (m_sessions.contains(session.id))
     {
-        BOOST_LOG_TRIVIAL(warning) << "Session " << session.name << " already loaded";
+        BOOST_LOG_TRIVIAL(warning) << "session[" << session.name << "] Already loaded - skipping";
         return;
     }
 
@@ -181,7 +181,7 @@ void Sessions::LoadById(int id)
     int count = AddTorrentParams::Count(m_options.db, session.id);
     int current = 0;
 
-    BOOST_LOG_TRIVIAL(info) << "Loading " << count << " torrent(s) from storage";
+    BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Loading " << count << " torrent(s) from storage";
 
     AddTorrentParams::ForEach(
         m_options.db,
@@ -198,13 +198,13 @@ void Sessions::LoadById(int id)
 
             if (current % 1000 == 0 && current != count)
             {
-                BOOST_LOG_TRIVIAL(info) << current << " torrents (of " << count << ") added";
+                BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] " << current << " torrents (of " << count << ") added";
             }
         });
 
     if (count > 0)
     {
-        BOOST_LOG_TRIVIAL(info) << "Added " << current << " (of " << count << ") torrent(s) to session";
+        BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Added " << current << " (of " << count << ") torrent(s) to session";
     }
 
     m_sessions.insert({ state->id, state });
@@ -239,7 +239,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
 
                 if (ata->error)
                 {
-                    BOOST_LOG_TRIVIAL(error) << "Failed to add torrent " << ata->torrent_name() << ": " << ata->error.what();
+                    BOOST_LOG_TRIVIAL(error) << "session[" << state->name << "] Failed to add torrent " << ata->torrent_name() << ": " << ata->error.what();
                     continue;
                 }
 
@@ -307,7 +307,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
             {
                 auto mra = lt::alert_cast<lt::metadata_received_alert>(alert);
 
-                BOOST_LOG_TRIVIAL(info) << "Metadata received for torrent " << mra->handle.status().name;
+                BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Metadata received for torrent " << mra->handle.status().name;
 
                 mra->handle.save_resume_data(
                     lt::torrent_handle::flush_disk_cache
@@ -329,7 +329,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                     .save_path      = status.save_path
                 });
 
-                BOOST_LOG_TRIVIAL(debug) << "Resume data saved for " << status.name;
+                BOOST_LOG_TRIVIAL(debug) << "session[" << state->name << "] Resume data saved for " << status.name;
 
                 break;
             }
@@ -359,7 +359,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
             {
                 auto const sma = lt::alert_cast<lt::storage_moved_alert>(alert);
 
-                BOOST_LOG_TRIVIAL(info) << "Torrent " << sma->torrent_name() << " moved to " << sma->storage_path();
+                BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Torrent " << sma->torrent_name() << " moved to " << sma->storage_path();
 
                 if (sma->handle.need_save_resume_data())
                 {
@@ -379,7 +379,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
             {
                 const auto tca = lt::alert_cast<lt::torrent_checked_alert>(alert);
 
-                BOOST_LOG_TRIVIAL(info) << "Torrent " << tca->torrent_name() << " finished checking";
+                BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Torrent " << tca->torrent_name() << " finished checking";
 
                 state->torrents.at(tca->handle.info_hashes()) = std::make_pair(tca->handle, tca->handle.status());
 
@@ -422,7 +422,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                     client_data->metadata->insert({ "signal:finished", true });
 
                     // Only emit this event if we have downloaded any data this session
-                    BOOST_LOG_TRIVIAL(info) << "Torrent " << status.name << " finished";
+                    BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Torrent " << status.name << " finished";
 
                     boost::asio::post(
                         m_options.io,
@@ -446,7 +446,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
             {
                 auto tpa = lt::alert_cast<lt::torrent_paused_alert>(alert);
 
-                BOOST_LOG_TRIVIAL(debug) << "Torrent " << tpa->torrent_name() << " paused";
+                BOOST_LOG_TRIVIAL(debug) << "session[" << state->name << "] Torrent " << tpa->torrent_name() << " paused";
 
                 state->torrents.at(tpa->handle.info_hashes()) = std::make_pair(tpa->handle, tpa->handle.status());
 
@@ -462,7 +462,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
 
                 state->torrents.erase(tra->info_hashes);
 
-                BOOST_LOG_TRIVIAL(info) << "Torrent " << tra->torrent_name() << " removed";
+                BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Torrent " << tra->torrent_name() << " removed";
 
                 boost::asio::post(m_options.io, [this, hash = tra->info_hashes, state](){ m_torrent_removed(state->name, hash); });
 
@@ -473,7 +473,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                 auto tra = lt::alert_cast<lt::torrent_resumed_alert>(alert);
                 auto const& status = tra->handle.status();
 
-                BOOST_LOG_TRIVIAL(debug) << "Torrent " << status.name << " resumed";
+                BOOST_LOG_TRIVIAL(debug) << "session[" << state->name << "] Torrent " << status.name << " resumed";
 
                 state->torrents.at(tra->handle.info_hashes()) = std::make_pair(tra->handle, status);
 
@@ -518,7 +518,7 @@ void Sessions::SaveState(const std::shared_ptr<SessionState>& state)
         return;
     }
 
-    BOOST_LOG_TRIVIAL(info) << "Saving state for " << torrents.size() << " torrent(s) in session " << state->name;
+    BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Saving state for " << torrents.size() << " torrent(s) in session " << state->name;
 
     for (const auto& ts : torrents)
     {
@@ -544,7 +544,8 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
     int chunk_size = 1000;
     int chunks = static_cast<int>(state->torrents.size() / chunk_size) + 1;
 
-    BOOST_LOG_TRIVIAL(info) << "Saving resume data in " << chunks << " chunk(s) - total torrents: "
+    BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] "
+                            << "Saving resume data in " << chunks << " chunk(s) - total torrents: "
                             << state->torrents.size();
 
     auto current = state->torrents.begin();
@@ -577,7 +578,8 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
             std::advance(current, 1);
         }
 
-        BOOST_LOG_TRIVIAL(info) << "Chunk " << i + 1 << " - Saving state for " << outstanding
+        BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] " 
+                                << "Chunk " << i + 1 << " - Saving state for " << outstanding
                                 << " torrent(s) (out of " << chunk_items << ")";
 
         while (outstanding > 0) {
@@ -599,6 +601,7 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
                     outstanding--;
 
                     BOOST_LOG_TRIVIAL(error)
+                        << "session[" << state->name << "] " 
                         << "Failed to save resume data for "
                         << fail->torrent_name()
                         << ": " << fail->message();

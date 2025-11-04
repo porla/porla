@@ -28,7 +28,8 @@ namespace porla::Methods
     void to_json(nlohmann::json& json, const TorrentsAddRes& res)
     {
         json = {
-            {"info_hash", res.info_hash}
+            {"info_hash", res.info_hash},
+            {"session_id", res.session_id}
         };
     }
 }
