@@ -3,6 +3,7 @@
 #include <libtorrent/torrent_status.hpp>
 
 #include "../../torrentclientdata.hpp"
+#include "../../utils/ratio.hpp"
 
 namespace libtorrent
 {
@@ -76,6 +77,8 @@ namespace libtorrent
             {"pieces", ts.pieces},
             {"progress", ts.progress},
             {"queue_position", static_cast<int>(ts.queue_position)},
+            {"ratio", porla::Utils::Ratio(ts, false)},
+            {"ratio_real", porla::Utils::Ratio(ts, true)},
             {"save_path", ts.save_path},
             {"seed_rank", ts.seed_rank},
             {"seeding_duration", ts.seeding_duration.count()},
