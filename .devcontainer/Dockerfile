@@ -1,4 +1,4 @@
-FROM ghcr.io/porla/alpine:3.22.0 AS base
+FROM mirror.gcr.io/library/alpine:3.23.3 AS base
 
 FROM base AS build-base
 ARG GITVERSION_SEMVER="0.0.0"
@@ -30,6 +30,7 @@ RUN wget -O antlr4-4.13.2.tar.gz https://github.com/antlr/antlr4/archive/refs/ta
 RUN tar zxf antlr4-4.13.2.tar.gz
 RUN cd antlr4-4.13.2/runtime/Cpp \
     && cmake -S . -B build -G Ninja \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
         -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build --target install
@@ -87,7 +88,7 @@ COPY --from=build-uwebsockets /src/uSockets-0.8.8/src/libusockets.h /usr/local/i
 COPY --from=build-uwebsockets /src/uSockets-0.8.8/uSockets.a /usr/local/lib/libuSockets.a
 COPY --from=build-uwebsockets /src/uWebSockets-20.70.0/src/* /usr/local/include/uWebSockets/
 
-RUN echo "@edge-community https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
+RUN echo "@community https://dl-cdn.alpinelinux.org/alpine/v3.23/community" >> /etc/apk/repositories
 RUN echo "@edge-main https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
 RUN echo "@edge-testing https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
 
@@ -100,8 +101,8 @@ RUN apk add --no-cache \
     icu-static \
     libsodium-dev@edge-main \
     libsodium-static@edge-main \
-    libtorrent-rasterbar-dev@edge-community \
-    libtorrent-rasterbar-static@edge-community \
+    libtorrent-rasterbar-dev@community \
+    libtorrent-rasterbar-static@community \
     lua5.4-dev \
     sqlite-dev \
     sqlite-static
