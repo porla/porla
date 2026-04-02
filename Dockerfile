@@ -1,4 +1,4 @@
-FROM ghcr.io/porla/alpine:3.22.0 AS base
+FROM mirror.gcr.io/library/alpine:3.23.3 AS base
 
 FROM base AS build-base
 ARG GITVERSION_SEMVER="0.0.0"
@@ -7,15 +7,18 @@ ENV CCACHE_REMOTE_ONLY="1"
 ENV CCACHE_REMOTE_STORAGE=${CCACHE_REMOTE_STORAGE}
 ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
 WORKDIR /src
+
+RUN echo "@edge-main https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
+
 RUN apk add --no-cache \
     build-base \
-    boost1.84-dev \
-    boost1.84-static \
+    boost1.84-dev@edge-main \
+    boost1.84-static@edge-main \
     ccache \
     cmake \
-    linux-headers \
     libmaxminddb-dev \
     libmaxminddb-static \
+    linux-headers \
     ninja \
     openssl-dev \
     openssl-libs-static \
@@ -30,6 +33,7 @@ RUN wget -O antlr4-4.13.2.tar.gz https://github.com/antlr/antlr4/archive/refs/ta
 RUN tar zxf antlr4-4.13.2.tar.gz
 RUN cd antlr4-4.13.2/runtime/Cpp \
     && cmake -S . -B build -G Ninja \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
         -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build --target install
@@ -89,23 +93,23 @@ COPY --from=build-uwebsockets /src/uWebSockets-20.70.0/src/* /usr/local/include/
 
 COPY . .
 
-RUN echo "@edge-community https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
-RUN echo "@edge-main https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
+RUN echo "@community https://dl-cdn.alpinelinux.org/alpine/v3.23/community" >> /etc/apk/repositories
 
 RUN apk add --no-cache \
     git \
     icu-static \
     libsodium-dev@edge-main \
     libsodium-static@edge-main \
-    libtorrent-rasterbar-dev@edge-community \
-    libtorrent-rasterbar-static@edge-community \
+    libtorrent-rasterbar-dev@community \
+    libtorrent-rasterbar-static@community \
     lua5.4-dev \
     sqlite-dev \
     sqlite-static
 
 RUN cmake -S . -B build -G Ninja \
-    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+    -DCMAKE_CXX_FLAGS="-Wno-template-body" \
     -DCMAKE_EXE_LINKER_FLAGS="-static -Os" \
     -DBUILD_SHARED_LIBS=OFF \
     -DLINK_WITH_STATIC_LIBRARIES=ON \
