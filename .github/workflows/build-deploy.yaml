@@ -89,13 +89,13 @@ jobs:
           docker save -o /tmp/porla-${{ matrix.platform }}-docker.tar ghcr.io/porla/porla:${{ needs.calc-version.outputs.shortSha }}-${{ matrix.platform }}
 
       - name: Upload Docker container to artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: porla-${{ matrix.platform }}-docker.tar
           path: /tmp/porla-${{ matrix.platform }}-docker.tar
 
       - name: Upload Porla binary to artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: porla-${{ matrix.platform }}
           path: /tmp/porla-${{ matrix.platform }}
