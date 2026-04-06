@@ -17,7 +17,7 @@ jobs:
       shortSha: ${{ steps.gitversion.outputs.shortSha }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: true
@@ -49,7 +49,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: 'recursive'
@@ -89,13 +89,13 @@ jobs:
           docker save -o /tmp/porla-${{ matrix.platform }}-docker.tar ghcr.io/porla/porla:${{ needs.calc-version.outputs.shortSha }}-${{ matrix.platform }}
 
       - name: Upload Docker container to artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: porla-${{ matrix.platform }}-docker.tar
           path: /tmp/porla-${{ matrix.platform }}-docker.tar
 
       - name: Upload Porla binary to artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: porla-${{ matrix.platform }}
           path: /tmp/porla-${{ matrix.platform }}
@@ -113,13 +113,13 @@ jobs:
 
     steps:
       - name: Download Docker artifact (linux-amd64)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: porla-linux-amd64-docker.tar
           path: /tmp
 
       - name: Download Docker artifact (linux-arm64)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: porla-linux-arm64-docker.tar
           path: /tmp
@@ -170,19 +170,19 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: true
 
       - name: Download Docker artifact (linux-amd64)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: porla-linux-amd64-docker.tar
           path: /tmp
 
       - name: Download Docker artifact (linux-arm64)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: porla-linux-arm64-docker.tar
           path: /tmp
@@ -220,13 +220,13 @@ jobs:
           docker manifest push ghcr.io/porla/porla:${{ needs.calc-version.outputs.semVer }}
 
       - name: Download Porla binary artifact (linux-amd64)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: porla-linux-amd64
           path: /tmp
 
       - name: Download Porla binary artifact (linux-arm64)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: porla-linux-arm64
           path: /tmp
