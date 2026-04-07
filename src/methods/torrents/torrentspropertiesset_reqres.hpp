@@ -12,7 +12,8 @@ namespace porla::Methods
         std::optional<int>      session_id;
 
         std::optional<int> download_limit;
-        std::optional<std::map<std::string, bool>> flags;
+        std::optional<libtorrent::torrent_flags_t> flags;
+        std::optional<libtorrent::torrent_flags_t> flags_mask;
         std::optional<int> max_connections;
         std::optional<int> max_uploads;
         std::optional<int> upload_limit;

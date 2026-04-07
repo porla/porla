@@ -1,5 +1,6 @@
 #pragma once
 
+#include <libtorrent/torrent_flags.hpp>
 #include <nlohmann/json.hpp>
 
 namespace boost::system
@@ -26,11 +27,13 @@ namespace libtorrent
     void from_json(const nlohmann::json& json, info_hash_t& infohash);
     inline void from_json(const nlohmann::json& json, peer_info& pi) {}
     void from_json(const nlohmann::json& json, settings_pack& settings);
+    void from_json(const nlohmann::json& json, torrent_flags_t& flags);
     inline void from_json(const nlohmann::json& json, torrent_status& ts) {}
 
     void to_json(nlohmann::json& json, const announce_endpoint& endpoint);
     void to_json(nlohmann::json& json, const announce_entry& entry);
     void to_json(nlohmann::json& json, const announce_infohash& infohash);
+    void to_json(nlohmann::json& json, const torrent_flags_t& flags);
     void to_json(nlohmann::json& json, const info_hash_t& infohash);
     void to_json(nlohmann::json& json, const peer_info& pi);
     void to_json(nlohmann::json& json, const settings_pack& settings);

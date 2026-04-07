@@ -95,13 +95,11 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
     if (sorter == TorrentSort.end())
     {
-        return cb.Error(-1, "Invalid field in 'order_by'", {{"field", order_by }});
+        return cb.Error(-2, "Invalid field in 'order_by'", {{"field", order_by }});
     }
 
     std::optional<std::function<bool(const lt::torrent_status&)>> filter_query;
     std::unique_ptr<Query::PQL::Filter> filter_ptr;
-
-    std::optional<int> filter_session_id;
 
     if (req.filters.has_value()
         && req.filters->query.has_value())
@@ -116,21 +114,6 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
             return cb.Error(-1000, qe.what(), {{"pos", qe.pos()}});
         }
     }
-
-    if (req.filters.has_value()
-        && req.filters->session_id.has_value())
-    {
-        filter_session_id = req.filters->session_id.value();
-    }
-
-    const int global_total_torrents = std::accumulate(
-        m_sessions.All().begin(),
-        m_sessions.All().end(),
-        0,
-        [](int current, const auto& state)
-        {
-            return current + state.second->torrents.size();
-        });
 
     const auto& session_state = req.filters.has_value()
         ? req.filters->session_id.has_value()
@@ -301,7 +284,7 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
 
     if (page_beg > torrents.size())
     {
-        return cb.Error(-2, "Invalid page - too large.");
+        return cb.Error(-3, "Invalid page - too large.");
     }
 
     cb.Ok(TorrentsListRes{
@@ -310,7 +293,6 @@ void TorrentsList::Invoke(const TorrentsListReq& req, WriteCb<TorrentsListRes> c
         .page                      = req.page.value_or(0),
         .page_size                 = req.page_size.value_or(50),
         .torrents                  = std::vector(torrents.begin() + page_beg, torrents.begin() + page_end),
-        .torrents_total            = static_cast<int>(torrents.size()),
-        .torrents_total_unfiltered = static_cast<int>(global_total_torrents)
+        .torrents_total            = static_cast<int>(torrents.size())
     });
 }

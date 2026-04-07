@@ -31,7 +31,7 @@ void TorrentsPeersList::Invoke(const TorrentsPeersListReq& req, WriteCb<Torrents
 
     if (!th.is_valid())
     {
-        return cb.Error(-2, "Torrent not valid");
+        return cb.Error(-3, "Torrent not valid");
     }
 
     std::vector<lt::peer_info> peers;

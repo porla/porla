@@ -86,6 +86,7 @@ add_library(
     src/json/_/ltinfohash.cpp
     src/json/_/ltpeerinfo.cpp
     src/json/_/ltsettingspack.cpp
+    src/json/_/lttorrentflags.cpp
     src/json/_/lttorrentstatus.cpp
     src/json/_/mmdblookup.cpp
     src/json/_/pluginsadd.cpp

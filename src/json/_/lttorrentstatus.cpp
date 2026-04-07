@@ -48,7 +48,7 @@ namespace libtorrent
             {"download_payload_rate", ts.download_payload_rate},
             {"errc", ts.errc},
             {"finished_duration", ts.finished_duration.count()},
-            {"flags", static_cast<std::uint64_t>(ts.flags)},
+            {"flags", ts.flags},
             {"has_incoming", ts.has_incoming},
             {"has_metadata", ts.has_metadata},
             {"info_hash", ts.info_hashes},
