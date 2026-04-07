@@ -7,6 +7,7 @@
 
 #include "packages.hpp"
 #include "registry.hpp"
+#include "types.hpp"
 
 #include "../config.hpp"
 #include "../zip.hpp"
@@ -54,6 +55,11 @@ static sol::state CreateLuaState(const PluginLoadOptions& opts)
     porla::Lua::Packages::Timers::Register(lua);
     porla::Lua::Packages::Torrents::Register(lua);
     porla::Lua::Packages::Workflows::Register(lua);
+
+    porla::Lua::Types::LtAnnounceInfohash::Register(lua);
+    porla::Lua::Types::LtInfoHash::Register(lua);
+    porla::Lua::Types::LtPeerInfo::Register(lua);
+    porla::Lua::Types::LtTorrentStatus::Register(lua);
 
     return lua;
 }
