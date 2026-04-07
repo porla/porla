@@ -110,7 +110,7 @@ static void SetHandleFlags(const lt::torrent_handle& th, const sol::table& flags
 void Torrents::Register(sol::state& lua)
 {
     auto announce_infohash_type = lua.new_usertype<lt::announce_infohash>(
-        "lt.AnnounceInfoHash",
+        "lt.announce_infohash",
         sol::no_constructor);
 
     announce_infohash_type["complete_sent"] = sol::property([](const lt::announce_infohash& aih) { return aih.complete_sent; });
@@ -126,7 +126,7 @@ void Torrents::Register(sol::state& lua)
     announce_infohash_type["updating"] = sol::property([](const lt::announce_infohash& aih) { return aih.updating; });
 
     auto announce_endpoint_type = lua.new_usertype<lt::announce_endpoint>(
-        "lt.AnnounceEndpoint",
+        "lt.announce_endpoint",
         sol::no_constructor,
         "enabled", sol::readonly(&lt::announce_endpoint::enabled),
         "info_hashes", sol::readonly(&lt::announce_endpoint::info_hashes));
@@ -139,7 +139,7 @@ void Torrents::Register(sol::state& lua)
     };
 
     auto announce_entry_type = lua.new_usertype<lt::announce_entry>(
-        "lt.AnnounceEntry",
+        "lt.announce_entry",
         sol::no_constructor,
         "endpoints",  sol::readonly(&lt::announce_entry::endpoints),
         "fail_limit", sol::readonly(&lt::announce_entry::fail_limit),
@@ -151,15 +151,15 @@ void Torrents::Register(sol::state& lua)
     announce_entry_type["verified"] = sol::property([](const lt::announce_entry& ae) { return ae.verified; });
 
     auto file_storage_type = lua.new_usertype<lt::file_storage>(
-        "FileStorage",
+        "lt.file_storage",
         sol::no_constructor,
         "file_name", [](const lt::file_storage& fs, int index) { return fs.file_name(lt::file_index_t{index}).to_string(); },
         "file_path", [](const lt::file_storage& fs, int index) { return fs.file_path(lt::file_index_t{index}); },
         "file_size", [](const lt::file_storage& fs, int index) { return fs.file_size(lt::file_index_t{index}); }
-        );
+    );
 
     auto info_hash_type = lua.new_usertype<lt::info_hash_t>(
-        "lt.InfoHash",
+        "lt.info_hash_t",
         sol::no_constructor);
 
     info_hash_type["v1"] = sol::property(
@@ -175,7 +175,7 @@ void Torrents::Register(sol::state& lua)
         });
 
     auto peer_info_type = lua.new_usertype<lt::peer_info>(
-        "lt.PeerInfo",
+        "lt.peer_info",
         sol::no_constructor,
         "busy_requests",         sol::readonly(&lt::peer_info::busy_requests),
         "client",                sol::readonly(&lt::peer_info::client),
@@ -210,7 +210,7 @@ void Torrents::Register(sol::state& lua)
         "tags",     &TorrentClientData::tags);
 
     auto torrent_info_type = lua.new_usertype<lt::torrent_info>(
-        "TorrentInfo",
+        "lt.torrent_info",
         sol::no_constructor,
 
         "from_buffer", sol::factories([](const std::string& data) -> std::pair<std::shared_ptr<lt::torrent_info>, std::optional<std::string>>
@@ -241,7 +241,7 @@ void Torrents::Register(sol::state& lua)
         "total_size",  &lt::torrent_info::total_size);
 
     auto torrent_handle_type = lua.new_usertype<lt::torrent_handle>(
-        "lt.TorrentHandle",
+        "lt.torrent_handle",
         sol::no_constructor,
         "clear_error",             &lt::torrent_handle::clear_error,
         "clear_peers",             &lt::torrent_handle::clear_peers,
@@ -283,14 +283,12 @@ void Torrents::Register(sol::state& lua)
         "post_trackers",           &lt::torrent_handle::post_trackers,
         "prioritize_files",        [](const lt::torrent_handle& th, const sol::table& args)
         {
-            printf("hhh");
             std::vector<int> priorities = args.as<std::vector<int>>();
             std::vector<lt::download_priority_t> prios;
             std::for_each(
                 priorities.begin(),
                 priorities.end(),
                 [&prios](int i) { prios.emplace_back(i); });
-printf("Hejej");
             th.prioritize_files(prios);
         },
         "queue_position",          &lt::torrent_handle::queue_position,
@@ -311,7 +309,7 @@ printf("Hejej");
         "userdata",                [](const lt::torrent_handle& th) { return th.userdata().get<TorrentClientData>(); });
 
     auto torrent_status_type = lua.new_usertype<lt::torrent_status>(
-        "lt.TorrentStatus",
+        "lt.torrent_status",
         sol::no_constructor,
         "active_duration",        sol::property([](const lt::torrent_status& ts) { return ts.active_duration.count(); }),
         "added_time",             sol::readonly(&lt::torrent_status::added_time),

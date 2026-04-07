@@ -141,6 +141,7 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
     }
 
     if (req.download_limit.has_value())  p.download_limit  = req.download_limit.value();
+    if (req.flags.has_value())           p.flags           = req.flags.value();
     if (req.http_seeds.has_value())      p.http_seeds      = req.http_seeds.value();
     if (req.max_connections.has_value()) p.max_connections = req.max_connections.value();
     if (req.max_uploads.has_value())     p.max_uploads     = req.max_uploads.value();

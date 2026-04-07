@@ -11,6 +11,7 @@ namespace porla::Methods
         session_id,
         download_limit,
         flags,
+        flags_mask,
         max_connections,
         max_uploads,
         upload_limit)

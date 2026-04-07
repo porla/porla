@@ -10,6 +10,7 @@ namespace porla::Methods
         TorrentsAddReq,
         category,
         download_limit,
+        flags,
         http_seeds,
         magnet_uri,
         max_connections,
