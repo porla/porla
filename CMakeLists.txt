@@ -151,6 +151,7 @@ add_library(
     src/lua/types/ltfilestorage.cpp
     src/lua/types/ltinfohash.cpp
     src/lua/types/ltpeerinfo.cpp
+    src/lua/types/ltsession.cpp
     src/lua/types/ltsettingspack.cpp
     src/lua/types/ltstoragemode.cpp
     src/lua/types/lttorrentflags.cpp

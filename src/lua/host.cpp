@@ -6,6 +6,11 @@
 
 using porla::Lua::Host;
 
+Host::Host(boost::asio::io_context& io)
+    : m_io(io)
+{
+}
+
 void Host::Run(const cmrc::embedded_filesystem& fs)
 {
     m_lua.open_libraries(
@@ -16,6 +21,8 @@ void Host::Run(const cmrc::embedded_filesystem& fs)
         sol::lib::string,
         sol::lib::table);
 
+    m_lua.registry()["io"] = porla::Lua::Registry::BoostIoContext{.io = &m_io};
+
     porla::Lua::Types::LtAddTorrentParams::Register(m_lua);
     porla::Lua::Types::LtAnnounceEndpoint::Register(m_lua);
     porla::Lua::Types::LtAnnounceEntry::Register(m_lua);
@@ -23,6 +30,7 @@ void Host::Run(const cmrc::embedded_filesystem& fs)
     porla::Lua::Types::LtDownloadPriority::Register(m_lua);
     porla::Lua::Types::LtInfoHash::Register(m_lua);
     porla::Lua::Types::LtPeerInfo::Register(m_lua);
+    porla::Lua::Types::LtSession::Register(m_lua);
     porla::Lua::Types::LtSettingsPack::Register(m_lua);
     porla::Lua::Types::LtStorageMode::Register(m_lua);
     porla::Lua::Types::LtTorrentFlags::Register(m_lua);

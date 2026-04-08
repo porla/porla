@@ -19,6 +19,7 @@ namespace porla::Lua::Types
     DECLARE_TYPE_REGISTRY(LtFileStorage)
     DECLARE_TYPE_REGISTRY(LtInfoHash)
     DECLARE_TYPE_REGISTRY(LtPeerInfo)
+    DECLARE_TYPE_REGISTRY(LtSession)
     DECLARE_TYPE_REGISTRY(LtSettingsPack)
     DECLARE_TYPE_REGISTRY(LtStorageMode)
     DECLARE_TYPE_REGISTRY(LtTorrentFlags)

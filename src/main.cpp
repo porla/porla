@@ -119,10 +119,10 @@ int main(int argc, char* argv[])
         });
 
     {
-        porla::Lua::Host lua_host;
+        porla::Lua::Host lua_host(io);
         lua_host.Run(cmrc::porla_lua::get_filesystem());
 
-        porla::Sessions sessions(porla::SessionsOptions{
+        /*porla::Sessions sessions(porla::SessionsOptions{
             .db = cfg->db,
             .io = io
         });
@@ -241,11 +241,11 @@ int main(int argc, char* argv[])
             [](const auto* t)
             {
                 BOOST_LOG_TRIVIAL(info) << "HTTP server listening";
-            });
+            });*/
 
         io.run();
 
-        plugin_engine.UnloadAll();
+        // plugin_engine.UnloadAll();
     }
 
     curl_global_cleanup();
