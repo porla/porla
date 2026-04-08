@@ -69,11 +69,27 @@ struct SqliteStatement
                 return sol::make_object(s, sqlite3_column_double(stmt, position));
 
             case SQLITE_TEXT:
+            {
+                const auto bytes = sqlite3_column_bytes(stmt, position);
+
+                if (bytes == 0)
+                {
+                    return {};
+                }
+
+                const auto* data = sqlite3_column_text(stmt, position);
+
+                if (data == nullptr)
+                {
+                    return {};
+                }
+
                 return sol::make_object(
                     s,
                     std::string(
-                        reinterpret_cast<const char*>(sqlite3_column_text(stmt, position),
-                        sqlite3_column_bytes(stmt, position))));
+                        reinterpret_cast<const char*>(data), 
+                        static_cast<std::size_t>(bytes)));
+            }
 
             case SQLITE_NULL:
             default:

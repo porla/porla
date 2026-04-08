@@ -4,9 +4,14 @@
 #include <curl/curl.h>
 #include <sodium.h>
 
+#include <cmrc/cmrc.hpp>
+
+CMRC_DECLARE(porla_lua);
+
 #include "cmdargs.hpp"
 #include "config.hpp"
 #include "logger.hpp"
+#include "lua/host.hpp"
 #include "lua/pluginengine.hpp"
 #include "sessions.hpp"
 #include "webui.hpp"
@@ -114,6 +119,9 @@ int main(int argc, char* argv[])
         });
 
     {
+        porla::Lua::Host lua_host;
+        lua_host.Run(cmrc::porla_lua::get_filesystem());
+
         porla::Sessions sessions(porla::SessionsOptions{
             .db = cfg->db,
             .io = io

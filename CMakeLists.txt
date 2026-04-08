@@ -7,6 +7,8 @@ project(porla)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+include(CMakeRC)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib .so .dll)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
@@ -155,6 +157,7 @@ add_library(
     src/lua/types/lttorrenthandle.cpp
     src/lua/types/lttorrentinfo.cpp
     src/lua/types/lttorrentstatus.cpp
+    src/lua/host.cpp
     src/lua/plugin.cpp
     src/lua/pluginengine.cpp
 
@@ -237,6 +240,8 @@ target_link_libraries(
     ${ANTLR4_LIBRARIES}
     ${MAXMINDDB_LIBRARIES}
 
+    porla::lua
+
     Boost::boost Boost::log Boost::program_options
     CURL::libcurl
     libzip::zip
@@ -248,6 +253,13 @@ target_link_libraries(
     -lcrypto
     -lssl
     -lz
+)
+
+cmrc_add_resource_library(
+    porla_lua
+    ALIAS porla::lua
+    WHENCE lua
+    lua/porla.lua
 )
 
 add_executable(
