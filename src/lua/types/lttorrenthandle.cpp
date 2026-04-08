@@ -8,7 +8,9 @@ using porla::Lua::Types::LtTorrentHandle;
 
 void LtTorrentHandle::Register(sol::state& lua)
 {
-    sol::table lt = lua.get_or("lt", lua.create_named_table("lt"));
+    sol::table lt = lua["lt"].valid()
+        ? lua["lt"].get<sol::table>()
+        : lua.create_named_table("lt");
 
     lt["torrent_handle"] = lua.new_usertype<lt::torrent_handle>(
         "lt.torrent_handle",

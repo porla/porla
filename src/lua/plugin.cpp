@@ -56,9 +56,18 @@ static sol::state CreateLuaState(const PluginLoadOptions& opts)
     porla::Lua::Packages::Torrents::Register(lua);
     porla::Lua::Packages::Workflows::Register(lua);
 
+    porla::Lua::Types::LtAddTorrentParams::Register(lua);
+    porla::Lua::Types::LtAnnounceEndpoint::Register(lua);
+    porla::Lua::Types::LtAnnounceEntry::Register(lua);
     porla::Lua::Types::LtAnnounceInfohash::Register(lua);
+    porla::Lua::Types::LtDownloadPriority::Register(lua);
     porla::Lua::Types::LtInfoHash::Register(lua);
     porla::Lua::Types::LtPeerInfo::Register(lua);
+    porla::Lua::Types::LtSettingsPack::Register(lua);
+    porla::Lua::Types::LtStorageMode::Register(lua);
+    porla::Lua::Types::LtTorrentFlags::Register(lua);
+    porla::Lua::Types::LtTorrentHandle::Register(lua);
+    porla::Lua::Types::LtTorrentInfo::Register(lua);
     porla::Lua::Types::LtTorrentStatus::Register(lua);
 
     return lua;

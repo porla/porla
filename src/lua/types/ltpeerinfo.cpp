@@ -6,7 +6,9 @@ using porla::Lua::Types::LtPeerInfo;
 
 void LtPeerInfo::Register(sol::state& lua)
 {
-    sol::table lt = lua.get_or("lt", lua.create_named_table("lt"));
+    sol::table lt = lua["lt"].valid()
+        ? lua["lt"].get<sol::table>()
+        : lua.create_named_table("lt");
 
     lt["peer_info"] = lua.new_usertype<lt::peer_info>(
         "lt.peer_info",

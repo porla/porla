@@ -9,7 +9,9 @@ using porla::Lua::Types::LtInfoHash;
 
 void LtInfoHash::Register(sol::state& lua)
 {
-    sol::table lt = lua.get_or("lt", lua.create_named_table("lt"));
+    sol::table lt = lua["lt"].valid()
+        ? lua["lt"].get<sol::table>()
+        : lua.create_named_table("lt");
 
     lt["info_hash_t"] = lua.new_usertype<lt::info_hash_t>(
         "lt.info_hash_t",
