@@ -1,6 +1,9 @@
 #include "../types.hpp"
 
 #include <libtorrent/alert_types.hpp>
+#include <libtorrent/extensions/smart_ban.hpp>
+#include <libtorrent/extensions/ut_metadata.hpp>
+#include <libtorrent/extensions/ut_pex.hpp>
 #include <libtorrent/session.hpp>
 
 #include "../registry.hpp"
@@ -15,10 +18,22 @@ void LtSession::Register(sol::state& lua)
 
     lt["session"] = lua.new_usertype<lt::session>(
         "lt.session",
-        sol::call_constructor, sol::factories([]()
+        sol::call_constructor, sol::factories(
+            []()
+            {
+                return std::make_shared<lt::session>();
+            },
+            [](const lt::settings_pack& settings)
+            {
+                return std::make_shared<lt::session>(settings);
+            }
+        ),
+        "add_extension",    [](std::shared_ptr<lt::session> session, const std::string& name)
         {
-            return std::make_shared<lt::session>();
-        }),
+            if (name == "smart_ban")   { session->add_extension(&lt::create_smart_ban_plugin); }
+            if (name == "ut_metadata") { session->add_extension(&lt::create_ut_metadata_plugin); }
+            if (name == "ut_pex")      { session->add_extension(&lt::create_ut_pex_plugin); }
+        },
         "set_alert_notify", [](sol::this_state ts, std::shared_ptr<lt::session> session, sol::protected_function callback)
         {
             sol::state_view lua(ts);

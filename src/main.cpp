@@ -72,13 +72,6 @@ CMRC_DECLARE(porla_lua);
 
 int main(int argc, char* argv[])
 {
-    static std::map<std::string, std::function<int(int, char**, std::unique_ptr<porla::Config>)>> subcommands =
-    {
-        {"auth:token", &porla::Tools::AuthToken},
-        {"key:generate", &porla::Tools::GenerateSecretKey},
-        {"version:json", &porla::Tools::VersionJson}
-    };
-
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
     const boost::program_options::variables_map cmd = porla::CmdArgs::Parse(argc, argv);
@@ -90,7 +83,7 @@ int main(int argc, char* argv[])
 
     porla::Logger::Setup(cmd);
 
-    std::unique_ptr<porla::Config> cfg;
+    /*std::unique_ptr<porla::Config> cfg;
 
     try
     {
@@ -100,13 +93,7 @@ int main(int argc, char* argv[])
     {
         BOOST_LOG_TRIVIAL(fatal) << "Failed to load configuration: " << ex.what();
         return -1;
-    }
-
-    // Check if we should run one of the subcommands we have.
-    if (argc >= 2 && subcommands.contains(argv[1]))
-    {
-        return subcommands.at(argv[1])(argc, argv, std::move(cfg));
-    }
+    }*/
 
     boost::asio::io_context io;
     boost::asio::signal_set signals(io, SIGINT, SIGTERM);
@@ -119,6 +106,8 @@ int main(int argc, char* argv[])
         });
 
     {
+        uWS::Loop::get(&io);
+
         porla::Lua::Host lua_host(io);
         lua_host.Run(cmrc::porla_lua::get_filesystem());
 
@@ -189,7 +178,6 @@ int main(int argc, char* argv[])
         if (http_base_path[0] != '/')      http_base_path = "/" + http_base_path;
         if (http_base_path.ends_with("/")) http_base_path = http_base_path.substr(0, http_base_path.size() - 1);
 
-        uWS::Loop::get(&io);
 
         uWS::App http_server;
         http_server.post(http_base_path + "/api/v1/auth/init", porla::Http::AuthInitHandler(io, cfg->db));

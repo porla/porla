@@ -143,7 +143,9 @@ add_library(
     src/lua/packages/timers.cpp
     src/lua/packages/torrents.cpp
     src/lua/packages/workflows.cpp
+    src/lua/types/fs.cpp
     src/lua/types/ltaddtorrentparams.cpp
+    src/lua/types/ltalert.cpp
     src/lua/types/ltannounceendpoint.cpp
     src/lua/types/ltannounceentry.cpp
     src/lua/types/ltannounceinfohash.cpp
@@ -158,6 +160,8 @@ add_library(
     src/lua/types/lttorrenthandle.cpp
     src/lua/types/lttorrentinfo.cpp
     src/lua/types/lttorrentstatus.cpp
+    src/lua/types/toml.cpp
+    src/lua/types/uwsapp.cpp
     src/lua/host.cpp
     src/lua/plugin.cpp
     src/lua/pluginengine.cpp

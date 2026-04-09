@@ -11,6 +11,11 @@ Host::Host(boost::asio::io_context& io)
 {
 }
 
+Host::~Host()
+{
+    m_lua["on_unload"]();
+}
+
 void Host::Run(const cmrc::embedded_filesystem& fs)
 {
     m_lua.open_libraries(
@@ -23,7 +28,11 @@ void Host::Run(const cmrc::embedded_filesystem& fs)
 
     m_lua.registry()["io"] = porla::Lua::Registry::BoostIoContext{.io = &m_io};
 
+    m_lua["package"]["path"] = "/workspaces/porla/lua/?.lua;/workspaces/porla/lua/?/init.lua";
+
+    porla::Lua::Types::Fs::Register(m_lua);
     porla::Lua::Types::LtAddTorrentParams::Register(m_lua);
+    porla::Lua::Types::LtAlert::Register(m_lua);
     porla::Lua::Types::LtAnnounceEndpoint::Register(m_lua);
     porla::Lua::Types::LtAnnounceEntry::Register(m_lua);
     porla::Lua::Types::LtAnnounceInfohash::Register(m_lua);
@@ -37,10 +46,13 @@ void Host::Run(const cmrc::embedded_filesystem& fs)
     porla::Lua::Types::LtTorrentHandle::Register(m_lua);
     porla::Lua::Types::LtTorrentInfo::Register(m_lua);
     porla::Lua::Types::LtTorrentStatus::Register(m_lua);
+    porla::Lua::Types::Toml::Register(m_lua);
+    porla::Lua::Types::UwsApp::Register(m_lua);
 
     porla::Lua::Packages::Sqlite::Register(m_lua);
 
     const auto porla_lua = fs.open("porla.lua");
 
     m_lua.script_file("/workspaces/porla/lua/porla.lua");
+    m_lua["on_load"]();
 }

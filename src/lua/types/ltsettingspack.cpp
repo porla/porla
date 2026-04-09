@@ -28,7 +28,10 @@ void LtSettingsPack::Register(sol::state& lua)
         "get_str",  [](const lt::settings_pack& sp, int name) { return sp.get_str(name); },
 
         "set_bool", [](lt::settings_pack& sp, int name, bool val)        { sp.set_bool(name, val); },
-        "set_int",  [](lt::settings_pack& sp, int name, int val)         { sp.set_int(name, val); },
+        "set_int",  sol::overload(
+            [](lt::settings_pack& sp, int name, int val)                  { sp.set_int(name, val); },
+            [](lt::settings_pack& sp, int name, lt::alert_category_t val) { sp.set_int(name, val); }
+        ),
         "set_str",  [](lt::settings_pack& sp, int name, std::string val) { sp.set_str(name, val); });
 
     // the lt settings packs

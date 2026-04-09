@@ -10,6 +10,8 @@ namespace porla::Lua
     {
     public:
         explicit Host(boost::asio::io_context& io);
+        ~Host();
+
         void Run(const cmrc::embedded_filesystem& fs);
 
     private:
