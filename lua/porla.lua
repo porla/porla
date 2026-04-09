@@ -1,10 +1,12 @@
-local config   = require "config"
-local db       = require "db"
-local sessions = require "sessions"
-local sqlite3  = require "sqlite3"
+local config              = require "config"
+local db                  = require "db"
+local http_server         = require "http.server"
+local http_server_metrics = require "http.metrics"
+local sessions            = require "sessions"
+local sqlite3             = require "sqlite3"
 
 function on_load()
-    local http_server = uws.app()
+    http_server:get("/metrics", http_server_metrics)
 
     http_server:listen("127.0.0.1", 1337, function()
         print("http up")
