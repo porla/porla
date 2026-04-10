@@ -1,5 +1,7 @@
 #include "host.hpp"
 
+#include <boost/log/trivial.hpp>
+
 #include "packages.hpp"
 #include "registry.hpp"
 #include "types.hpp"
@@ -30,7 +32,22 @@ void Host::Run(const cmrc::embedded_filesystem& fs)
 
     m_lua["package"]["path"] = "/workspaces/porla/lua/?.lua;/workspaces/porla/lua/?/init.lua";
 
+    m_lua["print"] = [](sol::this_state ts, const sol::variadic_args& args)
+    {
+        sol::state_view lua(ts);
+        std::ostringstream oss;
+
+        for (size_t i = 0; i < args.size(); ++i)
+        {
+            if (i > 0) oss << "\t";
+            oss << lua["tostring"](args[i]).get<std::string>();
+        }
+
+        BOOST_LOG_TRIVIAL(info) << oss.str();
+    };
+
     porla::Lua::Types::Fs::Register(m_lua);
+    porla::Lua::Types::Log::Register(m_lua);
     porla::Lua::Types::LtAddTorrentParams::Register(m_lua);
     porla::Lua::Types::LtAlert::Register(m_lua);
     porla::Lua::Types::LtAnnounceEndpoint::Register(m_lua);
@@ -46,8 +63,10 @@ void Host::Run(const cmrc::embedded_filesystem& fs)
     porla::Lua::Types::LtTorrentHandle::Register(m_lua);
     porla::Lua::Types::LtTorrentInfo::Register(m_lua);
     porla::Lua::Types::LtTorrentStatus::Register(m_lua);
+    porla::Lua::Types::Mmdb::Register(m_lua);
     porla::Lua::Types::Toml::Register(m_lua);
     porla::Lua::Types::UwsApp::Register(m_lua);
+    porla::Lua::Types::Zip::Register(m_lua);
 
     porla::Lua::Packages::Sqlite::Register(m_lua);
 
