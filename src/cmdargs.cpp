@@ -9,6 +9,7 @@ static po::options_description Options()
 {
     po::options_description desc("Allowed options");
     desc.add_options()
+        ("bootstrap-file",        po::value<std::string>(), "Path to a bootstrap.lua file.")
         ("config-file",           po::value<std::string>(), "Path to a porla.toml config file.")
         ("db",                    po::value<std::string>(), "Path to where the database will be stored.")
         ("help",                                            "Show usage")
@@ -37,8 +38,14 @@ int CmdArgs::Help()
 
 boost::program_options::variables_map CmdArgs::Parse(int argc, char **argv)
 {
+    const auto options = Options();
+    const auto parsed = po::command_line_parser(argc, argv)
+        .options(options)
+        .allow_unregistered()
+        .run();
+
     po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, Options()), vm);
+    po::store(parsed, vm);
     po::notify(vm);
 
     return vm;

@@ -2,7 +2,7 @@
 
 #include <zip.h>
 
-using porla::Lua::Types::Zip;
+using porla::Lua::Types::Libzip;
 
 struct ZipFileT
 {
@@ -14,7 +14,7 @@ struct ZipT
     zip_t* zip;
 };
 
-void Zip::Register(sol::state& lua)
+void Libzip::Register(sol::state& lua)
 {
     sol::table zip = lua["zip"].valid()
         ? lua["zip"].get<sol::table>()

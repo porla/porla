@@ -32,6 +32,14 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -P
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateVersion.cmake)
 
+
+cmrc_add_resource_library(
+    porla_lua_bootstrap
+    ALIAS porla::lua_bootstrap
+    WHENCE lua
+    lua/bootstrap.lua
+)
+
 add_library(
     ${PROJECT_NAME}_core
     STATIC
@@ -144,6 +152,9 @@ add_library(
     src/lua/packages/torrents.cpp
     src/lua/packages/workflows.cpp
     src/lua/types/fs.cpp
+    src/lua/types/json.cpp
+    src/lua/types/libcurl.cpp
+    src/lua/types/libzip.cpp
     src/lua/types/log.cpp
     src/lua/types/ltaddtorrentparams.cpp
     src/lua/types/ltalert.cpp
@@ -162,9 +173,9 @@ add_library(
     src/lua/types/lttorrentinfo.cpp
     src/lua/types/lttorrentstatus.cpp
     src/lua/types/mmdb.cpp
+    src/lua/types/timer.cpp
     src/lua/types/toml.cpp
     src/lua/types/uwsapp.cpp
-    src/lua/types/zip.cpp
     src/lua/host.cpp
     src/lua/plugin.cpp
     src/lua/pluginengine.cpp
@@ -222,6 +233,8 @@ add_library(
 
     src/utils/ratio.cpp
     src/utils/ltsettings.cpp
+
+    src/curlmulti.cpp
 )
 
 target_compile_definitions(
@@ -249,6 +262,7 @@ target_link_libraries(
     ${MAXMINDDB_LIBRARIES}
 
     porla::lua
+    porla::lua_bootstrap
 
     Boost::boost Boost::log Boost::program_options
     CURL::libcurl
