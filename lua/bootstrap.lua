@@ -83,7 +83,21 @@ function load()
         }
     })
 
-    print(zipball.status)
+    print("writing core.zip")
+
+    local core_zip = io.open("core.zip", "wb")
+    core_zip:write(zipball.body)
+    core_zip:close()
+    core_zip = nil
+
+    print("loading core.zip")
+
+    local archive, err = zip.zip_t.open("core.zip", zip.ZIP_RDONLY)
+
+    for i = 0, archive:get_num_entries(zip.ZIP_FL_UNCHANGED) - 1 do
+        local stat, err = archive:stat_index(i, zip.ZIP_FL_UNCHANGED)
+        print(stat.name)
+    end
 end
 
 function unload()

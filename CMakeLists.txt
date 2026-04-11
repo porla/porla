@@ -48,93 +48,8 @@ add_library(
     src/buildinfo.cpp
     src/cmdargs.cpp
     src/config.cpp
+    src/curlmulti.cpp
     src/logger.cpp
-    src/mmdb.cpp
-    src/sessions.cpp
-    src/timer.cpp
-    src/webui.cpp
-    src/zip.cpp
-    src/utils/eta.cpp
-    src/utils/secretkey.cpp
-    src/utils/string.cpp
-
-    src/data/migrate.cpp
-    src/data/migrations/0001_initialsetup.cpp
-    src/data/migrations/0002_addsessionsettings.cpp
-    src/data/migrations/0003_users.cpp
-    src/data/migrations/0004_removesessionparams.cpp
-    src/data/migrations/0005_metadata.cpp
-    src/data/migrations/0006_clientdata.cpp
-    src/data/migrations/0007_removesessionsettings.cpp
-    src/data/migrations/0008_plugins.cpp
-    src/data/migrations/0009_multisessions.cpp
-    src/data/migrations/0010_sessions.cpp
-    src/data/migrations/0011_presets.cpp
-    src/data/migrations/0012_alterplugins.cpp
-    src/data/migrations/0013_addkeyvaluestore.cpp
-    src/data/models/addtorrentparams.cpp
-    src/data/models/keyvaluestore.cpp
-    src/data/models/presets.cpp
-    src/data/models/sessions.cpp
-    src/data/models/users.cpp
-    src/data/statement.cpp
-
-    src/http/authinithandler.cpp
-    src/http/authloginhandler.cpp
-    src/http/eventshandler.cpp
-    src/http/jsonrpchandler.cpp
-    src/http/jwthandler.cpp
-    src/http/metricshandler.cpp
-    src/http/systemhandler.cpp
-    src/http/webuihandler.cpp
-
-    src/json/_/errorcode.cpp
-    src/json/_/fsspace.cpp
-    src/json/_/keyvalueget.cpp
-    src/json/_/keyvalueset.cpp
-    src/json/_/ltannounceentry.cpp
-    src/json/_/ltinfohash.cpp
-    src/json/_/ltpeerinfo.cpp
-    src/json/_/ltsettingspack.cpp
-    src/json/_/lttorrentflags.cpp
-    src/json/_/lttorrentstatus.cpp
-    src/json/_/mmdblookup.cpp
-    src/json/_/pluginsadd.cpp
-    src/json/_/pluginsget.cpp
-    src/json/_/pluginslist.cpp
-    src/json/_/pluginsreload.cpp
-    src/json/_/pluginsremove.cpp
-    src/json/_/pluginsupdate.cpp
-    src/json/_/presetsadd.cpp
-    src/json/_/presetsget.cpp
-    src/json/_/presetslist.cpp
-    src/json/_/presetsremove.cpp
-    src/json/_/presetsupdate.cpp
-    src/json/_/sessionsadd.cpp
-    src/json/_/sessionsget.cpp
-    src/json/_/sessionslist.cpp
-    src/json/_/sessionspause.cpp
-    src/json/_/sessionsremove.cpp
-    src/json/_/sessionsresume.cpp
-    src/json/_/sessionsupdate.cpp
-    src/json/_/torrentclientdata.cpp
-    src/json/_/torrentsadd.cpp
-    src/json/_/torrentscount.cpp
-    src/json/_/torrentsfileslist.cpp
-    src/json/_/torrentsfilesprogress.cpp
-    src/json/_/torrentsget.cpp
-    src/json/_/torrentslist.cpp
-    src/json/_/torrentsmove.cpp
-    src/json/_/torrentspause.cpp
-    src/json/_/torrentspeersadd.cpp
-    src/json/_/torrentspeerslist.cpp
-    src/json/_/torrentspropertiesget.cpp
-    src/json/_/torrentspropertiesset.cpp
-    src/json/_/torrentsrecheck.cpp
-    src/json/_/torrentsremove.cpp
-    src/json/_/torrentsresume.cpp
-    src/json/_/torrentstrackerslist.cpp
-    src/json/_/webuiinstall.cpp
 
     src/lua/packages/config.cpp
     src/lua/packages/cron.cpp
@@ -177,64 +92,12 @@ add_library(
     src/lua/types/toml.cpp
     src/lua/types/uwsapp.cpp
     src/lua/host.cpp
-    src/lua/plugin.cpp
-    src/lua/pluginengine.cpp
-
-    src/methods/fsspace.cpp
-    src/methods/keyvalueget.cpp
-    src/methods/keyvalueset.cpp
-    src/methods/mmdblookup.cpp
-    src/methods/plugins/pluginsadd.cpp
-    src/methods/plugins/pluginsget.cpp
-    src/methods/plugins/pluginslist.cpp
-    src/methods/plugins/pluginsreload.cpp
-    src/methods/plugins/pluginsremove.cpp
-    src/methods/plugins/pluginsupdate.cpp
-    src/methods/presets/presetsadd.cpp
-    src/methods/presets/presetsget.cpp
-    src/methods/presets/presetslist.cpp
-    src/methods/presets/presetsremove.cpp
-    src/methods/presets/presetsupdate.cpp
-    src/methods/sessions/sessionsadd.cpp
-    src/methods/sessions/sessionsget.cpp
-    src/methods/sessions/sessionslist.cpp
-    src/methods/sessions/sessionspause.cpp
-    src/methods/sessions/sessionsremove.cpp
-    src/methods/sessions/sessionsresume.cpp
-    src/methods/sessions/sessionsupdate.cpp
-    src/methods/sysversions.cpp
-    src/methods/torrents/torrentsadd.cpp
-    src/methods/torrents/torrentscount.cpp
-    src/methods/torrents/torrentsfileslist.cpp
-    src/methods/torrents/torrentsfilesprogress.cpp
-    src/methods/torrents/torrentsget.cpp
-    src/methods/torrents/torrentslist.cpp
-    src/methods/torrents/torrentsmove.cpp
-    src/methods/torrents/torrentspause.cpp
-    src/methods/torrents/torrentspeersadd.cpp
-    src/methods/torrents/torrentspeerslist.cpp
-    src/methods/torrents/torrentspropertiesget.cpp
-    src/methods/torrents/torrentsrecheck.cpp
-    src/methods/torrents/torrentsremove.cpp
-    src/methods/torrents/torrentsresume.cpp
-    src/methods/torrents/torrentspropertiesset.cpp
-    src/methods/torrents/torrentstrackerslist.cpp
-    src/methods/webui/webuiinstall.cpp
 
     src/query/_aux/PorlaQueryLangBaseVisitor.cpp
     src/query/_aux/PorlaQueryLangLexer.cpp
     src/query/_aux/PorlaQueryLangParser.cpp
     src/query/_aux/PorlaQueryLangVisitor.cpp
     src/query/pql.cpp
-
-    src/tools/authtoken.cpp
-    src/tools/generatesecretkey.cpp
-    src/tools/versionjson.cpp
-
-    src/utils/ratio.cpp
-    src/utils/ltsettings.cpp
-
-    src/curlmulti.cpp
 )
 
 target_compile_definitions(
@@ -261,7 +124,6 @@ target_link_libraries(
     ${ANTLR4_LIBRARIES}
     ${MAXMINDDB_LIBRARIES}
 
-    porla::lua
     porla::lua_bootstrap
 
     Boost::boost Boost::log Boost::program_options
@@ -275,13 +137,6 @@ target_link_libraries(
     -lcrypto
     -lssl
     -lz
-)
-
-cmrc_add_resource_library(
-    porla_lua
-    ALIAS porla::lua
-    WHENCE lua
-    lua/porla.lua
 )
 
 add_executable(
