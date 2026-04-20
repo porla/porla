@@ -5,7 +5,7 @@
 
 #include <curl/curl.h>
 
-using porla::Lua::Types::Libcurl;
+using porla::Lua::Types::HttpClient;
 
 template<typename T>
 T get_opt(sol::table& tbl, const char* key, T default_value)
@@ -30,11 +30,11 @@ static size_t CurlWriteCallback(char* ptr, size_t size, size_t nmemb, void* user
     return size * nmemb;
 }
 
-void Libcurl::Register(sol::state& lua)
+void HttpClient::Register(sol::state& lua)
 {
-    sol::table crl = lua["libcurl"].valid()
-        ? lua["libcurl"].get<sol::table>()
-        : lua.create_named_table("libcurl");
+    sol::table crl = lua["http"].valid()
+        ? lua["http"].get<sol::table>()
+        : lua.create_named_table("http");
 
     crl["request"] = sol::yielding([](sol::this_state L, sol::table opts)
     {

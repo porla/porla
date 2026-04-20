@@ -28,6 +28,7 @@ namespace porla::Lua
         porla::CurlMulti& m_cm;
         boost::asio::io_context& m_io;
         sol::state m_lua;
+        sol::table m_bootstrap_table;
         std::vector<sol::thread> m_active_coroutines;
         boost::asio::steady_timer m_active_coroutines_cleanup_timer;
         boost::asio::steady_timer m_shutdown_deadline_timer;

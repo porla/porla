@@ -4,154 +4,100 @@
 
 using porla::Lua::Types::Libzip;
 
-struct ZipFileT
+class ZipArchive
 {
-    zip_file_t* file;
-};
+public:
+    explicit ZipArchive(zip_t* archive)
+        : m_archive(archive)
+    {
+    }
 
-struct ZipT
-{
-    zip_t* zip;
+    ~ZipArchive()
+    {
+        if (m_archive != nullptr)
+        {
+            zip_close(m_archive);
+        }
+    }
+
+    void Close()
+    {
+        if (m_archive == nullptr)
+        {
+            return;
+        }
+
+        zip_close(m_archive);
+
+        m_archive = nullptr;
+    }
+
+    sol::table List(sol::this_state L)
+    {
+        if (m_archive == nullptr)
+        {
+            return sol::lua_nil;
+        }
+
+        sol::table result(L, sol::create);
+
+        for (zip_int64_t i = 0; i < zip_get_num_entries(m_archive, 0); i++)
+        {
+            const char* name = zip_get_name(m_archive, i, 0);
+
+            if (!name)
+            {
+                continue;
+            }
+
+            result[i + 1] = std::string(name);
+        }
+
+        return result;
+    }
+
+    sol::object Read(sol::this_state L, const std::string& filename)
+    {
+        zip_file_t* file = zip_fopen(m_archive, filename.c_str(), 0);
+
+        if (!file)
+        {
+            return sol::lua_nil;
+        }
+
+        zip_stat_t stat;
+        zip_stat(m_archive, filename.c_str(), 0, &stat);
+
+        std::string buffer(stat.size, '\0');
+        zip_fread(file, buffer.data(), stat.size);
+        zip_fclose(file);
+
+        return sol::make_object(L, buffer);
+    }
+
+private:
+    zip_t* m_archive = nullptr;
 };
 
 void Libzip::Register(sol::state& lua)
 {
-    sol::table zip = lua["zip"].valid()
-        ? lua["zip"].get<sol::table>()
-        : lua.create_named_table("zip");
+    sol::table libzip = lua["libzip"].valid()
+        ? lua["libzip"].get<sol::table>()
+        : lua.create_named_table("libzip");
 
-    zip["zip_stat_t"] = lua.new_usertype<zip_stat_t>(
-        "zip.zip_stat_t",
+    lua.new_usertype<ZipArchive>(
+        "libzip.archive",
         sol::no_constructor,
-        "valid", &zip_stat_t::valid,
-        "name", &zip_stat_t::name,
-        "index", &zip_stat_t::index,
-        "size", &zip_stat_t::size,
-        "comp_size", &zip_stat_t::comp_size,
-        "mtime", &zip_stat_t::mtime,
-        "crc", &zip_stat_t::crc,
-        "comp_method", &zip_stat_t::comp_method,
-        "encryption_method", &zip_stat_t::encryption_method,
-        "flags", &zip_stat_t::flags
+        "close", &ZipArchive::Close,
+        "list", &ZipArchive::List,
+        "read", &ZipArchive::Read
     );
 
-    zip["zip_file_t"] = lua.new_usertype<ZipFileT>(
-        "zip.zip_file_t",
-        sol::no_constructor,
-        "fclose", [](const ZipFileT& file) { return zip_fclose(file.file); },
-        "fread", [](sol::this_state L, const ZipFileT& file, int bytes)
-        {
-            std::string buf(bytes, '\0');
-            zip_int64_t n = zip_fread(file.file, buf.data(), buf.size());
-
-            if (n < 0)
-            {
-                sol::variadic_results res;
-                res.push_back(sol::make_object(L, sol::lua_nil));
-                res.push_back(sol::make_object(L, "zip_fread failed"));
-
-                return res;
-            }
-
-            buf.resize(static_cast<std::size_t>(n));
-
-            sol::variadic_results res;
-            res.push_back(sol::make_object(L, std::move(buf)));
-
-            return res;
-        }
-    );
-
-    zip["zip_t"] = lua.new_usertype<ZipT>(
-        "zip.zip_t",
-        sol::no_constructor,
-        "close", [](const ZipT& zip)
-        {
-            return zip_close(zip.zip);
-        },
-        "discard", [](const ZipT& zip)
-        {
-            return zip_discard(zip.zip);
-        },
-        "fopen_index", [](sol::this_state L, const ZipT& zip, int index, int flags)
-        {
-            zip_file_t* file = zip_fopen_index(zip.zip, index, flags);
-
-            if (file == nullptr)
-            {
-                zip_error_t* error = zip_get_error(zip.zip);
-
-                sol::variadic_results res;
-                res.push_back(sol::make_object(L, sol::lua_nil));
-                res.push_back(sol::make_object(L, zip_error_strerror(error)));
-
-                return res;
-            }
-
-            sol::variadic_results res;
-            res.push_back(sol::make_object(L, ZipFileT{file}));
-
-            return res;
-        },
-        "get_num_entries", [](const ZipT& zip, int flags)
-        {
-            return zip_get_num_entries(zip.zip, flags);
-        },
-        "stat_index", [](const ZipT& zip, int index, sol::this_state L)
-        {
-            zip_stat_t st;
-            zip_stat_init(&st);
-
-            int err = zip_stat_index(zip.zip, index, 0, & st);
-
-            if (err < 0)
-            {
-                zip_error_t* error = zip_get_error(zip.zip);
-
-                sol::variadic_results res;
-                res.push_back(sol::make_object(L, sol::lua_nil));
-                res.push_back(sol::make_object(L, zip_error_strerror(error)));
-
-                return res;
-            }
-
-            sol::variadic_results res;
-            res.push_back(sol::make_object(L, st));
-
-            return res;
-        }
-    );
-
-    zip["zip_t"]["open"] = [](const std::string& path, int flags, sol::this_state ts)
+    libzip["open"] = [](const std::string& path)
     {
         int err;
-        zip_t* zip = zip_open(path.c_str(), flags, &err);
+        zip_t* archive = zip_open(path.c_str(), ZIP_RDONLY, &err);
 
-        if (zip == nullptr)
-        {
-            zip_error_t error;
-            zip_error_init_with_code(&error, err);
-
-            sol::variadic_results res;
-            res.push_back(sol::make_object(ts, sol::lua_nil));
-            res.push_back(sol::make_object(ts, zip_error_strerror(&error)));
-
-            zip_error_fini(&error);
-
-            return res;
-        }
-
-        sol::variadic_results res;
-        res.push_back(sol::make_object(ts, ZipT{zip}));
-
-        return res;
+        return std::make_shared<ZipArchive>(archive);
     };
-
-    zip["ZIP_CREATE"]    = ZIP_CREATE;
-    zip["ZIP_EXCL"]      = ZIP_EXCL;
-    zip["ZIP_CHECKCONS"] = ZIP_CHECKCONS;
-    zip["ZIP_TRUNCATE"]  = ZIP_TRUNCATE;
-    zip["ZIP_RDONLY"]    = ZIP_RDONLY;
-
-    zip["ZIP_FL_UNCHANGED"] = ZIP_FL_UNCHANGED;
 }

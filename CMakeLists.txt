@@ -67,8 +67,9 @@ add_library(
     src/lua/packages/torrents.cpp
     src/lua/packages/workflows.cpp
     src/lua/types/fs.cpp
+    src/lua/types/httpclient.cpp
+    src/lua/types/httpserver.cpp
     src/lua/types/json.cpp
-    src/lua/types/libcurl.cpp
     src/lua/types/libzip.cpp
     src/lua/types/log.cpp
     src/lua/types/ltaddtorrentparams.cpp
@@ -90,7 +91,6 @@ add_library(
     src/lua/types/mmdb.cpp
     src/lua/types/timer.cpp
     src/lua/types/toml.cpp
-    src/lua/types/uwsapp.cpp
     src/lua/host.cpp
 
     src/query/_aux/PorlaQueryLangBaseVisitor.cpp

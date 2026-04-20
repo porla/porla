@@ -2,15 +2,15 @@
 
 #include <uWebSockets/App.h>
 
-using porla::Lua::Types::UwsApp;
+using porla::Lua::Types::HttpServer;
 
-void UwsApp::Register(sol::state& lua)
+void HttpServer::Register(sol::state& lua)
 {
-    sol::table uws = lua["uws"].valid()
-        ? lua["uws"].get<sol::table>()
-        : lua.create_named_table("uws");
+    sol::table http = lua["http"].valid()
+        ? lua["http"].get<sol::table>()
+        : lua.create_named_table("http");
 
-    uws["http_request"] = lua.new_usertype<uWS::HttpRequest>(
+    http["http_request"] = lua.new_usertype<uWS::HttpRequest>(
         "uws.http_request",
         sol::no_constructor,
         "getCaseSensitiveMethod", &uWS::HttpRequest::getCaseSensitiveMethod,
@@ -29,7 +29,7 @@ void UwsApp::Register(sol::state& lua)
         "getYield", &uWS::HttpRequest::getYield
     );
 
-    uws["http_response"] = lua.new_usertype<uWS::HttpResponse<false>>(
+    http["http_response"] = lua.new_usertype<uWS::HttpResponse<false>>(
         "uws.http_response",
         sol::no_constructor,
         "close", [](uWS::HttpResponse<false>* res) { res->close(); },
@@ -48,8 +48,8 @@ void UwsApp::Register(sol::state& lua)
         "writeStatus", &uWS::HttpResponse<false>::writeStatus
     );
 
-    uws["app"] = lua.new_usertype<uWS::App>(
-        "uws.app",
+    http["Server"] = lua.new_usertype<uWS::App>(
+        "http.Server",
         sol::call_constructor, sol::factories(
             []() { return std::make_shared<uWS::App>(); }
         ),

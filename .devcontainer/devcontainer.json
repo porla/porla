@@ -7,7 +7,9 @@
     "forwardPorts": [
         1337
     ],
-    "mounts": [],
+    "mounts": [
+        "source=${localWorkspaceFolder}/../core,target=/projects/porla-core,type=bind,readonly"
+    ],
     "remoteUser": "vscode",
     "customizations": {
         "vscode": {

@@ -1,5 +1,7 @@
 #include "host.hpp"
 
+#include <filesystem>
+
 #include <boost/log/trivial.hpp>
 #include <cmrc/cmrc.hpp>
 
@@ -11,6 +13,7 @@
 
 CMRC_DECLARE(porla_lua_bootstrap);
 
+namespace fs = std::filesystem;
 using porla::Lua::Host;
 
 Host::Host(boost::asio::io_context& io, porla::CurlMulti& cm)
@@ -38,9 +41,14 @@ void Host::Run(const boost::program_options::variables_map& args)
     m_lua.registry()["io"]   = porla::Lua::Registry::BoostIoContext{.io = &m_io};
     m_lua.registry()["curl"] = &m_cm;
 
-    m_lua["package"]["path"] = "/workspaces/porla/lua/?.lua;/workspaces/porla/lua/?/init.lua";
-
     m_lua["args"] = m_lua.create_table();
+    if (args.count("config-file"))            m_lua["args"]["config-file"]            = args["config-file"].as<std::string>();
+    if (args.count("core-dir"))               m_lua["args"]["core-dir"]               = args["core-dir"].as<std::string>();
+    if (args.count("core-zip"))               m_lua["args"]["core-zip"]               = args["core-zip"].as<std::string>();
+    if (args.count("core-github-repository")) m_lua["args"]["core-github-repository"] = args["core-github-repository"].as<std::string>();
+    if (args.count("core-github-release"))    m_lua["args"]["core-github-release"]    = args["core-github-release"].as<std::string>();
+    if (args.count("state-dir"))              m_lua["args"]["state-dir"]              = args["state-dir"].as<std::string>();
+
     m_lua["print"] = [](sol::this_state ts, const sol::variadic_args& args)
     {
         sol::state_view lua(ts);
@@ -56,8 +64,9 @@ void Host::Run(const boost::program_options::variables_map& args)
     };
 
     porla::Lua::Types::Fs::Register(m_lua);
+    porla::Lua::Types::HttpClient::Register(m_lua);
+    porla::Lua::Types::HttpServer::Register(m_lua);
     porla::Lua::Types::Json::Register(m_lua);
-    porla::Lua::Types::Libcurl::Register(m_lua);
     porla::Lua::Types::Libzip::Register(m_lua);
     porla::Lua::Types::Log::Register(m_lua);
     porla::Lua::Types::LtAddTorrentParams::Register(m_lua);
@@ -78,25 +87,35 @@ void Host::Run(const boost::program_options::variables_map& args)
     porla::Lua::Types::Mmdb::Register(m_lua);
     porla::Lua::Types::Timer::Register(m_lua);
     porla::Lua::Types::Toml::Register(m_lua);
-    porla::Lua::Types::UwsApp::Register(m_lua);
 
     porla::Lua::Packages::Sqlite::Register(m_lua);
 
     if (args.count("bootstrap-file"))
     {
-        m_lua.script_file(args["bootstrap-file"].as<std::string>());
+        const auto bootstrap_file = fs::absolute(args["bootstrap-file"].as<std::string>());
+
+        BOOST_LOG_TRIVIAL(info) << "Executing external bootstrap file " << bootstrap_file;
+        m_bootstrap_table = m_lua.script_file(bootstrap_file);
     }
     else
     {
+        BOOST_LOG_TRIVIAL(info) << "Executing embedded bootstrap.lua file";
+
         const auto bootstrap_fs  = cmrc::porla_lua_bootstrap::get_filesystem();
         const auto bootstrap_lua = bootstrap_fs.open("bootstrap.lua");
 
-        m_lua.script(
+        m_bootstrap_table = m_lua.script(
             std::string(bootstrap_lua.begin(), bootstrap_lua.end()),
             "bootstrap.lua");
     }
 
-    sol::function load_fn = m_lua["load"];
+    if (!m_bootstrap_table.valid())
+    {
+        BOOST_LOG_TRIVIAL(error) << "No valid bootstrap table returned from script";
+        return;
+    }
+
+    sol::function load_fn = m_bootstrap_table["load"];
     sol::thread th = sol::thread::create(m_lua);
 
     sol::coroutine(th.state(), load_fn)();
@@ -108,7 +127,7 @@ void Host::Stop(int timeout_ms, std::function<void()> callback)
 {
     m_active_coroutines_cleanup_timer.cancel();
 
-    sol::optional<sol::function> unload_fn = m_lua["unload"];
+    sol::optional<sol::function> unload_fn = m_bootstrap_table["unload"];
 
     if (!unload_fn)
     {

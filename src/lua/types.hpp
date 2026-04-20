@@ -12,8 +12,9 @@
 namespace porla::Lua::Types
 {
     DECLARE_TYPE_REGISTRY(Fs)
+    DECLARE_TYPE_REGISTRY(HttpClient)
+    DECLARE_TYPE_REGISTRY(HttpServer)
     DECLARE_TYPE_REGISTRY(Json)
-    DECLARE_TYPE_REGISTRY(Libcurl)
     DECLARE_TYPE_REGISTRY(Libzip)
     DECLARE_TYPE_REGISTRY(Log)
     DECLARE_TYPE_REGISTRY(LtAddTorrentParams)
@@ -35,5 +36,4 @@ namespace porla::Lua::Types
     DECLARE_TYPE_REGISTRY(Mmdb)
     DECLARE_TYPE_REGISTRY(Timer)
     DECLARE_TYPE_REGISTRY(Toml)
-    DECLARE_TYPE_REGISTRY(UwsApp)
 }
