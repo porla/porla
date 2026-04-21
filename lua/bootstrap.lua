@@ -126,7 +126,7 @@ function M.load()
             log.info("Fetching latest Porla core zipball from porla/core")
 
             -- get latest gh release
-            local response, err = libcurl.request({
+            local response, err = http.request({
                 url = "https://api.github.com/repos/vktr/porla-core/releases/latest",
                 headers = {
                     ["User-Agent"] = "porla/1.0"
@@ -155,7 +155,7 @@ function M.load()
                 return
             end
 
-            local zipball, err = libcurl.request({
+            local zipball, err = http.request({
                 url = release.zipball_url,
                 headers = {
                     ["User-Agent"] = "porla/1.0"
