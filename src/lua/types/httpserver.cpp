@@ -70,6 +70,15 @@ void HttpServer::Register(sol::state& lua)
             {
                 (*cb)();
             });
+        },
+        "post", [](std::shared_ptr<uWS::App> app, const std::string& path, sol::protected_function callback)
+        {
+            auto cb = std::make_shared<sol::protected_function>(std::move(callback));
+
+            app->post(path, [cb](uWS::HttpResponse<false>* response, uWS::HttpRequest* request)
+            {
+                (*cb)(response, request);
+            });
         }
     );
 }

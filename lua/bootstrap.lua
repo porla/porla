@@ -174,6 +174,12 @@ function M.load()
     end
 
     M.core = _load_core(core_resolver)
+
+    if (M.core == nil) then
+        log.error("Failed to load core from resolver")
+        return
+    end
+
     M.core.load()
 end
 
