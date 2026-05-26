@@ -51,21 +51,6 @@ add_library(
     src/curlmulti.cpp
     src/logger.cpp
 
-    src/lua/packages/config.cpp
-    src/lua/packages/cron.cpp
-    src/lua/packages/events.cpp
-    src/lua/packages/filesystem.cpp
-    src/lua/packages/httpclient.cpp
-    src/lua/packages/json.cpp
-    src/lua/packages/log.cpp
-    src/lua/packages/pql.cpp
-    src/lua/packages/presets.cpp
-    src/lua/packages/process.cpp
-    src/lua/packages/sessions.cpp
-    src/lua/packages/sqlite.cpp
-    src/lua/packages/timers.cpp
-    src/lua/packages/torrents.cpp
-    src/lua/packages/workflows.cpp
     src/lua/types/fs.cpp
     src/lua/types/httpclient.cpp
     src/lua/types/httpserver.cpp
@@ -77,6 +62,7 @@ add_library(
     src/lua/types/ltannounceendpoint.cpp
     src/lua/types/ltannounceentry.cpp
     src/lua/types/ltannounceinfohash.cpp
+    src/lua/types/ltbencode.cpp
     src/lua/types/ltdownloadpriority.cpp
     src/lua/types/ltfilestorage.cpp
     src/lua/types/ltinfohash.cpp
@@ -89,6 +75,8 @@ add_library(
     src/lua/types/lttorrentinfo.cpp
     src/lua/types/lttorrentstatus.cpp
     src/lua/types/mmdb.cpp
+    src/lua/types/sodium.cpp
+    src/lua/types/sqlite3.cpp
     src/lua/types/timer.cpp
     src/lua/types/toml.cpp
     src/lua/host.cpp

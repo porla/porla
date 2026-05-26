@@ -82,7 +82,20 @@ local function _load_core(resolver)
         return
     end
 
-    return assert(load(content, "@core/init.lua"))()
+    local chunk, load_err = load(content, "@core/init.lua")
+
+    if not chunk then
+        log.error("Failed to load init.lua: " .. load_err)
+        return
+    end
+
+    local ok, result = pcall(chunk)
+
+    if not ok then
+        log.error("Error when invoking porla/core init.lua: " .. result)
+    end
+
+    return result
 end
 
 local M = {
@@ -90,7 +103,7 @@ local M = {
 }
 
 function M.load()
-    log.info("Loading Porla core bootstrapper")
+    log.info("Loading Porla core")
 
     local core_resolver = nil
 
@@ -99,7 +112,7 @@ function M.load()
         core_resolver = _dir_resolver(args["core-dir"])
     end
 
-    if args["core-zip"] ~= nil then
+    if core_resolver == nil and args["core-zip"] ~= nil then
         log.info("--core-zip set, loading core from %s", args["core-zip"])
 
         if core_resolver ~= nil then
@@ -117,10 +130,8 @@ function M.load()
 
         local core_zipball = fs.path(state_dir) / "porla_core.zip"
 
-        log.info("Checking if we have a local core zipball at " .. tostring(core_zipball))
-
         if fs.exists(core_zipball) and fs.is_regular_file(core_zipball) then
-            log.info("Loading Porla core from " .. tostring(core_zipball))
+            log.info("Found local porla/core zipball at " .. tostring(core_zipball))
             core_resolver = _zipball_resolver(core_zipball)
         else
             log.info("Fetching latest Porla core zipball from porla/core")
@@ -133,13 +144,13 @@ function M.load()
                 }
             })
 
-            if response.status == 404 then
-                log.error("Failed to find GitHub release. Double-check repository and release version")
+            if err ~= nil then
+                log.error("Error occured when trying to fetch latest release from GitHub: %s", tostring(err))
                 return
             end
 
-            if err ~= nil then
-                log.error("Error occured when trying to fetch latest release from GitHub: %s", tostring(err))
+            if response.status == 404 then
+                log.error("Failed to find GitHub release. Double-check repository and release version")
                 return
             end
 
@@ -171,6 +182,11 @@ function M.load()
 
             core_resolver = _zipball_resolver(core_zipball)
         end
+    end
+
+    if core_resolver == nil then
+        log.error("Failed to assign a core resolver")
+        return
     end
 
     M.core = _load_core(core_resolver)

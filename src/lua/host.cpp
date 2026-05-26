@@ -5,7 +5,6 @@
 #include <boost/log/trivial.hpp>
 #include <cmrc/cmrc.hpp>
 
-#include "packages.hpp"
 #include "registry.hpp"
 #include "types.hpp"
 
@@ -40,6 +39,7 @@ void Host::Run(const boost::program_options::variables_map& args)
 
     m_lua.registry()["io"]   = porla::Lua::Registry::BoostIoContext{.io = &m_io};
     m_lua.registry()["curl"] = &m_cm;
+    m_lua.registry()["host"] = this;
 
     m_lua["args"] = m_lua.create_table();
     if (args.count("config-file"))            m_lua["args"]["config-file"]            = args["config-file"].as<std::string>();
@@ -74,6 +74,7 @@ void Host::Run(const boost::program_options::variables_map& args)
     porla::Lua::Types::LtAnnounceEndpoint::Register(m_lua);
     porla::Lua::Types::LtAnnounceEntry::Register(m_lua);
     porla::Lua::Types::LtAnnounceInfohash::Register(m_lua);
+    porla::Lua::Types::LtBencode::Register(m_lua);
     porla::Lua::Types::LtDownloadPriority::Register(m_lua);
     porla::Lua::Types::LtInfoHash::Register(m_lua);
     porla::Lua::Types::LtPeerInfo::Register(m_lua);
@@ -84,17 +85,23 @@ void Host::Run(const boost::program_options::variables_map& args)
     porla::Lua::Types::LtTorrentHandle::Register(m_lua);
     porla::Lua::Types::LtTorrentInfo::Register(m_lua);
     porla::Lua::Types::LtTorrentStatus::Register(m_lua);
+    porla::Lua::Types::Sodium::Register(m_lua);
+    porla::Lua::Types::Sqlite3::Register(m_lua);
     porla::Lua::Types::Mmdb::Register(m_lua);
     porla::Lua::Types::Timer::Register(m_lua);
     porla::Lua::Types::Toml::Register(m_lua);
-
-    porla::Lua::Packages::Sqlite::Register(m_lua);
 
     if (args.count("bootstrap-file"))
     {
         const auto bootstrap_file = fs::absolute(args["bootstrap-file"].as<std::string>());
 
-        BOOST_LOG_TRIVIAL(info) << "Executing external bootstrap file " << bootstrap_file;
+        if (!fs::exists(bootstrap_file))
+        {
+            BOOST_LOG_TRIVIAL(error) << "User-specified bootstrap file does not exist at " << bootstrap_file.lexically_normal();
+            return;
+        }
+
+        BOOST_LOG_TRIVIAL(info) << "Executing external bootstrap file " << bootstrap_file.lexically_normal();
         m_bootstrap_table = m_lua.script_file(bootstrap_file);
     }
     else
@@ -102,6 +109,13 @@ void Host::Run(const boost::program_options::variables_map& args)
         BOOST_LOG_TRIVIAL(info) << "Executing embedded bootstrap.lua file";
 
         const auto bootstrap_fs  = cmrc::porla_lua_bootstrap::get_filesystem();
+
+        if (!bootstrap_fs.exists("bootstrap.lua"))
+        {
+            BOOST_LOG_TRIVIAL(error) << "No embedded bootstrap.lua file found";
+            return;
+        }
+
         const auto bootstrap_lua = bootstrap_fs.open("bootstrap.lua");
 
         m_bootstrap_table = m_lua.script(
@@ -116,11 +130,8 @@ void Host::Run(const boost::program_options::variables_map& args)
     }
 
     sol::function load_fn = m_bootstrap_table["load"];
-    sol::thread th = sol::thread::create(m_lua);
 
-    sol::coroutine(th.state(), load_fn)();
-
-    m_active_coroutines.push_back(std::move(th));
+    SpawnCoroutine(load_fn);
 }
 
 void Host::Stop(int timeout_ms, std::function<void()> callback)
@@ -148,7 +159,7 @@ void Host::Stop(int timeout_ms, std::function<void()> callback)
         return;
     }
 
-    m_active_coroutines.push_back(std::move(th));
+    m_active_coroutines.push_back(CoroutineState{std::move(th)});
 
     if (lua_status(L) != LUA_YIELD)
     {
@@ -214,9 +225,9 @@ void Host::ScheduleCoroutineCleanup()
             std::remove_if(
                 m_active_coroutines.begin(),
                 m_active_coroutines.end(),
-                [](const sol::thread& th)
+                [](const CoroutineState& state)
                 {
-                    return lua_status(th.state()) != LUA_YIELD;
+                    return lua_status(state.thread.state()) != LUA_YIELD;
                 }),
             m_active_coroutines.end());
 
@@ -231,4 +242,21 @@ void Host::ScheduleCoroutineCleanup()
 
         ScheduleCoroutineCleanup();
     });
+}
+
+void Host::SpawnCoroutineInternal(sol::thread th, const sol::protected_function_result& result)
+{
+    if (!result.valid())
+    {
+        sol::error err = result;
+        BOOST_LOG_TRIVIAL(error) << err.what();
+        return;
+    }
+
+    if (lua_status(th.state()) != LUA_YIELD)
+    {
+        return;
+    }
+
+    m_active_coroutines.push_back(CoroutineState{std::move(th)});
 }

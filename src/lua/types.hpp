@@ -22,6 +22,7 @@ namespace porla::Lua::Types
     DECLARE_TYPE_REGISTRY(LtAnnounceEndpoint)
     DECLARE_TYPE_REGISTRY(LtAnnounceEntry)
     DECLARE_TYPE_REGISTRY(LtAnnounceInfohash)
+    DECLARE_TYPE_REGISTRY(LtBencode)
     DECLARE_TYPE_REGISTRY(LtDownloadPriority)
     DECLARE_TYPE_REGISTRY(LtFileStorage)
     DECLARE_TYPE_REGISTRY(LtInfoHash)
@@ -34,6 +35,8 @@ namespace porla::Lua::Types
     DECLARE_TYPE_REGISTRY(LtTorrentInfo)
     DECLARE_TYPE_REGISTRY(LtTorrentStatus)
     DECLARE_TYPE_REGISTRY(Mmdb)
+    DECLARE_TYPE_REGISTRY(Sodium)
+    DECLARE_TYPE_REGISTRY(Sqlite3)
     DECLARE_TYPE_REGISTRY(Timer)
     DECLARE_TYPE_REGISTRY(Toml)
 }

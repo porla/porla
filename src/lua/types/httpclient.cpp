@@ -120,7 +120,7 @@ void HttpClient::Register(sol::state& lua)
 
             sol::stack::push(L, res);
             sol::stack::push(L, sol::lua_nil);
-            
+
             int nresults = 0;
             lua_resume(L, nullptr, 2, &nresults);
         });

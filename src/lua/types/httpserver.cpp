@@ -2,6 +2,8 @@
 
 #include <uWebSockets/App.h>
 
+#include "../host.hpp"
+
 using porla::Lua::Types::HttpServer;
 
 void HttpServer::Register(sol::state& lua)
@@ -10,8 +12,8 @@ void HttpServer::Register(sol::state& lua)
         ? lua["http"].get<sol::table>()
         : lua.create_named_table("http");
 
-    http["http_request"] = lua.new_usertype<uWS::HttpRequest>(
-        "uws.http_request",
+    http["HttpRequest"] = lua.new_usertype<uWS::HttpRequest>(
+        "http.HttpRequest",
         sol::no_constructor,
         "getCaseSensitiveMethod", &uWS::HttpRequest::getCaseSensitiveMethod,
         "getFullUrl", &uWS::HttpRequest::getFullUrl,
@@ -29,14 +31,32 @@ void HttpServer::Register(sol::state& lua)
         "getYield", &uWS::HttpRequest::getYield
     );
 
-    http["http_response"] = lua.new_usertype<uWS::HttpResponse<false>>(
-        "uws.http_response",
+    http["HttpResponse"] = lua.new_usertype<uWS::HttpResponse<false>>(
+        "http.HttpResponse",
         sol::no_constructor,
         "close", [](uWS::HttpResponse<false>* res) { res->close(); },
-        "end", [](uWS::HttpResponse<false>* res, const std::string& body) {
+        "endr", [](uWS::HttpResponse<false>* res, const std::string& body) {
             res->end(body);
         },
         "hasResponded", &uWS::HttpResponse<false>::hasResponded,
+        "onAborted", [](uWS::HttpResponse<false>* res, sol::protected_function callback)
+        {
+            auto cb = std::make_shared<sol::protected_function>(std::move(callback));
+            res->onAborted([cb]() { (*cb)(); });
+        },
+        "onData", [](sol::this_state L, uWS::HttpResponse<false>* res, sol::protected_function callback)
+        {
+            sol::state_view lua(L);
+
+            auto cb = std::make_shared<sol::protected_function>(std::move(callback));
+            auto host = lua.registry()["host"].get<porla::Lua::Host*>();
+
+            res->onData([cb, host](std::string_view data, bool fin)
+            {
+                std::string data_owned(data);
+                host->SpawnCoroutine(*cb, data_owned, fin);
+            });
+        },
         "pause", [](uWS::HttpResponse<false>* res) { res->pause(); },
         "resume", [](uWS::HttpResponse<false>* res) { res->resume(); },
         "write", &uWS::HttpResponse<false>::write,
