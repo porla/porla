@@ -122,7 +122,7 @@ EventsHandler::EventsHandler(porla::Sessions& sessions)
 
 EventsHandler::~EventsHandler() = default;
 
-void EventsHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
+void EventsHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req, const jwt::decoded_jwt<jwt::traits::nlohmann_json>& token)
 {
     res->onAborted(
         [state = m_state, res]()

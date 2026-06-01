@@ -15,7 +15,7 @@ namespace porla::Http
         explicit JsonRpcHandler(
             std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<false>*)>> methods);
 
-        void operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req);
+        void operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req, const jwt::decoded_jwt<jwt::traits::nlohmann_json>& token);
 
     private:
         class State;

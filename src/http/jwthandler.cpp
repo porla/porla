@@ -9,7 +9,7 @@
 using porla::Http::JwtHandler;
 using porla::Utils::String;
 
-JwtHandler::JwtHandler(const std::string &secret_key, Handler next)
+JwtHandler::JwtHandler(const std::string &secret_key, SecureHandler next)
     : m_secret_key(secret_key)
     , m_next(next)
 {
@@ -98,7 +98,7 @@ void JwtHandler::operator()(uWS::HttpResponse<false> *res, uWS::HttpRequest *req
 
         verifier.verify(decoded_token);
 
-        return m_next(res, req);
+        return m_next(res, req, decoded_token);
     }
     catch (const jwt::error::signature_verification_exception& ex)
     {

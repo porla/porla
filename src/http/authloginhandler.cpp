@@ -151,6 +151,7 @@ void AuthLoginHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpReques
                             .set_issued_at(std::chrono::system_clock::now())
                             .set_subject(user->username)
                             .set_type("JWS")
+                            .set_payload_claim("scope", "*")
                             .sign(jwt::algorithm::hs256(state->options.secret_key));
 
                         res->writeHeader("Set-Cookie", CreateAuthCookie("porla-auth-token", token, 86400, false));
