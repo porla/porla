@@ -191,15 +191,13 @@ int main(int argc, char* argv[])
             .secret_key = cfg->secret_key
         }));
 
-        http_server.get(http_base_path + "/api/v1/events",
-            cfg->http_auth_enabled.value_or(true)
-                ? static_cast<porla::Http::Handler>(porla::Http::JwtHandler(cfg->secret_key, porla::Http::EventsHandler(sessions)))
-                : static_cast<porla::Http::Handler>(porla::Http::EventsHandler(sessions)));
+        http_server.get(
+            http_base_path + "/api/v1/events",
+            porla::Http::JwtHandler(cfg->secret_key, porla::Http::EventsHandler(sessions)));
 
-        http_server.post(http_base_path + "/api/v1/jsonrpc",
-            cfg->http_auth_enabled.value_or(true)
-                ? static_cast<porla::Http::Handler>(porla::Http::JwtHandler(cfg->secret_key, rpc))
-                : static_cast<porla::Http::Handler>(rpc));
+        http_server.post(
+            http_base_path + "/api/v1/jsonrpc",
+            porla::Http::JwtHandler(cfg->secret_key, rpc));
 
         http_server.get(http_base_path + "/api/v1/system", porla::Http::SystemHandler(cfg->db));
 

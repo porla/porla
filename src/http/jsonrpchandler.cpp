@@ -27,7 +27,10 @@ JsonRpcHandler::JsonRpcHandler(std::map<std::string, std::function<void(const nl
 {
 }
 
-void JsonRpcHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req, const jwt::decoded_jwt<jwt::traits::nlohmann_json>& token)
+void JsonRpcHandler::operator()(
+    uWS::HttpResponse<false>* res,
+    uWS::HttpRequest* req,
+    std::optional<jwt::decoded_jwt<jwt::traits::nlohmann_json>> token)
 {
     res->onAborted([](){});
 

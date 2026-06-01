@@ -9,5 +9,9 @@
 namespace porla::Http
 {
     typedef std::function<void((uWS::HttpResponse<false> * , uWS::HttpRequest *))> Handler;
-    typedef std::function<void((uWS::HttpResponse<false> * , uWS::HttpRequest *, const jwt::decoded_jwt<jwt::traits::nlohmann_json>& token))> SecureHandler;
+
+    typedef std::function<void(
+        uWS::HttpResponse<false>*,
+        uWS::HttpRequest*,
+        std::optional<jwt::decoded_jwt<jwt::traits::nlohmann_json>>)> SecureHandler;
 }
