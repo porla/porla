@@ -13,6 +13,11 @@ namespace porla::Methods::Auth
         explicit AuthLogin(sqlite3* db, const std::string& secret_key);
 
     protected:
+        bool CanInvoke(Token token) override
+        {
+            return true;
+        }
+
         void Invoke(const AuthLoginReq& req, WriteCb<AuthLoginRes> cb) override;
 
     private:

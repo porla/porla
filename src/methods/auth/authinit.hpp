@@ -13,6 +13,11 @@ namespace porla::Methods::Auth
         explicit AuthInit(sqlite3* db);
 
     protected:
+        bool CanInvoke(Token token) override
+        {
+            return true;
+        }
+
         void Invoke(const AuthInitReq& req, WriteCb<AuthInitRes> cb) override;
 
     private:
