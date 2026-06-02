@@ -111,6 +111,9 @@ void JsonRpcHandler::operator()(
             bearer_token = CookieFinder(req->getHeader("cookie"));
         }
 
+        res->writeStatus("200 OK")
+            ->writeHeader("Content-Type", "application/json");
+
         std::optional<jwt::decoded_jwt<jwt::traits::nlohmann_json>> token;
 
         if (bearer_token)
@@ -127,20 +130,53 @@ void JsonRpcHandler::operator()(
             }
             catch (const jwt::error::signature_verification_exception& ex)
             {
-                BOOST_LOG_TRIVIAL(warning) << "Failed to verify JWT signature: " << ex.what();
+                BOOST_LOG_TRIVIAL(debug) << "Failed to verify JWT signature: " << ex.what();
+
+                res->end(json({
+                    {"error", {
+                        {"code", 1000},
+                        {"message", "Invalid JWT signature"},
+                        {"data", {
+                            {"what", ex.what()}
+                        }}
+                    }}
+                }).dump());
+
+                return;
             }
             catch (const jwt::error::token_verification_exception& ex)
             {
-                BOOST_LOG_TRIVIAL(warning) << "Failed to verify JWT token: " << ex.what();
+                BOOST_LOG_TRIVIAL(debug) << "Failed to verify JWT token: " << ex.what();
+
+                res->end(json({
+                    {"error", {
+                        {"code", 1000},
+                        {"message", "JWT verification failed"},
+                        {"data", {
+                            {"what", ex.what()}
+                        }}
+                    }}
+                }).dump());
+
+                return;
             }
             catch (const std::exception& ex)
             {
-                BOOST_LOG_TRIVIAL(warning) << "Failed to decode token: " << ex.what();
+                BOOST_LOG_TRIVIAL(debug) << "Failed to decode token: " << ex.what();
+
+                res->end(json({
+                    {"error", {
+                        {"code", 1000},
+                        {"message", "Failed to decode JWT"},
+                        {"data", {
+                            {"what", ex.what()}
+                        }}
+                    }}
+                }).dump());
+
+                return;
             }
         }
-
-        res->writeStatus("200 OK")
-            ->writeHeader("Content-Type", "application/json");
 
         json body = {};
 
@@ -200,7 +236,12 @@ void JsonRpcHandler::operator()(
         try
         {
             BOOST_LOG_TRIVIAL(debug) << "Executing JSONRPC method '" << method << "'";
-            state->Methods().at(method)(body.at("id"), body.at("params"), res, token);
+
+            json params = body.contains("params")
+                ? body.at("params")
+                : json();
+
+            state->Methods().at(method)(body.at("id"), params, res, token);
         }
         catch (const std::exception& ex)
         {

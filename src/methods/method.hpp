@@ -71,12 +71,32 @@ namespace porla::Methods
     class Method
     {
     public:
-        void operator()(const nlohmann::json& id, const nlohmann::json& body, uWS::HttpResponse<false>* res, std::optional<jwt::decoded_jwt<jwt::traits::nlohmann_json>> token)
+        typedef std::optional<jwt::decoded_jwt<jwt::traits::nlohmann_json>> Token;
+
+        void operator()(const nlohmann::json& id, const nlohmann::json& body, uWS::HttpResponse<false>* res, Token token)
         {
+            if (!CanInvoke(token))
+            {
+                res->end(json({
+                    {"jsonrpc", "2.0"},
+                    {"id", id},
+                    {"error", {
+                        {"code", 1001}
+                    }}
+                }).dump());
+
+                return;
+            }
+
             Invoke(body.get<TReq>(), WriteCb<TRes>(id, res));
         }
 
     protected:
+        virtual bool CanInvoke(Token token)
+        {
+            return false;
+        }
+
         virtual void Invoke(const TReq& req, WriteCb<TRes>) = 0;
     };
 }

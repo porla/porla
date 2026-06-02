@@ -15,6 +15,12 @@ namespace porla::Methods
         explicit SysStatus(sqlite3* db);
 
     protected:
+        bool CanInvoke(Token token) override
+        {
+            // This method can always be invoked.
+            return true;
+        }
+
         void Invoke(const json& req, WriteCb<std::map<std::string, json>> cb) override;
 
     private:
