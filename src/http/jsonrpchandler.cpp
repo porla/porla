@@ -217,11 +217,26 @@ void JsonRpcHandler::operator()(
             return;
         }
 
-        std::string method = body.at("method").get<std::string>();
-
-        if (state->Methods().find(method) == state->Methods().end())
+        if (!body.contains("method")
+            && !body["method"].is_string())
         {
-            BOOST_LOG_TRIVIAL(warning) << "Failed to find JSONRPC method '" << method << "'";
+            res->end(json({
+                {"error", {
+                    {"code", -32600},
+                    {"message", "Invalid Request"},
+                    {"data", "Method is not a string"}
+                }}
+            }).dump());
+
+            return;
+        }
+
+        std::string method = body.at("method").get<std::string>();
+        auto methods = state->Methods();
+
+        if (methods.find(method) == methods.end())
+        {
+            BOOST_LOG_TRIVIAL(debug) << "Failed to find JSONRPC method '" << method << "'";
 
             res->end(json({
                 {"error", {
@@ -241,7 +256,7 @@ void JsonRpcHandler::operator()(
                 ? body.at("params")
                 : json();
 
-            state->Methods().at(method)(body.at("id"), params, res, token);
+            methods.at(method)(body.at("id"), params, res, token);
         }
         catch (const std::exception& ex)
         {
