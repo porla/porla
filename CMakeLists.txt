@@ -71,7 +71,6 @@ add_library(
 
     src/http/jsonrpchandler.cpp
     src/http/metricshandler.cpp
-    src/http/systemhandler.cpp
     src/http/webuihandler.cpp
 
     src/json/_/authinit.cpp
@@ -180,6 +179,7 @@ add_library(
     src/methods/sessions/sessionsremove.cpp
     src/methods/sessions/sessionsresume.cpp
     src/methods/sessions/sessionsupdate.cpp
+    src/methods/sysstatus.cpp
     src/methods/sysversions.cpp
     src/methods/torrents/torrentsadd.cpp
     src/methods/torrents/torrentscount.cpp

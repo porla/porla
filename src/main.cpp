@@ -13,7 +13,6 @@
 
 #include "http/jsonrpchandler.hpp"
 #include "http/metricshandler.hpp"
-#include "http/systemhandler.hpp"
 #include "http/webuihandler.hpp"
 
 #include "methods/fsspace.hpp"
@@ -40,6 +39,7 @@
 #include "methods/sessions/sessionsremove.hpp"
 #include "methods/sessions/sessionsresume.hpp"
 #include "methods/sessions/sessionsupdate.hpp"
+#include "methods/sysstatus.hpp"
 #include "methods/sysversions.hpp"
 #include "methods/torrents/torrentsadd.hpp"
 #include "methods/torrents/torrentscount.hpp"
@@ -139,6 +139,7 @@ int main(int argc, char* argv[])
             {"sessions.remove", porla::Methods::Sessions::SessionsRemove(cfg->db, sessions)},
             {"sessions.resume", porla::Methods::SessionsResume(sessions)},
             {"sessions.update", porla::Methods::Sessions::SessionsUpdate(cfg->db, sessions)},
+            {"sys.status", porla::Methods::SysStatus(cfg->db)},
             {"sys.versions", porla::Methods::SysVersions()},
             {"torrents.add", porla::Methods::TorrentsAdd(cfg->db, sessions)},
             {"torrents.count", porla::Methods::Torrents::TorrentsCount(sessions)},
@@ -168,8 +169,6 @@ int main(int argc, char* argv[])
 
         uWS::App http_server;
         http_server.post(http_base_path + "/api/v1/jsonrpc", rpc);
-
-        http_server.get(http_base_path + "/api/v1/system", porla::Http::SystemHandler(cfg->db));
 
         if (cfg->http_metrics_enabled.value_or(true))
         {
