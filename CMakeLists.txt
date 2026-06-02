@@ -69,15 +69,13 @@ add_library(
     src/data/models/users.cpp
     src/data/statement.cpp
 
-    src/http/authinithandler.cpp
-    src/http/authloginhandler.cpp
-    src/http/eventshandler.cpp
     src/http/jsonrpchandler.cpp
-    src/http/jwthandler.cpp
     src/http/metricshandler.cpp
     src/http/systemhandler.cpp
     src/http/webuihandler.cpp
 
+    src/json/_/authinit.cpp
+    src/json/_/authlogin.cpp
     src/json/_/errorcode.cpp
     src/json/_/fsspace.cpp
     src/json/_/keyvalueget.cpp
@@ -162,6 +160,8 @@ add_library(
     src/methods/keyvalueget.cpp
     src/methods/keyvalueset.cpp
     src/methods/mmdblookup.cpp
+    src/methods/auth/authinit.cpp
+    src/methods/auth/authlogin.cpp
     src/methods/plugins/pluginsadd.cpp
     src/methods/plugins/pluginsget.cpp
     src/methods/plugins/pluginslist.cpp

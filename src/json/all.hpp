@@ -106,6 +106,20 @@ namespace porla::Methods
     struct TorrentsTrackersListReq;
     struct TorrentsTrackersListRes;
 
+    namespace Auth
+    {
+        struct AuthInitReq;
+        struct AuthInitRes;
+        struct AuthLoginReq;
+        struct AuthLoginRes;
+
+        void from_json(const nlohmann::json& json, AuthInitReq& req);
+        void from_json(const nlohmann::json& json, AuthLoginReq& req);
+
+        void to_json(nlohmann::json& json, const AuthInitRes& res);
+        void to_json(nlohmann::json& json, const AuthLoginRes& res);
+    }
+
     namespace Presets
     {
         struct PresetsAddReq;

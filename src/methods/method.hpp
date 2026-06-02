@@ -3,6 +3,8 @@
 #include <memory>
 #include <utility>
 
+#include <jwt-cpp/traits/nlohmann-json/defaults.h>
+#include <jwt-cpp/jwt.h>
 #include <nlohmann/json.hpp>
 
 #include "../json/all.hpp"
@@ -46,6 +48,11 @@ namespace porla::Methods
             }).dump());
         }
 
+        void Header(const std::string& key, const std::string& val)
+        {
+            m_res->writeHeader(key, val);
+        }
+
         void Ok(const json& result)
         {
             m_res->end(json({
@@ -64,7 +71,7 @@ namespace porla::Methods
     class Method
     {
     public:
-        void operator()(const nlohmann::json& id, const nlohmann::json& body, uWS::HttpResponse<false>* res)
+        void operator()(const nlohmann::json& id, const nlohmann::json& body, uWS::HttpResponse<false>* res, std::optional<jwt::decoded_jwt<jwt::traits::nlohmann_json>> token)
         {
             Invoke(body.get<TReq>(), WriteCb<TRes>(id, res));
         }

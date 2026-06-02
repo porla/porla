@@ -15,11 +15,7 @@
 #include "tools/versionjson.hpp"
 #include "utils/secretkey.hpp"
 
-#include "http/authinithandler.hpp"
-#include "http/authloginhandler.hpp"
-#include "http/eventshandler.hpp"
 #include "http/jsonrpchandler.hpp"
-#include "http/jwthandler.hpp"
 #include "http/metricshandler.hpp"
 #include "http/systemhandler.hpp"
 #include "http/webuihandler.hpp"
@@ -28,6 +24,8 @@
 #include "methods/keyvalueget.hpp"
 #include "methods/keyvalueset.hpp"
 #include "methods/mmdblookup.hpp"
+#include "methods/auth/authinit.hpp"
+#include "methods/auth/authlogin.hpp"
 #include "methods/plugins/pluginsget.hpp"
 #include "methods/plugins/pluginsadd.hpp"
 #include "methods/plugins/pluginslist.hpp"
@@ -134,6 +132,8 @@ int main(int argc, char* argv[])
         boost::signals2::signal<void(const char*, size_t)> webui_installed_signal;
 
         porla::Http::JsonRpcHandler rpc({
+            {"auth.init", porla::Methods::Auth::AuthInit(cfg->db)},
+            {"auth.init", porla::Methods::Auth::AuthLogin(cfg->db, cfg->secret_key)},
             {"fs.space", porla::Methods::FsSpace()},
             {"kv.get", porla::Methods::KeyValueGet(cfg->db)},
             {"kv.set", porla::Methods::KeyValueSet(cfg->db)},
@@ -184,20 +184,7 @@ int main(int argc, char* argv[])
         uWS::Loop::get(&io);
 
         uWS::App http_server;
-        http_server.post(http_base_path + "/api/v1/auth/init", porla::Http::AuthInitHandler(io, cfg->db));
-        http_server.post(http_base_path + "/api/v1/auth/login", porla::Http::AuthLoginHandler(porla::Http::AuthLoginHandlerOptions{
-            .db         = cfg->db,
-            .io         = io,
-            .secret_key = cfg->secret_key
-        }));
-
-        http_server.get(
-            http_base_path + "/api/v1/events",
-            porla::Http::JwtHandler(cfg->secret_key, porla::Http::EventsHandler(sessions)));
-
-        http_server.post(
-            http_base_path + "/api/v1/jsonrpc",
-            porla::Http::JwtHandler(cfg->secret_key, rpc));
+        http_server.post(http_base_path + "/api/v1/jsonrpc", rpc);
 
         http_server.get(http_base_path + "/api/v1/system", porla::Http::SystemHandler(cfg->db));
 
