@@ -14,6 +14,7 @@ namespace porla::Http
     {
     public:
         explicit JsonRpcHandler(
+            const std::string& secret_key,
             std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<false>*, std::optional<jwt::decoded_jwt<jwt::traits::nlohmann_json>>)>> methods);
 
         void operator()(
@@ -23,5 +24,6 @@ namespace porla::Http
     private:
         class State;
         std::shared_ptr<State> m_state;
+        std::string m_secret_key;
     };
 }

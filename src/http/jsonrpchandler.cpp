@@ -26,8 +26,9 @@ private:
     std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<false>*, std::optional<jwt::decoded_jwt<jwt::traits::nlohmann_json>>)>> m_methods;
 };
 
-JsonRpcHandler::JsonRpcHandler(std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<false>*, std::optional<jwt::decoded_jwt<jwt::traits::nlohmann_json>>)>> methods)
-    : m_state(std::make_shared<State>(methods))
+JsonRpcHandler::JsonRpcHandler(const std::string& secret_key, std::map<std::string, std::function<void(const nlohmann::json&, const nlohmann::json&, uWS::HttpResponse<false>*, std::optional<jwt::decoded_jwt<jwt::traits::nlohmann_json>>)>> methods)
+    : m_secret_key(secret_key)
+    , m_state(std::make_shared<State>(methods))
 {
 }
 
@@ -92,7 +93,7 @@ void JsonRpcHandler::operator()(
     res->onAborted([](){});
 
     std::string buffer;
-    res->onData([req, res, state = m_state, buffer = std::move(buffer)](std::string_view d, bool last) mutable
+    res->onData([req, res, secret_key = m_secret_key, state = m_state, buffer = std::move(buffer)](std::string_view d, bool last) mutable
     {
         buffer.append(d.data(), d.length());
         if (!last) return;
@@ -119,7 +120,7 @@ void JsonRpcHandler::operator()(
                 token = jwt::decode(bearer_token.value());
 
                 const auto verifier = jwt::verify()
-                    .allow_algorithm(jwt::algorithm::hs256("m_secret_key"))
+                    .allow_algorithm(jwt::algorithm::hs256(secret_key))
                     .with_issuer("porla");
 
                 verifier.verify(token.value());

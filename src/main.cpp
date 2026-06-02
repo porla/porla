@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
 
         boost::signals2::signal<void(const char*, size_t)> webui_installed_signal;
 
-        porla::Http::JsonRpcHandler rpc({
+        porla::Http::JsonRpcHandler rpc(cfg->secret_key, {
             {"auth.init", porla::Methods::Auth::AuthInit(cfg->db)},
             {"auth.init", porla::Methods::Auth::AuthLogin(cfg->db, cfg->secret_key)},
             {"fs.space", porla::Methods::FsSpace()},
