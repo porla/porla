@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
 
         porla::Http::JsonRpcHandler rpc(cfg->secret_key, {
             {"auth.init", porla::Methods::Auth::AuthInit(cfg->db)},
-            {"auth.init", porla::Methods::Auth::AuthLogin(cfg->db, cfg->secret_key)},
+            {"auth.login", porla::Methods::Auth::AuthLogin(cfg->db, cfg->secret_key)},
             {"fs.space", porla::Methods::FsSpace()},
             {"kv.get", porla::Methods::KeyValueGet(cfg->db)},
             {"kv.set", porla::Methods::KeyValueSet(cfg->db)},

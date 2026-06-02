@@ -1,5 +1,6 @@
 #include "jsonrpchandler.hpp"
 
+#include <boost/algorithm/string.hpp>
 #include <boost/log/trivial.hpp>
 
 #include "../utils/string.hpp"
@@ -58,7 +59,7 @@ const auto CookieFinder = [](const std::string_view& value) -> std::optional<std
             continue;
         }
 
-        if (pair[0] == "porla-auth-token")
+        if (boost::trim_copy(pair[0]) == "porla-auth-token")
         {
             return pair[1];
         }
