@@ -10,10 +10,6 @@
 #include "lua/pluginengine.hpp"
 #include "sessions.hpp"
 #include "webui.hpp"
-#include "tools/authtoken.hpp"
-#include "tools/generatesecretkey.hpp"
-#include "tools/versionjson.hpp"
-#include "utils/secretkey.hpp"
 
 #include "http/jsonrpchandler.hpp"
 #include "http/metricshandler.hpp"
@@ -65,13 +61,6 @@
 
 int main(int argc, char* argv[])
 {
-    static std::map<std::string, std::function<int(int, char**, std::unique_ptr<porla::Config>)>> subcommands =
-    {
-        {"auth:token", &porla::Tools::AuthToken},
-        {"key:generate", &porla::Tools::GenerateSecretKey},
-        {"version:json", &porla::Tools::VersionJson}
-    };
-
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
     const boost::program_options::variables_map cmd = porla::CmdArgs::Parse(argc, argv);
@@ -93,12 +82,6 @@ int main(int argc, char* argv[])
     {
         BOOST_LOG_TRIVIAL(fatal) << "Failed to load configuration: " << ex.what();
         return -1;
-    }
-
-    // Check if we should run one of the subcommands we have.
-    if (argc >= 2 && subcommands.contains(argv[1]))
-    {
-        return subcommands.at(argv[1])(argc, argv, std::move(cfg));
     }
 
     boost::asio::io_context io;

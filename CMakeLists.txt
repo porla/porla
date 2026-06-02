@@ -205,10 +205,6 @@ add_library(
     src/query/_aux/PorlaQueryLangVisitor.cpp
     src/query/pql.cpp
 
-    src/tools/authtoken.cpp
-    src/tools/generatesecretkey.cpp
-    src/tools/versionjson.cpp
-
     src/utils/ratio.cpp
     src/utils/ltsettings.cpp
 )
