@@ -94,7 +94,7 @@ namespace porla::Methods
     protected:
         virtual bool CanInvoke(Token token)
         {
-            return false;
+            return token.has_value();
         }
 
         virtual void Invoke(const TReq& req, WriteCb<TRes>) = 0;
