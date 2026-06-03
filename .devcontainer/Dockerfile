@@ -8,12 +8,10 @@ ENV CCACHE_REMOTE_STORAGE=${CCACHE_REMOTE_STORAGE}
 ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
 WORKDIR /src
 
-RUN echo "@edge-main https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
-
 RUN apk add --no-cache \
     build-base \
-    boost1.84-dev@edge-main \
-    boost1.84-static@edge-main \
+    boost1.84-dev \
+    boost1.84-static \
     ccache \
     cmake \
     libmaxminddb-dev \
@@ -92,17 +90,15 @@ COPY --from=build-uwebsockets /src/uSockets-0.8.8/uSockets.a /usr/local/lib/libu
 COPY --from=build-uwebsockets /src/uWebSockets-20.70.0/src/* /usr/local/include/uWebSockets/
 
 RUN echo "@community https://dl-cdn.alpinelinux.org/alpine/v3.23/community" >> /etc/apk/repositories
-RUN echo "@edge-testing https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
 
 RUN apk add --no-cache \
     bash \
     curl \
     gdb \
     git \
-    hurl@edge-testing \
     icu-static \
-    libsodium-dev@edge-main \
-    libsodium-static@edge-main \
+    libsodium-dev \
+    libsodium-static \
     libtorrent-rasterbar-dev@community \
     libtorrent-rasterbar-static@community \
     lua5.4-dev \

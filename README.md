@@ -124,8 +124,8 @@ The recommended way of working with the Porla code is inside the dev container.
 This is only needed when `PorlaQueryLang.g4` is modified.
 
 ```shell
-wget https://www.antlr.org/download/antlr-4.11.1-complete.jar
+wget https://www.antlr.org/download/antlr-4.13.2-complete.jar
 pushd src/query
-java -jar ../../antlr-4.11.1-complete.jar -Dlanguage=Cpp -visitor -no-listener -o _aux PorlaQueryLang.g4
+java -jar ../../antlr-4.13.2-complete.jar -Dlanguage=Cpp -visitor -no-listener -o _aux PorlaQueryLang.g4
 popd
 ```

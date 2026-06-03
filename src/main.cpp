@@ -59,8 +59,19 @@
 #include "methods/torrents/torrentstrackerslist.hpp"
 #include "methods/webui/webuiinstall.hpp"
 
+#include "query/pql.hpp"
+
 int main(int argc, char* argv[])
 {
+    const auto f = porla::Query::PQL::Parse("ubuntu");
+
+    libtorrent::torrent_status ts;
+    ts.name = "ubuntu iso";
+
+    BOOST_LOG_TRIVIAL(info) << f->Includes(ts);
+
+    return 0;
+
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
     const boost::program_options::variables_map cmd = porla::CmdArgs::Parse(argc, argv);
