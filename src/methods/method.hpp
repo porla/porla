@@ -81,7 +81,8 @@ namespace porla::Methods
                     {"jsonrpc", "2.0"},
                     {"id", id},
                     {"error", {
-                        {"code", 1001}
+                        {"code", 1001},
+                        {"message", "Invocation not allowed"}
                     }}
                 }).dump());
 

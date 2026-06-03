@@ -93,24 +93,24 @@ void JsonRpcHandler::operator()(
 {
     res->onAborted([](){});
 
+    std::optional<std::string> bearer_token = HeaderFinder(req, AltAuthHeader);
+
+    // No alt header found, or the alt header didn't contain a value. Check the default Authorization header
+    if (!bearer_token.has_value())
+    {
+        bearer_token = HeaderFinder(req, "authorization");
+    }
+
+    if (!bearer_token.has_value())
+    {
+        bearer_token = CookieFinder(req->getHeader("cookie"));
+    }
+
     std::string buffer;
-    res->onData([req, res, secret_key = m_secret_key, state = m_state, buffer = std::move(buffer)](std::string_view d, bool last) mutable
+    res->onData([req, res, bearer_token = std::move(bearer_token), secret_key = m_secret_key, state = m_state, buffer = std::move(buffer)](std::string_view d, bool last) mutable
     {
         buffer.append(d.data(), d.length());
         if (!last) return;
-
-        std::optional<std::string> bearer_token = HeaderFinder(req, AltAuthHeader);
-
-        // No alt header found, or the alt header didn't contain a value. Check the default Authorization header
-        if (!bearer_token.has_value())
-        {
-            bearer_token = HeaderFinder(req, "authorization");
-        }
-
-        if (!bearer_token.has_value())
-        {
-            bearer_token = CookieFinder(req->getHeader("cookie"));
-        }
 
         res->writeStatus("200 OK")
             ->writeHeader("Content-Type", "application/json");
@@ -121,13 +121,15 @@ void JsonRpcHandler::operator()(
         {
             try
             {
-                token = jwt::decode(bearer_token.value());
+                const auto decoded_token = jwt::decode(bearer_token.value());
 
                 const auto verifier = jwt::verify()
                     .allow_algorithm(jwt::algorithm::hs256(secret_key))
                     .with_issuer("porla");
 
-                verifier.verify(token.value());
+                verifier.verify(decoded_token);
+
+                token = decoded_token;
             }
             catch (const jwt::error::signature_verification_exception& ex)
             {
