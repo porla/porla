@@ -17,7 +17,6 @@ namespace porla::Methods::Sessions
         is_listening,
         is_paused,
         metadata,
-        settings,
         torrents_total)
 
     NLOHMANN_JSONIFY_ALL_THINGS(

@@ -152,13 +152,14 @@ void Sessions::SetDefault(sqlite3* db, int id)
         .Execute();
 }
 
-void Sessions::Update(sqlite3* db, int id, const std::map<std::string, nlohmann::json>& metadata)
+void Sessions::Update(sqlite3* db, int id, const std::string& name, const std::map<std::string, nlohmann::json>& metadata)
 {
     const auto json = nlohmann::json(metadata).dump();
 
-    auto stmt = Statement::Prepare(db, "UPDATE sessions SET metadata = $metadata WHERE id = $id");
+    auto stmt = Statement::Prepare(db, "UPDATE sessions SET metadata = $metadata, name = $name WHERE id = $id");
     stmt.Bind("$id",       id);
     stmt.Bind("$metadata", json);
+    stmt.Bind("$name",     name);
     stmt.Execute();
 }
 

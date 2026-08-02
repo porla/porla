@@ -10,7 +10,7 @@ namespace porla::Methods
     }
 
     NLOHMANN_JSONIFY_ALL_THINGS(
-        SessionsListRes::Item,
+        SessionsListRes::Session,
         id,
         name,
         is_default,

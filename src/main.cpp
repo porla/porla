@@ -38,6 +38,8 @@
 #include "methods/sessions/sessionspause.hpp"
 #include "methods/sessions/sessionsremove.hpp"
 #include "methods/sessions/sessionsresume.hpp"
+#include "methods/sessions/sessionssettingsget.hpp"
+#include "methods/sessions/sessionssettingsset.hpp"
 #include "methods/sessions/sessionsupdate.hpp"
 #include "methods/sysstatus.hpp"
 #include "methods/sysversions.hpp"
@@ -138,6 +140,8 @@ int main(int argc, char* argv[])
             {"sessions.pause", porla::Methods::SessionsPause(sessions)},
             {"sessions.remove", porla::Methods::Sessions::SessionsRemove(cfg->db, sessions)},
             {"sessions.resume", porla::Methods::SessionsResume(sessions)},
+            {"sessions.settings.get", porla::Methods::Sessions::SessionsSettingsGet(sessions)},
+            {"sessions.settings.set", porla::Methods::Sessions::SessionsSettingsSet(sessions)},
             {"sessions.update", porla::Methods::Sessions::SessionsUpdate(cfg->db, sessions)},
             {"sys.status", porla::Methods::SysStatus(cfg->db)},
             {"sys.versions", porla::Methods::SysVersions()},

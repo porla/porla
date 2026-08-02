@@ -103,6 +103,8 @@ add_library(
     src/json/_/sessionspause.cpp
     src/json/_/sessionsremove.cpp
     src/json/_/sessionsresume.cpp
+    src/json/_/sessionssettingsget.cpp
+    src/json/_/sessionssettingsset.cpp
     src/json/_/sessionsupdate.cpp
     src/json/_/torrentclientdata.cpp
     src/json/_/torrentsadd.cpp
@@ -178,6 +180,8 @@ add_library(
     src/methods/sessions/sessionspause.cpp
     src/methods/sessions/sessionsremove.cpp
     src/methods/sessions/sessionsresume.cpp
+    src/methods/sessions/sessionssettingsget.cpp
+    src/methods/sessions/sessionssettingsset.cpp
     src/methods/sessions/sessionsupdate.cpp
     src/methods/sysstatus.cpp
     src/methods/sysversions.cpp

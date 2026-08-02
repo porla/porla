@@ -9,8 +9,8 @@ namespace porla::Methods
 {
     struct TorrentsRemoveReq
     {
-        std::vector<libtorrent::info_hash_t> info_hashes;
-        bool                                 remove_data;
+        libtorrent::info_hash_t              info_hash;
         std::optional<int>                   session_id;
+        std::optional<bool>                  remove_data;
     };
 }

@@ -8,7 +8,7 @@ namespace porla::Methods
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsRemoveReq,
-        info_hashes,
+        info_hash,
         session_id,
         remove_data)
 

@@ -10,7 +10,7 @@ namespace porla::Methods::Presets
         id);
 
     NLOHMANN_JSONIFY_ALL_THINGS(
-        PresetsGetRes,
+        PresetsGetRes::Preset,
         id,
         name,
         is_default,
@@ -24,4 +24,8 @@ namespace porla::Methods::Presets
         storage_mode,
         tags,
         upload_limit);
+
+    NLOHMANN_JSONIFY_ALL_THINGS(
+        PresetsGetRes,
+        preset);
 }

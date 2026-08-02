@@ -26,8 +26,7 @@ void SessionsUpdate::Invoke(const SessionsUpdateReq& req, WriteCb<SessionsUpdate
         return cb.Error(-1, "Session not found");
     }
 
-    if (req.is_default.value_or(false)
-        && !state->is_default)
+    if (req.is_default && !state->is_default)
     {
         // If we send is_default=true and this session is not the default,
         // then make this session the default.
@@ -48,32 +47,14 @@ void SessionsUpdate::Invoke(const SessionsUpdateReq& req, WriteCb<SessionsUpdate
         BOOST_LOG_TRIVIAL(info) << "Default session is now '" << state->name << "'";
     }
 
-    if (req.metadata)
-    {
-        porla::Data::Models::Sessions::Update(
-            m_db,
-            req.id,
-            req.metadata.value());
+    porla::Data::Models::Sessions::Update(
+        m_db,
+        req.id,
+        req.name,
+        req.metadata);
 
-        state->metadata = req.metadata.value();
-    }
-
-    if (req.settings)
-    {
-        lt::settings_pack session_settings = state->session->get_settings();
-
-        LibtorrentSettingsPack::Update(session_settings, req.settings.value());
-        LibtorrentSettingsPack::UpdateStatic(session_settings);
-
-        porla::Data::Models::Sessions::Update(
-            m_db,
-            req.id,
-            session_settings);
-
-        state->session->apply_settings(session_settings);
-
-        BOOST_LOG_TRIVIAL(info) << "Session settings for " << state->name << " updated";
-    }
+    state->metadata = req.metadata;
+    state->name = req.name;
 
     cb.Ok(SessionsUpdateRes{});
 }

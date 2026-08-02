@@ -22,26 +22,23 @@ void TorrentsRemove::Invoke(const TorrentsRemoveReq &req, WriteCb<TorrentsRemove
         return cb.Error(-1, "Session not found");
     }
 
-    for (const auto& hash : req.info_hashes)
+    const auto& handle = session_state->torrents.find(req.info_hash);
+
+    if (handle == session_state->torrents.end())
     {
-        const auto& handle = session_state->torrents.find(hash);
-
-        if (handle == session_state->torrents.end())
-        {
-            continue;
-        }
-
-        const auto& [ th, _ ] = handle->second;
-
-        if (!th.is_valid())
-        {
-            continue;
-        }
-
-        session_state->session->remove_torrent(
-            th,
-            req.remove_data ? lt::session::delete_files : lt::remove_flags_t{});
+        return cb.Error(-2, "Torrent not found");
     }
+
+    const auto& [ th, _ ] = handle->second;
+
+    if (!th.is_valid())
+    {
+        return cb.Error(-3, "Invalid torrent handle");
+    }
+
+    session_state->session->remove_torrent(
+        th,
+        req.remove_data ? lt::session::delete_files : lt::remove_flags_t{});
 
     cb(TorrentsRemoveRes{});
 }

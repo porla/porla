@@ -21,20 +21,22 @@ void PresetsGet::Invoke(const PresetsGetReq &req, WriteCb<PresetsGetRes> cb)
     }
 
     cb.Ok(PresetsGetRes{
-        .id = preset->id,
-        .name = preset->name,
-        .is_default = preset->is_default,
-        .category = preset->category,
-        .download_limit = preset->download_limit,
-        .max_connections = preset->max_connections,
-        .max_uploads = preset->max_uploads,
-        .metadata = preset->metadata.has_value()
-            ? preset->metadata.value()
-            : std::map<std::string, nlohmann::json>(),
-        .session_id = preset->session_id,
-        .save_path = preset->save_path,
-        .storage_mode = preset->storage_mode,
-        .tags = preset->tags,
-        .upload_limit = preset->upload_limit
+        .preset = PresetsGetRes::Preset{
+            .id = preset->id,
+            .name = preset->name,
+            .is_default = preset->is_default,
+            .category = preset->category,
+            .download_limit = preset->download_limit,
+            .max_connections = preset->max_connections,
+            .max_uploads = preset->max_uploads,
+            .metadata = preset->metadata.has_value()
+                ? preset->metadata.value()
+                : std::map<std::string, nlohmann::json>(),
+            .session_id = preset->session_id,
+            .save_path = preset->save_path,
+            .storage_mode = preset->storage_mode,
+            .tags = preset->tags,
+            .upload_limit = preset->upload_limit
+        }
     });
 }

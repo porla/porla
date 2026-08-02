@@ -28,7 +28,6 @@ void SessionsGet::Invoke(const SessionsGetReq &req, WriteCb<SessionsGetRes> cb)
             .is_listening   = state->session->is_listening(),
             .is_paused      = state->session->is_paused(),
             .metadata       = state->metadata,
-            .settings       = state->session->get_settings(),
             .torrents_total = static_cast<int>(state->torrents.size())
         }
     });

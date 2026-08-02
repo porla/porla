@@ -154,17 +154,25 @@ namespace porla::Methods
         struct SessionsGetRes;
         struct SessionsRemoveReq;
         struct SessionsRemoveRes;
+        struct SessionsSettingsGetReq;
+        struct SessionsSettingsGetRes;
+        struct SessionsSettingsSetReq;
+        struct SessionsSettingsSetRes;
         struct SessionsUpdateReq;
         struct SessionsUpdateRes;
 
         void from_json(const nlohmann::json& json, SessionsAddReq& req);
         void from_json(const nlohmann::json& json, SessionsGetReq& req);
         void from_json(const nlohmann::json& json, SessionsRemoveReq& req);
+        void from_json(const nlohmann::json& json, SessionsSettingsGetReq& req);
+        void from_json(const nlohmann::json& json, SessionsSettingsSetReq& req);
         void from_json(const nlohmann::json& json, SessionsUpdateReq& req);
 
         void to_json(nlohmann::json& json, const SessionsAddRes& res);
         void to_json(nlohmann::json& json, const SessionsGetRes& res);
         void to_json(nlohmann::json& json, const SessionsRemoveRes& res);
+        void to_json(nlohmann::json& json, const SessionsSettingsGetRes& res);
+        void to_json(nlohmann::json& json, const SessionsSettingsSetRes& res);
         void to_json(nlohmann::json& json, const SessionsUpdateRes& res);
     }
 

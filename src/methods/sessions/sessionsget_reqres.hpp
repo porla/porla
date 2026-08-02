@@ -23,7 +23,6 @@ namespace porla::Methods::Sessions
             bool                                  is_listening;
             bool                                  is_paused;
             std::map<std::string, nlohmann::json> metadata;
-            libtorrent::settings_pack             settings;
             int                                   torrents_total;
         };
 

@@ -34,7 +34,7 @@ namespace porla::Data::Models
         static void Remove(sqlite3* db, int id);
 
         static void SetDefault(sqlite3* db, int id);
-        static void Update(sqlite3* db, int id, const std::map<std::string, nlohmann::json>& metadata);
+        static void Update(sqlite3* db, int id, const std::string& name, const std::map<std::string, nlohmann::json>& metadata);
         static void Update(sqlite3* db, int id, const libtorrent::session_params& params);
         static void Update(sqlite3* db, int id, const libtorrent::settings_pack& settings);
     };

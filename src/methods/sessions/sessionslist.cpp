@@ -13,11 +13,11 @@ SessionsList::SessionsList(porla::Sessions& sessions)
 
 void SessionsList::Invoke(const SessionsListReq& req, WriteCb<SessionsListRes> cb)
 {
-    std::vector<SessionsListRes::Item> session_items;
+    std::vector<SessionsListRes::Session> session_items;
 
     for (const auto& [ _, state ] : m_sessions.All())
     {
-        session_items.push_back(SessionsListRes::Item{
+        session_items.push_back(SessionsListRes::Session{
             .id             = state->id,
             .name           = state->name,
             .is_default     = state->is_default,

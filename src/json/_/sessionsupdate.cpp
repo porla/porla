@@ -10,8 +10,7 @@ namespace porla::Methods::Sessions
         id,
         name,
         is_default,
-        metadata,
-        settings)
+        metadata)
 
     void to_json(nlohmann::json& j, const SessionsUpdateRes& res)
     {

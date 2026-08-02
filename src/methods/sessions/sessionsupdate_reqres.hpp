@@ -10,11 +10,10 @@ namespace porla::Methods::Sessions
 {
     struct SessionsUpdateReq
     {
-        int                                                  id;
-        std::optional<std::string>                           name;
-        std::optional<bool>                                  is_default;
-        std::optional<std::map<std::string, nlohmann::json>> metadata;
-        std::optional<std::map<std::string, nlohmann::json>> settings;
+        int                                   id;
+        std::string                           name;
+        bool                                  is_default;
+        std::map<std::string, nlohmann::json> metadata;
     };
 
     struct SessionsUpdateRes
