@@ -38,6 +38,7 @@ add_library(
     src/buildinfo.cpp
     src/cmdargs.cpp
     src/config.cpp
+    src/curlmulti.cpp
     src/logger.cpp
     src/mmdb.cpp
     src/sessions.cpp
@@ -125,6 +126,8 @@ add_library(
     src/json/_/torrentstrackerslist.cpp
     src/json/_/webuiinstall.cpp
 
+    src/lua/globals/http.cpp
+    src/lua/globals/sleep.cpp
     src/lua/packages/config.cpp
     src/lua/packages/cron.cpp
     src/lua/packages/events.cpp
@@ -154,6 +157,7 @@ add_library(
     src/lua/types/lttorrenthandle.cpp
     src/lua/types/lttorrentinfo.cpp
     src/lua/types/lttorrentstatus.cpp
+    src/lua/types/session.cpp
     src/lua/plugin.cpp
     src/lua/pluginengine.cpp
 

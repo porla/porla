@@ -7,39 +7,54 @@ using porla::Lua::Types::LtSettingsPack;
 
 void LtSettingsPack::Register(sol::state& lua)
 {
-    sol::table lt = lua["lt"].valid()
-        ? lua["lt"].get<sol::table>()
-        : lua.create_named_table("lt");
-
-    lt["settings_pack"] = lua.new_usertype<lt::settings_pack>(
+    auto sp = lua.new_usertype<lt::settings_pack>(
         "lt.settings_pack",
-        sol::constructors<lt::settings_pack()>(),
+        sol::no_constructor,
+        sol::meta_function::index, [](sol::this_state s, lt::settings_pack& pack, const std::string& key) -> sol::object {
+            sol::state_view lua{s};
 
-        "clear", sol::overload(
-            [](lt::settings_pack& sp)           { sp.clear(); },
-            [](lt::settings_pack& sp, int name) { sp.clear(name); }
-        ),
+            int setting = lt::setting_by_name(key);
 
-        "has_val", &lt::settings_pack::has_val,
+            if (setting == -1)
+            {
+                return sol::nil;
+            }
 
-        // get & set
-        "get_bool", [](const lt::settings_pack& sp, int name) { return sp.get_bool(name); },
-        "get_int",  [](const lt::settings_pack& sp, int name) { return sp.get_int(name); },
-        "get_str",  [](const lt::settings_pack& sp, int name) { return sp.get_str(name); },
+            int type = setting & lt::settings_pack::type_mask;
 
-        "set_bool", [](lt::settings_pack& sp, int name, bool val)        { sp.set_bool(name, val); },
-        "set_int",  [](lt::settings_pack& sp, int name, int val)         { sp.set_int(name, val); },
-        "set_str",  [](lt::settings_pack& sp, int name, std::string val) { sp.set_str(name, val); });
+            switch (type)
+            {
+                case lt::settings_pack::string_type_base:
+                    return sol::make_object(lua, pack.get_str(setting));
+                case lt::settings_pack::int_type_base:
+                    return sol::make_object(lua, pack.get_int(setting));
+                case lt::settings_pack::bool_type_base:
+                    return sol::make_object(lua, pack.get_bool(setting));
+            }
 
-    // the lt settings packs
-    lt["default_settings"]      = sol::factories([]() { return lt::default_settings(); });
-    lt["high_performance_seed"] = sol::factories([]() { return lt::high_performance_seed(); });
-    lt["min_memory_usage"]      = sol::factories([]() { return lt::min_memory_usage(); });
+            return sol::nil;
+        },
+        sol::meta_function::new_index, [](sol::this_state s, lt::settings_pack& pack, const std::string& key, sol::object value) {
+            int setting = lt::setting_by_name(key);
 
-    lt["setting_by_name"] = [](const std::string& name) -> sol::optional<int>
-    {
-        int val = lt::setting_by_name(name);
-        if (val == -1) return sol::nullopt;
-        return val;
-    };
+            if (setting == -1)
+            {
+                return;
+            }
+
+            int type = setting & lt::settings_pack::type_mask;
+
+            switch (type)
+            {
+                case lt::settings_pack::string_type_base:
+                    pack.set_str(setting, value.as<std::string>());
+                    break;
+                case lt::settings_pack::int_type_base:
+                    pack.set_int(setting, value.as<int>());
+                    break;
+                case lt::settings_pack::bool_type_base:
+                    pack.set_bool(setting, value.as<bool>());
+                    break;
+            }
+        });
 }

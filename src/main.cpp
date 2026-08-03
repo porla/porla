@@ -6,6 +6,7 @@
 
 #include "cmdargs.hpp"
 #include "config.hpp"
+#include "curlmulti.hpp"
 #include "logger.hpp"
 #include "lua/pluginengine.hpp"
 #include "sessions.hpp"
@@ -97,22 +98,24 @@ int main(int argc, char* argv[])
         });
 
     {
+        porla::CurlMulti curl_multi_instance(io);
+
         porla::Sessions sessions(porla::SessionsOptions{
             .db = cfg->db,
             .io = io
         });
 
-        // Load plugins before we load the all sessions and torrents to give plugins a chance to run any hooks.
+        sessions.LoadAll();
+
         porla::Lua::PluginEngine plugin_engine{porla::Lua::PluginEngineOptions{
-            .config   = *cfg,
-            .db       = cfg->db,
-            .io       = io,
-            .sessions = sessions
+            .config     = *cfg,
+            .curl_multi = curl_multi_instance,
+            .db         = cfg->db,
+            .io         = io,
+            .sessions   = sessions
         }};
 
         plugin_engine.LoadAll();
-
-        sessions.LoadAll();
 
         boost::signals2::signal<void(const char*, size_t)> webui_installed_signal;
 

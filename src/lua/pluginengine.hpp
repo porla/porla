@@ -13,6 +13,7 @@
 namespace porla
 {
     class Config;
+    class CurlMulti;
     class Sessions;
 }
 
@@ -23,6 +24,7 @@ namespace porla::Lua
     struct PluginEngineOptions
     {
         Config&                  config;
+        CurlMulti&               curl_multi;
         sqlite3*                 db;
         boost::asio::io_context& io;
         Sessions&                sessions;

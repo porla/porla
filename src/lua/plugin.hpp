@@ -11,6 +11,7 @@
 namespace porla
 {
     class Config;
+    class CurlMulti;
     class Sessions;
 }
 
@@ -18,9 +19,10 @@ namespace porla::Lua
 {
     struct PluginLoadOptions
     {
-        Config&                                                config;
-        boost::asio::io_context&                               io;
-        porla::Sessions&                                       sessions;
+        Config&                  config;
+        CurlMulti&               curl_multi;
+        boost::asio::io_context& io;
+        porla::Sessions&         sessions;
     };
 
     class Plugin

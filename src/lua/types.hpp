@@ -25,4 +25,5 @@ namespace porla::Lua::Types
     DECLARE_TYPE_REGISTRY(LtTorrentHandle)
     DECLARE_TYPE_REGISTRY(LtTorrentInfo)
     DECLARE_TYPE_REGISTRY(LtTorrentStatus)
+    DECLARE_TYPE_REGISTRY(Session)
 }
