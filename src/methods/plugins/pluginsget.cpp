@@ -28,13 +28,15 @@ void PluginsGet::Invoke(const PluginsGetReq& req, WriteCb<PluginsGetRes> cb)
     const auto meta = plugin_state->second.plugin->GetMeta();
 
     return cb.Ok(PluginsGetRes{
-        .id       = req.id,
-        .type     = plugin_state->second.type,
-        .name     = meta.has_value() ? meta->name    : std::nullopt,
-        .version  = meta.has_value() ? meta->version : std::nullopt,
-        .config   = plugin_state->second.config,
-        .metadata = plugin_state->second.metadata.has_value()
-            ? plugin_state->second.metadata.value()
-            : std::map<std::string, nlohmann::json>()
+        .plugin = PluginsGetRes::Plugin{
+            .id       = req.id,
+            .type     = plugin_state->second.type,
+            .name     = meta.has_value() ? meta->name    : std::nullopt,
+            .version  = meta.has_value() ? meta->version : std::nullopt,
+            .config   = plugin_state->second.config,
+            .metadata = plugin_state->second.metadata.has_value()
+                ? plugin_state->second.metadata.value()
+                : std::map<std::string, nlohmann::json>()
+        }
     });
 }

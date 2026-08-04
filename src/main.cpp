@@ -90,16 +90,9 @@ int main(int argc, char* argv[])
     boost::asio::io_context io;
     boost::asio::signal_set signals(io, SIGINT, SIGTERM);
 
-    signals.async_wait(
-        [&io](boost::system::error_code const& ec, int signal)
-        {
-            BOOST_LOG_TRIVIAL(info) << "Interrupt received (" << signal << ") - stopping...";
-            io.stop();
-        });
+    auto curl_multi_instance = porla::CurlMulti::Create(io);
 
     {
-        porla::CurlMulti curl_multi_instance(io);
-
         porla::Sessions sessions(porla::SessionsOptions{
             .db = cfg->db,
             .io = io
@@ -116,6 +109,24 @@ int main(int argc, char* argv[])
         }};
 
         plugin_engine.LoadAll();
+
+        signals.async_wait(
+            [&io, &plugin_engine, &signals](boost::system::error_code const& ec, int signal)
+            {
+                BOOST_LOG_TRIVIAL(info) << "Interrupt received (" << signal << ") - stopping... Press Ctrl+C again to force";
+
+                plugin_engine.UnloadAll([&io]()
+                {
+                    io.stop();
+                });
+
+                signals.async_wait(
+                    [&io](boost::system::error_code const& ec, int signal)
+                    {
+                        BOOST_LOG_TRIVIAL(warning) << "Second interrupt received (" << signal << ") - forcing shutdown";
+                        io.stop();
+                    });
+            });
 
         boost::signals2::signal<void(const char*, size_t)> webui_installed_signal;
 

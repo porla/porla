@@ -1,7 +1,5 @@
 #include "pluginsreload.hpp"
 
-#include <boost/log/trivial.hpp>
-
 #include "../../lua/plugin.hpp"
 #include "../../lua/pluginengine.hpp"
 
@@ -18,6 +16,10 @@ PluginsReload::PluginsReload(PluginEngine& plugin_engine)
 
 void PluginsReload::Invoke(const PluginsReloadReq& req, WriteCb<PluginsReloadRes> cb)
 {
-    m_plugin_engine.Reload(req.id);
-    cb.Ok({});
+    auto write = std::make_shared<WriteCb<PluginsReloadRes>>(std::move(cb));
+
+    m_plugin_engine.Reload(req.id, [write]()
+    {
+        write->Ok({});
+    });
 }

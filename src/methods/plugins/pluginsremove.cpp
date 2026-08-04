@@ -1,7 +1,5 @@
 #include "pluginsremove.hpp"
 
-#include <boost/log/trivial.hpp>
-
 #include "../../lua/plugin.hpp"
 #include "../../lua/pluginengine.hpp"
 
@@ -18,6 +16,10 @@ PluginsRemove::PluginsRemove(PluginEngine& plugin_engine)
 
 void PluginsRemove::Invoke(const PluginsRemoveReq& req, WriteCb<PluginsRemoveRes> cb)
 {
-    m_plugin_engine.Uninstall(req.id);
-    cb.Ok({});
+    auto write = std::make_shared<WriteCb<PluginsRemoveRes>>(std::move(cb));
+
+    m_plugin_engine.Uninstall(req.id, [write]()
+    {
+        write->Ok({});
+    });
 }
