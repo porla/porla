@@ -191,8 +191,12 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         porla["config"] = [](sol::this_state s) -> sol::object
         {
             sol::state_view lua{s};
-            // Missing key -> nil object, which is exactly what we want to hand back.
             return lua.registry()[ConfigRegistryKey];
+        };
+
+        porla["on"] = [](sol::this_state s, const std::string& event, sol::function callback)
+        {
+            return sol::nil;
         };
 
         porla["sessions"] = [](sol::this_state s, const std::string& name)
@@ -221,8 +225,6 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
 
         return porla;
     }
-
-    // -- Coroutines ----------------------------------------------------------
 
     template<typename... Args>
     bool SpawnCoroutine(std::string origin, const sol::protected_function& fn, Args&&... args)
@@ -254,7 +256,6 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
 
         if (!IsSuspended(th))
         {
-            // Ran to completion synchronously - nothing to track.
             return true;
         }
 
@@ -290,17 +291,24 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         }
 
         timer_armed = true;
+
         coroutine_timer.expires_after(load_options.coroutine_poll_interval);
         coroutine_timer.async_wait(
             [weak = weak_from_this()](const boost::system::error_code& ec)
             {
-                // The plugin may already be gone - never touch a raw this here.
                 auto self = weak.lock();
-                if (!self) return;
+
+                if (!self)
+                {
+                    return;
+                }
 
                 self->timer_armed = false;
 
-                if (ec) return; // cancelled
+                if (ec)
+                {
+                    return;
+                }
 
                 self->Tick();
             });
@@ -330,7 +338,9 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
                 }
 
                 active_coroutines.clear();
+
                 FinishUnload();
+
                 return;
             }
         }
@@ -338,16 +348,14 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         ArmTimer();
     }
 
-    // -- Unload --------------------------------------------------------------
-
     void BeginUnload(Plugin::UnloadCallback callback)
     {
         unload_callback = std::move(callback);
 
         if (unloaded)
         {
-            // Already finished - just fire the new callback.
             FireCallback();
+
             return;
         }
 
@@ -374,6 +382,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         if (active_coroutines.empty())
         {
             FinishUnload();
+
             return;
         }
 
@@ -382,7 +391,10 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
 
     void FinishUnload()
     {
-        if (unloaded) return;
+        if (unloaded)
+        {
+            return;
+        }
 
         unloaded  = true;
         unloading = true;
@@ -394,11 +406,12 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
     void FireCallback()
     {
         auto cb = std::exchange(unload_callback, {});
-        if (!cb) return;
 
-        // Posted rather than called inline: the owner will typically delete the Plugin
-        // from this callback, and we must not be inside one of our own handlers when
-        // that happens.
+        if (!cb)
+        {
+            return;
+        }
+
         boost::asio::post(load_options.io, [cb = std::move(cb)]() { cb(); });
     }
 
@@ -414,18 +427,21 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         }
     }
 
-    // Best-effort fallback used when the Plugin is destroyed without Unload(). Runs on the
-    // main thread, so `destroy` cannot yield - a yield attempt surfaces as a Lua error
-    // rather than a crash.
     void CallDestroySync()
     {
-        if (destroy_called || !tbl.valid()) return;
+        if (destroy_called || !tbl.valid())
+        {
+            return;
+        }
 
         destroy_called = true;
 
         sol::optional<sol::protected_function> destroy = tbl["destroy"];
 
-        if (!destroy || !destroy->valid()) return;
+        if (!destroy || !destroy->valid())
+        {
+            return;
+        }
 
         sol::protected_function_result result = (*destroy)();
 
@@ -545,7 +561,10 @@ Plugin::Plugin(std::shared_ptr<State> state)
 
 Plugin::~Plugin()
 {
-    if (!m_state) return;
+    if (!m_state)
+    {
+        return;
+    }
 
     try
     {
@@ -583,7 +602,6 @@ Plugin::~Plugin()
         BOOST_LOG_TRIVIAL(error) << "Unknown error while destroying plugin";
     }
 
-    // Any handler still holding a weak_ptr to the state will now find it expired.
     m_state.reset();
 }
 
@@ -594,9 +612,13 @@ std::optional<Plugin::Meta> Plugin::GetMeta() const
 
 std::size_t Plugin::ActiveCoroutines() const
 {
-    if (!m_state) return 0;
+    if (!m_state)
+    {
+        return 0;
+    }
 
     m_state->PruneCoroutines();
+
     return m_state->active_coroutines.size();
 }
 
@@ -614,7 +636,11 @@ void Plugin::Unload(UnloadCallback callback)
 {
     if (!m_state)
     {
-        if (callback) callback();
+        if (callback)
+        {
+            callback();
+        }
+
         return;
     }
 
