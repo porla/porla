@@ -13,7 +13,6 @@
 #include <sqlite3.h>
 
 #include "globals.hpp"
-#include "packages.hpp"
 #include "registry.hpp"
 #include "types.hpp"
 
