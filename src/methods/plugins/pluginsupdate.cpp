@@ -2,43 +2,41 @@
 
 #include <boost/log/trivial.hpp>
 
+#include "../../data/models/plugins.hpp"
 #include "../../lua/plugin.hpp"
 #include "../../lua/pluginengine.hpp"
 
+using porla::Data::Models::Plugins;
 using porla::Lua::PluginEngine;
-
 using porla::Methods::PluginsUpdate;
 using porla::Methods::PluginsUpdateReq;
 using porla::Methods::PluginsUpdateRes;
 
-PluginsUpdate::PluginsUpdate(porla::Lua::PluginEngine& plugin_engine)
-    : m_plugin_engine(plugin_engine)
+PluginsUpdate::PluginsUpdate(sqlite3* db, porla::Lua::PluginEngine& plugin_engine)
+    : m_db(db)
+    , m_plugin_engine(plugin_engine)
 {
 }
 
 void PluginsUpdate::Invoke(const PluginsUpdateReq& req, WriteCb<PluginsUpdateRes> cb)
 {
-    auto plugin = m_plugin_engine.Plugins().find(req.id);
+    auto plugin = Plugins::GetById(m_db, req.id);
 
-    if (plugin == m_plugin_engine.Plugins().end())
+    if (!plugin.has_value())
     {
         return cb.Error(-1, "Plugin not found");
     }
 
-    if (req.config.has_value())
-    {
-        m_plugin_engine.Configure(req.id, req.config.value());
-    }
+    Plugins::Update(
+        m_db,
+        plugin->id,
+        req.config,
+        req.metadata.value_or(plugin->metadata));
 
-    if (plugin->second.type == "archive")
-    {
-        return cb.Ok(PluginsUpdateRes{});
-    }
+    auto write = std::make_shared<WriteCb<PluginsReloadRes>>(std::move(cb));
 
-    if (plugin->second.type == "path")
+    m_plugin_engine.Reload(req.id, [write]()
     {
-        return cb.Ok(PluginsUpdateRes{});
-    }
-
-    return cb.Error(-2, "Invalid plugin type");
+        write->Ok(PluginsUpdateRes{});
+    });
 }

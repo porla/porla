@@ -2,17 +2,20 @@
 
 #include <boost/log/trivial.hpp>
 
+#include "../../data/models/plugins.hpp"
 #include "../../lua/plugin.hpp"
 #include "../../lua/pluginengine.hpp"
 
 using porla::Lua::PluginEngine;
 
+using porla::Data::Models::Plugins;
 using porla::Methods::PluginsList;
 using porla::Methods::PluginsListReq;
 using porla::Methods::PluginsListRes;
 
-PluginsList::PluginsList(PluginEngine& plugin_engine)
-    : m_plugin_engine(plugin_engine)
+PluginsList::PluginsList(sqlite3* db, PluginEngine& plugin_engine)
+    : m_db(db)
+    , m_plugin_engine(plugin_engine)
 {
 }
 
@@ -20,18 +23,21 @@ void PluginsList::Invoke(const PluginsListReq& req, WriteCb<PluginsListRes> cb)
 {
     PluginsListRes res = {};
 
-    for (const auto& [ id, state ] : m_plugin_engine.Plugins())
+    for (const auto& plugin : Plugins::List(m_db))
     {
-        const auto meta = state.plugin->GetMeta();
+        const auto instance = m_plugin_engine.Get(plugin.id);
+
+        const auto meta = instance == nullptr
+            ? std::nullopt
+            : instance->GetMeta();
 
         res.plugins.emplace_back(PluginsListRes::Plugin{
-            .id = id,
-            .type = state.type,
-            .name = meta.has_value() ? meta->name : std::nullopt,
-            .version = meta.has_value() ? meta->version : std::nullopt,
-            .metadata = state.metadata.has_value()
-                ? state.metadata.value()
-                : std::map<std::string, nlohmann::json>()
+            .id        = plugin.id,
+            .type      = plugin.type,
+            .name      = meta.has_value() ? meta->name : std::nullopt,
+            .version   = meta.has_value() ? meta->version : std::nullopt,
+            .metadata  = plugin.metadata,
+            .is_loaded = instance != nullptr
         });
     }
 

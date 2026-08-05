@@ -27,20 +27,10 @@ namespace porla::Lua
     struct PluginEngineOptions
     {
         Config&                    config;
-        // By value - see PluginLoadOptions. Holding a reference to the caller's
-        // shared_ptr variable dangles as soon as their options struct goes away.
         std::shared_ptr<CurlMulti> curl_multi;
         sqlite3*                   db;
         boost::asio::io_context&   io;
         Sessions&                  sessions;
-    };
-
-    struct PluginState
-    {
-        std::string                                          type;
-        std::unique_ptr<Plugin>                              plugin;
-        std::optional<std::string>                           config;
-        std::optional<std::map<std::string, nlohmann::json>> metadata;
     };
 
     class PluginEngine
@@ -60,25 +50,16 @@ namespace porla::Lua
         // Persists the config, then reloads the plugin if it is currently loaded.
         void Configure(int id, const std::optional<std::string>& config, CompletionCallback callback = {});
 
-        int InstallFromPath(
-            const std::filesystem::path& path,
-            std::optional<std::string> config,
-            const nlohmann::json& metadata);
-
         int InstallFromArchive(
             const std::vector<char>& buffer,
             std::optional<std::string> config,
             const nlohmann::json& metadata);
 
+        void Load(int id);
         void LoadAll();
 
-        [[nodiscard]] std::map<int, PluginState>&       Plugins();
-        [[nodiscard]] const std::map<int, PluginState>& Plugins() const;
+        [[nodiscard]] const Plugin* Get(int id) const;
 
-        [[nodiscard]] const PluginState* Get(int id) const;
-
-        // True while a plugin's destroy coroutine (or leftover coroutines) are still
-        // running. Such an id cannot be loaded again until the unload completes.
         [[nodiscard]] bool IsUnloading(int id) const;
 
         void Reload(int id, CompletionCallback callback = {});
@@ -87,17 +68,16 @@ namespace porla::Lua
         void UnloadAll(CompletionCallback callback = {});
 
     private:
-        void Load(int id);
         void Post(CompletionCallback callback) const;
 
         struct PendingUnload
         {
-            int         id;
-            PluginState state;
+            int                     id;
+            std::unique_ptr<Plugin> plugin;
         };
 
-        PluginEngineOptions             m_options;
-        std::map<int, PluginState>      m_plugins;
+        PluginEngineOptions                    m_options;
+        std::map<int, std::unique_ptr<Plugin>> m_plugins;
 
         // Plugins that have been taken out of m_plugins but are still finishing their
         // destroy coroutine. They must stay alive until Plugin::Unload calls back.

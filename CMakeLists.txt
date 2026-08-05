@@ -65,6 +65,7 @@ add_library(
     src/data/migrations/0013_addkeyvaluestore.cpp
     src/data/models/addtorrentparams.cpp
     src/data/models/keyvaluestore.cpp
+    src/data/models/plugins.cpp
     src/data/models/presets.cpp
     src/data/models/sessions.cpp
     src/data/models/users.cpp

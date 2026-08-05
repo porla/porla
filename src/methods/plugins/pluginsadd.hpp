@@ -2,6 +2,8 @@
 
 #include <filesystem>
 
+#include <sqlite3.h>
+
 #include "../../config.hpp"
 #include "../method.hpp"
 #include "pluginsadd_reqres.hpp"
@@ -16,12 +18,13 @@ namespace porla::Methods
     class PluginsAdd : public Method<PluginsAddReq, PluginsAddRes>
     {
     public:
-        explicit PluginsAdd(porla::Lua::PluginEngine& plugins);
+        explicit PluginsAdd(sqlite3* db, porla::Lua::PluginEngine& plugins);
 
     protected:
         void Invoke(const PluginsAddReq& req, WriteCb<PluginsAddRes> cb) override;
 
     private:
+        sqlite3* m_db;
         porla::Lua::PluginEngine& m_plugins;
     };
 }

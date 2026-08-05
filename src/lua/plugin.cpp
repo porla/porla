@@ -903,28 +903,6 @@ std::optional<Plugin::Meta> Plugin::GetMeta() const
     return m_state ? m_state->meta : std::nullopt;
 }
 
-std::size_t Plugin::ActiveCoroutines() const
-{
-    if (!m_state)
-    {
-        return 0;
-    }
-
-    m_state->PruneCoroutines();
-
-    return m_state->active_coroutines.size();
-}
-
-bool Plugin::IsUnloading() const
-{
-    return m_state && m_state->unloading;
-}
-
-bool Plugin::IsUnloaded() const
-{
-    return m_state && m_state->unloaded;
-}
-
 void Plugin::Unload(UnloadCallback callback)
 {
     if (!m_state)

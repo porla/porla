@@ -13,45 +13,15 @@
 
 #include "../config.hpp"
 #include "../data/statement.hpp"
+#include "../data/models/plugins.hpp"
 
 namespace fs = std::filesystem;
 
+using porla::Data::Models::Plugins;
 using porla::Data::Statement;
 using porla::Lua::Plugin;
 using porla::Lua::PluginEngine;
 using porla::Lua::PluginEngineOptions;
-using porla::Lua::PluginState;
-
-namespace
-{
-    std::optional<std::map<std::string, nlohmann::json>> ParseMetadata(
-        int id,
-        const std::optional<std::string>& raw)
-    {
-        if (!raw || raw->empty())
-        {
-            return std::nullopt;
-        }
-
-        // Non-throwing parse - a corrupt metadata blob must not take down the engine.
-        const nlohmann::json parsed = nlohmann::json::parse(*raw, nullptr, false);
-
-        if (parsed.is_discarded() || !parsed.is_object())
-        {
-            BOOST_LOG_TRIVIAL(warning) << "plugin[" << id << "] Invalid metadata - ignoring";
-            return std::nullopt;
-        }
-
-        std::map<std::string, nlohmann::json> metadata;
-
-        for (const auto& [key, value] : parsed.items())
-        {
-            metadata.emplace(key, value);
-        }
-
-        return metadata;
-    }
-}
 
 PluginEngine::PluginEngine(const PluginEngineOptions& options)
     : m_options(options)
@@ -60,7 +30,6 @@ PluginEngine::PluginEngine(const PluginEngineOptions& options)
 
 PluginEngine::~PluginEngine()
 {
-    // Anything still in flight must not touch us after this point.
     m_alive.reset();
 
     if (!m_plugins.empty())
@@ -113,28 +82,6 @@ void PluginEngine::Configure(int id, const std::optional<std::string>& config, C
     Reload(id, std::move(callback));
 }
 
-int PluginEngine::InstallFromPath(const fs::path& path, std::optional<std::string> config, const nlohmann::json& metadata)
-{
-    auto install_stmt = Statement::Prepare(
-        m_options.db,
-        "INSERT INTO plugins (type, data, config, metadata) VALUES ('path', $data, $config, $metadata)");
-    install_stmt.Bind("$data", path.string());
-    install_stmt.Bind("$config", config);
-    install_stmt.Bind("$metadata", metadata.is_null()
-        ? std::nullopt
-        : std::optional(metadata.dump()));
-
-    install_stmt.Execute();
-
-    const auto plugin_id = static_cast<int>(sqlite3_last_insert_rowid(m_options.db));
-
-    BOOST_LOG_TRIVIAL(info) << "plugin[" << plugin_id << "] installed with path " << path;
-
-    Load(plugin_id);
-
-    return plugin_id;
-}
-
 int PluginEngine::InstallFromArchive(const std::vector<char>& buffer, std::optional<std::string> config, const nlohmann::json& metadata)
 {
     auto install_stmt = Statement::Prepare(
@@ -159,21 +106,9 @@ int PluginEngine::InstallFromArchive(const std::vector<char>& buffer, std::optio
 
 void PluginEngine::LoadAll()
 {
-    std::set<int> plugin_ids;
-
-    auto load_stmt = Statement::Prepare(
-        m_options.db,
-        "SELECT id FROM plugins ORDER BY id ASC");
-
-    load_stmt.Step([&plugin_ids](const auto& row)
+    for (const auto& plugin : Plugins::List(m_options.db))
     {
-        plugin_ids.insert(row.GetInt32("id"));
-        return SQLITE_OK;
-    });
-
-    for (const auto plugin_id : plugin_ids)
-    {
-        Load(plugin_id);
+        Load(plugin.id);
     }
 }
 
@@ -191,46 +126,11 @@ void PluginEngine::Load(int id)
         return;
     }
 
-    struct Row
+    const auto plugin = Plugins::GetById(m_options.db, id);
+
+    if (!plugin.has_value())
     {
-        bool                       found = false;
-        std::string                type;
-        std::string                path;
-        std::vector<char>          buffer;
-        std::optional<std::string> config;
-        std::optional<std::string> metadata;
-    };
-
-    Row data;
-
-    auto load_stmt = Statement::Prepare(
-        m_options.db,
-        "SELECT id,type,data,config,metadata FROM plugins WHERE id = $id");
-    load_stmt.Bind("$id", id);
-
-    load_stmt.Step(
-        [&data](const auto& row)
-        {
-            data.found    = true;
-            data.type     = row.GetStdString("type");
-            data.config   = row.GetOptionalStdString("config");
-            data.metadata = row.GetOptionalStdString("metadata");
-
-            if (data.type == "path")
-            {
-                data.path = row.GetStdString("data");
-            }
-            else if (data.type == "archive")
-            {
-                data.buffer = row.GetBuffer("data");
-            }
-
-            return SQLITE_OK;
-        });
-
-    if (!data.found)
-    {
-        BOOST_LOG_TRIVIAL(warning) << "plugin[" << id << "] Not installed";
+        BOOST_LOG_TRIVIAL(warning) << "plugin[" << id << "] Cannot load - not found";
         return;
     }
 
@@ -241,59 +141,45 @@ void PluginEngine::Load(int id)
         .sessions   = m_options.sessions
     };
 
-    std::unique_ptr<Plugin> plugin;
+    std::unique_ptr<Plugin> loaded_plugin;
 
-    if (data.type == "path")
+    if (plugin->type == "path")
     {
-        BOOST_LOG_TRIVIAL(info) << "plugin[" << id << "] Loading from path " << data.path;
-        plugin = Plugin::LoadFromPath(data.path, data.config, load_options);
+        const auto path = std::string(plugin->data.begin(), plugin->data.end());
+
+        BOOST_LOG_TRIVIAL(info) << "plugin[" << id << "] Loading from path " << path;
+        loaded_plugin = Plugin::LoadFromPath(path, plugin->config, load_options);
     }
-    else if (data.type == "archive")
+    else if (plugin->type == "archive")
     {
         BOOST_LOG_TRIVIAL(info) << "plugin[" << id << "] Loading from archive";
-        plugin = Plugin::LoadFromArchive(data.buffer, data.config, load_options);
+        loaded_plugin = Plugin::LoadFromArchive(plugin->data, plugin->config, load_options);
     }
     else
     {
-        BOOST_LOG_TRIVIAL(warning) << "plugin[" << id << "] Invalid type: " << data.type;
+        BOOST_LOG_TRIVIAL(warning) << "plugin[" << id << "] Invalid type: " << plugin->type;
         return;
     }
 
-    if (plugin == nullptr)
+    if (loaded_plugin == nullptr)
     {
         BOOST_LOG_TRIVIAL(warning) << "plugin[" << id << "] Failed to load";
         return;
     }
 
-    if (const auto meta = plugin->GetMeta(); meta && meta->name)
+    m_plugins.emplace(id, std::move(loaded_plugin));
+
+    if (const auto meta = m_plugins.at(id)->GetMeta(); meta && meta->name)
     {
         BOOST_LOG_TRIVIAL(info)
             << "plugin[" << id << "] Loaded " << *meta->name
             << " " << meta->version.value_or("(no version)");
     }
-
-    m_plugins.emplace(id, PluginState{
-        .type     = data.type,
-        .plugin   = std::move(plugin),
-        .config   = data.config,
-        .metadata = ParseMetadata(id, data.metadata)
-    });
 }
 
-std::map<int, PluginState>& PluginEngine::Plugins()
+const Plugin* PluginEngine::Get(int id) const
 {
-    return m_plugins;
-}
-
-const std::map<int, PluginState>& PluginEngine::Plugins() const
-{
-    return m_plugins;
-}
-
-const PluginState* PluginEngine::Get(int id) const
-{
-    const auto it = m_plugins.find(id);
-    return it == m_plugins.end() ? nullptr : &it->second;
+    return nullptr;
 }
 
 bool PluginEngine::IsUnloading(int id) const
@@ -348,7 +234,7 @@ void PluginEngine::Unload(int id, CompletionCallback callback)
 
     if (it == m_plugins.end())
     {
-        BOOST_LOG_TRIVIAL(error) << "plugin[" << id << "] Not loaded";
+        BOOST_LOG_TRIVIAL(error) << "plugin[" << id << "] Cannot unload - plugin not loaded";
         Post(std::move(callback));
         return;
     }
@@ -357,11 +243,14 @@ void PluginEngine::Unload(int id, CompletionCallback callback)
 
     const auto pending = m_pending_unloads.emplace(
         token,
-        PendingUnload{.id = id, .state = std::move(it->second)}).first;
+        PendingUnload{
+            .id = id,
+            .plugin = std::move(it->second)
+        }).first;
 
     m_plugins.erase(it);
 
-    Plugin* plugin = pending->second.state.plugin.get();
+    Plugin* plugin = pending->second.plugin.get();
 
     if (plugin == nullptr)
     {
