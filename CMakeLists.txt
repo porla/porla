@@ -126,23 +126,9 @@ add_library(
     src/json/_/torrentstrackerslist.cpp
     src/json/_/webuiinstall.cpp
 
+    src/lua/globals/cron.cpp
     src/lua/globals/http.cpp
     src/lua/globals/sleep.cpp
-    src/lua/packages/config.cpp
-    src/lua/packages/cron.cpp
-    src/lua/packages/events.cpp
-    src/lua/packages/filesystem.cpp
-    src/lua/packages/httpclient.cpp
-    src/lua/packages/json.cpp
-    src/lua/packages/log.cpp
-    src/lua/packages/pql.cpp
-    src/lua/packages/presets.cpp
-    src/lua/packages/process.cpp
-    src/lua/packages/sessions.cpp
-    src/lua/packages/sqlite.cpp
-    src/lua/packages/timers.cpp
-    src/lua/packages/torrents.cpp
-    src/lua/packages/workflows.cpp
     src/lua/types/ltaddtorrentparams.cpp
     src/lua/types/ltannounceendpoint.cpp
     src/lua/types/ltannounceentry.cpp

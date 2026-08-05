@@ -44,24 +44,24 @@ public:
     }
 
 private:
-    void OnSessionStats(const std::string& session, const lt::span<const int64_t>& stats)
+    void OnSessionStats(std::shared_ptr<porla::Sessions::SessionState> state, const lt::span<const int64_t>& stats)
     {
-        if (m_session_counters.find(session) == m_session_counters.end())
+        if (m_session_counters.find(state->name) == m_session_counters.end())
         {
-            m_session_counters.insert({ session, {} });
+            m_session_counters.insert({ state->name, {} });
         }
 
         uint64_t ms = duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
-        m_session_counters.at(session) = { ms, stats};
+        m_session_counters.at(state->name) = { ms, stats};
     }
 
-    void OnStateUpdate(const std::string& session, const std::vector<libtorrent::torrent_status>& torrents)
+    void OnStateUpdate(std::shared_ptr<porla::Sessions::SessionState> state, const std::vector<libtorrent::torrent_status>& torrents)
     {
         for (const auto& status : torrents)
         {
             uint64_t ms = duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-            m_torrent_statuses.insert_or_assign(status.info_hashes, std::make_tuple(ms,session, status));
+            m_torrent_statuses.insert_or_assign(status.info_hashes, std::make_tuple(ms, state->name, status));
         }
     }
 

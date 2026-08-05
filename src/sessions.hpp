@@ -49,11 +49,11 @@ namespace porla
             std::map<std::pair<int, libtorrent::info_hash_t>, std::vector<std::function<void()>>> m_oneshot_torrent_callbacks;
         };
 
-        typedef boost::signals2::signal<void(const std::string& session, const libtorrent::info_hash_t&)> InfoHashSignal;
-        typedef boost::signals2::signal<void(const std::string& session, const lt::span<const int64_t>&)> SessionStatsSignal;
-        typedef boost::signals2::signal<void(const std::string& session, const TorrentFileErrorEvent&)> TorrentFileErrorSignal;
-        typedef boost::signals2::signal<void(const std::string& session, const libtorrent::torrent_handle&)> TorrentHandleSignal;
-        typedef boost::signals2::signal<void(const std::string& session, const std::vector<libtorrent::torrent_status>&)> TorrentStatusListSignal;
+        typedef boost::signals2::signal<void(std::shared_ptr<SessionState>, const libtorrent::info_hash_t&)> InfoHashSignal;
+        typedef boost::signals2::signal<void(std::shared_ptr<SessionState>, const lt::span<const int64_t>&)> SessionStatsSignal;
+        typedef boost::signals2::signal<void(std::shared_ptr<SessionState>, const TorrentFileErrorEvent&)> TorrentFileErrorSignal;
+        typedef boost::signals2::signal<void(std::shared_ptr<SessionState>, const libtorrent::torrent_handle&)> TorrentHandleSignal;
+        typedef boost::signals2::signal<void(std::shared_ptr<SessionState>, const std::vector<libtorrent::torrent_status>&)> TorrentStatusListSignal;
 
         explicit Sessions(const SessionsOptions& options);
         ~Sessions();

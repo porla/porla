@@ -8,6 +8,7 @@
 #include <boost/asio/post.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/log/trivial.hpp>
+#include <libtorrent/session_stats.hpp>
 #include <sol/sol.hpp>
 #include <sqlite3.h>
 
@@ -17,6 +18,7 @@
 #include "types.hpp"
 
 #include "../config.hpp"
+#include "../cron.hpp"
 #include "../curlmulti.hpp"
 #include "../sessions.hpp"
 #include "../zip.hpp"
@@ -28,6 +30,8 @@ using porla::Lua::PluginLoadOptions;
 
 namespace
 {
+    static const auto lt_session_metrics = lt::session_stats_metrics();
+
     constexpr const char* PluginEntryPoint = "plugin.lua";
     constexpr const char* ConfigRegistryKey = "plugin_config";
 
@@ -66,6 +70,39 @@ struct CoroutineState
 
 struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
 {
+    struct EventSubscription
+    {
+        std::size_t             id;
+        sol::protected_function callback;
+    };
+
+    // Returned to Lua from cron(...). Weak, like EventConnection.
+    struct CronHandle
+    {
+        std::weak_ptr<State> state;
+        std::size_t          id = 0;
+
+        void Cancel()
+        {
+            if (auto s = state.lock()) s->RemoveCronSchedule(id);
+            state.reset();
+        }
+    };
+
+    // Returned to Lua from porla.on(...). Holds a weak ref so :disconnect()
+    // is safe even if the plugin is already gone.
+    struct EventConnection
+    {
+        std::weak_ptr<State> state;
+        std::size_t          id = 0;
+
+        void Disconnect()
+        {
+            if (auto s = state.lock()) s->RemoveEventListener(id);
+            state.reset(); // idempotent
+        }
+    };
+
     PluginLoadOptions                        load_options;
     sol::state                               lua;
     sol::table                               tbl;
@@ -82,6 +119,15 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
     bool                                                  unloading      = false;
     bool                                                  unloaded       = false;
 
+    // signal connections
+    std::size_t                                               m_next_event_id = 1;
+    std::map<std::string, std::vector<EventSubscription>>     m_event_callbacks;
+    std::map<std::string, boost::signals2::scoped_connection> m_signal_connections;
+
+    // cron things
+    std::size_t                                          m_next_cron_id = 1;
+    std::map<std::size_t, std::shared_ptr<CronSchedule>> m_cron_schedules;
+
     State(const PluginLoadOptions& opts, const std::optional<std::string>& config)
         : load_options(opts)
         , coroutine_timer(opts.io)
@@ -94,6 +140,224 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
     {
         if (meta && meta->name) return *meta->name;
         return "<unnamed plugin>";
+    }
+
+    sol::object AddCronSchedule(const std::string& expr, sol::protected_function callback)
+    {
+        if (!callback.valid())
+        {
+            BOOST_LOG_TRIVIAL(warning) << Name() << ": cron(...) called without a function";
+            return sol::make_object(lua.lua_state(), sol::lua_nil);
+        }
+
+        if (unloading || unloaded)
+            return sol::make_object(lua.lua_state(), sol::lua_nil);
+
+        const std::size_t    id   = m_next_cron_id++;
+        std::weak_ptr<State> weak = weak_from_this();
+
+        std::shared_ptr<CronSchedule> sched;
+        try
+        {
+            sched = CronSchedule::Create(
+                load_options.io,
+                expr,
+                [weak, callback = std::move(callback)]()
+                {
+                    auto self = weak.lock();
+                    if (!self || self->unloading || self->unloaded) return;
+                    // Route through the coroutine machinery: cron handlers may
+                    // sleep()/do IO, and Unload() will wait for them.
+                    self->SpawnCoroutine("cron", callback);
+                });
+        }
+        catch (const cron::bad_cronexpr& err)
+        {
+            BOOST_LOG_TRIVIAL(error)
+                << Name() << ": invalid cron expression '" << expr << "': " << err.what();
+            return sol::make_object(lua.lua_state(), sol::lua_nil);
+        }
+
+        m_cron_schedules.emplace(id, std::move(sched));
+        return sol::make_object(lua.lua_state(), CronHandle{ weak, id });
+    }
+
+    void RemoveCronSchedule(std::size_t id)
+    {
+        auto it = m_cron_schedules.find(id);
+        if (it == m_cron_schedules.end()) return;
+        if (it->second) it->second->Cancel();
+        m_cron_schedules.erase(it);
+    }
+
+    void CancelAllCronSchedules()
+    {
+        for (auto& [id, sched] : m_cron_schedules)
+            if (sched) sched->Cancel();
+        m_cron_schedules.clear();
+    }
+
+    sol::object CreateCronGlobal()
+    {
+        return sol::make_object(lua,
+            [this](const std::string& expr, sol::protected_function callback)
+            {
+                return AddCronSchedule(expr, std::move(callback));
+            });
+    }
+
+    sol::object AddEventListener(const std::string& event, sol::protected_function callback)
+    {
+        if (!callback.valid())
+        {
+            BOOST_LOG_TRIVIAL(warning)
+                << Name() << ": porla.on('" << event << "', ...) called without a function";
+            return sol::make_object(lua.lua_state(), sol::lua_nil);
+        }
+
+        if (unloading || unloaded)
+        {
+            return sol::make_object(lua.lua_state(), sol::lua_nil);
+        }
+
+        if (!EnsureSignalConnected(event))
+        {
+            BOOST_LOG_TRIVIAL(warning) << Name() << ": porla.on() for unknown event '" << event << "'";
+            return sol::make_object(lua.lua_state(), sol::lua_nil);
+        }
+
+        const std::size_t id = m_next_event_id++;
+        m_event_callbacks[event].push_back(EventSubscription{ id, std::move(callback) });
+
+        return sol::make_object(lua.lua_state(), EventConnection{ weak_from_this(), id });
+    }
+
+    void RemoveEventListener(std::size_t id)
+    {
+        for (auto& [event, subs] : m_event_callbacks)
+        {
+            subs.erase(
+                std::remove_if(subs.begin(), subs.end(),
+                    [id](const EventSubscription& s) { return s.id == id; }),
+                subs.end());
+
+            // Drop the underlying signal connection once nobody listens anymore.
+            if (subs.empty())
+            {
+                m_signal_connections.erase(event);
+            }
+        }
+    }
+
+    template<typename... Args>
+    void DispatchEvent(const std::string& event, const Args&... args)
+    {
+        if (unloaded) return;
+
+        const auto it = m_event_callbacks.find(event);
+        if (it == m_event_callbacks.end() || it->second.empty()) return;
+
+        // Copy: a handler may add/remove listeners (or unload the plugin) mid-dispatch.
+        const std::vector<EventSubscription> subs = it->second;
+
+        for (const auto& sub : subs)
+        {
+            try
+            {
+                // Reuse the coroutine machinery so handlers may sleep()/do IO,
+                // and so Unload() waits for them to finish.
+                SpawnCoroutine(event, sub.callback, args...);
+            }
+            catch (const std::exception& err)
+            {
+                // Never let an exception escape into Sessions' alert loop.
+                BOOST_LOG_TRIVIAL(error)
+                    << Name() << ": exception dispatching '" << event << "': " << err.what();
+            }
+        }
+    }
+
+    bool EnsureSignalConnected(const std::string& event)
+    {
+        if (m_signal_connections.count(event)) return true;
+
+        auto& sessions = load_options.sessions;
+
+        using SessionPtr = std::shared_ptr<porla::Sessions::SessionState>;
+
+        auto handle_slot = [](std::weak_ptr<State> weak, std::string ev)
+        {
+            return [weak = std::move(weak), ev = std::move(ev)]
+                (const SessionPtr&, const lt::torrent_handle& th)
+            {
+                if (auto self = weak.lock()) self->DispatchEvent(ev, th);
+            };
+        };
+
+        const std::weak_ptr<State> weak = weak_from_this();
+        boost::signals2::scoped_connection conn;
+
+        if      (event == "torrent.added")    conn = sessions.OnTorrentAdded   (handle_slot(weak, event));
+        else if (event == "torrent.finished") conn = sessions.OnTorrentFinished(handle_slot(weak, event));
+        else if (event == "torrent.paused")   conn = sessions.OnTorrentPaused  (handle_slot(weak, event));
+        else if (event == "torrent.resumed")  conn = sessions.OnTorrentResumed (handle_slot(weak, event));
+        else if (event == "storage.moved")    conn = sessions.OnStorageMoved   (handle_slot(weak, event));
+        else if (event == "torrent.removed")
+        {
+            conn = sessions.OnTorrentRemoved(
+                [weak](const SessionPtr&, const lt::info_hash_t& hash)
+                {
+                    if (auto self = weak.lock()) self->DispatchEvent("torrent.removed", hash);
+                });
+        }
+        else if (event == "torrent.file_error")
+        {
+            conn = sessions.OnTorrentFileError(
+                [weak](const SessionPtr&, const porla::Sessions::TorrentFileErrorEvent& ev)
+                {
+                    if (auto self = weak.lock())
+                        self->DispatchEvent("torrent.file_error", ev.torrent, ev.file);
+                });
+        }
+        else if (event == "state.update")
+        {
+            conn = sessions.OnStateUpdate(
+                [weak](const SessionPtr&, const std::vector<lt::torrent_status>& statuses)
+                {
+                    if (auto self = weak.lock())
+                        self->DispatchEvent("state.update", sol::as_table(statuses));
+                });
+        }
+        else if (event == "session.stats")
+        {
+            conn = sessions.OnSessionStats(
+                [weak](const SessionPtr& session, const lt::span<const int64_t>& stats)
+                {
+                    auto self = weak.lock();
+                    if (!self) return;
+
+                    sol::table translated = self->lua.create_table();
+
+                    for (const auto& m : lt_session_metrics)
+                    {
+                        translated[m.name] = stats[m.value_index];
+                    }
+
+                    self->DispatchEvent("session.stats", session, translated);
+                });
+        }
+        else
+        {
+            return false;
+        }
+
+        m_signal_connections.emplace(event, std::move(conn));
+        return true;
+    }
+
+    void DisconnectAllSignals()
+    {
+        m_signal_connections.clear(); // scoped_connection dtor disconnects each
     }
 
     // -- Lua state -----------------------------------------------------------
@@ -111,17 +375,28 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             sol::lib::string,
             sol::lib::table);
 
-        // Give every protected call a traceback instead of a bare message.
-        {
-            sol::optional<sol::protected_function> traceback = lua["debug"]["traceback"];
-            if (traceback && traceback->valid())
-            {
-                sol::protected_function::set_default_handler(*traceback);
-            }
-        }
-
         lua.new_usertype<porla::CurlMulti>("CurlMulti", sol::no_constructor);
 
+        lua.new_usertype<CronHandle>(
+            "porla.CronSchedule",
+            "cancel", &CronHandle::Cancel);
+
+        lua.new_usertype<EventConnection>(
+            "porla.EventConnection",
+            "disconnect", &EventConnection::Disconnect);
+
+        lua.new_usertype<lt::torrent_handle>(
+            "lt.torrent_handle",
+            sol::no_constructor,
+            "is_valid", &lt::torrent_handle::is_valid,
+            "status", [](const lt::torrent_handle& th) { return th.status(); });
+
+        lua.new_usertype<lt::torrent_status>(
+            "lt.torrent_status",
+            sol::no_constructor,
+            "name", sol::readonly(&lt::torrent_status::name));
+
+        lua.globals()["cron"]  = CreateCronGlobal();
         lua.globals()["http"]  = porla::Lua::Globals::Http::Build(lua);
         lua.globals()["porla"] = CreatePorlaGlobal();
         lua.globals()["sleep"] = porla::Lua::Globals::Sleep::Build(lua);
@@ -194,9 +469,24 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             return lua.registry()[ConfigRegistryKey];
         };
 
-        porla["on"] = [](sol::this_state s, const std::string& event, sol::function callback)
+        porla["on"] = [this](sol::this_state s, const std::string& event, sol::function callback)
         {
-            return sol::nil;
+            return AddEventListener(event, std::move(callback));
+        };
+
+        porla["session_metrics"] = [](sol::this_state s)
+        {
+            sol::state_view lua{s};
+            sol::table metrics_tbl = lua.create_table();
+
+            for (const auto& m : lt_session_metrics)
+            {
+                metrics_tbl[m.name] = m.type == lt::metric_type_t::counter
+                    ? "counter"
+                    : "gauge";
+            }
+
+            return metrics_tbl;
         };
 
         porla["sessions"] = [](sol::this_state s, const std::string& name)
@@ -363,6 +653,9 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         {
             unloading       = true;
             unload_deadline = std::chrono::steady_clock::now() + load_options.unload_timeout;
+
+            CancelAllCronSchedules();
+            DisconnectAllSignals();
 
             if (!destroy_called && tbl.valid())
             {
@@ -592,6 +885,7 @@ Plugin::~Plugin()
 
         m_state->unload_callback = nullptr;
         m_state->CancelTimer();
+        m_state->CancelAllCronSchedules();
     }
     catch (const std::exception& err)
     {

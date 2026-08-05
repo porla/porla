@@ -273,7 +273,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                     m_options.io,
                     [this, state, handle = ata->handle]()
                     {
-                        m_torrent_added(state->name, handle);
+                        m_torrent_added(state, handle);
                     });
 
                 break;
@@ -287,7 +287,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                     .torrent = fea->handle
                 };
 
-                boost::asio::post(m_options.io, [this, evt, state](){ m_torrent_file_error(state->name, evt); });
+                boost::asio::post(m_options.io, [this, evt, state](){ m_torrent_file_error(state, evt); });
 
                 break;
             }
@@ -338,7 +338,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                 auto ssa = lt::alert_cast<lt::session_stats_alert>(alert);
                 auto const& counters = ssa->counters();
 
-                boost::asio::post(m_options.io, [this, counters, state](){ m_session_stats(state->name, counters); });
+                boost::asio::post(m_options.io, [this, counters, state](){ m_session_stats(state, counters); });
 
                 break;
             }
@@ -351,7 +351,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                     state->torrents.at(status.info_hashes) = std::make_pair(status.handle, status);
                 }
 
-                boost::asio::post(m_options.io, [this, state, status = sua->status](){ m_state_update(state->name, status); });
+                boost::asio::post(m_options.io, [this, state, status = sua->status](){ m_state_update(state, status); });
 
                 break;
             }
@@ -371,7 +371,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
 
                 state->torrents.at(sma->handle.info_hashes()) = std::make_pair(sma->handle, sma->handle.status());
 
-                boost::asio::post(m_options.io, [this, state, th = sma->handle](){ m_storage_moved(state->name, th); });
+                boost::asio::post(m_options.io, [this, state, th = sma->handle](){ m_storage_moved(state, th); });
 
                 break;
             }
@@ -428,7 +428,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                         m_options.io,
                         [this, state, handle = tfa->handle]()
                         {
-                            m_torrent_finished(state->name, handle);
+                            m_torrent_finished(state, handle);
                         });
                 }
 
@@ -450,7 +450,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
 
                 state->torrents.at(tpa->handle.info_hashes()) = std::make_pair(tpa->handle, tpa->handle.status());
 
-                boost::asio::post(m_options.io, [this, state, th = tpa->handle](){ m_torrent_paused(state->name, th); });
+                boost::asio::post(m_options.io, [this, state, th = tpa->handle](){ m_torrent_paused(state, th); });
 
                 break;
             }
@@ -464,7 +464,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
 
                 BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Torrent " << tra->torrent_name() << " removed";
 
-                boost::asio::post(m_options.io, [this, hash = tra->info_hashes, state](){ m_torrent_removed(state->name, hash); });
+                boost::asio::post(m_options.io, [this, hash = tra->info_hashes, state](){ m_torrent_removed(state, hash); });
 
                 break;
             }
@@ -481,7 +481,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                     m_options.io,
                     [this, state, handle = tra->handle]()
                     {
-                        m_torrent_resumed(state->name, handle);
+                        m_torrent_resumed(state, handle);
                     });
 
                 break;

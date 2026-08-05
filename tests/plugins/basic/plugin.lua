@@ -4,8 +4,11 @@ return {
 
     init = function()
         porla.on("torrent.added", function(th)
-            local status = th:status()
-            print("Torrent", status.name, "loaded")
+            print("handle is valid?", th:is_valid())
+            sleep(1)
+            print("sleeping")
+            local ts = th:status()
+            print(ts.name)
         end)
     end,
 
