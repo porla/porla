@@ -33,7 +33,7 @@ void PluginsUpdate::Invoke(const PluginsUpdateReq& req, WriteCb<PluginsUpdateRes
         req.config,
         req.metadata.value_or(plugin->metadata));
 
-    auto write = std::make_shared<WriteCb<PluginsReloadRes>>(std::move(cb));
+    auto write = std::make_shared<WriteCb<PluginsUpdateRes>>(std::move(cb));
 
     m_plugin_engine.Reload(req.id, [write]()
     {

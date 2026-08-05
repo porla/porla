@@ -137,7 +137,7 @@ int main(int argc, char* argv[])
             {"kv.get", porla::Methods::KeyValueGet(cfg->db)},
             {"kv.set", porla::Methods::KeyValueSet(cfg->db)},
             {"mmdb.lookup", porla::Methods::MmdbLookup(cfg->mmdb_file)},
-            {"plugins.add", porla::Methods::PluginsAdd(plugin_engine)},
+            {"plugins.add", porla::Methods::PluginsAdd(cfg->db, plugin_engine)},
             {"plugins.get", porla::Methods::PluginsGet(cfg->db, plugin_engine)},
             {"plugins.list", porla::Methods::PluginsList(cfg->db, plugin_engine)},
             {"plugins.reload", porla::Methods::PluginsReload(plugin_engine)},
