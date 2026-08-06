@@ -68,29 +68,16 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         sol::protected_function callback;
     };
 
-    // Returned to Lua from cron(...). Weak, like EventConnection.
-    struct CronHandle
+    // Returned to Lua from both cron(...) and porla.on(...). Holds a weak ref
+    // so cancellation stays safe even if the plugin is already gone.
+    struct Subscription
     {
         std::weak_ptr<State> state;
         std::size_t          id = 0;
 
         void Cancel()
         {
-            if (auto s = state.lock()) s->RemoveCronSchedule(id);
-            state.reset();
-        }
-    };
-
-    // Returned to Lua from porla.on(...). Holds a weak ref so :disconnect()
-    // is safe even if the plugin is already gone.
-    struct EventConnection
-    {
-        std::weak_ptr<State> state;
-        std::size_t          id = 0;
-
-        void Disconnect()
-        {
-            if (auto s = state.lock()) s->RemoveEventListener(id);
+            if (auto s = state.lock()) s->RemoveSubscription(id);
             state.reset(); // idempotent
         }
     };
@@ -111,14 +98,13 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
     bool                                                  unloading      = false;
     bool                                                  unloaded       = false;
 
-    // signal connections
-    std::size_t                                               m_next_event_id = 1;
+    // Subscriptions (cron schedules + event listeners) share one id space so a
+    // single Subscription handle can cancel either.
+    std::size_t                                               m_next_id = 1;
+
     std::map<std::string, std::vector<EventSubscription>>     m_event_callbacks;
     std::map<std::string, boost::signals2::scoped_connection> m_signal_connections;
-
-    // cron things
-    std::size_t                                          m_next_cron_id = 1;
-    std::map<std::size_t, std::shared_ptr<CronSchedule>> m_cron_schedules;
+    std::map<std::size_t, std::shared_ptr<CronSchedule>>      m_cron_schedules;
 
     State(const PluginLoadOptions& opts, const std::optional<std::string>& config)
         : load_options(opts)
@@ -145,7 +131,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         if (unloading || unloaded)
             return sol::make_object(lua.lua_state(), sol::lua_nil);
 
-        const std::size_t    id   = m_next_cron_id++;
+        const std::size_t    id   = m_next_id++;
         std::weak_ptr<State> weak = weak_from_this();
 
         std::shared_ptr<CronSchedule> sched;
@@ -171,31 +157,45 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         }
 
         m_cron_schedules.emplace(id, std::move(sched));
-        return sol::make_object(lua.lua_state(), CronHandle{ weak, id });
+        return sol::make_object(lua.lua_state(), Subscription{ weak, id });
     }
 
-    void RemoveCronSchedule(std::size_t id)
+    // Cancels a cron schedule or an event listener by id. Ids are unique across
+    // both, so a single Subscription handle can address either.
+    void RemoveSubscription(std::size_t id)
     {
-        auto it = m_cron_schedules.find(id);
-        if (it == m_cron_schedules.end()) return;
-        if (it->second) it->second->Cancel();
-        m_cron_schedules.erase(it);
+        // Cron schedule?
+        if (auto it = m_cron_schedules.find(id); it != m_cron_schedules.end())
+        {
+            if (it->second) it->second->Cancel();
+            m_cron_schedules.erase(it);
+            return;
+        }
+
+        // Otherwise an event listener. At most one event holds it; drop the
+        // underlying signal connection once its last listener goes away.
+        for (auto& [event, subs] : m_event_callbacks)
+        {
+            const auto before = subs.size();
+
+            subs.erase(
+                std::remove_if(subs.begin(), subs.end(),
+                    [id](const EventSubscription& s) { return s.id == id; }),
+                subs.end());
+
+            if (subs.size() == before) continue;
+            if (subs.empty()) m_signal_connections.erase(event);
+            return;
+        }
     }
 
-    void CancelAllCronSchedules()
+    void CancelAllSubscriptions()
     {
         for (auto& [id, sched] : m_cron_schedules)
             if (sched) sched->Cancel();
-        m_cron_schedules.clear();
-    }
 
-    sol::object CreateCronGlobal()
-    {
-        return sol::make_object(lua,
-            [this](const std::string& expr, sol::protected_function callback)
-            {
-                return AddCronSchedule(expr, std::move(callback));
-            });
+        m_cron_schedules.clear();
+        m_signal_connections.clear();
     }
 
     sol::object AddEventListener(const std::string& event, sol::protected_function callback)
@@ -218,27 +218,10 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             return sol::make_object(lua.lua_state(), sol::lua_nil);
         }
 
-        const std::size_t id = m_next_event_id++;
+        const std::size_t id = m_next_id++;
         m_event_callbacks[event].push_back(EventSubscription{ id, std::move(callback) });
 
-        return sol::make_object(lua.lua_state(), EventConnection{ weak_from_this(), id });
-    }
-
-    void RemoveEventListener(std::size_t id)
-    {
-        for (auto& [event, subs] : m_event_callbacks)
-        {
-            subs.erase(
-                std::remove_if(subs.begin(), subs.end(),
-                    [id](const EventSubscription& s) { return s.id == id; }),
-                subs.end());
-
-            // Drop the underlying signal connection once nobody listens anymore.
-            if (subs.empty())
-            {
-                m_signal_connections.erase(event);
-            }
-        }
+        return sol::make_object(lua.lua_state(), Subscription{ weak_from_this(), id });
     }
 
     template<typename... Args>
@@ -347,11 +330,6 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         return true;
     }
 
-    void DisconnectAllSignals()
-    {
-        m_signal_connections.clear();
-    }
-
     // -- Lua state -----------------------------------------------------------
 
     void ConfigureLuaState(const std::optional<std::string>& config)
@@ -369,13 +347,11 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
 
         lua.new_usertype<porla::CurlMulti>("CurlMulti", sol::no_constructor);
 
-        lua.new_usertype<CronHandle>(
-            "porla.CronSchedule",
-            "cancel", &CronHandle::Cancel);
-
-        lua.new_usertype<EventConnection>(
-            "porla.EventConnection",
-            "disconnect", &EventConnection::Disconnect);
+        // One handle type for cron + events; keep both verbs Lua scripts call.
+        lua.new_usertype<Subscription>(
+            "porla.Subscription",
+            "cancel",     &Subscription::Cancel,
+            "disconnect", &Subscription::Cancel);
 
         lua.new_usertype<lt::torrent_handle>(
             "lt.torrent_handle",
@@ -388,7 +364,11 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             sol::no_constructor,
             "name", sol::readonly(&lt::torrent_status::name));
 
-        lua.globals()["cron"]  = CreateCronGlobal();
+        lua.globals()["cron"] = [this](const std::string& expr, sol::protected_function cb)
+        {
+            return AddCronSchedule(expr, std::move(cb));
+        };
+
         lua.globals()["http"]  = porla::Lua::Globals::Http::Build(lua);
         lua.globals()["porla"] = CreatePorlaGlobal();
         lua.globals()["sleep"] = porla::Lua::Globals::Sleep::Build(lua);
@@ -461,7 +441,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             return lua.registry()[ConfigRegistryKey];
         };
 
-        porla["on"] = [this](sol::this_state s, const std::string& event, sol::function callback)
+        porla["on"] = [this](const std::string& event, sol::function callback)
         {
             return AddEventListener(event, std::move(callback));
         };
@@ -636,8 +616,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             unloading       = true;
             unload_deadline = std::chrono::steady_clock::now() + load_options.unload_timeout;
 
-            CancelAllCronSchedules();
-            DisconnectAllSignals();
+            CancelAllSubscriptions();
 
             if (!destroy_called && tbl.valid())
             {
@@ -867,7 +846,7 @@ Plugin::~Plugin()
 
         m_state->unload_callback = nullptr;
         m_state->CancelTimer();
-        m_state->CancelAllCronSchedules();
+        m_state->CancelAllSubscriptions();
     }
     catch (const std::exception& err)
     {
