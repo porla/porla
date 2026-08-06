@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sqlite3.h>
+
 #include "../method.hpp"
 #include "sessionssettingsset_reqres.hpp"
 
@@ -13,12 +15,13 @@ namespace porla::Methods::Sessions
     class SessionsSettingsSet : public Method<SessionsSettingsSetReq, SessionsSettingsSetRes>
     {
     public:
-        explicit SessionsSettingsSet(porla::Sessions& sessions);
+        explicit SessionsSettingsSet(sqlite3* db, porla::Sessions& sessions);
 
     protected:
         void Invoke(const SessionsSettingsSetReq& req, WriteCb<SessionsSettingsSetRes> cb) override;
 
     private:
+        sqlite3* m_db;
         porla::Sessions& m_sessions;
     };
 }

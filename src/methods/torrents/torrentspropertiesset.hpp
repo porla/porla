@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sqlite3.h>
+
 #include "../method.hpp"
 #include "torrentspropertiesset_reqres.hpp"
 
@@ -13,12 +15,13 @@ namespace porla::Methods
     class TorrentsPropertiesSet : public Method<TorrentsPropertiesSetReq, TorrentsPropertiesSetRes>
     {
     public:
-        explicit TorrentsPropertiesSet(porla::Sessions& sessions);
+        explicit TorrentsPropertiesSet(sqlite3* db, porla::Sessions& sessions);
 
     protected:
         void Invoke(const TorrentsPropertiesSetReq& req, WriteCb<TorrentsPropertiesSetRes> cb) override;
 
     private:
+        sqlite3* m_db;
         porla::Sessions& m_sessions;
     };
 }

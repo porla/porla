@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sqlite3.h>
+
 #include "../method.hpp"
 #include "torrentsfileslist_reqres.hpp"
 
@@ -13,12 +15,13 @@ namespace porla::Methods
     class TorrentsFilesList : public Method<TorrentsFilesListReq, TorrentsFilesListRes>
     {
     public:
-        explicit TorrentsFilesList(porla::Sessions& sessions);
+        explicit TorrentsFilesList(sqlite3* db, porla::Sessions& sessions);
 
     protected:
         void Invoke(const TorrentsFilesListReq& req, WriteCb<TorrentsFilesListRes> cb) override;
 
     private:
+        sqlite3* m_db;
         porla::Sessions& m_sessions;
     };
 }

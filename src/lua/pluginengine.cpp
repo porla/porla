@@ -57,31 +57,6 @@ void PluginEngine::Post(CompletionCallback callback) const
     boost::asio::post(m_options.io, [callback = std::move(callback)]() { callback(); });
 }
 
-void PluginEngine::Configure(int id, const std::optional<std::string>& config, CompletionCallback callback)
-{
-    auto update_stmt = Statement::Prepare(
-        m_options.db,
-        "UPDATE plugins SET config = $config WHERE id = $id");
-    update_stmt.Bind("$id",     id);
-    update_stmt.Bind("$config", config);
-    update_stmt.Execute();
-
-    if (sqlite3_changes(m_options.db) < 1)
-    {
-        BOOST_LOG_TRIVIAL(warning) << "plugin[" << id << "] Not installed - config not stored";
-        Post(std::move(callback));
-        return;
-    }
-
-    if (m_plugins.find(id) == m_plugins.end())
-    {
-        Post(std::move(callback));
-        return;
-    }
-
-    Reload(id, std::move(callback));
-}
-
 int PluginEngine::InstallFromArchive(const std::vector<char>& buffer, std::optional<std::string> config, const nlohmann::json& metadata)
 {
     auto install_stmt = Statement::Prepare(
@@ -207,25 +182,6 @@ void PluginEngine::Reload(int id, CompletionCallback callback)
 
         if (callback) callback();
     });
-}
-
-void PluginEngine::Uninstall(int id, CompletionCallback callback)
-{
-    auto uninstall_stmt = Statement::Prepare(
-        m_options.db,
-        "DELETE FROM plugins WHERE id = $id");
-    uninstall_stmt.Bind("$id", id);
-    uninstall_stmt.Execute();
-
-    BOOST_LOG_TRIVIAL(info) << "plugin[" << id << "] uninstalled";
-
-    if (m_plugins.find(id) == m_plugins.end())
-    {
-        Post(std::move(callback));
-        return;
-    }
-
-    Unload(id, std::move(callback));
 }
 
 void PluginEngine::Unload(int id, CompletionCallback callback)

@@ -2,16 +2,16 @@
 
 #include <boost/log/trivial.hpp>
 
-#include "../../sessions.hpp"
 #include "../../data/models/sessions.hpp"
+#include "../../sessions.hpp"
 
 using porla::Methods::Sessions::SessionsRemove;
 using porla::Methods::Sessions::SessionsRemoveReq;
 using porla::Methods::Sessions::SessionsRemoveRes;
 
 SessionsRemove::SessionsRemove(sqlite3* db, porla::Sessions& sessions)
-    : m_db(db),
-    m_sessions(sessions)
+    : m_db(db)
+    , m_sessions(sessions)
 {
 }
 

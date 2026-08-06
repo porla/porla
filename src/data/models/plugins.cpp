@@ -21,6 +21,6 @@ void Plugins::Remove(sqlite3* db, int id)
 {
 }
 
-void Plugins::Update(sqlite3* db, int id, std::optional<std::string> config, const std::map<std::string, nlohmann::json>& metadata)
+void Plugins::Update(sqlite3* db, const Plugin& plugin)
 {
 }

@@ -26,6 +26,6 @@ namespace porla::Data::Models
         static int Insert(sqlite3* db, const Plugin& plugin);
         static std::vector<Plugin> List(sqlite3* db);
         static void Remove(sqlite3* db, int id);
-        static void Update(sqlite3* db, int id, std::optional<std::string> config, const std::map<std::string, nlohmann::json>& metadata);
+        static void Update(sqlite3* db, const Plugin& plugin);
     };
 }

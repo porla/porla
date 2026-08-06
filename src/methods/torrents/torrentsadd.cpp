@@ -5,6 +5,7 @@
 #include <libtorrent/magnet_uri.hpp>
 
 #include "../../data/models/presets.hpp"
+#include "../../data/models/sessions.hpp"
 #include "../../sessions.hpp"
 #include "../../torrentclientdata.hpp"
 #include "../../utils/base64.hpp"
@@ -56,15 +57,15 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
         ? Data::Models::Presets::GetById(m_db, req.preset_id.value())
         : default_preset;
 
-    const auto& session_state = req.session_id.has_value()
-        ? m_sessions.Get(req.session_id.value())
+    const auto session = req.session_id.has_value()
+        ? Data::Models::Sessions::GetById(m_db, req.session_id.value())
         : preset.has_value() && preset->session_id.has_value()
-            ? m_sessions.Get(preset->session_id.value())
+            ? Data::Models::Sessions::GetById(m_db, preset->session_id.value())
             : default_preset.has_value() && default_preset->session_id.has_value()
-                ? m_sessions.Get(default_preset->session_id.value())
-                : m_sessions.Default();
+                ? Data::Models::Sessions::GetById(m_db, default_preset->session_id.value())
+                : Data::Models::Sessions::GetDefault(m_db);
 
-    if (session_state == nullptr)
+    if (!session)
     {
         const json error_details = {
             "session_id", req.session_id.has_value()
@@ -77,6 +78,17 @@ void TorrentsAdd::Invoke(const TorrentsAddReq& req, WriteCb<TorrentsAddRes> cb)
         };
 
         return cb.Error(-1, "Session not found", error_details);
+    }
+
+    const auto& session_state = m_sessions.Get(session->id);
+
+    if (session_state == nullptr)
+    {
+        const json error_details = {
+            "session_id", session->id
+        };
+
+        return cb.Error(-2, "Session not loaded", error_details);
     }
 
     lt::add_torrent_params p;

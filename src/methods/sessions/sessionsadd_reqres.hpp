@@ -11,10 +11,14 @@ namespace porla::Methods::Sessions
 {
     struct SessionsAddReq
     {
-        std::string name;
+        std::string                                          name;
         std::optional<std::map<std::string, nlohmann::json>> metadata;
-        std::optional<std::string> settings_base;
+        std::optional<std::string>                           settings_base;
         std::optional<std::map<std::string, nlohmann::json>> settings;
+        std::optional<int>                                   timer_dht_stats;
+        std::optional<int>                                   timer_save_state;
+        std::optional<int>                                   timer_session_stats;
+        std::optional<int>                                   timer_torrent_updates;
     };
 
     struct SessionsAddRes

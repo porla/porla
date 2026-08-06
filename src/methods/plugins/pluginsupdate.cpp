@@ -27,11 +27,10 @@ void PluginsUpdate::Invoke(const PluginsUpdateReq& req, WriteCb<PluginsUpdateRes
         return cb.Error(-1, "Plugin not found");
     }
 
-    Plugins::Update(
-        m_db,
-        plugin->id,
-        req.config,
-        req.metadata.value_or(plugin->metadata));
+    plugin->config = req.config;
+    plugin->metadata = req.metadata.value_or(plugin->metadata);
+
+    Plugins::Update(m_db, *plugin);
 
     auto write = std::make_shared<WriteCb<PluginsUpdateRes>>(std::move(cb));
 

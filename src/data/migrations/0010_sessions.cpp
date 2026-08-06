@@ -2,6 +2,7 @@
 
 #include <boost/log/trivial.hpp>
 #include <libtorrent/bencode.hpp>
+#include <libtorrent/session_params.hpp>
 #include <libtorrent/settings_pack.hpp>
 
 #include "../../config.hpp"
@@ -24,7 +25,6 @@ int Sessions::Migrate(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
             is_default INTEGER NOT NULL DEFAULT 0,
             metadata BLOB NULL,
             params BLOB NULL,
-            settings BLOB NOT NULL,
             timer_dht_stats INTEGER NOT NULL DEFAULT 5000,
             timer_save_state INTEGER NOT NULL DEFAULT 300000,
             timer_session_stats INTEGER NOT NULL DEFAULT 5000,
@@ -48,16 +48,15 @@ int Sessions::Migrate(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
     for (const auto& [name, settings] : cfg->sessions)
     {
         BOOST_LOG_TRIVIAL(info) << "Inserting session " << name;
+    
+        lt::session_params params;
+        params.settings = settings;
 
-        lt::entry::dictionary_type dict;
-        lt::save_settings_to_dict(settings, dict);
+        std::vector params_buffer = lt::write_session_params_buf(params);
 
-        std::vector<char> buf;
-        lt::bencode(std::back_inserter(buf), dict);
-
-        auto stmt = Statement::Prepare(db, "INSERT INTO sessions (name, settings) VALUES ($name, $settings);");
-        stmt.Bind("$name",     name);
-        stmt.Bind("$settings", buf);
+        auto stmt = Statement::Prepare(db, "INSERT INTO sessions (name, params) VALUES ($name, $params);");
+        stmt.Bind("$name",   name);
+        stmt.Bind("$params", params_buffer);
         stmt.Execute();
     }
 

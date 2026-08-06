@@ -1,34 +1,41 @@
 #include "torrentsfilesprogress.hpp"
 
-#include <algorithm>
-
+#include "../../data/models/sessions.hpp"
 #include "../../sessions.hpp"
 
 using porla::Methods::TorrentsFilesProgress;
 using porla::Methods::TorrentsFilesProgressReq;
 using porla::Methods::TorrentsFilesProgressRes;
 
-TorrentsFilesProgress::TorrentsFilesProgress(porla::Sessions& sessions)
-    : m_sessions(sessions)
+TorrentsFilesProgress::TorrentsFilesProgress(sqlite3* db, porla::Sessions& sessions)
+    : m_db(db)
+    , m_sessions(sessions)
 {
 }
 
 void TorrentsFilesProgress::Invoke(const TorrentsFilesProgressReq& req, WriteCb<TorrentsFilesProgressRes> cb)
 {
-    const auto& session_state = req.session_id.has_value()
-        ? m_sessions.Get(req.session_id.value())
-        : m_sessions.Default();
+    const auto session = req.session_id.has_value()
+        ? Data::Models::Sessions::GetById(m_db, req.session_id.value())
+        : Data::Models::Sessions::GetDefault(m_db);
+
+    if (!session)
+    {
+        return cb.Error(-1, "Session not found");
+    }
+
+    const auto& session_state = m_sessions.Get(session->id);
 
     if (session_state == nullptr)
     {
-        return cb.Error(-1, "Session not found");
+        return cb.Error(-2, "Session not loaded");
     }
 
     const auto& handle = session_state->torrents.find(req.info_hash);
 
     if (handle == session_state->torrents.end())
     {
-        return cb.Error(-2, "Torrent not found in session");
+        return cb.Error(-3, "Torrent not found in session");
     }
 
     const auto& [ th, _ ] = handle->second;

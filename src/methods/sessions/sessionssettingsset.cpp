@@ -2,6 +2,7 @@
 
 #include <boost/log/trivial.hpp>
 
+#include "../../data/models/sessions.hpp"
 #include "../../sessions.hpp"
 #include "../../utils/ltsettings.hpp"
 
@@ -10,27 +11,35 @@ using porla::Methods::Sessions::SessionsSettingsSetReq;
 using porla::Methods::Sessions::SessionsSettingsSetRes;
 using porla::Utils::LibtorrentSettingsPack;
 
-SessionsSettingsSet::SessionsSettingsSet(porla::Sessions& sessions)
-    : m_sessions(sessions)
+SessionsSettingsSet::SessionsSettingsSet(sqlite3* db, porla::Sessions& sessions)
+    : m_db(db)
+    , m_sessions(sessions)
 {
 }
 
 void SessionsSettingsSet::Invoke(const SessionsSettingsSetReq &req, WriteCb<SessionsSettingsSetRes> cb)
 {
-    const auto& state = m_sessions.Get(req.id);
+    auto session = Data::Models::Sessions::GetById(m_db, req.id);
 
-    if (state == nullptr)
+    if (!session)
     {
         return cb.Error(-1, "Session not found");
     }
 
-    lt::settings_pack sp = req.settings;
+    session->params.settings = req.settings;
 
-    LibtorrentSettingsPack::UpdateStatic(sp);
+    LibtorrentSettingsPack::UpdateStatic(session->params.settings);
 
-    state->session->apply_settings(sp);
+    Data::Models::Sessions::Update(
+        m_db,
+        *session);
 
-    BOOST_LOG_TRIVIAL(info) << "Session settings for " << state->name << " updated";
+    if (const auto& state = m_sessions.Get(session->id))
+    {
+        state->session->apply_settings(session->params.settings);
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "Session settings for " << session->name << " updated";
 
     cb.Ok(SessionsSettingsSetRes{});
 }

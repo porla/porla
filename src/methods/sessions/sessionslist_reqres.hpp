@@ -11,15 +11,20 @@ namespace porla::Methods
 
     struct SessionsListRes
     {
+        struct SessionState
+        {
+            bool  is_listening;
+            bool  is_paused;
+            int   torrents_total;
+        };
+
         struct Session
         {
             int                                   id;
             std::string                           name;
             bool                                  is_default;
-            bool                                  is_listening;
-            bool                                  is_paused;
             std::map<std::string, nlohmann::json> metadata;
-            int                                   torrents_total;
+            std::optional<SessionState>           state;
         };
 
         std::vector<Session> sessions;

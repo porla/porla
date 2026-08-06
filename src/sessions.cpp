@@ -92,23 +92,6 @@ Sessions::~Sessions()
     BOOST_LOG_TRIVIAL(info) << "All state saved";
 }
 
-std::map<int, std::shared_ptr<Sessions::SessionState>>& Sessions::All()
-{
-    return m_sessions;
-}
-
-std::shared_ptr<Sessions::SessionState> Sessions::Default()
-{
-    auto session = std::find_if(
-        m_sessions.begin(),
-        m_sessions.end(),
-        [](const auto& s) { return s.second->is_default; });
-
-    return session == m_sessions.end()
-        ? nullptr
-        : session->second;
-}
-
 std::shared_ptr<Sessions::SessionState> Sessions::Get(const int id)
 {
     if (m_sessions.contains(id))
@@ -121,20 +104,13 @@ std::shared_ptr<Sessions::SessionState> Sessions::Get(const int id)
 
 void Sessions::LoadAll()
 {
-    std::vector<int> session_ids;
+    const auto& sessions = Data::Models::Sessions::List(m_options.db);
 
-    Data::Models::Sessions::ForEach(
-        m_options.db,
-        [&session_ids](const Data::Models::Sessions::Session& s)
-        {
-            session_ids.push_back(s.id);
-        });
+    BOOST_LOG_TRIVIAL(info) << "Loading " << sessions.size() << " session(s)";
 
-    BOOST_LOG_TRIVIAL(info) << "Loading " << session_ids.size() << " session(s)";
-
-    for (const auto& session_id : session_ids)
+    for (const auto& session : sessions)
     {
-        LoadById(session_id);
+        LoadById(session.id);
     }
 }
 
@@ -159,8 +135,6 @@ void Sessions::LoadById(int id)
     auto state = std::make_shared<SessionState>();
     state->id = session.id;
     state->name = session.name;
-    state->is_default = session.is_default;
-    state->metadata = session.metadata;
     state->session = std::make_unique<lt::session>(std::move(session.params));
     state->session->add_extension(&lt::create_ut_metadata_plugin);
     state->session->add_extension(&lt::create_ut_pex_plugin);
@@ -216,7 +190,7 @@ void Sessions::UnloadById(int id)
     {
         return;
     }
-    
+
     UnloadSession(m_sessions.at(id));
 
     m_sessions.erase(id);
@@ -534,10 +508,11 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
     state->m_timers.clear();
     state->session->set_alert_notify([]{});
 
-    Data::Models::Sessions::Update(
-        m_options.db,
-        state->id,
-        state->session->session_state());
+    if (auto session = Data::Models::Sessions::GetById(m_options.db, state->id))
+    {
+        session->params = state->session->session_state();
+        Data::Models::Sessions::Update(m_options.db, *session);
+    }
 
     state->session->pause();
 

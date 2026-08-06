@@ -27,15 +27,12 @@ namespace porla::Data::Models
             int                                   timer_torrent_updates;
         };
 
-        static void ForEach(sqlite3* db, const std::function<void(const Session&)>& cb);
+        static std::optional<Session> GetDefault(sqlite3* db);
         static std::optional<Session> GetById(sqlite3* db, int id);
-        static std::optional<Session> GetByName(sqlite3* db, const std::string& name);
-        static int Insert(sqlite3* db, const std::string& name, const libtorrent::settings_pack& settings);
+        static int Insert(sqlite3* db, const Session& session);
+        static std::vector<Session> List(sqlite3* db);
         static void Remove(sqlite3* db, int id);
-
         static void SetDefault(sqlite3* db, int id);
-        static void Update(sqlite3* db, int id, const std::string& name, const std::map<std::string, nlohmann::json>& metadata);
-        static void Update(sqlite3* db, int id, const libtorrent::session_params& params);
-        static void Update(sqlite3* db, int id, const libtorrent::settings_pack& settings);
+        static void Update(sqlite3* db, const Session& session);
     };
 }

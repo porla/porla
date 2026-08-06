@@ -7,11 +7,9 @@
 #include <libtorrent/bencode.hpp>
 #include <libtorrent/session.hpp>
 
-#include "../../buildinfo.hpp"
 #include "../statement.hpp"
 #include "../../utils/ltsettings.hpp"
 
-using porla::BuildInfo;
 using porla::Data::Statement;
 using porla::Data::Models::Sessions;
 using porla::Utils::LibtorrentSettingsPack;
@@ -25,7 +23,6 @@ const std::string SessionsSelectPrefix = R"sql(
         is_default,
         metadata,
         params,
-        settings,
         timer_dht_stats,
         timer_save_state,
         timer_session_stats,
@@ -33,26 +30,15 @@ const std::string SessionsSelectPrefix = R"sql(
     FROM sessions
 )sql";
 
-static std::optional<Sessions::Session> LoadSessionFromRow(const Statement::IRow& row)
+static Sessions::Session LoadSessionFromRow(const Statement::IRow& row)
 {
     std::vector<char> metadata_buffer = row.GetBuffer("metadata");
-    std::vector<char> settings_buffer = row.GetBuffer("settings");
-
-    lt::error_code ec;
-    lt::bdecode_node node = lt::bdecode(settings_buffer, ec);
-
-    if (ec)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Failed to bdecode settings for session " << row.GetStdString("name") << ": " << ec.message();
-        return std::nullopt;
-    }
-
     std::vector<char> params_buffer = row.GetBuffer("params");
+
     lt::session_params params = params_buffer.size() > 0
-        ? lt::read_session_params(params_buffer, lt::session::save_dht_state)
+        ? lt::read_session_params(params_buffer)
         : lt::session_params();
 
-    params.settings = lt::load_pack_from_dict(node);
     LibtorrentSettingsPack::UpdateStatic(params.settings);
 
     return Sessions::Session{
@@ -70,21 +56,19 @@ static std::optional<Sessions::Session> LoadSessionFromRow(const Statement::IRow
     };
 }
 
-void Sessions::ForEach(sqlite3 *db, const std::function<void(const Sessions::Session&)>& cb)
+std::optional<Sessions::Session> Sessions::GetDefault(sqlite3* db)
 {
-    auto stmt = Statement::Prepare(db, SessionsSelectPrefix + " ORDER BY name ASC");
-    stmt.Step(
-        [&cb](const Statement::IRow& row)
-        {
-            auto s = LoadSessionFromRow(row);
+    std::optional<Sessions::Session> session;
 
-            if (s.has_value())
+    Statement::Prepare(db, SessionsSelectPrefix + " WHERE is_default = 1")
+        .Step(
+            [&session](auto const& row)
             {
-                cb(s.value());
-            }
+                session = LoadSessionFromRow(row);
+                return SQLITE_OK;
+            });
 
-            return SQLITE_OK;
-        });
+    return session;
 }
 
 std::optional<Sessions::Session> Sessions::GetById(sqlite3* db, int id)
@@ -103,36 +87,31 @@ std::optional<Sessions::Session> Sessions::GetById(sqlite3* db, int id)
     return session;
 }
 
-std::optional<Sessions::Session> Sessions::GetByName(sqlite3* db, const std::string& name)
+int Sessions::Insert(sqlite3* db, const Sessions::Session& session)
 {
-    std::optional<Sessions::Session> session;
+    std::vector params_buffer = lt::write_session_params_buf(session.params);
 
-    Statement::Prepare(db, SessionsSelectPrefix + " WHERE name = $name")
-        .Bind("$name", name)
-        .Step(
-            [&session](auto const& row)
-            {
-                session = LoadSessionFromRow(row);
-                return SQLITE_OK;
-            });
-
-    return session;
-}
-
-int Sessions::Insert(sqlite3* db, const std::string& name, const lt::settings_pack& settings)
-{
-    lt::entry::dictionary_type dict;
-    lt::save_settings_to_dict(settings, dict);
-
-    std::vector<char> buf;
-    lt::bencode(std::back_inserter(buf), dict);
-
-    auto stmt = Statement::Prepare(db, "INSERT INTO sessions (name, settings) VALUES ($name, $settings);");
-    stmt.Bind("$name",     name);
-    stmt.Bind("$settings", buf);
+    auto stmt = Statement::Prepare(db, "INSERT INTO sessions (name, params) VALUES ($name, $params);");
+    stmt.Bind("$name",   session.name);
+    stmt.Bind("$params", params_buffer);
     stmt.Execute();
 
     return sqlite3_last_insert_rowid(db);
+}
+
+std::vector<Sessions::Session> Sessions::List(sqlite3* db)
+{
+    std::vector<Sessions::Session> sessions;
+
+    Statement::Prepare(db, SessionsSelectPrefix + " ORDER BY name ASC")
+        .Step(
+            [&sessions](const auto& row)
+            {
+                sessions.emplace_back(LoadSessionFromRow(row));
+                return SQLITE_OK;
+            });
+
+    return sessions;
 }
 
 void Sessions::Remove(sqlite3* db, int id)
@@ -152,47 +131,16 @@ void Sessions::SetDefault(sqlite3* db, int id)
         .Execute();
 }
 
-void Sessions::Update(sqlite3* db, int id, const std::string& name, const std::map<std::string, nlohmann::json>& metadata)
+void Sessions::Update(sqlite3* db, const Sessions::Session& session)
 {
-    const auto json = nlohmann::json(metadata).dump();
+    std::vector params_buffer = lt::write_session_params_buf(session.params);
 
-    auto stmt = Statement::Prepare(db, "UPDATE sessions SET metadata = $metadata, name = $name WHERE id = $id");
-    stmt.Bind("$id",       id);
+    const auto json = nlohmann::json(session.metadata).dump();
+
+    auto stmt = Statement::Prepare(db, "UPDATE sessions SET metadata = $metadata, name = $name, params = $params WHERE id = $id");
+    stmt.Bind("$id",       session.id);
     stmt.Bind("$metadata", json);
-    stmt.Bind("$name",     name);
-    stmt.Execute();
-}
-
-void Sessions::Update(sqlite3* db, int id, const lt::session_params& params)
-{
-    std::vector params_buffer = lt::write_session_params_buf(
-        params,
-        lt::session::save_dht_state
-        | lt::session::save_extension_state);
-
-    lt::entry::dictionary_type dict;
-    lt::save_settings_to_dict(params.settings, dict);
-
-    std::vector<char> settings_buffer;
-    lt::bencode(std::back_inserter(settings_buffer), dict);
-
-    auto stmt = Statement::Prepare(db, "UPDATE sessions SET params = $params, settings = $settings WHERE id = $id");
-    stmt.Bind("$id",       id);
+    stmt.Bind("$name",     session.name);
     stmt.Bind("$params",   params_buffer);
-    stmt.Bind("$settings", settings_buffer);
-    stmt.Execute();
-}
-
-void Sessions::Update(sqlite3* db, int id, const lt::settings_pack& settings)
-{
-    lt::entry::dictionary_type dict;
-    lt::save_settings_to_dict(settings, dict);
-
-    std::vector<char> settings_buffer;
-    lt::bencode(std::back_inserter(settings_buffer), dict);
-
-    auto stmt = Statement::Prepare(db, "UPDATE sessions SET settings = $settings WHERE id = $id");
-    stmt.Bind("$id",       id);
-    stmt.Bind("$settings", settings_buffer);
     stmt.Execute();
 }

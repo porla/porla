@@ -1,5 +1,7 @@
 #include "../all.hpp"
 
+#include <unordered_set>
+
 #include <libtorrent/announce_entry.hpp>
 
 namespace libtorrent
@@ -35,10 +37,16 @@ namespace libtorrent
 
     void to_json(nlohmann::json& json, const libtorrent::announce_entry& entry)
     {
+        std::unordered_set<std::string> source;
+        if (entry.source == lt::announce_entry::tracker_source::source_torrent)     source.insert("torrent");
+        if (entry.source == lt::announce_entry::tracker_source::source_client)      source.insert("client");
+        if (entry.source == lt::announce_entry::tracker_source::source_magnet_link) source.insert("magnet_link");
+        if (entry.source == lt::announce_entry::tracker_source::source_tex)         source.insert("tex");
+
         json = {
             {"endpoints", entry.endpoints},
             {"fail_limit", entry.fail_limit},
-            {"source", entry.source},
+            {"source", source},
             {"tier", entry.tier},
             {"trackerid", entry.trackerid},
             {"url", entry.url},

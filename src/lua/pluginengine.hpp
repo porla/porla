@@ -36,8 +36,6 @@ namespace porla::Lua
     class PluginEngine
     {
     public:
-        // Every completion callback is invoked via boost::asio::post, never inline, so
-        // it is always safe to mutate the engine from inside one.
         using CompletionCallback = std::function<void()>;
 
         explicit PluginEngine(const PluginEngineOptions& options);
@@ -46,9 +44,6 @@ namespace porla::Lua
         PluginEngine& operator=(const PluginEngine&) = delete;
 
         ~PluginEngine();
-
-        // Persists the config, then reloads the plugin if it is currently loaded.
-        void Configure(int id, const std::optional<std::string>& config, CompletionCallback callback = {});
 
         int InstallFromArchive(
             const std::vector<char>& buffer,
@@ -63,7 +58,6 @@ namespace porla::Lua
         [[nodiscard]] bool IsUnloading(int id) const;
 
         void Reload(int id, CompletionCallback callback = {});
-        void Uninstall(int id, CompletionCallback callback = {});
         void Unload(int id, CompletionCallback callback = {});
         void UnloadAll(CompletionCallback callback = {});
 

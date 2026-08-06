@@ -37,8 +37,6 @@ namespace porla
 
             int                                                                           id;
             std::string                                                                   name;
-            bool                                                                          is_default;
-            std::map<std::string, nlohmann::json>                                         metadata;
             std::unique_ptr<lt::session>                                                  session;
             std::map<lt::info_hash_t, std::tuple<lt::torrent_handle, lt::torrent_status>> torrents;
 
@@ -58,8 +56,6 @@ namespace porla
         explicit Sessions(const SessionsOptions& options);
         ~Sessions();
 
-        std::map<int, std::shared_ptr<SessionState>>& All();
-        std::shared_ptr<SessionState> Default();
         std::shared_ptr<SessionState> Get(const int id);
 
         void LoadAll();

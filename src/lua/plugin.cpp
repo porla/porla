@@ -19,6 +19,7 @@
 #include "../config.hpp"
 #include "../cron.hpp"
 #include "../curlmulti.hpp"
+#include "../data/models/sessions.hpp"
 #include "../sessions.hpp"
 #include "../zip.hpp"
 
@@ -40,8 +41,6 @@ namespace
         return L != nullptr && lua_status(L) == LUA_YIELD;
     }
 
-    // Never blindly construct a sol::error from a failed result - Lua errors are not
-    // guaranteed to be strings, and error() with a table would otherwise blow up here.
     std::string DescribeError(const sol::protected_function_result& result)
     {
         if (result.valid() || result.return_count() < 1)
@@ -60,12 +59,6 @@ namespace
             + std::string(sol::type_name(result.lua_state(), value.get_type()));
     }
 }
-
-struct CoroutineState
-{
-    sol::thread thread;
-    std::string origin; // "init", "destroy", ... purely for diagnostics
-};
 
 struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
 {
@@ -108,7 +101,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
     std::optional<Plugin::Meta>              meta;
     std::map<std::string, std::vector<char>> files; // populated by LoadFromArchive
 
-    std::vector<CoroutineState>              active_coroutines;
+    std::vector<sol::thread>                 active_coroutines;
     boost::asio::steady_timer                coroutine_timer;
     bool                                     timer_armed = false;
 
@@ -356,7 +349,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
 
     void DisconnectAllSignals()
     {
-        m_signal_connections.clear(); // scoped_connection dtor disconnects each
+        m_signal_connections.clear();
     }
 
     // -- Lua state -----------------------------------------------------------
@@ -365,10 +358,10 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
     {
         lua.open_libraries(
             sol::lib::base,
-            sol::lib::coroutine, // was missing - the whole design is coroutine based
-            sol::lib::debug,     // needed for tracebacks on errors
+            sol::lib::coroutine,
+            sol::lib::debug,
             sol::lib::io,
-            sol::lib::math,      // was missing
+            sol::lib::math,
             sol::lib::os,
             sol::lib::package,
             sol::lib::string,
@@ -488,28 +481,25 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             return metrics_tbl;
         };
 
-        porla["sessions"] = [](sol::this_state s, const std::string& name)
+        porla["sessions"] = [](sol::this_state s, const std::string& name) -> std::shared_ptr<porla::Sessions::SessionState>
         {
             sol::state_view lua{s};
 
-            auto& sessions = lua.registry()["sessions"].get<porla::Lua::Registry::Sessions>().sessions;
+            auto db = lua.registry()["db"].get<porla::Lua::Registry::Sqlite3>().db;
 
-            // Bind the range to a named reference. The original called sessions.All()
-            // twice; if All() returns by value those are begin()/end() of two different
-            // temporaries, which is undefined behaviour.
-            const auto& all = sessions.All();
+            const auto& sessions = Data::Models::Sessions::List(db);
 
             auto found = std::find_if(
-                all.begin(),
-                all.end(),
-                [&name](const auto& iter) { return iter.second->name == name; });
+                sessions.begin(),
+                sessions.end(),
+                [&name](const auto& iter) { return iter.name == name; });
 
-            if (found == all.end())
+            if (found == sessions.end())
             {
-                return decltype(found->second){};
+                return nullptr;
             }
 
-            return found->second;
+            return lua.registry()["sessions"].get<porla::Lua::Registry::Sessions>().sessions.Get(found->id);
         };
 
         return porla;
@@ -523,8 +513,8 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             return false;
         }
 
-        sol::thread th = sol::thread::create(lua.lua_state());
-        sol::coroutine co(th.state(), fn);
+        sol::thread th = sol::thread::create(lua);
+        sol::coroutine co(th, fn);
 
         if (!co.valid())
         {
@@ -548,9 +538,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             return true;
         }
 
-        active_coroutines.push_back(CoroutineState{
-            .thread = std::move(th),
-            .origin = std::move(origin)});
+        active_coroutines.push_back(std::move(th));
 
         ArmTimer();
 
@@ -563,7 +551,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             std::remove_if(
                 active_coroutines.begin(),
                 active_coroutines.end(),
-                [](const CoroutineState& cs) { return !IsSuspended(cs.thread); }),
+                [](const sol::thread& st) { return !IsSuspended(st); }),
             active_coroutines.end());
     }
 
@@ -620,11 +608,6 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
                 BOOST_LOG_TRIVIAL(warning)
                     << Name() << ": " << active_coroutines.size()
                     << " coroutine(s) still suspended after the unload timeout - abandoning them";
-
-                for (const auto& cs : active_coroutines)
-                {
-                    BOOST_LOG_TRIVIAL(debug) << Name() << ": abandoned coroutine from '" << cs.origin << "'";
-                }
 
                 active_coroutines.clear();
 

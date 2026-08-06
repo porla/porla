@@ -19,13 +19,6 @@ SessionsAdd::SessionsAdd(sqlite3* db, porla::Sessions& sessions)
 
 void SessionsAdd::Invoke(const SessionsAddReq& req, WriteCb<SessionsAddRes> cb)
 {
-    const auto existing_session = porla::Data::Models::Sessions::GetByName(m_db, req.name);
-
-    if (existing_session)
-    {
-        return cb.Error(-1, "Session with specified name already exists");
-    }
-
     std::string settings_base = req.settings_base.value_or("default");
 
     lt::settings_pack settings;
@@ -35,10 +28,21 @@ void SessionsAdd::Invoke(const SessionsAddReq& req, WriteCb<SessionsAddRes> cb)
 
     LibtorrentSettingsPack::Update(settings, req.settings.value_or(std::map<std::string, json>()));
 
+    const auto session = Data::Models::Sessions::Session{
+        .id                    = -1,
+        .name                  = req.name,
+        .is_default            = false,
+        .metadata              = req.metadata.value_or({}),
+        .params                = lt::session_params(settings),
+        .timer_dht_stats       = req.timer_dht_stats.value_or(5000),
+        .timer_save_state      = req.timer_save_state.value_or(300000),
+        .timer_session_stats   = req.timer_session_stats.value_or(5000),
+        .timer_torrent_updates = req.timer_torrent_updates.value_or(1000)
+    };
+
     int session_id = porla::Data::Models::Sessions::Insert(
         m_db,
-        req.name,
-        settings);
+        session);
 
     BOOST_LOG_TRIVIAL(info) << "Session " << req.name << " added - loading...";
 
