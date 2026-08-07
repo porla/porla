@@ -19,6 +19,17 @@ using porla::Query::QueryError;
 typedef std::function<bool(const libtorrent::torrent_status&)> TorrentStatusFilter;
 typedef std::variant<std::int64_t, float, std::string>         ValueVariant;
 
+static std::string ToLower(std::string s)
+{
+    std::transform(
+        s.begin(),
+        s.end(),
+        s.begin(),
+        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+    return s;
+}
+
 class ExceptionErrorListener : public antlr4::BaseErrorListener
 {
 public:
@@ -166,18 +177,18 @@ public:
     }
 
     // text : STRING | ID | INT | FLOAT ;
-    // DECISION: free text matches the torrent name (case-sensitive substring).
-    // Swap in additional fields / case-folding here if desired.
     antlrcpp::Any visitText(PorlaQueryLangParser::TextContext* context) override
     {
         std::string needle = context->STRING()
             ? Unquote(context->STRING()->getText())
             : context->getText();
+
+        std::string lower = ToLower(needle);
  
         return TorrentStatusFilter(
-            [needle](const lt::torrent_status& ts)
+            [lower](const lt::torrent_status& ts)
             {
-                return ts.name.find(needle) != std::string::npos;
+                return ToLower(ts.name).find(lower) != std::string::npos;
             });
     }
 

@@ -50,7 +50,7 @@ class Base64 {
     size_t i;
     char *p = const_cast<char*>(ret.c_str());
 
-    for (i = 0; i < in_len - 2; i += 3) {
+    for (i = 0; i + 2 < in_len; i += 3) {
       *p++ = sEncodingTable[(data[i] >> 2) & 0x3F];
       *p++ = sEncodingTable[((data[i] & 0x3) << 4) | ((int) (data[i + 1] & 0xF0) >> 4)];
       *p++ = sEncodingTable[((data[i + 1] & 0xF) << 2) | ((int) (data[i + 2] & 0xC0) >> 6)];

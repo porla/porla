@@ -54,11 +54,12 @@
 #include "methods/torrents/torrentspause.hpp"
 #include "methods/torrents/torrentspeersadd.hpp"
 #include "methods/torrents/torrentspeerslist.hpp"
+#include "methods/torrents/torrentspiecesget.hpp"
+#include "methods/torrents/torrentspropertiesget.hpp"
+#include "methods/torrents/torrentspropertiesset.hpp"
 #include "methods/torrents/torrentsrecheck.hpp"
 #include "methods/torrents/torrentsremove.hpp"
 #include "methods/torrents/torrentsresume.hpp"
-#include "methods/torrents/torrentspropertiesget.hpp"
-#include "methods/torrents/torrentspropertiesset.hpp"
 #include "methods/torrents/torrentstrackerslist.hpp"
 #include "methods/webui/webuiinstall.hpp"
 
@@ -169,6 +170,7 @@ int main(int argc, char* argv[])
             {"torrents.pause", porla::Methods::TorrentsPause(cfg->db, sessions)},
             {"torrents.peers.add", porla::Methods::TorrentsPeersAdd(cfg->db, sessions)},
             {"torrents.peers.list", porla::Methods::TorrentsPeersList(cfg->db, sessions)},
+            {"torrents.pieces.get", porla::Methods::TorrentsPiecesGet(cfg->db, sessions)},
             {"torrents.properties.get", porla::Methods::TorrentsPropertiesGet(cfg->db, sessions)},
             {"torrents.properties.set", porla::Methods::TorrentsPropertiesSet(cfg->db, sessions)},
             {"torrents.recheck", porla::Methods::TorrentsRecheck(cfg->db, sessions)},

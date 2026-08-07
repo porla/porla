@@ -79,11 +79,9 @@ int Sessions::Migrate(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
             session_id INTEGER NOT NULL REFERENCES sessions(id),
             info_hash_v1 TEXT,
             info_hash_v2 TEXT,
-            name TEXT,
             queue_position INTEGER NOT NULL,
-            resume_data_buf BLOB NOT NULL,
-            save_path TEXT NOT NULL,
-            client_data TEXT NULL,
+            params BLOB NOT NULL,
+            userdata BLOB NULL,
             CHECK (info_hash_v1 IS NOT NULL OR info_hash_v2 IS NOT NULL),
             UNIQUE (session_id, info_hash_v1),
             UNIQUE (session_id, info_hash_v2)
@@ -94,20 +92,16 @@ int Sessions::Migrate(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
             session_id,
             info_hash_v1,
             info_hash_v2,
-            name,
             queue_position,
-            resume_data_buf,
-            save_path,
-            client_data
+            params,
+            userdata
         )
         SELECT
             (SELECT id FROM sessions WHERE name = prev.session_id),
             prev.info_hash_v1,
             prev.info_hash_v2,
-            prev.name,
             prev.queue_position,
             prev.resume_data_buf,
-            save_path,
             client_data
         FROM addtorrentparams_prev prev;
 

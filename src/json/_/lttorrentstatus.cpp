@@ -3,16 +3,25 @@
 #include <libtorrent/torrent_status.hpp>
 
 #include "../../torrentclientdata.hpp"
+#include "../../utils/base64.hpp"
 #include "../../utils/ratio.hpp"
 
 namespace libtorrent
 {
-    void from_json(const nlohmann::json& j, typed_bitfield<piece_index_t>& pieces)
+    void to_json(nlohmann::json& j, const lt::torrent_status::state_t& state)
     {
+        if (state == lt::torrent_status::state_t::checking_files)       j = "checking_files";
+        if (state == lt::torrent_status::state_t::downloading_metadata) j = "downloading_metadata";
+        if (state == lt::torrent_status::state_t::downloading)          j = "downloading";
+        if (state == lt::torrent_status::state_t::finished)             j = "finished";
+        if (state == lt::torrent_status::state_t::seeding)              j = "seeding";
+        if (state == lt::torrent_status::state_t::checking_resume_data) j = "checking_resume_data";
     }
 
-    void to_json(nlohmann::json& j, const typed_bitfield<piece_index_t>& pieces)
+    void to_json(nlohmann::json& j, const lt::storage_mode_t& storage_mode)
     {
+        if (storage_mode == lt::storage_mode_t::storage_mode_allocate) j = "allocate";
+        if (storage_mode == lt::storage_mode_t::storage_mode_sparse)   j = "sparse";
     }
 
     void to_json(nlohmann::json &j, const torrent_status& ts)
@@ -74,7 +83,7 @@ namespace libtorrent
             {"num_pieces", ts.num_pieces},
             {"num_seeds", ts.num_seeds},
             {"num_uploads", ts.num_uploads},
-            {"pieces", ts.pieces},
+            // {"pieces", ts.pieces},
             {"progress", ts.progress},
             {"queue_position", static_cast<int>(ts.queue_position)},
             {"ratio", porla::Utils::Ratio(ts, false)},
@@ -98,7 +107,7 @@ namespace libtorrent
             {"upload_payload_rate", ts.upload_payload_rate},
             {"upload_rate", ts.upload_rate},
             {"uploads_limit", ts.uploads_limit},
-            {"verified_pieces", ts.verified_pieces}
+            // {"verified_pieces", ts.verified_pieces}
         };
     }
 }

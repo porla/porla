@@ -94,6 +94,8 @@ namespace porla::Methods
     struct TorrentsPeersAddRes;
     struct TorrentsPeersListReq;
     struct TorrentsPeersListRes;
+    struct TorrentsPiecesGetReq;
+    struct TorrentsPiecesGetRes;
     struct TorrentsPropertiesGetReq;
     struct TorrentsPropertiesGetRes;
     struct TorrentsPropertiesSetReq;
@@ -220,6 +222,7 @@ namespace porla::Methods
     void from_json(const nlohmann::json& json, TorrentsPauseReq& req);
     void from_json(const nlohmann::json& json, TorrentsPeersAddReq& req);
     void from_json(const nlohmann::json& json, TorrentsPeersListReq& req);
+    void from_json(const nlohmann::json& json, TorrentsPiecesGetReq& req);
     void from_json(const nlohmann::json& json, TorrentsPropertiesGetReq& req);
     void from_json(const nlohmann::json& json, TorrentsPropertiesSetReq& req);
     void from_json(const nlohmann::json& json, TorrentsRecheckReq& req);
@@ -249,6 +252,7 @@ namespace porla::Methods
     void to_json(nlohmann::json& json, const TorrentsPauseRes& res);
     void to_json(nlohmann::json& json, const TorrentsPeersAddRes& res);
     void to_json(nlohmann::json& json, const TorrentsPeersListRes& res);
+    void to_json(nlohmann::json& json, const TorrentsPiecesGetRes& res);
     void to_json(nlohmann::json& json, const TorrentsPropertiesGetRes& res);
     void to_json(nlohmann::json& json, const TorrentsRecheckRes& res);
     void to_json(nlohmann::json& json, const TorrentsRemoveRes& res);

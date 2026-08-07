@@ -119,6 +119,7 @@ add_library(
     src/json/_/torrentspause.cpp
     src/json/_/torrentspeersadd.cpp
     src/json/_/torrentspeerslist.cpp
+    src/json/_/torrentspiecesget.cpp
     src/json/_/torrentspropertiesget.cpp
     src/json/_/torrentspropertiesset.cpp
     src/json/_/torrentsrecheck.cpp
@@ -186,6 +187,7 @@ add_library(
     src/methods/torrents/torrentspause.cpp
     src/methods/torrents/torrentspeersadd.cpp
     src/methods/torrents/torrentspeerslist.cpp
+    src/methods/torrents/torrentspiecesget.cpp
     src/methods/torrents/torrentspropertiesget.cpp
     src/methods/torrents/torrentsrecheck.cpp
     src/methods/torrents/torrentsremove.cpp
