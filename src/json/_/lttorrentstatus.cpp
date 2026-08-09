@@ -51,7 +51,7 @@ namespace libtorrent
             {"connect_candidates", ts.connect_candidates},
             {"connections_limit", ts.connections_limit},
             {"current_tracker", ts.current_tracker},
-            {"distributed_full_copies", ts.distributed_full_copies},
+            {"distributed_copies", ts.distributed_copies},
             {"down_bandwidth_queue", ts.down_bandwidth_queue},
             {"download_rate", ts.download_rate},
             {"download_payload_rate", ts.download_payload_rate},
@@ -75,7 +75,7 @@ namespace libtorrent
             {"moving_storage", ts.moving_storage},
             {"name", ts.name},
             {"need_save_resume", ts.need_save_resume},
-            {"next_announce", ts.next_announce.count()},
+            {"next_announce", lt::total_seconds(ts.next_announce)},
             {"num_complete", ts.num_complete},
             {"num_connections", ts.num_connections},
             {"num_incomplete", ts.num_incomplete},
@@ -83,7 +83,6 @@ namespace libtorrent
             {"num_pieces", ts.num_pieces},
             {"num_seeds", ts.num_seeds},
             {"num_uploads", ts.num_uploads},
-            // {"pieces", ts.pieces},
             {"progress", ts.progress},
             {"queue_position", static_cast<int>(ts.queue_position)},
             {"ratio", porla::Utils::Ratio(ts, false)},
@@ -106,8 +105,7 @@ namespace libtorrent
             {"up_bandwidth_queue", ts.up_bandwidth_queue},
             {"upload_payload_rate", ts.upload_payload_rate},
             {"upload_rate", ts.upload_rate},
-            {"uploads_limit", ts.uploads_limit},
-            // {"verified_pieces", ts.verified_pieces}
+            {"uploads_limit", ts.uploads_limit}
         };
     }
 }
