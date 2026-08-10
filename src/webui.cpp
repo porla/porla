@@ -8,6 +8,8 @@
 #include <nlohmann/json.hpp>
 
 #include "buildinfo.hpp"
+#include "data/models/keyvaluestore.hpp"
+#include "utils/base64.hpp"
 
 using json = nlohmann::json;
 using porla::WebUI;
@@ -39,9 +41,14 @@ static HttpResponse HttpGet(const std::string& url)
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_USERAGENT, user_agent.str().c_str());
 
-    if (curl_easy_perform(curl) != CURLE_OK)
+    CURLcode res = curl_easy_perform(curl);
+
+    if (res != CURLE_OK)
     {
+        BOOST_LOG_TRIVIAL(error) << curl_easy_strerror(res);
+
         curl_easy_cleanup(curl);
+
         return HttpResponse{
             .body        = {},
             .status_code = -1
@@ -59,12 +66,18 @@ static HttpResponse HttpGet(const std::string& url)
     };
 }
 
-void WebUI::Download(const std::string& repo, const fs::path& target_file)
+void WebUI::Download(sqlite3* db)
 {
+    const auto repo_json = Data::Models::KeyValueStore::Get(db, "porla.webui.repo");
+
+    const std::string repo = repo_json.is_string()
+        ? repo_json.get<std::string>()
+        : "porla/web";
+
     std::stringstream url;
     url << "https://api.github.com/repos/" << repo << "/releases/latest";
 
-    BOOST_LOG_TRIVIAL(info) << "Downloading web UI from github.com/" << repo << " to " << target_file;
+    BOOST_LOG_TRIVIAL(info) << "Downloading web UI from GitHub repo " << repo;
 
     HttpResponse latest_release = HttpGet(url.str());
 
@@ -103,14 +116,10 @@ void WebUI::Download(const std::string& repo, const fs::path& target_file)
 
     try
     {
-        std::ofstream asset_output_file(target_file, std::ios::binary);
-        asset_output_file.exceptions(~std::ios::goodbit);
-        asset_output_file << asset_data.body;
-        asset_output_file.flush();
-        asset_output_file.close();
+        Data::Models::KeyValueStore::Set(db, "porla.webui.data", Utils::Base64::Encode(asset_data.body));
     }
     catch (const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to write web UI file: " << e.what();
+        BOOST_LOG_TRIVIAL(error) << "Failed to store web UI in key-value store: " << e.what();
     }
 }

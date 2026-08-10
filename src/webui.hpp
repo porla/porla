@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <string>
 
+#include <sqlite3.h>
+
 namespace fs = std::filesystem;
 
 namespace porla
@@ -10,6 +12,6 @@ namespace porla
     class WebUI
     {
     public:
-        static void Download(const std::string& repo, const fs::path& target_file);
+        static void Download(sqlite3* db);
     };
 }

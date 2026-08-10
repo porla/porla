@@ -126,7 +126,6 @@ add_library(
     src/json/_/torrentsremove.cpp
     src/json/_/torrentsresume.cpp
     src/json/_/torrentstrackerslist.cpp
-    src/json/_/webuiinstall.cpp
 
     src/lua/globals/cron.cpp
     src/lua/globals/http.cpp
@@ -194,7 +193,6 @@ add_library(
     src/methods/torrents/torrentsresume.cpp
     src/methods/torrents/torrentspropertiesset.cpp
     src/methods/torrents/torrentstrackerslist.cpp
-    src/methods/webui/webuiinstall.cpp
 
     src/query/_aux/PorlaQueryLangBaseVisitor.cpp
     src/query/_aux/PorlaQueryLangLexer.cpp

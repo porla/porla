@@ -1,5 +1,7 @@
 #include "mmdblookup.hpp"
 
+#include <boost/log/trivial.hpp>
+
 #include "../data/models/keyvaluestore.hpp"
 #include "../mmdb.hpp"
 
@@ -12,17 +14,44 @@ using porla::Methods::MmdbLookupRes;
 
 struct MmdbLookup::State
 {
+    sqlite3*                     db;
     std::unique_ptr<porla::Mmdb> mmdb;
+    boost::signals2::connection  reload;
+
+    void Load()
+    {
+        mmdb = nullptr;
+
+        const auto mmdb_path = Data::Models::KeyValueStore::Get(db, "porla.mmdb.path");
+
+        if (mmdb_path.is_string() && mmdb_path != "")
+        {
+            if (!fs::exists(mmdb_path))
+            {
+                BOOST_LOG_TRIVIAL(error) << "MMDB path " << mmdb_path.get<std::string>() << " does not exist";
+                return;
+            }
+
+            BOOST_LOG_TRIVIAL(info) << "Loading MMDB file from " << mmdb_path.get<std::string>();
+            mmdb = Mmdb::Load(mmdb_path.get<std::string>());
+        }
+    }
 };
 
-MmdbLookup::MmdbLookup(std::optional<fs::path> file)
+MmdbLookup::MmdbLookup(sqlite3* db, boost::signals2::signal<void(const std::unordered_set<std::string>&)>& kv_updated)
 {
     m_state = std::make_shared<MmdbLookup::State>();
-
-    if (file.has_value())
+    m_state->db = db;
+    m_state->reload = kv_updated.connect([s = m_state](const std::unordered_set<std::string>& keys)
     {
-        m_state->mmdb = Mmdb::Load(file.value());
-    }
+        if (keys.contains("porla.mmdb.path"))
+        {
+            BOOST_LOG_TRIVIAL(debug) << "Reloading MMDB file";
+            s->Load();
+        }
+    });
+
+    m_state->Load();
 }
 
 void MmdbLookup::Invoke(const MmdbLookupReq& req, WriteCb<MmdbLookupRes> cb)

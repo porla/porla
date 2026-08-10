@@ -125,6 +125,7 @@ std::unique_ptr<Mmdb> Mmdb::Load(const std::filesystem::path& path)
 
     if (result != MMDB_SUCCESS)
     {
+        BOOST_LOG_TRIVIAL(error) << "Failed to open MMDB file: " << MMDB_strerror(result);
         return nullptr;
     }
 

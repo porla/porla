@@ -12,6 +12,8 @@
 #include "sessions.hpp"
 #include "webui.hpp"
 
+#include "data/models/keyvaluestore.hpp"
+
 #include "http/jsonrpchandler.hpp"
 #include "http/metricshandler.hpp"
 #include "http/webuihandler.hpp"
@@ -61,7 +63,6 @@
 #include "methods/torrents/torrentsremove.hpp"
 #include "methods/torrents/torrentsresume.hpp"
 #include "methods/torrents/torrentstrackerslist.hpp"
-#include "methods/webui/webuiinstall.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -129,15 +130,15 @@ int main(int argc, char* argv[])
                     });
             });
 
-        boost::signals2::signal<void(const char*, size_t)> webui_installed_signal;
+        boost::signals2::signal<void(const std::unordered_set<std::string>&)> kv_updated_signal;
 
         porla::Http::JsonRpcHandler rpc(cfg->secret_key, {
             {"auth.init", porla::Methods::Auth::AuthInit(cfg->db)},
             {"auth.login", porla::Methods::Auth::AuthLogin(cfg->db, cfg->secret_key)},
             {"fs.space", porla::Methods::FsSpace()},
             {"kv.get", porla::Methods::KeyValueGet(cfg->db)},
-            {"kv.set", porla::Methods::KeyValueSet(cfg->db)},
-            {"mmdb.lookup", porla::Methods::MmdbLookup(cfg->mmdb_file)},
+            {"kv.set", porla::Methods::KeyValueSet(io, cfg->db, kv_updated_signal)},
+            {"mmdb.lookup", porla::Methods::MmdbLookup(cfg->db, kv_updated_signal)},
             {"plugins.add", porla::Methods::PluginsAdd(cfg->db, plugin_engine)},
             {"plugins.get", porla::Methods::PluginsGet(cfg->db, plugin_engine)},
             {"plugins.list", porla::Methods::PluginsList(cfg->db, plugin_engine)},
@@ -176,8 +177,7 @@ int main(int argc, char* argv[])
             {"torrents.recheck", porla::Methods::TorrentsRecheck(cfg->db, sessions)},
             {"torrents.remove", porla::Methods::TorrentsRemove(cfg->db, sessions)},
             {"torrents.resume", porla::Methods::TorrentsResume(cfg->db, sessions)},
-            {"torrents.trackers.list", porla::Methods::TorrentsTrackersList(cfg->db, sessions)},
-            {"webui.install", porla::Methods::WebUI::WebUIInstall(*cfg, webui_installed_signal)}
+            {"torrents.trackers.list", porla::Methods::TorrentsTrackersList(cfg->db, sessions)}
         });
 
         std::string http_base_path = cfg->http_base_path.value_or("/");
@@ -198,20 +198,21 @@ int main(int argc, char* argv[])
 
         if (cfg->http_webui_enabled.value_or(true))
         {
-            const auto webui_file = cfg->state_dir.value_or(fs::current_path()) / cfg->http_webui_file.value_or("webui.zip");
+            const auto webui_data = porla::Data::Models::KeyValueStore::Get(cfg->db, "porla.webui.data");
 
-            if (!fs::exists(webui_file))
+            if (webui_data == json())
             {
-                porla::WebUI::Download(
-                    cfg->http_webui_repository.value_or("porla/web"),
-                    webui_file);
+                porla::WebUI::Download(cfg->db);
             }
 
-            if (fs::exists(webui_file))
-            {
-                BOOST_LOG_TRIVIAL(info) << "Enabling HTTP web UI";
-                http_server.get(http_base_path + "/*", porla::Http::WebUIHandler(webui_file, http_base_path, webui_installed_signal));
-            }
+            BOOST_LOG_TRIVIAL(info) << "Enabling HTTP web UI";
+
+            auto handler = std::make_shared<porla::Http::WebUIHandler>(
+                cfg->db,
+                http_base_path,
+                kv_updated_signal);
+
+            http_server.get(http_base_path + "/*", [handler](auto res, auto req) { (*handler)(res, req); });
         }
 
         http_server.listen(

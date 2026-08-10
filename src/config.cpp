@@ -96,9 +96,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         if (strcmp("true", val) == 0)  cfg->http_webui_enabled = true;
         if (strcmp("false", val) == 0) cfg->http_webui_enabled = false;
     }
-    if (auto val = std::getenv("PORLA_HTTP_WEBUI_FILE"))       cfg->http_webui_file       = val;
-    if (auto val = std::getenv("PORLA_HTTP_WEBUI_REPOSITORY")) cfg->http_webui_repository = val;
-    if (auto val = std::getenv("PORLA_MMDB_FILE"))             cfg->mmdb_file             = val;
     if (auto val = std::getenv("PORLA_SECRET_KEY"))            cfg->secret_key            = val;
     if (auto val = std::getenv("PORLA_STATE_DIR"))             cfg->state_dir             = val;
 
@@ -204,12 +201,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
             if (auto val = config_file_tbl["http"]["webui_enabled"].value<bool>())
                 cfg->http_webui_enabled = *val;
-
-            if (auto val = config_file_tbl["http"]["webui_file"].value<std::string>())
-                cfg->http_webui_file = *val;
-
-            if (auto val = config_file_tbl["http"]["webui_repository"].value<std::string>())
-                cfg->http_webui_repository = *val;
 
             // Load presets
             if (auto const* presets_tbl = config_file_tbl["presets"].as_table())
@@ -348,15 +339,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     {
         cfg->http_webui_enabled = cmd["http-webui-enabled"].as<bool>();
     }
-    if (cmd.count("http-webui-file"))
-    {
-        cfg->http_webui_file = cmd["http-webui-file"].as<std::string>();
-    }
-    if (cmd.count("http-webui-repository"))
-    {
-        cfg->http_webui_repository = cmd["http-webui-repository"].as<std::string>();
-    }
-    if (cmd.count("mmdb-file"))             cfg->mmdb_file             = cmd["mmdb-file"].as<std::string>();
     if (cmd.count("secret-key"))            cfg->secret_key            = cmd["secret-key"].as<std::string>();
     if (cmd.count("session-settings-base"))
     {

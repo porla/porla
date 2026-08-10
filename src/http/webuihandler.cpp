@@ -7,6 +7,8 @@
 #include <boost/log/trivial.hpp>
 #include <utility>
 
+#include "../data/models/keyvaluestore.hpp"
+#include "../utils/base64.hpp"
 #include "../zip.hpp"
 
 namespace fs = std::filesystem;
@@ -28,12 +30,20 @@ static void str_replace_all(std::string& str, const std::string& from, const std
     }
 }
 
-WebUIHandler::WebUIHandler(const std::filesystem::path& webui_file, std::string base_path, boost::signals2::signal<void(const char*, size_t)>& reload_signal)
-    : m_base_path(std::move(base_path))
-    , m_webui_file(std::move(webui_file))
+WebUIHandler::WebUIHandler(sqlite3* db, std::string base_path, boost::signals2::signal<void(const std::unordered_set<std::string>&)>& reload_signal)
+    : m_db(db)
+    , m_base_path(std::move(base_path))
 {
     LoadUI();
-    m_reload_connection = reload_signal.connect([this](const char* b, size_t s) { this->LoadUIFromBuffer(b, s); });
+
+    m_reload_connection = reload_signal.connect(
+        [this](const std::unordered_set<std::string>& keys)
+        {
+            if (keys.contains("porla.webui.data"))
+            {
+                this->LoadUI();
+            }
+        });
 }
 
 void WebUIHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
@@ -61,6 +71,12 @@ void WebUIHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* r
         if (file.has_extension() && MimeTypes.contains(file.extension()))
         {
             mime_type = MimeTypes.at(file.extension());
+        }
+
+        if (!m_files.contains(file))
+        {
+            res->writeStatus("404 Not found")->end("Not found");
+            return;
         }
 
         std::string data = std::string(m_files.at(file).data(), m_files.at(file).size());
@@ -107,31 +123,18 @@ void WebUIHandler::operator()(uWS::HttpResponse<false>* res, uWS::HttpRequest* r
 
 void WebUIHandler::LoadUI()
 {
-    std::ifstream webui_file_stream;
-    webui_file_stream.open(m_webui_file, std::ios::binary);
-    webui_file_stream.seekg(0, std::ios_base::end);
-    const std::streamsize webui_file_size = webui_file_stream.tellg();
-    webui_file_stream.seekg(0, std::ios_base::beg);
+    const auto webui_data = Data::Models::KeyValueStore::Get(m_db, "porla.webui.data");
 
-    if (webui_file_size < 0)
+    if (webui_data == nlohmann::json() || !webui_data.is_string())
     {
-        BOOST_LOG_TRIVIAL(warning) << "Could not read web UI file size";
         return;
     }
 
-    BOOST_LOG_TRIVIAL(info) << "Loading web UI (" << webui_file_size << " bytes)";
+    const auto decoded = Utils::Base64::Decode(webui_data.get<std::string>());
 
-    std::vector<char> webui_file_buffer;
-    webui_file_buffer.resize(webui_file_size);
+    BOOST_LOG_TRIVIAL(info) << "Loading web UI (" << decoded.size() << " bytes)";
 
-    webui_file_stream.read(&webui_file_buffer[0], webui_file_size);
-    webui_file_stream.close();
-
-    LoadUIFromBuffer(webui_file_buffer.data(), webui_file_buffer.size());
-}
-
-void WebUIHandler::LoadUIFromBuffer(const char* buffer, size_t size)
-{
     m_files.clear();
-    m_files = Zip::Load(std::vector<char>(buffer, buffer + size));
+    m_files = Zip::Load(std::vector<char>(decoded.begin(), decoded.end()));
 }
+
