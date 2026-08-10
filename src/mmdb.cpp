@@ -158,6 +158,7 @@ nlohmann::json Mmdb::Lookup(const std::string& key)
 
     if (err_mmdb != MMDB_SUCCESS)
     {
+        BOOST_LOG_TRIVIAL(error) << "Error in MMDB lookup: " << MMDB_strerror(err_mmdb);
         return nullptr;
     }
 
