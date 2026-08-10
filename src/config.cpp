@@ -55,7 +55,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     };
 
     auto cfg = std::unique_ptr<Config>(new Config());
-    cfg->http_auth_enabled = true;
     cfg->sessions.insert({ "default", lt::default_settings() });
 
     // Check default locations for a config file.
@@ -79,10 +78,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
     if (auto val = std::getenv("PORLA_CONFIG_FILE"))           cfg->config_file     = val;
     if (auto val = std::getenv("PORLA_DB"))                    cfg->db_file         = val;
-    if (auto val = std::getenv("PORLA_HTTP_AUTH_DISABLED_YES_REALLY"))
-    {
-        if (strcmp("true", val) == 0) cfg->http_auth_enabled = false;
-    }
     if (auto val = std::getenv("PORLA_HTTP_BASE_PATH"))        cfg->http_base_path  = val;
     if (auto val = std::getenv("PORLA_HTTP_HOST"))             cfg->http_host       = val;
     if (auto val = std::getenv("PORLA_HTTP_METRICS_ENABLED"))
