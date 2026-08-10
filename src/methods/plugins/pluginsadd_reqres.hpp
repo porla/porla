@@ -9,9 +9,7 @@ namespace porla::Methods
 {
     struct PluginsAddReq
     {
-        std::string                type;
-        std::string                data;
-
+        std::string                                          path;
         std::optional<std::string>                           config;
         std::optional<std::map<std::string, nlohmann::json>> metadata;
     };

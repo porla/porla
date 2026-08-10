@@ -7,8 +7,7 @@ namespace porla::Methods
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         PluginsAddReq,
-        type,
-        data,
+        path,
         config,
         metadata)
 

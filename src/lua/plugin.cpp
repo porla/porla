@@ -488,13 +488,19 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
     template<typename... Args>
     bool SpawnCoroutine(std::string origin, const sol::protected_function& fn, Args&&... args)
     {
+        BOOST_LOG_TRIVIAL(debug) << "Spawning coroutine in " << origin;
+
         if (!fn.valid())
         {
+            BOOST_LOG_TRIVIAL(warning) << "Function not valid";
             return false;
         }
 
+        BOOST_LOG_TRIVIAL(trace) << "Creating Lua thread";
         sol::thread th = sol::thread::create(lua);
-        sol::coroutine co(th, fn);
+
+        BOOST_LOG_TRIVIAL(trace) << "Creating Lua coroutine";
+        sol::coroutine co(th.thread_state(), fn);
 
         if (!co.valid())
         {
@@ -503,6 +509,8 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         }
 
         {
+            BOOST_LOG_TRIVIAL(trace) << "Executing coroutine";
+
             sol::protected_function_result result = co(std::forward<Args>(args)...);
 
             if (!result.valid())
@@ -511,6 +519,8 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
                     << Name() << ": error in '" << origin << "': " << DescribeError(result);
                 return false;
             }
+
+            BOOST_LOG_TRIVIAL(trace) << "Exiting coroutine result scope";
         }
 
         if (!IsSuspended(th))

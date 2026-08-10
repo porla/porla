@@ -14,7 +14,7 @@ namespace porla::Methods
         struct Plugin
         {
             int                                   id;
-            std::string                           type;
+            std::string                           path;
             std::optional<std::string>            name;
             std::optional<std::string>            version;
             std::map<std::string, nlohmann::json> metadata;

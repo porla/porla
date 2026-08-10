@@ -116,25 +116,10 @@ void PluginEngine::Load(int id)
         .sessions   = m_options.sessions
     };
 
-    std::unique_ptr<Plugin> loaded_plugin;
-
-    if (plugin->type == "path")
-    {
-        const auto path = std::string(plugin->data.begin(), plugin->data.end());
-
-        BOOST_LOG_TRIVIAL(info) << "plugin[" << id << "] Loading from path " << path;
-        loaded_plugin = Plugin::LoadFromPath(path, plugin->config, load_options);
-    }
-    else if (plugin->type == "archive")
-    {
-        BOOST_LOG_TRIVIAL(info) << "plugin[" << id << "] Loading from archive";
-        loaded_plugin = Plugin::LoadFromArchive(plugin->data, plugin->config, load_options);
-    }
-    else
-    {
-        BOOST_LOG_TRIVIAL(warning) << "plugin[" << id << "] Invalid type: " << plugin->type;
-        return;
-    }
+    std::unique_ptr<Plugin> loaded_plugin = Plugin::LoadFromPath(
+        plugin->path,
+        plugin->config,
+        load_options);
 
     if (loaded_plugin == nullptr)
     {

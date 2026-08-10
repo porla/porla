@@ -16,8 +16,7 @@ namespace porla::Data::Models
         struct Plugin
         {
             int                                   id;
-            std::string                           type;
-            std::vector<char>                     data;
+            std::string                           path;
             std::optional<std::string>            config;
             std::map<std::string, nlohmann::json> metadata;
         };

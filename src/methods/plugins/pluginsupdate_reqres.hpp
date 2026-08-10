@@ -11,9 +11,9 @@ namespace porla::Methods
     struct PluginsUpdateReq
     {
         int                                                  id;
+        std::string                                          path;
         std::optional<std::string>                           config;
         std::optional<std::map<std::string, nlohmann::json>> metadata;
-        std::optional<std::string>                           data;
     };
 
     struct PluginsUpdateRes

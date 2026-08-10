@@ -20,14 +20,13 @@ int AlterPlugins::Migrate(sqlite3* db)
 
         CREATE TABLE plugins(
             id INTEGER PRIMARY KEY,
-            type TEXT NOT NULL,
-            data BLOB NOT NULL,
+            path TEXT NOT NULL,
             config TEXT,
             metadata TEXT
         );
 
-        INSERT INTO plugins (id, type, data, config, metadata)
-        SELECT pb.id,"path",pb.path,pb.config,NULL
+        INSERT INTO plugins (id, path, config, metadata)
+        SELECT pb.id,pb.path,pb.config,NULL
         FROM plugins_backup pb;
 
         DROP TABLE plugins_backup;

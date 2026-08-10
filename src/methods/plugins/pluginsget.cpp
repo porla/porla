@@ -36,7 +36,7 @@ void PluginsGet::Invoke(const PluginsGetReq& req, WriteCb<PluginsGetRes> cb)
     return cb.Ok(PluginsGetRes{
         .plugin = PluginsGetRes::Plugin{
             .id        = plugin->id,
-            .type      = plugin->type,
+            .path      = plugin->path,
             .name      = meta.has_value() ? meta->name    : std::nullopt,
             .version   = meta.has_value() ? meta->version : std::nullopt,
             .config    = plugin->config,

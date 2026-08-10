@@ -27,7 +27,8 @@ void PluginsUpdate::Invoke(const PluginsUpdateReq& req, WriteCb<PluginsUpdateRes
         return cb.Error(-1, "Plugin not found");
     }
 
-    plugin->config = req.config;
+    plugin->config   = req.config;
+    plugin->path     = req.path;
     plugin->metadata = req.metadata.value_or(plugin->metadata);
 
     Plugins::Update(m_db, *plugin);

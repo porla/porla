@@ -10,7 +10,7 @@ namespace porla::Methods
         id,
         config,
         metadata,
-        data)
+        path)
 
     void to_json(nlohmann::json& json, const PluginsUpdateRes& res)
     {

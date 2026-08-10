@@ -22,65 +22,32 @@ PluginsAdd::PluginsAdd(sqlite3* db, porla::Lua::PluginEngine& plugins)
 
 void PluginsAdd::Invoke(const PluginsAddReq& req, WriteCb<PluginsAddRes> cb)
 {
-    if (req.type == "path")
+    fs::path plugin_path = req.path;
+
+    if (!plugin_path.is_absolute())
     {
-        fs::path plugin_path = req.data;
+        return cb.Error(-101, "Plugin path must be absolute");
+    }
 
-        if (!plugin_path.is_absolute())
-        {
-            return cb.Error(-101, "Plugin path must be absolute");
-        }
+    if (!fs::exists(plugin_path))
+    {
+        return cb.Error(-102, "Plugin path does not exist");
+    }
 
-        if (!fs::exists(req.data))
-        {
-            return cb.Error(-102, "Plugin path does not exist");
-        }
-
-        const auto plugin_id = Plugins::Insert(
-            m_db,
-            Plugins::Plugin{
-                .id       = -1,
-                .type     = req.type,
-                .data     = std::vector<char>(req.data.begin(), req.data.end()),
-                .config   = req.config,
-                .metadata = req.metadata.value_or({})
-            });
-
-        BOOST_LOG_TRIVIAL(info) << "Plugin " << plugin_id << " installed with path " << plugin_path;
-
-        m_plugins.Load(plugin_id);
-
-        return cb.Ok(PluginsAddRes{
-            .id = plugin_id
+    const auto plugin_id = Plugins::Insert(
+        m_db,
+        Plugins::Plugin{
+            .id       = -1,
+            .path     = plugin_path,
+            .config   = req.config,
+            .metadata = req.metadata.value_or({})
         });
-    }
 
-    if (req.type == "archive")
-    {
-        const auto archive_buffer = Base64::Decode(req.data);
+    BOOST_LOG_TRIVIAL(info) << "Plugin " << plugin_id << " installed with path " << plugin_path;
 
-        try
-        {
-            return cb.Ok(PluginsAddRes{
-                .id = m_plugins.InstallFromArchive(
-                    std::vector<char>(
-                        archive_buffer.begin(),
-                        archive_buffer.end()),
-                    req.config,
-                    req.metadata.has_value()
-                        ? json(req.metadata.value())
-                        : json())
-            });
-        }
-        catch(const std::exception& e)
-        {
-            std::stringstream ss;
-            ss << "Failed to install plugin: ";
-            ss << e.what();
+    m_plugins.Load(plugin_id);
 
-            return cb.Error(-201, ss.str());
-        }
-    }
-
-    return cb.Error(-1, "Invalid plugin type");
+    return cb.Ok(PluginsAddRes{
+        .id = plugin_id
+    });
 }

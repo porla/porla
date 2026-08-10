@@ -33,7 +33,7 @@ void PluginsList::Invoke(const PluginsListReq& req, WriteCb<PluginsListRes> cb)
 
         res.plugins.emplace_back(PluginsListRes::Plugin{
             .id        = plugin.id,
-            .type      = plugin.type,
+            .path      = plugin.path,
             .name      = meta.has_value() ? meta->name : std::nullopt,
             .version   = meta.has_value() ? meta->version : std::nullopt,
             .metadata  = plugin.metadata,
