@@ -603,6 +603,12 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             return lua.registry()[ConfigRegistryKey];
         };
 
+        porla["unix_time"] = []()
+        {
+            const auto time_since_epoch = std::chrono::system_clock::now().time_since_epoch();
+            return std::chrono::duration_cast<std::chrono::milliseconds>(time_since_epoch).count();
+        };
+
         porla["on"] = [this](const std::string& event, sol::main_protected_function callback)
         {
             return AddEventListener(event, std::move(callback));
