@@ -72,7 +72,6 @@ add_library(
     src/data/statement.cpp
 
     src/http/jsonrpchandler.cpp
-    src/http/metricshandler.cpp
     src/http/webuihandler.cpp
 
     src/json/_/authinit.cpp

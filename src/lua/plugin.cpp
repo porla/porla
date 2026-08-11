@@ -541,7 +541,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         lua.globals()["sleep"] = porla::Lua::Globals::Sleep::Build(lua);
 
         lua.registry()["curl"]        = load_options.curl_multi;
-        lua.registry()["db"]          = porla::Lua::Registry::Sqlite3{.db = load_options.config.db};
+        lua.registry()["db"]          = porla::Lua::Registry::Sqlite3{.db = load_options.db};
         lua.registry()["http_server"] = porla::Lua::Registry::uWebSocketsApp{.app = load_options.http_server};
         lua.registry()["io"]          = porla::Lua::Registry::BoostIoContext{.io = &load_options.io};
         lua.registry()["sessions"]    = porla::Lua::Registry::Sessions{.sessions = load_options.sessions};
