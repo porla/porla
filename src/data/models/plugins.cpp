@@ -75,6 +75,9 @@ std::vector<Plugins::Plugin> Plugins::List(sqlite3* db)
 
 void Plugins::Remove(sqlite3* db, int id)
 {
+    Statement::Prepare(db, "DELETE FROM plugins WHERE id = $id")
+        .Bind("$id", id)
+        .Execute();
 }
 
 void Plugins::Update(sqlite3* db, const Plugin& plugin)

@@ -11,7 +11,6 @@
 
 namespace porla::Lua::Globals
 {
-    DECLARE_GLOBAL_OBJECT_IMPL(Cron)
     DECLARE_GLOBAL_OBJECT_IMPL(Http)
     DECLARE_GLOBAL_OBJECT_IMPL(Sleep)
 }

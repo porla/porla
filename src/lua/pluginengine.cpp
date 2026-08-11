@@ -57,28 +57,6 @@ void PluginEngine::Post(CompletionCallback callback) const
     boost::asio::post(m_options.io, [callback = std::move(callback)]() { callback(); });
 }
 
-int PluginEngine::InstallFromArchive(const std::vector<char>& buffer, std::optional<std::string> config, const nlohmann::json& metadata)
-{
-    auto install_stmt = Statement::Prepare(
-        m_options.db,
-        "INSERT INTO plugins (type, data, config, metadata) VALUES ('archive', $data, $config, $metadata)");
-    install_stmt.Bind("$data", buffer);
-    install_stmt.Bind("$config", config);
-    install_stmt.Bind("$metadata", metadata.is_null()
-        ? std::nullopt
-        : std::optional(metadata.dump()));
-
-    install_stmt.Execute();
-
-    const auto plugin_id = static_cast<int>(sqlite3_last_insert_rowid(m_options.db));
-
-    BOOST_LOG_TRIVIAL(info) << "plugin[" << plugin_id << "] installed with archive (" << buffer.size() << " bytes)";
-
-    Load(plugin_id);
-
-    return plugin_id;
-}
-
 void PluginEngine::LoadAll()
 {
     for (const auto& plugin : Plugins::List(m_options.db))

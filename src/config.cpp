@@ -80,11 +80,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (auto val = std::getenv("PORLA_DB"))                    cfg->db_file         = val;
     if (auto val = std::getenv("PORLA_HTTP_BASE_PATH"))        cfg->http_base_path  = val;
     if (auto val = std::getenv("PORLA_HTTP_HOST"))             cfg->http_host       = val;
-    if (auto val = std::getenv("PORLA_HTTP_METRICS_ENABLED"))
-    {
-        if (strcmp("true", val) == 0)  cfg->http_metrics_enabled = true;
-        if (strcmp("false", val) == 0) cfg->http_metrics_enabled = false;
-    }
     if (auto val = std::getenv("PORLA_HTTP_PORT"))             cfg->http_port       = std::stoi(val);
     if (auto val = std::getenv("PORLA_HTTP_WEBUI_ENABLED"))
     {
@@ -187,9 +182,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
             if (auto val = config_file_tbl["http"]["host"].value<std::string>())
                 cfg->http_host = *val;
-
-            if (auto val = config_file_tbl["http"]["metrics_enabled"].value<bool>())
-                cfg->http_metrics_enabled = *val;
 
             if (auto val = config_file_tbl["http"]["port"].value<uint16_t>())
                 cfg->http_port = *val;
@@ -325,10 +317,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (cmd.count("db"))                    cfg->db_file               = cmd["db"].as<std::string>();
     if (cmd.count("http-base-path"))        cfg->http_base_path        = cmd["http-base-path"].as<std::string>();
     if (cmd.count("http-host"))             cfg->http_host             = cmd["http-host"].as<std::string>();
-    if (cmd.count("http-metrics-enabled"))
-    {
-        cfg->http_metrics_enabled = cmd["http-metrics-enabled"].as<bool>();
-    }
     if (cmd.count("http-port"))             cfg->http_port             = cmd["http-port"].as<uint16_t>();
     if (cmd.count("http-webui-enabled"))
     {

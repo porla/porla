@@ -126,7 +126,6 @@ add_library(
     src/json/_/torrentsresume.cpp
     src/json/_/torrentstrackerslist.cpp
 
-    src/lua/globals/cron.cpp
     src/lua/globals/http.cpp
     src/lua/globals/sleep.cpp
     src/lua/types/ltaddtorrentparams.cpp

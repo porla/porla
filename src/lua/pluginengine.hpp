@@ -46,11 +46,6 @@ namespace porla::Lua
 
         ~PluginEngine();
 
-        int InstallFromArchive(
-            const std::vector<char>& buffer,
-            std::optional<std::string> config,
-            const nlohmann::json& metadata);
-
         void Load(int id);
         void LoadAll();
 

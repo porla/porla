@@ -92,8 +92,6 @@ configuration and use sensible defaults instead.
    of Porla will be served. Defaults to `/`.
  * `PORLA_HTTP_HOST` or `--http-host` - set to an IP address which to bind the HTTP
    server. Defaults to _127.0.0.1_.
- * `PORLA_HTTP_METRICS_ENABLED` or `--http-metrics-enabled` - set to true/false to
-   enable or disable the metrics endpoint. Defaults to _true_.
  * `PORLA_HTTP_PORT` or `--http-port` - set to the port to use for the HTTP server.
    Defaults to _1337_.
  * `PORLA_LOG_LEVEL` or `--log-level` - the minimum log level to use. Valid values
