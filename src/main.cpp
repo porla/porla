@@ -92,6 +92,9 @@ int main(int argc, char* argv[])
     boost::asio::io_context io;
     boost::asio::signal_set signals(io, SIGINT, SIGTERM);
 
+    uWS::Loop::get(&io);
+    uWS::App http_server;
+
     auto curl_multi_instance = porla::CurlMulti::Create(io);
 
     {
@@ -103,11 +106,12 @@ int main(int argc, char* argv[])
         sessions.LoadAll();
 
         porla::Lua::PluginEngine plugin_engine{porla::Lua::PluginEngineOptions{
-            .config     = *cfg,
-            .curl_multi = curl_multi_instance,
-            .db         = cfg->db,
-            .io         = io,
-            .sessions   = sessions
+            .config      = *cfg,
+            .curl_multi  = curl_multi_instance,
+            .db          = cfg->db,
+            .http_server = &http_server,
+            .io          = io,
+            .sessions    = sessions
         }};
 
         plugin_engine.LoadAll();
@@ -185,16 +189,14 @@ int main(int argc, char* argv[])
         if (http_base_path[0] != '/')      http_base_path = "/" + http_base_path;
         if (http_base_path.ends_with("/")) http_base_path = http_base_path.substr(0, http_base_path.size() - 1);
 
-        uWS::Loop::get(&io);
 
-        uWS::App http_server;
         http_server.post(http_base_path + "/api/v1/jsonrpc", rpc);
 
-        if (cfg->http_metrics_enabled.value_or(true))
+        /*if (cfg->http_metrics_enabled.value_or(true))
         {
             BOOST_LOG_TRIVIAL(info) << "Enabling HTTP metrics endpoint";
             http_server.get(http_base_path + "/metrics", porla::Http::MetricsHandler(sessions));
-        }
+        }*/
 
         if (cfg->http_webui_enabled.value_or(true))
         {

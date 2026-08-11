@@ -28,6 +28,61 @@ namespace fs = std::filesystem;
 using porla::Lua::Plugin;
 using porla::Lua::PluginLoadOptions;
 
+class HttpResponseHandle : std::enable_shared_from_this<HttpResponseHandle>
+{
+public:
+    explicit HttpResponseHandle(uWS::HttpResponse<false>* res)
+        : m_res(res)
+    {
+    }
+
+    ~HttpResponseHandle()
+    {
+        if (m_res)
+        {
+            m_res->end();
+        }
+    }
+
+    void Setup()
+    {
+        m_res->onAborted([w = weak_from_this()]()
+        {
+            auto self = w.lock();
+            if (!self) { return; }
+            self->m_aborted = true;
+        });
+    }
+
+    void end()
+    {
+        if (m_aborted) { return; }
+        m_res->end();
+    }
+
+    void end(std::string_view data)
+    {
+        if (m_aborted) { return; }
+        m_res->end(data);
+    }
+
+    void write(std::string_view data)
+    {
+        if (m_aborted) { return; }
+        m_res->write(data);
+    }
+
+    void writeStatus(std::string_view status)
+    {
+        if (m_aborted) { return; }
+        m_res->writeStatus(status);
+    }
+
+private:
+    bool m_aborted = false;
+    uWS::HttpResponse<false>* m_res;
+};
+
 namespace
 {
     static const auto lt_session_metrics = lt::session_stats_metrics();
@@ -39,6 +94,29 @@ namespace
     {
         lua_State* L = thread.state();
         return L != nullptr && lua_status(L) == LUA_YIELD;
+    }
+
+    // Formats arguments the way stock print() does - each one run through
+    // tostring (so __tostring / __name are honored), separated by tabs.
+    std::string Concat(lua_State* L, const sol::variadic_args& args)
+    {
+        std::string line;
+
+        for (const auto& arg : args)
+        {
+            std::size_t len = 0;
+
+            // Pushes the string representation; indices in `args` are absolute,
+            // so they survive the push.
+            const char* str = luaL_tolstring(L, arg.stack_index(), &len);
+
+            if (!line.empty()) line += '\t';
+            line.append(str, len);
+
+            lua_pop(L, 1);
+        }
+
+        return line;
     }
 
     std::string DescribeError(const sol::protected_function_result& result)
@@ -62,10 +140,14 @@ namespace
 
 struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
 {
+    // main_protected_function, not protected_function: callbacks registered from
+    // inside a coroutine would otherwise be anchored to that coroutine's
+    // lua_State, and referencing them after the thread is collected is a use
+    // after free. main_* re-anchors to the main thread, which outlives us.
     struct EventSubscription
     {
-        std::size_t             id;
-        sol::protected_function callback;
+        std::size_t                  id;
+        sol::main_protected_function callback;
     };
 
     // Returned to Lua from both cron(...) and porla.on(...). Holds a weak ref
@@ -88,6 +170,8 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
     std::optional<Plugin::Meta>              meta;
     std::map<std::string, std::vector<char>> files; // populated by LoadFromArchive
 
+    std::vector<std::function<void()>> dtors;
+
     std::vector<sol::thread>                 active_coroutines;
     boost::asio::steady_timer                coroutine_timer;
     bool                                     timer_armed = false;
@@ -102,7 +186,12 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
     // single Subscription handle can cancel either.
     std::size_t                                               m_next_id = 1;
 
-    std::map<std::string, std::vector<EventSubscription>>     m_event_callbacks;
+    // Copy-on-write: dispatch pins the list with a refcount bump instead of
+    // deep-copying every callback (which costs a luaL_ref/unref pair each).
+    // Mutations swap in a fresh vector, so a dispatch in progress is unaffected.
+    using EventSubscriptions = std::shared_ptr<const std::vector<EventSubscription>>;
+
+    std::map<std::string, EventSubscriptions>                 m_event_callbacks;
     std::map<std::string, boost::signals2::scoped_connection> m_signal_connections;
     std::map<std::size_t, std::shared_ptr<CronSchedule>>      m_cron_schedules;
 
@@ -120,7 +209,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         return "<unnamed plugin>";
     }
 
-    sol::object AddCronSchedule(const std::string& expr, sol::protected_function callback)
+    sol::object AddCronSchedule(const std::string& expr, sol::main_protected_function callback)
     {
         if (!callback.valid())
         {
@@ -135,6 +224,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         std::weak_ptr<State> weak = weak_from_this();
 
         std::shared_ptr<CronSchedule> sched;
+
         try
         {
             sched = CronSchedule::Create(
@@ -144,8 +234,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
                 {
                     auto self = weak.lock();
                     if (!self || self->unloading || self->unloaded) return;
-                    // Route through the coroutine machinery: cron handlers may
-                    // sleep()/do IO, and Unload() will wait for them.
+
                     self->SpawnCoroutine("cron", callback);
                 });
         }
@@ -157,6 +246,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         }
 
         m_cron_schedules.emplace(id, std::move(sched));
+
         return sol::make_object(lua.lua_state(), Subscription{ weak, id });
     }
 
@@ -176,21 +266,35 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         // underlying signal connection once its last listener goes away.
         for (auto& [event, subs] : m_event_callbacks)
         {
-            const auto before = subs.size();
+            if (!subs) continue;
 
-            subs.erase(
-                std::remove_if(subs.begin(), subs.end(),
-                    [id](const EventSubscription& s) { return s.id == id; }),
-                subs.end());
+            const auto matches = [id](const EventSubscription& s) { return s.id == id; };
 
-            if (subs.size() == before) continue;
-            if (subs.empty()) m_signal_connections.erase(event);
+            if (std::none_of(subs->begin(), subs->end(), matches)) continue;
+
+            // Rebuild rather than erase in place - a dispatch may be iterating
+            // the current vector right now.
+            auto next = std::make_shared<std::vector<EventSubscription>>();
+            next->reserve(subs->size() - 1);
+
+            std::remove_copy_if(subs->begin(), subs->end(), std::back_inserter(*next), matches);
+
+            if (next->empty()) m_signal_connections.erase(event);
+
+            subs = std::move(next);
             return;
         }
     }
 
     void CancelAllSubscriptions()
     {
+        for (auto& dtor : dtors)
+        {
+            dtor();
+        }
+
+        dtors.clear();
+
         for (auto& [id, sched] : m_cron_schedules)
             if (sched) sched->Cancel();
 
@@ -198,7 +302,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         m_signal_connections.clear();
     }
 
-    sol::object AddEventListener(const std::string& event, sol::protected_function callback)
+    sol::object AddEventListener(const std::string& event, sol::main_protected_function callback)
     {
         if (!callback.valid())
         {
@@ -219,7 +323,15 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         }
 
         const std::size_t id = m_next_id++;
-        m_event_callbacks[event].push_back(EventSubscription{ id, std::move(callback) });
+
+        auto& subs = m_event_callbacks[event];
+        auto  next = subs
+            ? std::make_shared<std::vector<EventSubscription>>(*subs)
+            : std::make_shared<std::vector<EventSubscription>>();
+
+        next->push_back(EventSubscription{ id, std::move(callback) });
+
+        subs = std::move(next);
 
         return sol::make_object(lua.lua_state(), Subscription{ weak_from_this(), id });
     }
@@ -230,12 +342,14 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         if (unloaded) return;
 
         const auto it = m_event_callbacks.find(event);
-        if (it == m_event_callbacks.end() || it->second.empty()) return;
+        if (it == m_event_callbacks.end() || !it->second || it->second->empty()) return;
 
-        // Copy: a handler may add/remove listeners (or unload the plugin) mid-dispatch.
-        const std::vector<EventSubscription> subs = it->second;
+        // Pin the list for the duration of the loop: a handler may add or remove
+        // listeners (or unload the plugin) mid-dispatch, which swaps the map
+        // entry without disturbing what we hold here.
+        const EventSubscriptions subs = it->second;
 
-        for (const auto& sub : subs)
+        for (const auto& sub : *subs)
         {
             try
             {
@@ -315,7 +429,13 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
 
                     for (const auto& m : lt_session_metrics)
                     {
-                        translated[m.name] = stats[m.value_index];
+                        sol::table t = self->lua.create_table();
+                        t["type"]  = m.type == lt::metric_type_t::counter
+                            ? "gauge"
+                            : "counter";
+                        t["value"] = stats[m.value_index];
+
+                        translated[m.name] = t;
                     }
 
                     self->DispatchEvent("session.stats", session, translated);
@@ -347,6 +467,20 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
 
         lua.new_usertype<porla::CurlMulti>("CurlMulti", sol::no_constructor);
 
+        lua.new_usertype<uWS::HttpRequest>(
+            "uWS.HttpRequest",
+            sol::no_constructor);
+
+        lua.new_usertype<HttpResponseHandle>(
+            "http_server.Response",
+            sol::no_constructor,
+            "finish", sol::overload(
+                [](HttpResponseHandle& h) { h.end(); },
+                [](HttpResponseHandle& h, std::string_view data) { h.end(data); }
+            ),
+            "write", &HttpResponseHandle::write,
+            "writeStatus", &HttpResponseHandle::writeStatus);
+
         // One handle type for cron + events; keep both verbs Lua scripts call.
         lua.new_usertype<Subscription>(
             "porla.Subscription",
@@ -364,19 +498,53 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             sol::no_constructor,
             "name", sol::readonly(&lt::torrent_status::name));
 
-        lua.globals()["cron"] = [this](const std::string& expr, sol::protected_function cb)
+        lua.globals()["cron"] = [this](const std::string& expr, sol::main_protected_function cb)
         {
             return AddCronSchedule(expr, std::move(cb));
         };
 
-        lua.globals()["http"]  = porla::Lua::Globals::Http::Build(lua);
+        lua.globals()["print"] = [this](sol::this_state s, sol::variadic_args args)
+        {
+            BOOST_LOG_TRIVIAL(info) << Name() << ": " << Concat(s, args);
+        };
+
+        auto http_server = lua.create_table();
+        http_server["get"] = [this](const std::string& pattern, sol::main_protected_function func)
+        {
+            BOOST_LOG_TRIVIAL(trace) << "Attaching HTTP GET handler for " << pattern;
+
+            auto app = lua.registry()["http_server"].get<porla::Lua::Registry::uWebSocketsApp>().app;
+
+            app->get(pattern, [w = weak_from_this(), callback = std::move(func)](uWS::HttpResponse<false>* res, auto req)
+            {
+                auto self = w.lock();
+                if (!self || self->unloading || self->unloaded) return;
+
+                auto response = std::make_shared<HttpResponseHandle>(res);
+                response->Setup();
+
+                self->SpawnCoroutine("http_server.get", callback, req, response);
+            });
+
+            dtors.emplace_back([w = weak_from_this(), p = pattern]()
+            {
+                auto self = w.lock();
+                if (!self) return;
+                self->load_options.http_server->get(p, nullptr);
+            });
+        };
+
+        lua.globals()["http"]        = porla::Lua::Globals::Http::Build(lua);
+        lua.globals()["http_server"] = http_server;
+
         lua.globals()["porla"] = CreatePorlaGlobal();
         lua.globals()["sleep"] = porla::Lua::Globals::Sleep::Build(lua);
 
-        lua.registry()["curl"]     = load_options.curl_multi;
-        lua.registry()["db"]       = porla::Lua::Registry::Sqlite3{.db = load_options.config.db};
-        lua.registry()["io"]       = porla::Lua::Registry::BoostIoContext{.io = &load_options.io};
-        lua.registry()["sessions"] = porla::Lua::Registry::Sessions{.sessions = load_options.sessions};
+        lua.registry()["curl"]        = load_options.curl_multi;
+        lua.registry()["db"]          = porla::Lua::Registry::Sqlite3{.db = load_options.config.db};
+        lua.registry()["http_server"] = porla::Lua::Registry::uWebSocketsApp{.app = load_options.http_server};
+        lua.registry()["io"]          = porla::Lua::Registry::BoostIoContext{.io = &load_options.io};
+        lua.registry()["sessions"]    = porla::Lua::Registry::Sessions{.sessions = load_options.sessions};
 
         porla::Lua::Types::LtSettingsPack::Register(lua);
         porla::Lua::Types::Session::Register(lua);
@@ -441,7 +609,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             return lua.registry()[ConfigRegistryKey];
         };
 
-        porla["on"] = [this](const std::string& event, sol::function callback)
+        porla["on"] = [this](const std::string& event, sol::main_protected_function callback)
         {
             return AddEventListener(event, std::move(callback));
         };
@@ -485,8 +653,10 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         return porla;
     }
 
-    template<typename... Args>
-    bool SpawnCoroutine(std::string origin, const sol::protected_function& fn, Args&&... args)
+    // Fn is templated so both protected_function and main_protected_function
+    // pass through without a re-ref round trip.
+    template<typename Fn, typename... Args>
+    bool SpawnCoroutine(std::string origin, const Fn& fn, Args&&... args)
     {
         BOOST_LOG_TRIVIAL(debug) << "Spawning coroutine in " << origin;
 

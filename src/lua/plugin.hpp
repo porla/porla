@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <boost/asio/io_context.hpp>
+#include <uWebSockets/App.h>
 
 namespace porla
 {
@@ -24,6 +25,7 @@ namespace porla::Lua
     {
         Config&                    config;
         std::shared_ptr<CurlMulti> curl_multi;
+        uWS::App*                  http_server;
         boost::asio::io_context&   io;
         porla::Sessions&           sessions;
 

@@ -110,10 +110,11 @@ void PluginEngine::Load(int id)
     }
 
     const PluginLoadOptions load_options{
-        .config     = m_options.config,
-        .curl_multi = m_options.curl_multi,
-        .io         = m_options.io,
-        .sessions   = m_options.sessions
+        .config      = m_options.config,
+        .curl_multi  = m_options.curl_multi,
+        .http_server = m_options.http_server,
+        .io          = m_options.io,
+        .sessions    = m_options.sessions
     };
 
     std::unique_ptr<Plugin> loaded_plugin = Plugin::LoadFromPath(

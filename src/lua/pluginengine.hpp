@@ -12,6 +12,7 @@
 #include <boost/asio/io_context.hpp>
 #include <nlohmann/json.hpp>
 #include <sqlite3.h>
+#include <uWebSockets/App.h>
 
 namespace porla
 {
@@ -29,6 +30,7 @@ namespace porla::Lua
         Config&                    config;
         std::shared_ptr<CurlMulti> curl_multi;
         sqlite3*                   db;
+        uWS::App*                  http_server;
         boost::asio::io_context&   io;
         Sessions&                  sessions;
     };
