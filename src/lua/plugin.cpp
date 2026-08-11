@@ -429,13 +429,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
 
                     for (const auto& m : lt_session_metrics)
                     {
-                        sol::table t = self->lua.create_table();
-                        t["type"]  = m.type == lt::metric_type_t::counter
-                            ? "gauge"
-                            : "counter";
-                        t["value"] = stats[m.value_index];
-
-                        translated[m.name] = t;
+                        translated[m.name] = stats[m.value_index];
                     }
 
                     self->DispatchEvent("session.stats", session, translated);
@@ -621,7 +615,8 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
 
             for (const auto& m : lt_session_metrics)
             {
-                metrics_tbl[m.name] = m.type == lt::metric_type_t::counter
+                metrics_tbl[m.name] = lua.create_table();
+                metrics_tbl[m.name]["type"] = m.type == lt::metric_type_t::counter
                     ? "counter"
                     : "gauge";
             }
