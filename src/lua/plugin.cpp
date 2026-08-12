@@ -13,6 +13,7 @@
 #include <sqlite3.h>
 
 #include "globals.hpp"
+#include "pluginsource.hpp"
 #include "registry.hpp"
 #include "types.hpp"
 
@@ -165,10 +166,10 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
     };
 
     PluginLoadOptions                        load_options;
+    PluginSource                             source;
     sol::state                               lua;
     sol::table                               tbl;
     std::optional<Plugin::Meta>              meta;
-    std::map<std::string, std::vector<char>> files; // populated by LoadFromArchive
 
     std::vector<std::function<void()>> dtors;
 
@@ -887,48 +888,33 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
     }
 };
 
-std::unique_ptr<Plugin> Plugin::LoadFromArchive(
-    const std::vector<char>& buffer,
-    const std::optional<std::string>& config,
-    const PluginLoadOptions& opts)
-{
-    BOOST_LOG_TRIVIAL(error) << "Loading plugins from archives is not implemented yet";
-    return nullptr;
-}
-
-std::unique_ptr<Plugin> Plugin::LoadFromPath(
+std::unique_ptr<Plugin> Plugin::Load(
     const std::filesystem::path& path,
     const std::optional<std::string>& config,
     const PluginLoadOptions& opts)
 {
-    std::error_code ec;
+    auto source = PluginSource::Load(path);
 
-    const bool is_dir = fs::is_directory(path, ec);
-
-    if (ec)
+    if (!source.has_value())
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to stat plugin path " << path << ": " << ec.message();
-        return nullptr;
-    }
-
-    const fs::path plugin_lua = is_dir ? path / PluginEntryPoint : path;
-
-    if (!fs::is_regular_file(plugin_lua, ec) || ec)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Plugin entry point not found: " << plugin_lua;
+        BOOST_LOG_TRIVIAL(error) << "Failed to load plugin source from " << path;
         return nullptr;
     }
 
     try
     {
         auto state = std::make_shared<State>(opts, config);
+        state->source = *source;
 
-        sol::load_result chunk = state->lua.load_file(plugin_lua.string());
+        sol::load_result chunk = state->lua.load_buffer(
+            state->source.sources.at(state->source.entrypoint).data(),
+            state->source.sources.at(state->source.entrypoint).size(),
+            state->source.entrypoint);
 
         if (!chunk.valid())
         {
             sol::error err = chunk;
-            BOOST_LOG_TRIVIAL(error) << "Failed to load plugin " << plugin_lua << ": " << err.what();
+            BOOST_LOG_TRIVIAL(error) << "Failed to load plugin: " << err.what();
             return nullptr;
         }
 
@@ -939,37 +925,33 @@ std::unique_ptr<Plugin> Plugin::LoadFromPath(
         if (!result.valid())
         {
             BOOST_LOG_TRIVIAL(error)
-                << "Failed to run plugin " << plugin_lua << ": " << DescribeError(result);
+                << "Failed to run plugin: " << DescribeError(result);
             return nullptr;
         }
 
         if (result.return_count() < 1 || result.get_type() != sol::type::table)
         {
             BOOST_LOG_TRIVIAL(error)
-                << "Plugin " << plugin_lua << " did not return a table (got "
+                << "Plugin did not return a table (got "
                 << sol::type_name(state->lua.lua_state(), result.get_type()) << ")";
             return nullptr;
         }
 
-        state->tbl = result.get<sol::table>();
+        state->meta = Meta{
+            .name    = path.filename(),
+            .version = std::nullopt
+        };
 
-        Meta meta;
+        state->tbl  = result.get<sol::table>();
 
         if (auto name = state->tbl.get<sol::optional<std::string>>("name"))
         {
-            meta.name = *name;
+            state->meta->name = *name;
         }
 
         if (auto version = state->tbl.get<sol::optional<std::string>>("version"))
         {
-            meta.version = *version;
-        }
-
-        state->meta = std::move(meta);
-
-        if (!state->meta->name)
-        {
-            BOOST_LOG_TRIVIAL(warning) << "Plugin " << plugin_lua << " has no name";
+            state->meta->version = *version;
         }
 
         sol::optional<sol::protected_function> init = state->tbl["init"];
@@ -983,7 +965,7 @@ std::unique_ptr<Plugin> Plugin::LoadFromPath(
     }
     catch (const std::exception& err)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to load plugin " << plugin_lua << ": " << err.what();
+        BOOST_LOG_TRIVIAL(error) << "Failed to load plugin: " << err.what();
     }
 
     return nullptr;

@@ -55,12 +55,7 @@ namespace porla::Lua
 
         ~Plugin();
 
-        static std::unique_ptr<Plugin> LoadFromArchive(
-            const std::vector<char>& buffer,
-            const std::optional<std::string>& config,
-            const PluginLoadOptions& opts);
-
-        static std::unique_ptr<Plugin> LoadFromPath(
+        static std::unique_ptr<Plugin> Load(
             const std::filesystem::path& path,
             const std::optional<std::string>& config,
             const PluginLoadOptions& opts);

@@ -95,7 +95,7 @@ void PluginEngine::Load(int id)
         .sessions    = m_options.sessions
     };
 
-    std::unique_ptr<Plugin> loaded_plugin = Plugin::LoadFromPath(
+    std::unique_ptr<Plugin> loaded_plugin = Plugin::Load(
         plugin->path,
         plugin->config,
         load_options);
@@ -118,7 +118,8 @@ void PluginEngine::Load(int id)
 
 const Plugin* PluginEngine::Get(int id) const
 {
-    return nullptr;
+    const auto it = m_plugins.find(id);
+    return it == m_plugins.end() ? nullptr : it->second.get();
 }
 
 bool PluginEngine::IsUnloading(int id) const

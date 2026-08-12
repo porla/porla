@@ -82,4 +82,21 @@ void Plugins::Remove(sqlite3* db, int id)
 
 void Plugins::Update(sqlite3* db, const Plugin& plugin)
 {
+    static const auto UpdateSql = R"sql(
+        UPDATE plugins
+        SET
+            config   = $config,
+            metadata = $metadata,
+            path     = $path
+        WHERE id = $id
+        )sql";
+
+    const auto metadata_json = nlohmann::json(plugin.metadata).dump();
+
+    Statement::Prepare(db, UpdateSql)
+        .Bind("$config", plugin.config)
+        .Bind("$metadata", metadata_json)
+        .Bind("$path", plugin.path)
+        .Bind("$id", plugin.id)
+        .Execute();
 }

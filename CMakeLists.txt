@@ -145,6 +145,7 @@ add_library(
     src/lua/types/session.cpp
     src/lua/plugin.cpp
     src/lua/pluginengine.cpp
+    src/lua/pluginsource.cpp
 
     src/methods/fsspace.cpp
     src/methods/keyvalueget.cpp
