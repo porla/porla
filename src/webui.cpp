@@ -1,6 +1,7 @@
 #include "webui.hpp"
 
 #include <fstream>
+#include <regex>
 #include <sstream>
 
 #include <boost/log/trivial.hpp>
@@ -8,17 +9,38 @@
 #include <nlohmann/json.hpp>
 
 #include "buildinfo.hpp"
+#include "curlmulti.hpp"
 #include "data/models/keyvaluestore.hpp"
 #include "utils/base64.hpp"
+#include "zip.hpp"
 
 using json = nlohmann::json;
 using porla::WebUI;
 
-struct HttpResponse
+const static std::map<std::string, std::string> MimeTypes =
 {
-    std::string body;
-    long status_code;
+    {".css", "text/css"},
+    {".html", "text/html"},
+    {".js", "text/javascript"},
+    {".json", "application/json"},
+    {".svg", "image/svg+xml"}
 };
+
+static void str_replace_all(std::string& str, const std::string& from, const std::string& to)
+{
+    if (from.empty())
+    {
+        return;
+    }
+
+    size_t start_pos = 0;
+
+    while ((start_pos = str.find(from, start_pos)) != std::string::npos)
+    {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length();
+    }
+}
 
 static size_t HttpWriteCallback(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
@@ -27,99 +49,250 @@ static size_t HttpWriteCallback(char *ptr, size_t size, size_t nmemb, void *user
     return nmemb;
 }
 
-static HttpResponse HttpGet(const std::string& url)
+WebUI::WebUI(boost::asio::io_context& io, fs::path state_dir, sqlite3* db, std::weak_ptr<CurlMulti> cm)
+    : m_io(io)
+    , m_state_dir(state_dir)
+    , m_db(db)
+    , m_cm(cm)
 {
+}
+
+std::shared_ptr<WebUI> WebUI::Create(boost::asio::io_context& io, fs::path state_dir, sqlite3* db, std::weak_ptr<CurlMulti> cm)
+{
+    auto webui = new WebUI(io, state_dir, db, cm);
+    webui->LoadCurrent();
+
+    return std::shared_ptr<WebUI>(webui);
+}
+
+bool WebUI::Has()
+{
+    const auto current_webui = Data::Models::KeyValueStore::Get(m_db, "porla.webui.current");
+    return fs::exists(m_state_dir / "webui" / current_webui);
+}
+
+void WebUI::Install(const std::string& version, std::function<void()> callback)
+{
+    const auto owner_json      = Data::Models::KeyValueStore::Get(m_db, "porla.webui.owner");
+    const auto repository_json = Data::Models::KeyValueStore::Get(m_db, "porla.webui.repository");
+
+    const std::string owner = owner_json.is_null()
+        ? "porla"
+        : owner_json;
+
+    const std::string repository = repository_json.is_null()
+        ? "web"
+        : repository_json;
+
+    BOOST_LOG_TRIVIAL(info) << "Installing version " << version << " from GitHub repository " << owner << "/" << repository;
+
+    std::stringstream url;
+    url << "https://api.github.com/repos/" << owner << "/" << repository << "/releases/" << version;
+
+    HttpGet(
+        url.str(),
+        [callback, owner, repository, w = weak_from_this()](const auto status, const auto body)
+        {
+            auto self = w.lock();
+
+            if (!self)
+            {
+                BOOST_LOG_TRIVIAL(error) << "Failed to lock WebUI pointer";
+                return;
+            }
+
+            const auto release = nlohmann::json::parse(body);
+
+            BOOST_LOG_TRIVIAL(debug) << "GitHub release JSON: " << release;
+
+            std::string tag_name = release["tag_name"];
+            std::string download_url = release["assets"][0]["browser_download_url"];
+
+            BOOST_LOG_TRIVIAL(info) << "Found version " << tag_name << " of web UI - fetching from " << download_url;
+
+            self->HttpGet(
+                download_url,
+                [callback, owner, repository, tag_name, w](const auto status, const auto body)
+                {
+                    BOOST_LOG_TRIVIAL(info) << "Fetched " << body.size() << " bytes of fresh web UI";
+
+                    auto self = w.lock();
+
+                    if (!self)
+                    {
+                        BOOST_LOG_TRIVIAL(error) << "Self expired";
+                        return;
+                    }
+
+                    const auto webui_dir = self->m_state_dir / "webui";
+
+                    if (!fs::exists(webui_dir))
+                    {
+                        fs::create_directory(webui_dir);
+                    }
+
+                    std::stringstream webui_file_name;
+                    webui_file_name << owner << "_" << repository << "_" << tag_name << ".zip";
+
+                    {
+                        std::ofstream out(webui_dir / webui_file_name.str(), std::ios::binary);
+                        out << body;
+                    }
+
+                    Data::Models::KeyValueStore::Set(
+                        self->m_db,
+                        "porla.webui.current",
+                        webui_file_name.str());
+
+                    BOOST_LOG_TRIVIAL(info) << "Wrote web UI to " << webui_file_name.str();
+
+                    boost::asio::post(self->m_io, [callback, w]()
+                    {
+                        auto s = w.lock();
+                        if (!s) { return; }
+                        s->LoadCurrent();
+
+                        if (callback) callback();
+                    });
+                });
+        });
+}
+
+std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> WebUI::HttpHandler()
+{
+    return [weak = weak_from_this()](uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
+    {
+        auto webui = weak.lock();
+
+        if (!webui || webui->m_files.empty())
+        {
+            res->writeStatus("404 Not Found")->end("Nope");
+            return;
+        }
+
+        auto const respond_with_file = [&res, &webui](const fs::path& file)
+        {
+            std::string mime_type = "text/plain";
+
+            if (file.has_extension() && MimeTypes.contains(file.extension()))
+            {
+                mime_type = MimeTypes.at(file.extension());
+            }
+
+            if (!webui->m_files.contains(file))
+            {
+                res->writeStatus("404 Not found")->end("Not found");
+                return;
+            }
+
+            std::string data = std::string(
+                webui->m_files.at(file).data(),
+                webui->m_files.at(file).size());
+
+            if (file == "index.html")
+            {
+                str_replace_all(data, "%BASE_PATH%", webui->m_base_path);
+
+                // Try to patch in our base path
+                std::regex href_expression(R"(href=\"(\.\/)(.*)\")");
+                std::regex src_expression(R"(src=\"(\.\/)(.*)\")");
+
+                data = std::regex_replace(data, href_expression, "href=\"" + webui->m_base_path + "/$2\"");
+                data = std::regex_replace(data, src_expression, "src=\"" + webui->m_base_path + "/$2\"");
+            }
+
+            res->writeHeader("Content-Type", mime_type);
+            res->writeStatus("200 OK");
+            res->write(data);
+            res->end();
+        };
+
+        std::string path = std::string(req->getUrl());
+
+        // If the path is shorter than our base path, do not handle this request.
+        // For example,
+        // path: /      base_path: /porla
+        // Also check that the path is prefixed with the base path.
+
+        if (path.length() < webui->m_base_path.length()
+            || path.substr(0, webui->m_base_path.length()) != webui->m_base_path)
+        {
+            res->writeStatus("404 Not found")->end("Not found");
+            return;
+        }
+
+        std::string rooted_path = path.substr(webui->m_base_path.length());
+
+        if (rooted_path.length() > 0 && rooted_path[0] == '/') rooted_path = rooted_path.substr(1);
+        if (rooted_path.empty())                               rooted_path = "index.html";
+        if (!webui->m_files.contains(rooted_path))             rooted_path = "index.html";
+
+        respond_with_file(rooted_path);
+    };
+}
+
+void WebUI::HttpGet(const std::string& url, std::function<void(int, std::string)> callback)
+{
+    auto cm = m_cm.lock();
+
+    if (!cm)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to lock CurlMulti";
+        return;
+    }
+
     std::stringstream user_agent;
     user_agent << "porla/" << porla::BuildInfo::Version();
 
-    std::stringstream http_response_body;
+    auto body = std::make_shared<std::stringstream>();
 
     CURL* curl = curl_easy_init();
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &http_response_body);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, body.get());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, HttpWriteCallback);
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_USERAGENT, user_agent.str().c_str());
 
-    CURLcode res = curl_easy_perform(curl);
+    BOOST_LOG_TRIVIAL(trace) << "WebUI::HttpGet: " << url.c_str();
 
-    if (res != CURLE_OK)
+    cm->AddTransfer(curl, [w = weak_from_this(), body, callback](CURL* easy, CURLcode result)
     {
-        BOOST_LOG_TRIVIAL(error) << curl_easy_strerror(res);
+        auto self = w.lock();
 
-        curl_easy_cleanup(curl);
+        if (!self)
+        {
+            return;
+        }
 
-        return HttpResponse{
-            .body        = {},
-            .status_code = -1
-        };
-    }
+        long response_code;
+        curl_easy_getinfo(easy, CURLINFO_RESPONSE_CODE, &response_code);
 
-    long response_code;
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
-
-    curl_easy_cleanup(curl);
-
-    return HttpResponse{
-        .body        = http_response_body.str(),
-        .status_code = response_code
-    };
+        boost::asio::post(self->m_io, [callback, body, response_code]()
+        {
+            callback(response_code, body->str());
+        });
+    });
 }
 
-void WebUI::Download(sqlite3* db)
+void WebUI::LoadCurrent()
 {
-    const auto repo_json = Data::Models::KeyValueStore::Get(db, "porla.webui.repo");
+    const auto current = Data::Models::KeyValueStore::Get(m_db, "porla.webui.current");
+    const auto current_file = m_state_dir / "webui" / current;
 
-    const std::string repo = repo_json.is_string()
-        ? repo_json.get<std::string>()
-        : "porla/web";
-
-    std::stringstream url;
-    url << "https://api.github.com/repos/" << repo << "/releases/latest";
-
-    BOOST_LOG_TRIVIAL(info) << "Downloading web UI from GitHub repo " << repo;
-
-    HttpResponse latest_release = HttpGet(url.str());
-
-    if (latest_release.status_code != 200)
+    if (!fs::exists(current_file))
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to fetch latest web UI release: " << latest_release.body;
+        BOOST_LOG_TRIVIAL(info) << "Configured web UI file " << current_file << " does not exist";
         return;
     }
 
-    json release;
+    std::ifstream file(current_file, std::ios::binary);
 
-    try
-    {
-        release = json::parse(latest_release.body);
-    }
-    catch (const std::exception& ex)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Failed to parse release data: " << ex.what();
-        return;
-    }
+    const auto contents = std::vector<char>(
+        std::istreambuf_iterator<char>(file),
+        std::istreambuf_iterator<char>());
 
-    std::string tag_name = release["tag_name"];
-    std::string download_url = release["assets"][0]["browser_download_url"];
+    m_files.clear();
+    m_files = Zip::Load(contents);
 
-    BOOST_LOG_TRIVIAL(info) << "Found version " << tag_name << " of web UI - fetching from " << download_url;
-
-    HttpResponse asset_data = HttpGet(download_url);
-
-    if (asset_data.status_code != 200)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Failed to fetch web UI asset data: " << asset_data.body;
-        return;
-    }
-
-    BOOST_LOG_TRIVIAL(info) << "Downloaded " << asset_data.body.size() << " bytes of fresh web UI";
-
-    try
-    {
-        Data::Models::KeyValueStore::Set(db, "porla.webui.data", Utils::Base64::Encode(asset_data.body));
-    }
-    catch (const std::exception& e)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Failed to store web UI in key-value store: " << e.what();
-    }
+    BOOST_LOG_TRIVIAL(info) << "Web UI loaded from " << current_file;
 }

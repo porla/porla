@@ -15,7 +15,6 @@
 #include "data/models/keyvaluestore.hpp"
 
 #include "http/jsonrpchandler.hpp"
-#include "http/webuihandler.hpp"
 
 #include "methods/fsspace.hpp"
 #include "methods/keyvalueget.hpp"
@@ -62,6 +61,7 @@
 #include "methods/torrents/torrentsremove.hpp"
 #include "methods/torrents/torrentsresume.hpp"
 #include "methods/torrents/torrentstrackerslist.hpp"
+#include "methods/webui/webuiinstall.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -92,6 +92,7 @@ int main(int argc, char* argv[])
 
     {
         auto curl_multi_instance = porla::CurlMulti::Create(io);
+        auto webui               = porla::WebUI::Create(io, cfg->state_dir.value_or(fs::path()), cfg->db, curl_multi_instance);
 
         uWS::Loop::get(&io);
         uWS::App http_server;
@@ -180,7 +181,8 @@ int main(int argc, char* argv[])
             {"torrents.recheck", porla::Methods::TorrentsRecheck(cfg->db, sessions)},
             {"torrents.remove", porla::Methods::TorrentsRemove(cfg->db, sessions)},
             {"torrents.resume", porla::Methods::TorrentsResume(cfg->db, sessions)},
-            {"torrents.trackers.list", porla::Methods::TorrentsTrackersList(cfg->db, sessions)}
+            {"torrents.trackers.list", porla::Methods::TorrentsTrackersList(cfg->db, sessions)},
+            {"webui.install", porla::Methods::WebUI::WebUIInstall(webui)}
         });
 
         std::string http_base_path = cfg->http_base_path.value_or("/");
@@ -192,21 +194,12 @@ int main(int argc, char* argv[])
 
         if (cfg->http_webui_enabled.value_or(true))
         {
-            const auto webui_data = porla::Data::Models::KeyValueStore::Get(cfg->db, "porla.webui.data");
-
-            if (webui_data == json())
+            if (!webui->Has())
             {
-                porla::WebUI::Download(cfg->db);
+                webui->Install("latest");
             }
 
-            BOOST_LOG_TRIVIAL(info) << "Enabling HTTP web UI";
-
-            auto handler = std::make_shared<porla::Http::WebUIHandler>(
-                cfg->db,
-                http_base_path,
-                kv_updated_signal);
-
-            http_server.get(http_base_path + "/*", [handler](auto res, auto req) { (*handler)(res, req); });
+            http_server.get(http_base_path + "/*", webui->HttpHandler());
         }
 
         http_server.listen(

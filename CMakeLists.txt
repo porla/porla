@@ -72,7 +72,6 @@ add_library(
     src/data/statement.cpp
 
     src/http/jsonrpchandler.cpp
-    src/http/webuihandler.cpp
 
     src/json/_/authinit.cpp
     src/json/_/authlogin.cpp
@@ -125,6 +124,7 @@ add_library(
     src/json/_/torrentsremove.cpp
     src/json/_/torrentsresume.cpp
     src/json/_/torrentstrackerslist.cpp
+    src/json/_/webuiinstall.cpp
 
     src/lua/globals/http.cpp
     src/lua/globals/sleep.cpp
@@ -192,6 +192,7 @@ add_library(
     src/methods/torrents/torrentsresume.cpp
     src/methods/torrents/torrentspropertiesset.cpp
     src/methods/torrents/torrentstrackerslist.cpp
+    src/methods/webui/webuiinstall.cpp
 
     src/query/_aux/PorlaQueryLangBaseVisitor.cpp
     src/query/_aux/PorlaQueryLangLexer.cpp
