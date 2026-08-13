@@ -23,7 +23,7 @@ void PluginsList::Invoke(const PluginsListReq& req, WriteCb<PluginsListRes> cb)
 {
     PluginsListRes res = {};
 
-    for (const auto& plugin : Plugins::List(m_db))
+    for (const auto& plugin : Data::Models::Plugins::List(m_db))
     {
         const auto instance = m_plugin_engine.Get(plugin.id);
 

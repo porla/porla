@@ -7,7 +7,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace porla::Methods
+namespace porla::Methods::Mmdb
 {
     struct MmdbLookupReq
     {

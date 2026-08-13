@@ -9,7 +9,16 @@
 
 #include <boost/log/trivial.hpp>
 
+#include "buildinfo.hpp"
+
 using porla::CurlMulti;
+
+static size_t HttpWriteCallback(char *ptr, size_t size, size_t nmemb, void *userdata)
+{
+    std::stringstream* ss = reinterpret_cast<std::stringstream*>(userdata);
+    ss->write(ptr, nmemb);
+    return nmemb;
+}
 
 struct CurlMulti::SocketState
 {
@@ -108,6 +117,41 @@ void CurlMulti::AddTransfer(CURL* easy, TransferComplete callback)
         {
             self->DoAddTransfer(easy, std::move(callback));
         });
+}
+
+void CurlMulti::HttpGet(const std::string& url, HttpCallback callback)
+{
+    std::stringstream user_agent;
+    user_agent << "porla/" << porla::BuildInfo::Version();
+
+    auto body = std::make_shared<std::stringstream>();
+
+    CURL* curl = curl_easy_init();
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, body.get());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, HttpWriteCallback);
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, user_agent.str().c_str());
+
+    BOOST_LOG_TRIVIAL(trace) << "WebUI::HttpGet: " << url.c_str();
+
+    AddTransfer(curl, [w = weak_from_this(), body, callback](CURL* easy, CURLcode result)
+    {
+        auto self = w.lock();
+
+        if (!self)
+        {
+            return;
+        }
+
+        long response_code;
+        curl_easy_getinfo(easy, CURLINFO_RESPONSE_CODE, &response_code);
+
+        boost::asio::post(self->m_io, [callback, body, response_code]()
+        {
+            callback(response_code, body->str());
+        });
+    });
 }
 
 void CurlMulti::DoAddTransfer(CURL* easy, TransferComplete callback)

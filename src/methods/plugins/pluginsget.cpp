@@ -20,7 +20,7 @@ PluginsGet::PluginsGet(sqlite3* db, PluginEngine& plugin_engine)
 
 void PluginsGet::Invoke(const PluginsGetReq& req, WriteCb<PluginsGetRes> cb)
 {
-    const auto plugin = Plugins::GetById(m_db, req.id);
+    const auto plugin = Data::Models::Plugins::GetById(m_db, req.id);
 
     if (!plugin.has_value())
     {

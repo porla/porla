@@ -33,7 +33,6 @@ namespace porla
     private:
         explicit WebUI(boost::asio::io_context& io, fs::path state_dir, sqlite3* db, std::weak_ptr<CurlMulti> cm);
 
-        void HttpGet(const std::string& url, std::function<void(int, std::string)> callback);
         void LoadCurrent();
 
         boost::asio::io_context& m_io;

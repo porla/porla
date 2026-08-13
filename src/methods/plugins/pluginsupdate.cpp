@@ -20,7 +20,7 @@ PluginsUpdate::PluginsUpdate(sqlite3* db, porla::Lua::PluginEngine& plugin_engin
 
 void PluginsUpdate::Invoke(const PluginsUpdateReq& req, WriteCb<PluginsUpdateRes> cb)
 {
-    auto plugin = Plugins::GetById(m_db, req.id);
+    auto plugin = Data::Models::Plugins::GetById(m_db, req.id);
 
     if (!plugin.has_value())
     {
@@ -31,7 +31,7 @@ void PluginsUpdate::Invoke(const PluginsUpdateReq& req, WriteCb<PluginsUpdateRes
     plugin->path     = req.path;
     plugin->metadata = req.metadata.value_or(plugin->metadata);
 
-    Plugins::Update(m_db, *plugin);
+    Data::Models::Plugins::Update(m_db, *plugin);
 
     auto write = std::make_shared<WriteCb<PluginsUpdateRes>>(std::move(cb));
 

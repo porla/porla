@@ -19,11 +19,12 @@
 #include "methods/fsspace.hpp"
 #include "methods/keyvalueget.hpp"
 #include "methods/keyvalueset.hpp"
-#include "methods/mmdblookup.hpp"
 #include "methods/auth/authinit.hpp"
 #include "methods/auth/authlogin.hpp"
+#include "methods/mmdb/mmdblookup.hpp"
 #include "methods/plugins/pluginsget.hpp"
 #include "methods/plugins/pluginsadd.hpp"
+#include "methods/plugins/pluginsinstall.hpp"
 #include "methods/plugins/pluginslist.hpp"
 #include "methods/plugins/pluginsreload.hpp"
 #include "methods/plugins/pluginsremove.hpp"
@@ -142,9 +143,10 @@ int main(int argc, char* argv[])
             {"fs.space", porla::Methods::FsSpace()},
             {"kv.get", porla::Methods::KeyValueGet(cfg->db)},
             {"kv.set", porla::Methods::KeyValueSet(io, cfg->db, kv_updated_signal)},
-            {"mmdb.lookup", porla::Methods::MmdbLookup(cfg->db, kv_updated_signal)},
+            {"mmdb.lookup", porla::Methods::Mmdb::MmdbLookup(cfg->db, kv_updated_signal)},
             {"plugins.add", porla::Methods::PluginsAdd(cfg->db, plugin_engine)},
             {"plugins.get", porla::Methods::PluginsGet(cfg->db, plugin_engine)},
+            {"plugins.install", porla::Methods::Plugins::PluginsInstall(cfg->db, curl_multi_instance, plugin_engine)},
             {"plugins.list", porla::Methods::PluginsList(cfg->db, plugin_engine)},
             {"plugins.reload", porla::Methods::PluginsReload(plugin_engine)},
             {"plugins.remove", porla::Methods::PluginsRemove(cfg->db, plugin_engine)},

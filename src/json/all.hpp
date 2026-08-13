@@ -54,8 +54,6 @@ namespace porla::Methods
     struct KeyValueGetRes;
     struct KeyValueSetReq;
     struct KeyValueSetRes;
-    struct MmdbLookupReq;
-    struct MmdbLookupRes;
     struct PluginsAddReq;
     struct PluginsAddRes;
     struct PluginsGetReq;
@@ -120,6 +118,24 @@ namespace porla::Methods
 
         void to_json(nlohmann::json& json, const AuthInitRes& res);
         void to_json(nlohmann::json& json, const AuthLoginRes& res);
+    }
+
+    namespace Mmdb
+    {
+        struct MmdbLookupReq;
+        struct MmdbLookupRes;
+
+        void from_json(const nlohmann::json& json, MmdbLookupReq& req);
+        void to_json(nlohmann::json& json, const MmdbLookupRes& res);
+    }
+
+    namespace Plugins
+    {
+        struct PluginsInstallReq;
+        struct PluginsInstallRes;
+
+        void from_json(const nlohmann::json& json, PluginsInstallReq& req);
+        void to_json(nlohmann::json& json, const PluginsInstallRes& res);
     }
 
     namespace Presets
@@ -203,7 +219,6 @@ namespace porla::Methods
     void from_json(const nlohmann::json& json, FsSpaceReq& req);
     void from_json(const nlohmann::json& json, KeyValueGetReq& req);
     void from_json(const nlohmann::json& json, KeyValueSetReq& req);
-    void from_json(const nlohmann::json& json, MmdbLookupReq& req);
     void from_json(const nlohmann::json& json, PluginsAddReq& req);
     void from_json(const nlohmann::json& json, PluginsGetReq& req);
     void from_json(const nlohmann::json& json, PluginsListReq& req);
@@ -233,7 +248,6 @@ namespace porla::Methods
     void to_json(nlohmann::json& json, const FsSpaceRes& res);
     void to_json(nlohmann::json& json, const KeyValueGetRes& res);
     void to_json(nlohmann::json& json, const KeyValueSetRes& res);
-    void to_json(nlohmann::json& json, const MmdbLookupRes& res);
     void to_json(nlohmann::json& json, const PluginsAddRes& res);
     void to_json(nlohmann::json& json, const PluginsGetRes& res);
     void to_json(nlohmann::json& json, const PluginsListRes& res);

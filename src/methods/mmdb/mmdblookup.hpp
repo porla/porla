@@ -7,7 +7,7 @@
 #include <boost/signals2.hpp>
 #include <sqlite3.h>
 
-#include "method.hpp"
+#include "../method.hpp"
 #include "mmdblookup_reqres.hpp"
 
 namespace porla
@@ -15,7 +15,7 @@ namespace porla
     class Mmdb;
 }
 
-namespace porla::Methods
+namespace porla::Methods::Mmdb
 {
     class MmdbLookup : public Method<MmdbLookupReq, MmdbLookupRes>
     {

@@ -2,15 +2,15 @@
 
 #include <boost/log/trivial.hpp>
 
-#include "../data/models/keyvaluestore.hpp"
-#include "../mmdb.hpp"
+#include "../../data/models/keyvaluestore.hpp"
+#include "../../mmdb.hpp"
 
 namespace fs = std::filesystem;
 
 using porla::Data::Models::KeyValueStore;
-using porla::Methods::MmdbLookup;
-using porla::Methods::MmdbLookupReq;
-using porla::Methods::MmdbLookupRes;
+using porla::Methods::Mmdb::MmdbLookup;
+using porla::Methods::Mmdb::MmdbLookupReq;
+using porla::Methods::Mmdb::MmdbLookupRes;
 
 struct MmdbLookup::State
 {
@@ -33,7 +33,8 @@ struct MmdbLookup::State
             }
 
             BOOST_LOG_TRIVIAL(info) << "Loading MMDB file from " << mmdb_path.get<std::string>();
-            mmdb = Mmdb::Load(mmdb_path.get<std::string>());
+
+            mmdb = porla::Mmdb::Load(mmdb_path.get<std::string>());
         }
     }
 };

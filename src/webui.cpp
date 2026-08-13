@@ -42,13 +42,6 @@ static void str_replace_all(std::string& str, const std::string& from, const std
     }
 }
 
-static size_t HttpWriteCallback(char *ptr, size_t size, size_t nmemb, void *userdata)
-{
-    std::stringstream* ss = reinterpret_cast<std::stringstream*>(userdata);
-    ss->write(ptr, nmemb);
-    return nmemb;
-}
-
 WebUI::WebUI(boost::asio::io_context& io, fs::path state_dir, sqlite3* db, std::weak_ptr<CurlMulti> cm)
     : m_io(io)
     , m_state_dir(state_dir)
@@ -89,7 +82,15 @@ void WebUI::Install(const std::string& version, std::function<void()> callback)
     std::stringstream url;
     url << "https://api.github.com/repos/" << owner << "/" << repository << "/releases/" << version;
 
-    HttpGet(
+    auto cm = m_cm.lock();
+
+    if (cm == nullptr)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to lock CurlMulti";
+        return;
+    }
+
+    cm->HttpGet(
         url.str(),
         [callback, owner, repository, w = weak_from_this()](const auto status, const auto body)
         {
@@ -110,7 +111,14 @@ void WebUI::Install(const std::string& version, std::function<void()> callback)
 
             BOOST_LOG_TRIVIAL(info) << "Found version " << tag_name << " of web UI - fetching from " << download_url;
 
-            self->HttpGet(
+            auto cm = self->m_cm.lock();
+
+            if (cm == nullptr)
+            {
+                return;
+            }
+
+            cm->HttpGet(
                 download_url,
                 [callback, owner, repository, tag_name, w](const auto status, const auto body)
                 {
@@ -229,49 +237,6 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> WebUI::HttpHan
 
         respond_with_file(rooted_path);
     };
-}
-
-void WebUI::HttpGet(const std::string& url, std::function<void(int, std::string)> callback)
-{
-    auto cm = m_cm.lock();
-
-    if (!cm)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Failed to lock CurlMulti";
-        return;
-    }
-
-    std::stringstream user_agent;
-    user_agent << "porla/" << porla::BuildInfo::Version();
-
-    auto body = std::make_shared<std::stringstream>();
-
-    CURL* curl = curl_easy_init();
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, body.get());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, HttpWriteCallback);
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, user_agent.str().c_str());
-
-    BOOST_LOG_TRIVIAL(trace) << "WebUI::HttpGet: " << url.c_str();
-
-    cm->AddTransfer(curl, [w = weak_from_this(), body, callback](CURL* easy, CURLcode result)
-    {
-        auto self = w.lock();
-
-        if (!self)
-        {
-            return;
-        }
-
-        long response_code;
-        curl_easy_getinfo(easy, CURLINFO_RESPONSE_CODE, &response_code);
-
-        boost::asio::post(self->m_io, [callback, body, response_code]()
-        {
-            callback(response_code, body->str());
-        });
-    });
 }
 
 void WebUI::LoadCurrent()

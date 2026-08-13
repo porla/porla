@@ -1,9 +1,9 @@
 #include "../all.hpp"
 
-#include "../../methods/mmdblookup_reqres.hpp"
+#include "../../methods/mmdb/mmdblookup_reqres.hpp"
 #include "../utils.hpp"
 
-namespace porla::Methods
+namespace porla::Methods::Mmdb
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         MmdbLookupReq,

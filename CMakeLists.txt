@@ -88,6 +88,7 @@ add_library(
     src/json/_/mmdblookup.cpp
     src/json/_/pluginsadd.cpp
     src/json/_/pluginsget.cpp
+    src/json/_/pluginsinstall.cpp
     src/json/_/pluginslist.cpp
     src/json/_/pluginsreload.cpp
     src/json/_/pluginsremove.cpp
@@ -150,11 +151,12 @@ add_library(
     src/methods/fsspace.cpp
     src/methods/keyvalueget.cpp
     src/methods/keyvalueset.cpp
-    src/methods/mmdblookup.cpp
+    src/methods/mmdb/mmdblookup.cpp
     src/methods/auth/authinit.cpp
     src/methods/auth/authlogin.cpp
     src/methods/plugins/pluginsadd.cpp
     src/methods/plugins/pluginsget.cpp
+    src/methods/plugins/pluginsinstall.cpp
     src/methods/plugins/pluginslist.cpp
     src/methods/plugins/pluginsreload.cpp
     src/methods/plugins/pluginsremove.cpp

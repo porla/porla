@@ -34,9 +34,9 @@ void PluginsAdd::Invoke(const PluginsAddReq& req, WriteCb<PluginsAddRes> cb)
         return cb.Error(-102, "Plugin path does not exist");
     }
 
-    const auto plugin_id = Plugins::Insert(
+    const auto plugin_id = Data::Models::Plugins::Insert(
         m_db,
-        Plugins::Plugin{
+        Data::Models::Plugins::Plugin{
             .id       = -1,
             .path     = plugin_path,
             .config   = req.config,

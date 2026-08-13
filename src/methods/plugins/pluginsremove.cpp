@@ -18,14 +18,14 @@ PluginsRemove::PluginsRemove(sqlite3* db, PluginEngine& plugin_engine)
 
 void PluginsRemove::Invoke(const PluginsRemoveReq& req, WriteCb<PluginsRemoveRes> cb)
 {
-    const auto plugin = Plugins::GetById(m_db, req.id);
+    const auto plugin = Data::Models::Plugins::GetById(m_db, req.id);
 
     if (!plugin.has_value())
     {
         return cb.Error(-1, "Plugin not found");
     }
 
-    Plugins::Remove(m_db, req.id);
+    Data::Models::Plugins::Remove(m_db, req.id);
 
     auto write = std::make_shared<WriteCb<PluginsRemoveRes>>(std::move(cb));
 
