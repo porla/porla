@@ -152,8 +152,6 @@ add_library(
     src/methods/keyvalueget.cpp
     src/methods/keyvalueset.cpp
     src/methods/mmdb/mmdblookup.cpp
-    src/methods/auth/authinit.cpp
-    src/methods/auth/authlogin.cpp
     src/methods/plugins/pluginsadd.cpp
     src/methods/plugins/pluginsget.cpp
     src/methods/plugins/pluginsinstall.cpp
@@ -195,6 +193,10 @@ add_library(
     src/methods/torrents/torrentspropertiesset.cpp
     src/methods/torrents/torrentstrackerslist.cpp
     src/methods/webui/webuiinstall.cpp
+
+    src/rpc/jsonrpc.cpp
+    src/rpc/methods/auth/authinit.cpp
+    src/rpc/methods/auth/authlogin.cpp
 
     src/query/_aux/PorlaQueryLangBaseVisitor.cpp
     src/query/_aux/PorlaQueryLangLexer.cpp

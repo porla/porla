@@ -2,12 +2,13 @@
 
 #include <sqlite3.h>
 
-#include "../method.hpp"
+#include "../../typedmethod.hpp"
+
 #include "authinit_reqres.hpp"
 
-namespace porla::Methods::Auth
+namespace porla::Rpc::Methods::Auth
 {
-    class AuthInit : public Method<AuthInitReq, AuthInitRes>
+    class AuthInit : public TypedMethod<AuthInitReq, AuthInitRes>
     {
     public:
         explicit AuthInit(sqlite3* db);
@@ -18,7 +19,7 @@ namespace porla::Methods::Auth
             return true;
         }
 
-        void Invoke(const AuthInitReq& req, WriteCb<AuthInitRes> cb) override;
+        void Execute(const AuthInitReq& req, ResponseWriterHandle writer) override;
 
     private:
         sqlite3* m_db;

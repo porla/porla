@@ -5,7 +5,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace porla::Methods::Auth
+namespace porla::Rpc::Methods::Auth
 {
     struct AuthInitReq
     {

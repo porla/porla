@@ -23,6 +23,7 @@ namespace porla::Http
 
     private:
         class State;
+
         std::shared_ptr<State> m_state;
         std::string m_secret_key;
     };

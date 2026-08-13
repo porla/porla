@@ -19,8 +19,6 @@
 #include "methods/fsspace.hpp"
 #include "methods/keyvalueget.hpp"
 #include "methods/keyvalueset.hpp"
-#include "methods/auth/authinit.hpp"
-#include "methods/auth/authlogin.hpp"
 #include "methods/mmdb/mmdblookup.hpp"
 #include "methods/plugins/pluginsget.hpp"
 #include "methods/plugins/pluginsadd.hpp"
@@ -64,6 +62,10 @@
 #include "methods/torrents/torrentstrackerslist.hpp"
 #include "methods/webui/webuiinstall.hpp"
 
+#include "rpc/jsonrpc.hpp"
+#include "rpc/methods/auth/authinit.hpp"
+#include "rpc/methods/auth/authlogin.hpp"
+
 int main(int argc, char* argv[])
 {
     curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -92,11 +94,20 @@ int main(int argc, char* argv[])
     boost::asio::io_context io;
 
     {
-        auto curl_multi_instance = porla::CurlMulti::Create(io);
-        auto webui               = porla::WebUI::Create(io, cfg->state_dir.value_or(fs::path()), cfg->db, curl_multi_instance);
-
         uWS::Loop::get(&io);
         uWS::App http_server;
+
+        auto curl_multi_instance = porla::CurlMulti::Create(io);
+        auto jsonrpc             = porla::Rpc::JsonRpc::Create();
+        auto webui               = porla::WebUI::Create(io, cfg->state_dir.value_or(fs::path()), cfg->db, curl_multi_instance);
+
+        jsonrpc->Register("auth.init",  std::make_shared<porla::Rpc::Methods::Auth::AuthInit>(cfg->db));
+        jsonrpc->Register("auth.login", std::make_shared<porla::Rpc::Methods::Auth::AuthLogin>(cfg->db, cfg->secret_key));
+
+        if (!webui->Has())
+        {
+            webui->Install("latest");
+        }
 
         porla::Sessions sessions(porla::SessionsOptions{
             .db = cfg->db,
@@ -138,8 +149,6 @@ int main(int argc, char* argv[])
         boost::signals2::signal<void(const std::unordered_set<std::string>&)> kv_updated_signal;
 
         porla::Http::JsonRpcHandler rpc(cfg->secret_key, {
-            {"auth.init", porla::Methods::Auth::AuthInit(cfg->db)},
-            {"auth.login", porla::Methods::Auth::AuthLogin(cfg->db, cfg->secret_key)},
             {"fs.space", porla::Methods::FsSpace()},
             {"kv.get", porla::Methods::KeyValueGet(cfg->db)},
             {"kv.set", porla::Methods::KeyValueSet(io, cfg->db, kv_updated_signal)},
@@ -192,17 +201,8 @@ int main(int argc, char* argv[])
         if (http_base_path[0] != '/')      http_base_path = "/" + http_base_path;
         if (http_base_path.ends_with("/")) http_base_path = http_base_path.substr(0, http_base_path.size() - 1);
 
-        http_server.post(http_base_path + "/api/v1/jsonrpc", rpc);
-
-        if (cfg->http_webui_enabled.value_or(true))
-        {
-            if (!webui->Has())
-            {
-                webui->Install("latest");
-            }
-
-            http_server.get(http_base_path + "/*", webui->HttpHandler());
-        }
+        http_server.post(http_base_path + "/api/v1/jsonrpc", jsonrpc->HttpHandler());
+        http_server.get(http_base_path  + "/*",              webui->HttpHandler());
 
         http_server.listen(
             cfg->http_host.value_or("127.0.0.1"),

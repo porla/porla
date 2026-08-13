@@ -1,11 +1,8 @@
 #pragma once
 
-#include <map>
 #include <string>
 
-#include <nlohmann/json.hpp>
-
-namespace porla::Methods::Auth
+namespace porla::Rpc::Methods::Auth
 {
     struct AuthLoginReq
     {

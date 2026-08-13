@@ -39,7 +39,7 @@ void PluginsInstall::Invoke(const PluginsInstallReq& req, WriteCb<PluginsInstall
 
     auto callback = std::make_shared<WriteCb<PluginsInstallRes>>(std::move(cb));
 
-    curl->HttpGet(url.str(), [this, callback](int status, std::string body)
+    curl->HttpGet(url.str(), [cm = m_cm, callback](int status, std::string body)
     {
         const auto release = nlohmann::json::parse(body);
 
@@ -50,14 +50,14 @@ void PluginsInstall::Invoke(const PluginsInstallReq& req, WriteCb<PluginsInstall
 
         BOOST_LOG_TRIVIAL(info) << "Found version " << tag_name << " of plugin - fetching from " << download_url;
 
-        auto curl = m_cm.lock();
+        auto curl = cm.lock();
 
         if (curl == nullptr)
         {
             return callback->Error(-1, "Failed to lock CurlMulti");
         }
 
-        curl->HttpGet(download_url, [this, callback](int status, std::string body)
+        curl->HttpGet(download_url, [callback](int status, std::string body)
         {
             BOOST_LOG_TRIVIAL(info) << "Plugin archive fetched. Installing.";
 

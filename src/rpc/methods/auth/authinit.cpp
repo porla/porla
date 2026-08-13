@@ -3,24 +3,23 @@
 #include <boost/log/trivial.hpp>
 #include <sodium.h>
 
-#include "../../data/models/users.hpp"
+#include "../../../data/models/users.hpp"
 
-using porla::Methods::Auth::AuthInit;
-using porla::Methods::Auth::AuthInitReq;
-using porla::Methods::Auth::AuthInitRes;
+using porla::Rpc::Methods::Auth::AuthInit;
+using porla::Rpc::Methods::Auth::AuthInitReq;
+using porla::Rpc::Methods::Auth::AuthInitRes;
 
 AuthInit::AuthInit(sqlite3* db)
     : m_db(db)
 {
 }
 
-void AuthInit::Invoke(const AuthInitReq& req, WriteCb<AuthInitRes> cb)
+void AuthInit::Execute(const AuthInitReq& req, ResponseWriterHandle out)
 {
     if (porla::Data::Models::Users::Any(m_db))
     {
-        return cb.Error(-1, "Already initialized");
+        return out->Error(-1, "Already initialized");
     }
-
 
     std::string password_hashed;
     password_hashed.resize(crypto_pwhash_STRBYTES);
@@ -41,5 +40,5 @@ void AuthInit::Invoke(const AuthInitReq& req, WriteCb<AuthInitRes> cb)
 
     BOOST_LOG_TRIVIAL(info) << "User " << req.username << " created";
 
-    cb.Ok(AuthInitRes{});
+    out->Ok(AuthInitRes{});
 }

@@ -5,12 +5,12 @@
 #include <jwt-cpp/jwt.h>
 #include <sodium.h>
 
-#include "../../data/models/users.hpp"
+#include "../../../data/models/users.hpp"
 
 using porla::Data::Models::Users;
-using porla::Methods::Auth::AuthLogin;
-using porla::Methods::Auth::AuthLoginReq;
-using porla::Methods::Auth::AuthLoginRes;
+using porla::Rpc::Methods::Auth::AuthLogin;
+using porla::Rpc::Methods::Auth::AuthLoginReq;
+using porla::Rpc::Methods::Auth::AuthLoginRes;
 
 static std::string CreateAuthCookie(const std::string& name, const std::string& token, int max_age_seconds, bool secure)
 {
@@ -31,7 +31,7 @@ AuthLogin::AuthLogin(sqlite3* db, const std::string& secret_key)
 {
 }
 
-void AuthLogin::Invoke(const AuthLoginReq& req, WriteCb<AuthLoginRes> cb)
+void AuthLogin::Execute(const AuthLoginReq& req, ResponseWriterHandle cb)
 {
     const auto user = Users::GetByUsername(m_db, req.username);
 
@@ -61,7 +61,7 @@ void AuthLogin::Invoke(const AuthLoginReq& req, WriteCb<AuthLoginRes> cb)
 
     if (result != 0 || !user.has_value())
     {
-        return cb.Error(-1, "Invalid username/password combination");
+        return cb->Error(-1, "Invalid username/password combination");
     }
 
     const auto token = jwt::create()
@@ -73,9 +73,9 @@ void AuthLogin::Invoke(const AuthLoginReq& req, WriteCb<AuthLoginRes> cb)
         .set_payload_claim("scope", "*")
         .sign(jwt::algorithm::hs256(m_secret_key));
 
-    cb.Header("Set-Cookie", CreateAuthCookie("porla-auth-token", token, 86400, false));
+    cb->Header("Set-Cookie", CreateAuthCookie("porla-auth-token", token, 86400, false));
 
-    cb.Ok(AuthLoginRes{
+    cb->Ok(AuthLoginRes{
         .token = token
     });
 }
