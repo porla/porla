@@ -43,6 +43,8 @@ namespace libtorrent
         if (pi.source & lt::peer_info::resume_data) source.insert("resume_data");
         if (pi.source & lt::peer_info::incoming)    source.insert("incoming");
 
+        const auto local_endpoint = pi.local_endpoint();
+
         json = {
             {"busy_requests", pi.busy_requests},
             {"client", pi.client},
@@ -58,8 +60,8 @@ namespace libtorrent
             {"last_active", libtorrent::total_seconds(pi.last_active)},
             {"last_request", libtorrent::total_seconds(pi.last_request)},
             {"local_endpoint", {
-                pi.local_endpoint.address().to_string(),
-                pi.local_endpoint.port()
+                local_endpoint.address().to_string(),
+                local_endpoint.port()
             }},
             {"progress", pi.progress},
             {"rtt", pi.rtt},

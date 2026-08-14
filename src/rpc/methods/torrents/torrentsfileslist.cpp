@@ -45,7 +45,7 @@ void TorrentsFilesList::Execute(const TorrentsFilesListReq& req, ResponseWriterH
     if (auto tf = status.torrent_file.lock())
     {
         return cb->Ok(TorrentsFilesListRes{
-            .file_storage = tf->files()
+            .file_storage = tf->layout()
         });
     }
 

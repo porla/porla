@@ -1,5 +1,6 @@
 #pragma once
 
+#include <libtorrent/announce_entry.hpp>
 #include <libtorrent/torrent_flags.hpp>
 #include <nlohmann/json.hpp>
 
@@ -13,14 +14,6 @@ namespace boost::system
 
 namespace libtorrent
 {
-    struct announce_endpoint;
-    struct announce_entry;
-    struct announce_infohash;
-    struct info_hash_t;
-    struct peer_info;
-    struct settings_pack;
-    struct torrent_status;
-
     inline void from_json(const nlohmann::json& json, announce_endpoint& endpoint) {}
     inline void from_json(const nlohmann::json& json, announce_entry& entry) {}
     inline void from_json(const nlohmann::json& json, announce_infohash& infohash) {}

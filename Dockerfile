@@ -93,15 +93,15 @@ COPY --from=build-uwebsockets /src/uWebSockets-20.70.0/src/* /usr/local/include/
 
 COPY . .
 
-RUN echo "@community https://dl-cdn.alpinelinux.org/alpine/v3.23/community" >> /etc/apk/repositories
+RUN echo "@edge-community https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
 
 RUN apk add --no-cache \
     git \
     icu-static \
     libsodium-dev@edge-main \
     libsodium-static@edge-main \
-    libtorrent-rasterbar-dev@community \
-    libtorrent-rasterbar-static@community \
+    libtorrent-rasterbar-dev@edge-community \
+    libtorrent-rasterbar-static@edge-community \
     lua5.4-dev \
     sqlite-dev \
     sqlite-static

@@ -56,8 +56,8 @@ static const std::map<std::pair<std::string, bool>, std::function<bool(const lt:
         {"queue_position", false},
         [](auto const& lhs, auto const& rhs)
         {
-            if (lhs.queue_position < 0) return false;
-            if (rhs.queue_position < 0) return true;
+            if (static_cast<int>(lhs.queue_position) < 0) return false;
+            if (static_cast<int>(rhs.queue_position) < 0) return true;
             return lhs.queue_position >= rhs.queue_position;
         }
     },
@@ -65,8 +65,8 @@ static const std::map<std::pair<std::string, bool>, std::function<bool(const lt:
         {"queue_position", true},
         [](auto const& lhs, auto const& rhs)
         {
-            if (lhs.queue_position < 0) return false;
-            if (rhs.queue_position < 0) return true;
+            if (static_cast<int>(lhs.queue_position) < 0) return false;
+            if (static_cast<int>(rhs.queue_position) < 0) return true;
             return lhs.queue_position < rhs.queue_position;
         }
     },

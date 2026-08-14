@@ -15,13 +15,13 @@ find_package(PkgConfig           REQUIRED)
 find_package(ANTLR4              REQUIRED)
 find_package(Boost               CONFIG COMPONENTS log program_options system)
 find_package(CURL                REQUIRED)
-find_package(LibtorrentRasterbar REQUIRED)
 find_package(libzip              REQUIRED)
 find_package(OpenSSL             REQUIRED)
 find_package(SQLite3             REQUIRED)
 find_package(ZLIB                REQUIRED)
 
 pkg_check_modules(Lua       REQUIRED IMPORTED_TARGET lua5.4)
+pkg_check_modules(LtRb      REQUIRED IMPORTED_TARGET libtorrent-rasterbar)
 pkg_check_modules(MAXMINDDB REQUIRED libmaxminddb)
 
 add_custom_command(
@@ -232,10 +232,10 @@ target_link_libraries(
     Boost::boost Boost::log Boost::program_options
     CURL::libcurl
     libzip::zip
+    PkgConfig::LtRb
     PkgConfig::Lua
     sodium
     SQLite::SQLite3
-    torrent-rasterbar
     -luSockets
     -lcrypto
     -lssl

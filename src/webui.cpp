@@ -61,7 +61,7 @@ std::shared_ptr<WebUI> WebUI::Create(boost::asio::io_context& io, fs::path state
 bool WebUI::Has()
 {
     const auto current_webui = Data::Models::KeyValueStore::Get(m_db, "porla.webui.current");
-    return fs::exists(m_state_dir / "webui" / current_webui);
+    return current_webui.is_string() && fs::exists(m_state_dir / "webui" / current_webui);
 }
 
 void WebUI::Install(const std::string& version, std::function<void()> callback)
@@ -242,6 +242,13 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> WebUI::HttpHan
 void WebUI::LoadCurrent()
 {
     const auto current = Data::Models::KeyValueStore::Get(m_db, "porla.webui.current");
+
+    if (!current.is_string())
+    {
+        BOOST_LOG_TRIVIAL(info) << "No web UI configured";
+        return;
+    }
+
     const auto current_file = m_state_dir / "webui" / current;
 
     if (!fs::exists(current_file))
