@@ -2,9 +2,6 @@ FROM mirror.gcr.io/library/alpine:3.24.1 AS base
 
 FROM base AS build-base
 ARG GITVERSION_SEMVER="0.0.0"
-ARG CCACHE_REMOTE_STORAGE="http://ccache.porla.org/cache|read-only|connect-timeout=500"
-ENV CCACHE_REMOTE_ONLY="1"
-ENV CCACHE_REMOTE_STORAGE=${CCACHE_REMOTE_STORAGE}
 ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
 WORKDIR /src
 
@@ -12,10 +9,10 @@ RUN apk add --no-cache \
     build-base \
     boost1.84-dev \
     boost1.84-static \
-    ccache \
     cmake \
     libmaxminddb-dev \
     libmaxminddb-static \
+    libpsl-static \
     linux-headers \
     ninja \
     openssl-dev \
@@ -32,17 +29,15 @@ RUN tar zxf antlr4-4.13.2.tar.gz
 RUN cd antlr4-4.13.2/runtime/Cpp \
     && cmake -S . -B build -G Ninja \
         -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
         -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build --target install
 
 # libcurl
 FROM build-base AS build-curl
-RUN wget https://github.com/curl/curl/releases/download/curl-8_11_0/curl-8.11.0.tar.gz
-RUN tar zxf curl-8.11.0.tar.gz
-RUN cd curl-8.11.0 \
+RUN wget https://github.com/curl/curl/releases/download/curl-8_21_0/curl-8.21.0.tar.gz
+RUN tar zxf curl-8.21.0.tar.gz
+RUN cd curl-8.21.0 \
     && cmake -S . -B build -G Ninja \
-        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
         -DBUILD_CURL_EXE=OFF \
         -DBUILD_SHARED_LIBS=OFF \
         -DBUILD_STATIC_LIBS=ON \
@@ -66,7 +61,6 @@ RUN wget https://github.com/nih-at/libzip/releases/download/v1.11.2/libzip-1.11.
 RUN tar zxf libzip-1.11.2.tar.gz
 RUN cd libzip-1.11.2 \
     && cmake -S . -B build -G Ninja \
-        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
         -DBUILD_SHARED_LIBS=OFF \
         -DBUILD_TOOLS=OFF \
         -DBUILD_DOCS=OFF \
@@ -80,9 +74,9 @@ FROM build-base AS build-uwebsockets
 RUN wget -O uSockets-0.8.8.tar.gz https://github.com/uNetworking/uSockets/archive/refs/tags/v0.8.8.tar.gz
 RUN tar zxf uSockets-0.8.8.tar.gz
 RUN cd uSockets-0.8.8 \
-    && WITH_ASIO=1 WITH_OPENSSL=1 make CC="ccache gcc"
-RUN wget -O uWebSockets-20.70.0.tar.gz https://github.com/uNetworking/uWebSockets/archive/refs/tags/v20.70.0.tar.gz
-RUN tar zxf uWebSockets-20.70.0.tar.gz
+    && WITH_ASIO=1 WITH_OPENSSL=1 make
+RUN wget -O uWebSockets-20.79.0.tar.gz https://github.com/uNetworking/uWebSockets/archive/refs/tags/v20.79.0.tar.gz
+RUN tar zxf uWebSockets-20.79.0.tar.gz
 
 FROM build-base AS dev
 # antlr4
@@ -103,7 +97,7 @@ COPY --from=build-libzip /usr/local/lib/libzip* /usr/local/lib
 # uwebsockets
 COPY --from=build-uwebsockets /src/uSockets-0.8.8/src/libusockets.h /usr/local/include/libusockets.h
 COPY --from=build-uwebsockets /src/uSockets-0.8.8/uSockets.a /usr/local/lib/libuSockets.a
-COPY --from=build-uwebsockets /src/uWebSockets-20.70.0/src/* /usr/local/include/uWebSockets/
+COPY --from=build-uwebsockets /src/uWebSockets-20.79.0/src/* /usr/local/include/uWebSockets/
 
 RUN apk add --no-cache \
     bash \
@@ -111,8 +105,10 @@ RUN apk add --no-cache \
     gdb \
     git \
     icu-static \
+    libidn2-static \
     libsodium-dev \
     libsodium-static \
+    libunistring-static \
     lua5.4-dev \
     sqlite-dev \
     sqlite-static

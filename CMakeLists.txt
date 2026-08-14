@@ -238,6 +238,7 @@ target_link_libraries(
     -luSockets
     -lcrypto
     -lssl
+    -lunistring
     -lz
 )
 
