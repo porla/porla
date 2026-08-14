@@ -47,6 +47,7 @@
 #include "rpc/methods/torrents/torrentsadd.hpp"
 #include "rpc/methods/torrents/torrentscount.hpp"
 #include "rpc/methods/torrents/torrentsfileslist.hpp"
+#include "rpc/methods/torrents/torrentsfilespriorities.hpp"
 #include "rpc/methods/torrents/torrentsfilesprogress.hpp"
 #include "rpc/methods/torrents/torrentsfilesrename.hpp"
 #include "rpc/methods/torrents/torrentsget.hpp"
@@ -115,55 +116,56 @@ int main(int argc, char* argv[])
             .sessions    = sessions
         }};
 
-        jsonrpc->Register("auth.init",               std::make_shared<porla::Rpc::Methods::Auth::AuthInit>(cfg->db));
-        jsonrpc->Register("auth.login",              std::make_shared<porla::Rpc::Methods::Auth::AuthLogin>(cfg->db, cfg->secret_key));
-        jsonrpc->Register("fs.space",                std::make_shared<porla::Rpc::Methods::Fs::FsSpace>());
-        jsonrpc->Register("kv.get",                  std::make_shared<porla::Rpc::Methods::Kv::KeyValueGet>(cfg->db));
-        jsonrpc->Register("kv.set",                  std::make_shared<porla::Rpc::Methods::Kv::KeyValueSet>(io, cfg->db, kv_updated_signal));
-        jsonrpc->Register("mmdb.lookup",             std::make_shared<porla::Rpc::Methods::Mmdb::MmdbLookup>(cfg->db, kv_updated_signal));
-        jsonrpc->Register("plugins.add",             std::make_shared<porla::Rpc::Methods::Plugins::PluginsAdd>(cfg->db, plugin_engine));
-        jsonrpc->Register("plugins.get",             std::make_shared<porla::Rpc::Methods::Plugins::PluginsGet>(cfg->db, plugin_engine));
-        jsonrpc->Register("plugins.install",         std::make_shared<porla::Rpc::Methods::Plugins::PluginsInstall>(cfg->db, curl_multi_instance, plugin_engine, cfg->state_dir));
-        jsonrpc->Register("plugins.list",            std::make_shared<porla::Rpc::Methods::Plugins::PluginsList>(cfg->db, plugin_engine));
-        jsonrpc->Register("plugins.reload",          std::make_shared<porla::Rpc::Methods::Plugins::PluginsReload>(plugin_engine));
-        jsonrpc->Register("plugins.remove",          std::make_shared<porla::Rpc::Methods::Plugins::PluginsRemove>(cfg->db, plugin_engine));
-        jsonrpc->Register("plugins.update",          std::make_shared<porla::Rpc::Methods::Plugins::PluginsUpdate>(cfg->db, plugin_engine));
-        jsonrpc->Register("presets.add",             std::make_shared<porla::Rpc::Methods::Presets::PresetsAdd>(cfg->db));
-        jsonrpc->Register("presets.get",             std::make_shared<porla::Rpc::Methods::Presets::PresetsGet>(cfg->db));
-        jsonrpc->Register("presets.list",            std::make_shared<porla::Rpc::Methods::Presets::PresetsList>(cfg->db));
-        jsonrpc->Register("presets.remove",          std::make_shared<porla::Rpc::Methods::Presets::PresetsRemove>(cfg->db));
-        jsonrpc->Register("presets.update",          std::make_shared<porla::Rpc::Methods::Presets::PresetsUpdate>(cfg->db));
-        jsonrpc->Register("sessions.add",            std::make_shared<porla::Rpc::Methods::Sessions::SessionsAdd>(cfg->db, sessions));
-        jsonrpc->Register("sessions.get",            std::make_shared<porla::Rpc::Methods::Sessions::SessionsGet>(cfg->db, sessions));
-        jsonrpc->Register("sessions.list",           std::make_shared<porla::Rpc::Methods::Sessions::SessionsList>(cfg->db, sessions));
-        jsonrpc->Register("sessions.pause",          std::make_shared<porla::Rpc::Methods::Sessions::SessionsPause>(cfg->db, sessions));
-        jsonrpc->Register("sessions.remove",         std::make_shared<porla::Rpc::Methods::Sessions::SessionsRemove>(cfg->db, sessions));
-        jsonrpc->Register("sessions.resume",         std::make_shared<porla::Rpc::Methods::Sessions::SessionsResume>(cfg->db, sessions));
-        jsonrpc->Register("sessions.settings.get",   std::make_shared<porla::Rpc::Methods::Sessions::SessionsSettingsGet>(cfg->db, sessions));
-        jsonrpc->Register("sessions.settings.set",   std::make_shared<porla::Rpc::Methods::Sessions::SessionsSettingsSet>(cfg->db, sessions));
-        jsonrpc->Register("sessions.update",         std::make_shared<porla::Rpc::Methods::Sessions::SessionsUpdate>(cfg->db, sessions));
-        jsonrpc->Register("sys.status",              std::make_shared<porla::Rpc::Methods::Sys::SysStatus>(cfg->db));
-        jsonrpc->Register("sys.versions",            std::make_shared<porla::Rpc::Methods::Sys::SysVersions>());
-        jsonrpc->Register("torrents.add",            std::make_shared<porla::Rpc::Methods::Torrents::TorrentsAdd>(cfg->db, sessions));
-        jsonrpc->Register("torrents.count",          std::make_shared<porla::Rpc::Methods::Torrents::TorrentsCount>(sessions));
-        jsonrpc->Register("torrents.files.list",     std::make_shared<porla::Rpc::Methods::Torrents::TorrentsFilesList>(cfg->db, sessions));
-        jsonrpc->Register("torrents.files.progress", std::make_shared<porla::Rpc::Methods::Torrents::TorrentsFilesProgress>(cfg->db, sessions));
-        jsonrpc->Register("torrents.files.rename",   std::make_shared<porla::Rpc::Methods::Torrents::TorrentsFilesRename>(cfg->db, sessions));
-        jsonrpc->Register("torrents.get",            std::make_shared<porla::Rpc::Methods::Torrents::TorrentsGet>(cfg->db, sessions));
-        jsonrpc->Register("torrents.list",           std::make_shared<porla::Rpc::Methods::Torrents::TorrentsList>(cfg->db, sessions));
-        jsonrpc->Register("torrents.migrate",        std::make_shared<porla::Rpc::Methods::Torrents::TorrentsMigrate>(cfg->db, sessions));
-        jsonrpc->Register("torrents.move",           std::make_shared<porla::Rpc::Methods::Torrents::TorrentsMove>(cfg->db, sessions));
-        jsonrpc->Register("torrents.pause",          std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPause>(cfg->db, sessions));
-        jsonrpc->Register("torrents.peers.add",      std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPeersAdd>(cfg->db, sessions));
-        jsonrpc->Register("torrents.peers.list",     std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPeersList>(cfg->db, sessions));
-        jsonrpc->Register("torrents.pieces.get",     std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPiecesGet>(cfg->db, sessions));
-        jsonrpc->Register("torrents.properties.get", std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPropertiesGet>(cfg->db, sessions));
-        jsonrpc->Register("torrents.properties.set", std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPropertiesSet>(cfg->db, sessions));
-        jsonrpc->Register("torrents.recheck",        std::make_shared<porla::Rpc::Methods::Torrents::TorrentsRecheck>(cfg->db, sessions));
-        jsonrpc->Register("torrents.remove",         std::make_shared<porla::Rpc::Methods::Torrents::TorrentsRemove>(cfg->db, sessions));
-        jsonrpc->Register("torrents.resume",         std::make_shared<porla::Rpc::Methods::Torrents::TorrentsResume>(cfg->db, sessions));
-        jsonrpc->Register("torrents.trackers.list",  std::make_shared<porla::Rpc::Methods::Torrents::TorrentsTrackersList>(cfg->db, sessions));
-        jsonrpc->Register("webui.install",           std::make_shared<porla::Rpc::Methods::WebUI::WebUIInstall>(webui));
+        jsonrpc->Register("auth.init",                 std::make_shared<porla::Rpc::Methods::Auth::AuthInit>(cfg->db));
+        jsonrpc->Register("auth.login",                std::make_shared<porla::Rpc::Methods::Auth::AuthLogin>(cfg->db, cfg->secret_key));
+        jsonrpc->Register("fs.space",                  std::make_shared<porla::Rpc::Methods::Fs::FsSpace>());
+        jsonrpc->Register("kv.get",                    std::make_shared<porla::Rpc::Methods::Kv::KeyValueGet>(cfg->db));
+        jsonrpc->Register("kv.set",                    std::make_shared<porla::Rpc::Methods::Kv::KeyValueSet>(io, cfg->db, kv_updated_signal));
+        jsonrpc->Register("mmdb.lookup",               std::make_shared<porla::Rpc::Methods::Mmdb::MmdbLookup>(cfg->db, kv_updated_signal));
+        jsonrpc->Register("plugins.add",               std::make_shared<porla::Rpc::Methods::Plugins::PluginsAdd>(cfg->db, plugin_engine));
+        jsonrpc->Register("plugins.get",               std::make_shared<porla::Rpc::Methods::Plugins::PluginsGet>(cfg->db, plugin_engine));
+        jsonrpc->Register("plugins.install",           std::make_shared<porla::Rpc::Methods::Plugins::PluginsInstall>(cfg->db, curl_multi_instance, plugin_engine, cfg->state_dir));
+        jsonrpc->Register("plugins.list",              std::make_shared<porla::Rpc::Methods::Plugins::PluginsList>(cfg->db, plugin_engine));
+        jsonrpc->Register("plugins.reload",            std::make_shared<porla::Rpc::Methods::Plugins::PluginsReload>(plugin_engine));
+        jsonrpc->Register("plugins.remove",            std::make_shared<porla::Rpc::Methods::Plugins::PluginsRemove>(cfg->db, plugin_engine));
+        jsonrpc->Register("plugins.update",            std::make_shared<porla::Rpc::Methods::Plugins::PluginsUpdate>(cfg->db, plugin_engine));
+        jsonrpc->Register("presets.add",               std::make_shared<porla::Rpc::Methods::Presets::PresetsAdd>(cfg->db));
+        jsonrpc->Register("presets.get",               std::make_shared<porla::Rpc::Methods::Presets::PresetsGet>(cfg->db));
+        jsonrpc->Register("presets.list",              std::make_shared<porla::Rpc::Methods::Presets::PresetsList>(cfg->db));
+        jsonrpc->Register("presets.remove",            std::make_shared<porla::Rpc::Methods::Presets::PresetsRemove>(cfg->db));
+        jsonrpc->Register("presets.update",            std::make_shared<porla::Rpc::Methods::Presets::PresetsUpdate>(cfg->db));
+        jsonrpc->Register("sessions.add",              std::make_shared<porla::Rpc::Methods::Sessions::SessionsAdd>(cfg->db, sessions));
+        jsonrpc->Register("sessions.get",              std::make_shared<porla::Rpc::Methods::Sessions::SessionsGet>(cfg->db, sessions));
+        jsonrpc->Register("sessions.list",             std::make_shared<porla::Rpc::Methods::Sessions::SessionsList>(cfg->db, sessions));
+        jsonrpc->Register("sessions.pause",            std::make_shared<porla::Rpc::Methods::Sessions::SessionsPause>(cfg->db, sessions));
+        jsonrpc->Register("sessions.remove",           std::make_shared<porla::Rpc::Methods::Sessions::SessionsRemove>(cfg->db, sessions));
+        jsonrpc->Register("sessions.resume",           std::make_shared<porla::Rpc::Methods::Sessions::SessionsResume>(cfg->db, sessions));
+        jsonrpc->Register("sessions.settings.get",     std::make_shared<porla::Rpc::Methods::Sessions::SessionsSettingsGet>(cfg->db, sessions));
+        jsonrpc->Register("sessions.settings.set",     std::make_shared<porla::Rpc::Methods::Sessions::SessionsSettingsSet>(cfg->db, sessions));
+        jsonrpc->Register("sessions.update",           std::make_shared<porla::Rpc::Methods::Sessions::SessionsUpdate>(cfg->db, sessions));
+        jsonrpc->Register("sys.status",                std::make_shared<porla::Rpc::Methods::Sys::SysStatus>(cfg->db));
+        jsonrpc->Register("sys.versions",              std::make_shared<porla::Rpc::Methods::Sys::SysVersions>());
+        jsonrpc->Register("torrents.add",              std::make_shared<porla::Rpc::Methods::Torrents::TorrentsAdd>(cfg->db, sessions));
+        jsonrpc->Register("torrents.count",            std::make_shared<porla::Rpc::Methods::Torrents::TorrentsCount>(sessions));
+        jsonrpc->Register("torrents.files.list",       std::make_shared<porla::Rpc::Methods::Torrents::TorrentsFilesList>(cfg->db, sessions));
+        jsonrpc->Register("torrents.files.priorities", std::make_shared<porla::Rpc::Methods::Torrents::TorrentsFilesPriorities>(cfg->db, sessions));
+        jsonrpc->Register("torrents.files.progress",   std::make_shared<porla::Rpc::Methods::Torrents::TorrentsFilesProgress>(cfg->db, sessions));
+        jsonrpc->Register("torrents.files.rename",     std::make_shared<porla::Rpc::Methods::Torrents::TorrentsFilesRename>(cfg->db, sessions));
+        jsonrpc->Register("torrents.get",              std::make_shared<porla::Rpc::Methods::Torrents::TorrentsGet>(cfg->db, sessions));
+        jsonrpc->Register("torrents.list",             std::make_shared<porla::Rpc::Methods::Torrents::TorrentsList>(cfg->db, sessions));
+        jsonrpc->Register("torrents.migrate",          std::make_shared<porla::Rpc::Methods::Torrents::TorrentsMigrate>(cfg->db, sessions));
+        jsonrpc->Register("torrents.move",             std::make_shared<porla::Rpc::Methods::Torrents::TorrentsMove>(cfg->db, sessions));
+        jsonrpc->Register("torrents.pause",            std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPause>(cfg->db, sessions));
+        jsonrpc->Register("torrents.peers.add",        std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPeersAdd>(cfg->db, sessions));
+        jsonrpc->Register("torrents.peers.list",       std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPeersList>(cfg->db, sessions));
+        jsonrpc->Register("torrents.pieces.get",       std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPiecesGet>(cfg->db, sessions));
+        jsonrpc->Register("torrents.properties.get",   std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPropertiesGet>(cfg->db, sessions));
+        jsonrpc->Register("torrents.properties.set",   std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPropertiesSet>(cfg->db, sessions));
+        jsonrpc->Register("torrents.recheck",          std::make_shared<porla::Rpc::Methods::Torrents::TorrentsRecheck>(cfg->db, sessions));
+        jsonrpc->Register("torrents.remove",           std::make_shared<porla::Rpc::Methods::Torrents::TorrentsRemove>(cfg->db, sessions));
+        jsonrpc->Register("torrents.resume",           std::make_shared<porla::Rpc::Methods::Torrents::TorrentsResume>(cfg->db, sessions));
+        jsonrpc->Register("torrents.trackers.list",    std::make_shared<porla::Rpc::Methods::Torrents::TorrentsTrackersList>(cfg->db, sessions));
+        jsonrpc->Register("webui.install",             std::make_shared<porla::Rpc::Methods::WebUI::WebUIInstall>(webui));
 
         if (!webui->Has())
         {
