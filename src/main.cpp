@@ -61,6 +61,7 @@
 #include "rpc/methods/torrents/torrentspiecesget.hpp"
 #include "rpc/methods/torrents/torrentspropertiesget.hpp"
 #include "rpc/methods/torrents/torrentspropertiesset.hpp"
+#include "rpc/methods/torrents/torrentsqueueany.hpp"
 #include "rpc/methods/torrents/torrentsrecheck.hpp"
 #include "rpc/methods/torrents/torrentsremove.hpp"
 #include "rpc/methods/torrents/torrentsresume.hpp"
@@ -163,6 +164,10 @@ int main(int argc, char* argv[])
         jsonrpc->Register("torrents.pieces.get",       std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPiecesGet>(cfg->db, sessions));
         jsonrpc->Register("torrents.properties.get",   std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPropertiesGet>(cfg->db, sessions));
         jsonrpc->Register("torrents.properties.set",   std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPropertiesSet>(cfg->db, sessions));
+        jsonrpc->Register("torrents.queue.bottom",     std::make_shared<porla::Rpc::Methods::Torrents::TorrentsQueueBottom>(cfg->db, sessions));
+        jsonrpc->Register("torrents.queue.down",       std::make_shared<porla::Rpc::Methods::Torrents::TorrentsQueueDown>(cfg->db, sessions));
+        jsonrpc->Register("torrents.queue.top",        std::make_shared<porla::Rpc::Methods::Torrents::TorrentsQueueTop>(cfg->db, sessions));
+        jsonrpc->Register("torrents.queue.up",         std::make_shared<porla::Rpc::Methods::Torrents::TorrentsQueueUp>(cfg->db, sessions));
         jsonrpc->Register("torrents.recheck",          std::make_shared<porla::Rpc::Methods::Torrents::TorrentsRecheck>(cfg->db, sessions));
         jsonrpc->Register("torrents.remove",           std::make_shared<porla::Rpc::Methods::Torrents::TorrentsRemove>(cfg->db, sessions));
         jsonrpc->Register("torrents.resume",           std::make_shared<porla::Rpc::Methods::Torrents::TorrentsResume>(cfg->db, sessions));
