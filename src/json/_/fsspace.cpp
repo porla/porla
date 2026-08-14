@@ -1,9 +1,10 @@
 #include "../all.hpp"
 
-#include "../../methods/fsspace_reqres.hpp"
+#include "../../rpc/methods/fs/fsspace_reqres.hpp"
+
 #include "../utils.hpp"
 
-namespace porla::Methods
+namespace porla::Rpc::Methods::Fs
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         FsSpaceReq,

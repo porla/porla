@@ -1,9 +1,9 @@
 #include "../all.hpp"
 
-#include "../../methods/sessions/sessionspause_reqres.hpp"
+#include "../../rpc/methods/sessions/sessionspause_reqres.hpp"
 #include "../utils.hpp"
 
-namespace porla::Methods
+namespace porla::Rpc::Methods::Sessions
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         SessionsPauseReq,

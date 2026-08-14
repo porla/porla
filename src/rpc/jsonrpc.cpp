@@ -148,7 +148,7 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
                     return;
                 }
 
-                method->Invoke(params, std::make_unique<DefaultResponseWriter>(res));
+                method->Invoke(params, std::make_shared<DefaultResponseWriter>(res));
             }
             catch (const std::exception& ex)
             {

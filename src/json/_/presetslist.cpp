@@ -1,9 +1,9 @@
 #include "../all.hpp"
 
-#include "../../methods/presets/presetslist_reqres.hpp"
+#include "../../rpc/methods/presets/presetslist_reqres.hpp"
 #include "../utils.hpp"
 
-namespace porla::Methods::Presets
+namespace porla::Rpc::Methods::Presets
 {
     void from_json(const nlohmann::json& json, PresetsListReq& req)
     {

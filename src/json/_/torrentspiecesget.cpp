@@ -1,6 +1,6 @@
 #include "../all.hpp"
 
-#include "../../methods/torrents/torrentspiecesget_reqres.hpp"
+#include "../../rpc/methods/torrents/torrentspiecesget_reqres.hpp"
 #include "../../utils/base64.hpp"
 #include "../utils.hpp"
 
@@ -23,7 +23,7 @@ namespace libtorrent
     }
 }
 
-namespace porla::Methods
+namespace porla::Rpc::Methods::Torrents
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsPiecesGetReq,

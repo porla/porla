@@ -1,10 +1,10 @@
 #include "../all.hpp"
 
-#include "../../methods/torrents/torrentsremovereq.hpp"
-#include "../../methods/torrents/torrentsremoveres.hpp"
+#include "../../rpc/methods/torrents/torrentsremovereq.hpp"
+#include "../../rpc/methods/torrents/torrentsremoveres.hpp"
 #include "../utils.hpp"
 
-namespace porla::Methods
+namespace porla::Rpc::Methods::Torrents
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsRemoveReq,

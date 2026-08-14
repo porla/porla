@@ -1,9 +1,9 @@
 #include "../all.hpp"
 
-#include "../../methods/keyvalueset_reqres.hpp"
+#include "../../rpc/methods/kv/keyvalueset_reqres.hpp"
 #include "../utils.hpp"
 
-namespace porla::Methods
+namespace porla::Rpc::Methods::Kv
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         KeyValueSetReq,

@@ -14,57 +14,54 @@
 
 #include "data/models/keyvaluestore.hpp"
 
-#include "http/jsonrpchandler.hpp"
-
-#include "methods/fsspace.hpp"
-#include "methods/keyvalueget.hpp"
-#include "methods/keyvalueset.hpp"
-#include "methods/mmdb/mmdblookup.hpp"
-#include "methods/plugins/pluginsget.hpp"
-#include "methods/plugins/pluginsadd.hpp"
-#include "methods/plugins/pluginsinstall.hpp"
-#include "methods/plugins/pluginslist.hpp"
-#include "methods/plugins/pluginsreload.hpp"
-#include "methods/plugins/pluginsremove.hpp"
-#include "methods/plugins/pluginsupdate.hpp"
-#include "methods/presets/presetsget.hpp"
-#include "methods/presets/presetslist.hpp"
-#include "methods/presets/presetsadd.hpp"
-#include "methods/presets/presetsremove.hpp"
-#include "methods/presets/presetsupdate.hpp"
-#include "methods/sessions/sessionsadd.hpp"
-#include "methods/sessions/sessionsget.hpp"
-#include "methods/sessions/sessionslist.hpp"
-#include "methods/sessions/sessionspause.hpp"
-#include "methods/sessions/sessionsremove.hpp"
-#include "methods/sessions/sessionsresume.hpp"
-#include "methods/sessions/sessionssettingsget.hpp"
-#include "methods/sessions/sessionssettingsset.hpp"
-#include "methods/sessions/sessionsupdate.hpp"
-#include "methods/sysstatus.hpp"
-#include "methods/sysversions.hpp"
-#include "methods/torrents/torrentsadd.hpp"
-#include "methods/torrents/torrentscount.hpp"
-#include "methods/torrents/torrentsfileslist.hpp"
-#include "methods/torrents/torrentsfilesprogress.hpp"
-#include "methods/torrents/torrentsget.hpp"
-#include "methods/torrents/torrentslist.hpp"
-#include "methods/torrents/torrentsmove.hpp"
-#include "methods/torrents/torrentspause.hpp"
-#include "methods/torrents/torrentspeersadd.hpp"
-#include "methods/torrents/torrentspeerslist.hpp"
-#include "methods/torrents/torrentspiecesget.hpp"
-#include "methods/torrents/torrentspropertiesget.hpp"
-#include "methods/torrents/torrentspropertiesset.hpp"
-#include "methods/torrents/torrentsrecheck.hpp"
-#include "methods/torrents/torrentsremove.hpp"
-#include "methods/torrents/torrentsresume.hpp"
-#include "methods/torrents/torrentstrackerslist.hpp"
-#include "methods/webui/webuiinstall.hpp"
-
 #include "rpc/jsonrpc.hpp"
 #include "rpc/methods/auth/authinit.hpp"
 #include "rpc/methods/auth/authlogin.hpp"
+#include "rpc/methods/fs/fsspace.hpp"
+#include "rpc/methods/kv/keyvalueget.hpp"
+#include "rpc/methods/kv/keyvalueset.hpp"
+#include "rpc/methods/mmdb/mmdblookup.hpp"
+#include "rpc/methods/plugins/pluginsget.hpp"
+#include "rpc/methods/plugins/pluginsadd.hpp"
+#include "rpc/methods/plugins/pluginsinstall.hpp"
+#include "rpc/methods/plugins/pluginslist.hpp"
+#include "rpc/methods/plugins/pluginsreload.hpp"
+#include "rpc/methods/plugins/pluginsremove.hpp"
+#include "rpc/methods/plugins/pluginsupdate.hpp"
+#include "rpc/methods/presets/presetsget.hpp"
+#include "rpc/methods/presets/presetslist.hpp"
+#include "rpc/methods/presets/presetsadd.hpp"
+#include "rpc/methods/presets/presetsremove.hpp"
+#include "rpc/methods/presets/presetsupdate.hpp"
+#include "rpc/methods/sessions/sessionsadd.hpp"
+#include "rpc/methods/sessions/sessionsget.hpp"
+#include "rpc/methods/sessions/sessionslist.hpp"
+#include "rpc/methods/sessions/sessionspause.hpp"
+#include "rpc/methods/sessions/sessionsremove.hpp"
+#include "rpc/methods/sessions/sessionsresume.hpp"
+#include "rpc/methods/sessions/sessionssettingsget.hpp"
+#include "rpc/methods/sessions/sessionssettingsset.hpp"
+#include "rpc/methods/sessions/sessionsupdate.hpp"
+#include "rpc/methods/sys/sysstatus.hpp"
+#include "rpc/methods/sys/sysversions.hpp"
+#include "rpc/methods/torrents/torrentsadd.hpp"
+#include "rpc/methods/torrents/torrentscount.hpp"
+#include "rpc/methods/torrents/torrentsfileslist.hpp"
+#include "rpc/methods/torrents/torrentsfilesprogress.hpp"
+#include "rpc/methods/torrents/torrentsget.hpp"
+#include "rpc/methods/torrents/torrentslist.hpp"
+#include "rpc/methods/torrents/torrentsmove.hpp"
+#include "rpc/methods/torrents/torrentspause.hpp"
+#include "rpc/methods/torrents/torrentspeersadd.hpp"
+#include "rpc/methods/torrents/torrentspeerslist.hpp"
+#include "rpc/methods/torrents/torrentspiecesget.hpp"
+#include "rpc/methods/torrents/torrentspropertiesget.hpp"
+#include "rpc/methods/torrents/torrentspropertiesset.hpp"
+#include "rpc/methods/torrents/torrentsrecheck.hpp"
+#include "rpc/methods/torrents/torrentsremove.hpp"
+#include "rpc/methods/torrents/torrentsresume.hpp"
+#include "rpc/methods/torrents/torrentstrackerslist.hpp"
+#include "rpc/methods/webui/webuiinstall.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -97,24 +94,16 @@ int main(int argc, char* argv[])
         uWS::Loop::get(&io);
         uWS::App http_server;
 
+        boost::signals2::signal<void(const std::unordered_set<std::string>&)> kv_updated_signal;
+
         auto curl_multi_instance = porla::CurlMulti::Create(io);
         auto jsonrpc             = porla::Rpc::JsonRpc::Create();
         auto webui               = porla::WebUI::Create(io, cfg->state_dir.value_or(fs::path()), cfg->db, curl_multi_instance);
-
-        jsonrpc->Register("auth.init",  std::make_shared<porla::Rpc::Methods::Auth::AuthInit>(cfg->db));
-        jsonrpc->Register("auth.login", std::make_shared<porla::Rpc::Methods::Auth::AuthLogin>(cfg->db, cfg->secret_key));
-
-        if (!webui->Has())
-        {
-            webui->Install("latest");
-        }
 
         porla::Sessions sessions(porla::SessionsOptions{
             .db = cfg->db,
             .io = io
         });
-
-        sessions.LoadAll();
 
         porla::Lua::PluginEngine plugin_engine{porla::Lua::PluginEngineOptions{
             .curl_multi  = curl_multi_instance,
@@ -123,6 +112,61 @@ int main(int argc, char* argv[])
             .io          = io,
             .sessions    = sessions
         }};
+
+        jsonrpc->Register("auth.init",               std::make_shared<porla::Rpc::Methods::Auth::AuthInit>(cfg->db));
+        jsonrpc->Register("auth.login",              std::make_shared<porla::Rpc::Methods::Auth::AuthLogin>(cfg->db, cfg->secret_key));
+        jsonrpc->Register("fs.space",                std::make_shared<porla::Rpc::Methods::Fs::FsSpace>());
+        jsonrpc->Register("kv.get",                  std::make_shared<porla::Rpc::Methods::Kv::KeyValueGet>(cfg->db));
+        jsonrpc->Register("kv.set",                  std::make_shared<porla::Rpc::Methods::Kv::KeyValueSet>(io, cfg->db, kv_updated_signal));
+        jsonrpc->Register("mmdb.lookup",             std::make_shared<porla::Rpc::Methods::Mmdb::MmdbLookup>(cfg->db, kv_updated_signal));
+        jsonrpc->Register("plugins.add",             std::make_shared<porla::Rpc::Methods::Plugins::PluginsAdd>(cfg->db, plugin_engine));
+        jsonrpc->Register("plugins.get",             std::make_shared<porla::Rpc::Methods::Plugins::PluginsGet>(cfg->db, plugin_engine));
+        jsonrpc->Register("plugins.install",         std::make_shared<porla::Rpc::Methods::Plugins::PluginsInstall>(cfg->db, curl_multi_instance, plugin_engine));
+        jsonrpc->Register("plugins.list",            std::make_shared<porla::Rpc::Methods::Plugins::PluginsList>(cfg->db, plugin_engine));
+        jsonrpc->Register("plugins.reload",          std::make_shared<porla::Rpc::Methods::Plugins::PluginsReload>(plugin_engine));
+        jsonrpc->Register("plugins.remove",          std::make_shared<porla::Rpc::Methods::Plugins::PluginsRemove>(cfg->db, plugin_engine));
+        jsonrpc->Register("plugins.update",          std::make_shared<porla::Rpc::Methods::Plugins::PluginsUpdate>(cfg->db, plugin_engine));
+        jsonrpc->Register("presets.add",             std::make_shared<porla::Rpc::Methods::Presets::PresetsAdd>(cfg->db));
+        jsonrpc->Register("presets.get",             std::make_shared<porla::Rpc::Methods::Presets::PresetsGet>(cfg->db));
+        jsonrpc->Register("presets.list",            std::make_shared<porla::Rpc::Methods::Presets::PresetsList>(cfg->db));
+        jsonrpc->Register("presets.remove",          std::make_shared<porla::Rpc::Methods::Presets::PresetsRemove>(cfg->db));
+        jsonrpc->Register("presets.update",          std::make_shared<porla::Rpc::Methods::Presets::PresetsUpdate>(cfg->db));
+        jsonrpc->Register("sessions.add",            std::make_shared<porla::Rpc::Methods::Sessions::SessionsAdd>(cfg->db, sessions));
+        jsonrpc->Register("sessions.get",            std::make_shared<porla::Rpc::Methods::Sessions::SessionsGet>(cfg->db, sessions));
+        jsonrpc->Register("sessions.list",           std::make_shared<porla::Rpc::Methods::Sessions::SessionsList>(cfg->db, sessions));
+        jsonrpc->Register("sessions.pause",          std::make_shared<porla::Rpc::Methods::Sessions::SessionsPause>(cfg->db, sessions));
+        jsonrpc->Register("sessions.remove",         std::make_shared<porla::Rpc::Methods::Sessions::SessionsRemove>(cfg->db, sessions));
+        jsonrpc->Register("sessions.resume",         std::make_shared<porla::Rpc::Methods::Sessions::SessionsResume>(cfg->db, sessions));
+        jsonrpc->Register("sessions.settings.get",   std::make_shared<porla::Rpc::Methods::Sessions::SessionsSettingsGet>(cfg->db, sessions));
+        jsonrpc->Register("sessions.settings.set",   std::make_shared<porla::Rpc::Methods::Sessions::SessionsSettingsSet>(cfg->db, sessions));
+        jsonrpc->Register("sessions.update",         std::make_shared<porla::Rpc::Methods::Sessions::SessionsUpdate>(cfg->db, sessions));
+        jsonrpc->Register("sys.status",              std::make_shared<porla::Rpc::Methods::Sys::SysStatus>(cfg->db));
+        jsonrpc->Register("sys.versions",            std::make_shared<porla::Rpc::Methods::Sys::SysVersions>());
+        jsonrpc->Register("torrents.add",            std::make_shared<porla::Rpc::Methods::Torrents::TorrentsAdd>(cfg->db, sessions));
+        jsonrpc->Register("torrents.count",          std::make_shared<porla::Rpc::Methods::Torrents::TorrentsCount>(sessions));
+        jsonrpc->Register("torrents.files.list",     std::make_shared<porla::Rpc::Methods::Torrents::TorrentsFilesList>(cfg->db, sessions));
+        jsonrpc->Register("torrents.files.progress", std::make_shared<porla::Rpc::Methods::Torrents::TorrentsFilesProgress>(cfg->db, sessions));
+        jsonrpc->Register("torrents.get",            std::make_shared<porla::Rpc::Methods::Torrents::TorrentsGet>(cfg->db, sessions));
+        jsonrpc->Register("torrents.list",           std::make_shared<porla::Rpc::Methods::Torrents::TorrentsList>(cfg->db, sessions));
+        jsonrpc->Register("torrents.move",           std::make_shared<porla::Rpc::Methods::Torrents::TorrentsMove>(cfg->db, sessions));
+        jsonrpc->Register("torrents.pause",          std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPause>(cfg->db, sessions));
+        jsonrpc->Register("torrents.peers.add",      std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPeersAdd>(cfg->db, sessions));
+        jsonrpc->Register("torrents.peers.list",     std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPeersList>(cfg->db, sessions));
+        jsonrpc->Register("torrents.pieces.get",     std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPiecesGet>(cfg->db, sessions));
+        jsonrpc->Register("torrents.properties.get", std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPropertiesGet>(cfg->db, sessions));
+        jsonrpc->Register("torrents.properties.set", std::make_shared<porla::Rpc::Methods::Torrents::TorrentsPropertiesSet>(cfg->db, sessions));
+        jsonrpc->Register("torrents.recheck",        std::make_shared<porla::Rpc::Methods::Torrents::TorrentsRecheck>(cfg->db, sessions));
+        jsonrpc->Register("torrents.remove",         std::make_shared<porla::Rpc::Methods::Torrents::TorrentsRemove>(cfg->db, sessions));
+        jsonrpc->Register("torrents.resume",         std::make_shared<porla::Rpc::Methods::Torrents::TorrentsResume>(cfg->db, sessions));
+        jsonrpc->Register("torrents.trackers.list",  std::make_shared<porla::Rpc::Methods::Torrents::TorrentsTrackersList>(cfg->db, sessions));
+        jsonrpc->Register("webui.install",           std::make_shared<porla::Rpc::Methods::WebUI::WebUIInstall>(webui));
+
+        if (!webui->Has())
+        {
+            webui->Install("latest");
+        }
+
+        sessions.LoadAll();
 
         plugin_engine.LoadAll();
 
@@ -145,56 +189,6 @@ int main(int argc, char* argv[])
                         io.stop();
                     });
             });
-
-        boost::signals2::signal<void(const std::unordered_set<std::string>&)> kv_updated_signal;
-
-        porla::Http::JsonRpcHandler rpc(cfg->secret_key, {
-            {"fs.space", porla::Methods::FsSpace()},
-            {"kv.get", porla::Methods::KeyValueGet(cfg->db)},
-            {"kv.set", porla::Methods::KeyValueSet(io, cfg->db, kv_updated_signal)},
-            {"mmdb.lookup", porla::Methods::Mmdb::MmdbLookup(cfg->db, kv_updated_signal)},
-            {"plugins.add", porla::Methods::PluginsAdd(cfg->db, plugin_engine)},
-            {"plugins.get", porla::Methods::PluginsGet(cfg->db, plugin_engine)},
-            {"plugins.install", porla::Methods::Plugins::PluginsInstall(cfg->db, curl_multi_instance, plugin_engine)},
-            {"plugins.list", porla::Methods::PluginsList(cfg->db, plugin_engine)},
-            {"plugins.reload", porla::Methods::PluginsReload(plugin_engine)},
-            {"plugins.remove", porla::Methods::PluginsRemove(cfg->db, plugin_engine)},
-            {"plugins.update", porla::Methods::PluginsUpdate(cfg->db, plugin_engine)},
-            {"presets.add", porla::Methods::Presets::PresetsAdd(cfg->db)},
-            {"presets.get", porla::Methods::Presets::PresetsGet(cfg->db)},
-            {"presets.list", porla::Methods::Presets::PresetsList(cfg->db)},
-            {"presets.remove", porla::Methods::Presets::PresetsRemove(cfg->db)},
-            {"presets.update", porla::Methods::Presets::PresetsUpdate(cfg->db)},
-            {"sessions.add", porla::Methods::Sessions::SessionsAdd(cfg->db, sessions)},
-            {"sessions.get", porla::Methods::Sessions::SessionsGet(cfg->db, sessions)},
-            {"sessions.list", porla::Methods::SessionsList(cfg->db, sessions)},
-            {"sessions.pause", porla::Methods::SessionsPause(cfg->db, sessions)},
-            {"sessions.remove", porla::Methods::Sessions::SessionsRemove(cfg->db, sessions)},
-            {"sessions.resume", porla::Methods::SessionsResume(cfg->db, sessions)},
-            {"sessions.settings.get", porla::Methods::Sessions::SessionsSettingsGet(cfg->db, sessions)},
-            {"sessions.settings.set", porla::Methods::Sessions::SessionsSettingsSet(cfg->db, sessions)},
-            {"sessions.update", porla::Methods::Sessions::SessionsUpdate(cfg->db, sessions)},
-            {"sys.status", porla::Methods::SysStatus(cfg->db)},
-            {"sys.versions", porla::Methods::SysVersions()},
-            {"torrents.add", porla::Methods::TorrentsAdd(cfg->db, sessions)},
-            {"torrents.count", porla::Methods::Torrents::TorrentsCount(sessions)},
-            {"torrents.files.list", porla::Methods::TorrentsFilesList(cfg->db, sessions)},
-            {"torrents.files.progress", porla::Methods::TorrentsFilesProgress(cfg->db, sessions)},
-            {"torrents.get", porla::Methods::TorrentsGet(cfg->db, sessions)},
-            {"torrents.list", porla::Methods::TorrentsList(cfg->db, sessions)},
-            {"torrents.move", porla::Methods::TorrentsMove(cfg->db, sessions)},
-            {"torrents.pause", porla::Methods::TorrentsPause(cfg->db, sessions)},
-            {"torrents.peers.add", porla::Methods::TorrentsPeersAdd(cfg->db, sessions)},
-            {"torrents.peers.list", porla::Methods::TorrentsPeersList(cfg->db, sessions)},
-            {"torrents.pieces.get", porla::Methods::TorrentsPiecesGet(cfg->db, sessions)},
-            {"torrents.properties.get", porla::Methods::TorrentsPropertiesGet(cfg->db, sessions)},
-            {"torrents.properties.set", porla::Methods::TorrentsPropertiesSet(cfg->db, sessions)},
-            {"torrents.recheck", porla::Methods::TorrentsRecheck(cfg->db, sessions)},
-            {"torrents.remove", porla::Methods::TorrentsRemove(cfg->db, sessions)},
-            {"torrents.resume", porla::Methods::TorrentsResume(cfg->db, sessions)},
-            {"torrents.trackers.list", porla::Methods::TorrentsTrackersList(cfg->db, sessions)},
-            {"webui.install", porla::Methods::WebUI::WebUIInstall(webui)}
-        });
 
         std::string http_base_path = cfg->http_base_path.value_or("/");
         if (http_base_path.empty())        http_base_path = "/";

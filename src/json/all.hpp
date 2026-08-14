@@ -61,67 +61,29 @@ namespace porla::Rpc::Methods
         void to_json(nlohmann::json& json, const AuthInitRes& res);
         void to_json(nlohmann::json& json, const AuthLoginRes& res);
     }
-}
 
-namespace porla::Methods
-{
-    struct FsSpaceReq;
-    struct FsSpaceRes;
-    struct KeyValueGetReq;
-    struct KeyValueGetRes;
-    struct KeyValueSetReq;
-    struct KeyValueSetRes;
-    struct PluginsAddReq;
-    struct PluginsAddRes;
-    struct PluginsGetReq;
-    struct PluginsGetRes;
-    struct PluginsListReq;
-    struct PluginsListRes;
-    struct PluginsReloadReq;
-    struct PluginsReloadRes;
-    struct PluginsRemoveReq;
-    struct PluginsRemoveRes;
-    struct PluginsUpdateReq;
-    struct PluginsUpdateRes;
+    namespace Fs
+    {
+        struct FsSpaceReq;
+        struct FsSpaceRes;
 
-    struct SessionsListReq;
-    struct SessionsListRes;
-    struct SessionsPauseReq;
-    struct SessionsPauseRes;
-    struct SessionsResumeReq;
-    struct SessionsResumeRes;
+        void from_json(const nlohmann::json& json, FsSpaceReq& req);
+        void to_json(nlohmann::json& json, const FsSpaceRes& res);
+    }
 
-    struct TorrentsAddReq;
-    struct TorrentsAddRes;
-    struct TorrentsFilesListReq;
-    struct TorrentsFilesListRes;
-    struct TorrentsFilesProgressReq;
-    struct TorrentsFilesProgressRes;
-    struct TorrentsGetReq;
-    struct TorrentsGetRes;
-    struct TorrentsListReq;
-    struct TorrentsListRes;
-    struct TorrentsMoveReq;
-    struct TorrentsMoveRes;
-    struct TorrentsPauseReq;
-    struct TorrentsPauseRes;
-    struct TorrentsPeersAddReq;
-    struct TorrentsPeersAddRes;
-    struct TorrentsPeersListReq;
-    struct TorrentsPeersListRes;
-    struct TorrentsPiecesGetReq;
-    struct TorrentsPiecesGetRes;
-    struct TorrentsPropertiesGetReq;
-    struct TorrentsPropertiesGetRes;
-    struct TorrentsPropertiesSetReq;
-    struct TorrentsRecheckReq;
-    struct TorrentsRecheckRes;
-    struct TorrentsRemoveReq;
-    struct TorrentsRemoveRes;
-    struct TorrentsResumeReq;
-    struct TorrentsResumeRes;
-    struct TorrentsTrackersListReq;
-    struct TorrentsTrackersListRes;
+    namespace Kv
+    {
+        struct KeyValueGetReq;
+        struct KeyValueGetRes;
+        struct KeyValueSetReq;
+        struct KeyValueSetRes;
+
+        void from_json(const nlohmann::json& json, KeyValueGetReq& req);
+        void from_json(const nlohmann::json& json, KeyValueSetReq& req);
+
+        void to_json(nlohmann::json& json, const KeyValueGetRes& res);
+        void to_json(nlohmann::json& json, const KeyValueSetRes& res);
+    }
 
     namespace Mmdb
     {
@@ -134,11 +96,37 @@ namespace porla::Methods
 
     namespace Plugins
     {
+        struct PluginsAddReq;
+        struct PluginsAddRes;
+        struct PluginsGetReq;
+        struct PluginsGetRes;
         struct PluginsInstallReq;
         struct PluginsInstallRes;
+        struct PluginsListReq;
+        struct PluginsListRes;
+        struct PluginsReloadReq;
+        struct PluginsReloadRes;
+        struct PluginsRemoveReq;
+        struct PluginsRemoveRes;
+        struct PluginsUpdateReq;
+        struct PluginsUpdateRes;
 
+
+        void from_json(const nlohmann::json& json, PluginsAddReq& req);
+        void from_json(const nlohmann::json& json, PluginsGetReq& req);
         void from_json(const nlohmann::json& json, PluginsInstallReq& req);
+        void from_json(const nlohmann::json& json, PluginsListReq& req);
+        void from_json(const nlohmann::json& json, PluginsReloadReq& req);
+        void from_json(const nlohmann::json& json, PluginsRemoveReq& req);
+        void from_json(const nlohmann::json& json, PluginsUpdateReq& req);
+
+        void to_json(nlohmann::json& json, const PluginsAddRes& res);
+        void to_json(nlohmann::json& json, const PluginsGetRes& res);
         void to_json(nlohmann::json& json, const PluginsInstallRes& res);
+        void to_json(nlohmann::json& json, const PluginsListRes& res);
+        void to_json(nlohmann::json& json, const PluginsReloadRes& res);
+        void to_json(nlohmann::json& json, const PluginsRemoveRes& res);
+        void to_json(nlohmann::json& json, const PluginsUpdateRes& res);
     }
 
     namespace Presets
@@ -173,8 +161,14 @@ namespace porla::Methods
         struct SessionsAddRes;
         struct SessionsGetReq;
         struct SessionsGetRes;
+        struct SessionsListReq;
+        struct SessionsListRes;
+        struct SessionsPauseReq;
+        struct SessionsPauseRes;
         struct SessionsRemoveReq;
         struct SessionsRemoveRes;
+        struct SessionsResumeReq;
+        struct SessionsResumeRes;
         struct SessionsSettingsGetReq;
         struct SessionsSettingsGetRes;
         struct SessionsSettingsSetReq;
@@ -182,16 +176,23 @@ namespace porla::Methods
         struct SessionsUpdateReq;
         struct SessionsUpdateRes;
 
+
         void from_json(const nlohmann::json& json, SessionsAddReq& req);
         void from_json(const nlohmann::json& json, SessionsGetReq& req);
+        void from_json(const nlohmann::json& json, SessionsListReq& req);
+        void from_json(const nlohmann::json& json, SessionsPauseReq& req);
         void from_json(const nlohmann::json& json, SessionsRemoveReq& req);
+        void from_json(const nlohmann::json& json, SessionsResumeReq& req);
         void from_json(const nlohmann::json& json, SessionsSettingsGetReq& req);
         void from_json(const nlohmann::json& json, SessionsSettingsSetReq& req);
         void from_json(const nlohmann::json& json, SessionsUpdateReq& req);
 
         void to_json(nlohmann::json& json, const SessionsAddRes& res);
         void to_json(nlohmann::json& json, const SessionsGetRes& res);
+        void to_json(nlohmann::json& json, const SessionsListRes& res);
+        void to_json(nlohmann::json& json, const SessionsPauseRes& res);
         void to_json(nlohmann::json& json, const SessionsRemoveRes& res);
+        void to_json(nlohmann::json& json, const SessionsResumeRes& res);
         void to_json(nlohmann::json& json, const SessionsSettingsGetRes& res);
         void to_json(nlohmann::json& json, const SessionsSettingsSetRes& res);
         void to_json(nlohmann::json& json, const SessionsUpdateRes& res);
@@ -199,15 +200,78 @@ namespace porla::Methods
 
     namespace Torrents
     {
+        struct TorrentsAddReq;
+        struct TorrentsAddRes;
         struct TorrentsCountReq;
         struct TorrentsCountRes;
+        struct TorrentsFilesListReq;
+        struct TorrentsFilesListRes;
+        struct TorrentsFilesProgressReq;
+        struct TorrentsFilesProgressRes;
+        struct TorrentsGetReq;
+        struct TorrentsGetRes;
+        struct TorrentsListReq;
+        struct TorrentsListRes;
+        struct TorrentsMoveReq;
+        struct TorrentsMoveRes;
         struct TorrentsOverviewReq;
         struct TorrentsOverviewRes;
+        struct TorrentsPauseReq;
+        struct TorrentsPauseRes;
+        struct TorrentsPeersAddReq;
+        struct TorrentsPeersAddRes;
+        struct TorrentsPeersListReq;
+        struct TorrentsPeersListRes;
+        struct TorrentsPiecesGetReq;
+        struct TorrentsPiecesGetRes;
+        struct TorrentsPropertiesGetReq;
+        struct TorrentsPropertiesGetRes;
+        struct TorrentsPropertiesSetReq;
+        struct TorrentsRecheckReq;
+        struct TorrentsRecheckRes;
+        struct TorrentsRemoveReq;
+        struct TorrentsRemoveRes;
+        struct TorrentsResumeReq;
+        struct TorrentsResumeRes;
+        struct TorrentsTrackersListReq;
+        struct TorrentsTrackersListRes;
 
+        void from_json(const nlohmann::json& json, TorrentsAddReq& req);
         void from_json(const nlohmann::json& json, TorrentsCountReq& req);
+        void from_json(const nlohmann::json& json, TorrentsFilesListReq& req);
+        void from_json(const nlohmann::json& json, TorrentsFilesProgressReq& req);
+        void from_json(const nlohmann::json& json, TorrentsGetReq& req);
+        void from_json(const nlohmann::json& json, TorrentsListReq& req);
+        void from_json(const nlohmann::json& json, TorrentsMoveReq& req);
         void from_json(const nlohmann::json& json, TorrentsOverviewReq& req);
+        void from_json(const nlohmann::json& json, TorrentsPauseReq& req);
+        void from_json(const nlohmann::json& json, TorrentsPeersAddReq& req);
+        void from_json(const nlohmann::json& json, TorrentsPeersListReq& req);
+        void from_json(const nlohmann::json& json, TorrentsPiecesGetReq& req);
+        void from_json(const nlohmann::json& json, TorrentsPropertiesGetReq& req);
+        void from_json(const nlohmann::json& json, TorrentsPropertiesSetReq& req);
+        void from_json(const nlohmann::json& json, TorrentsRecheckReq& req);
+        void from_json(const nlohmann::json& json, TorrentsResumeReq& req);
+        void from_json(const nlohmann::json& json, TorrentsRemoveReq& req);
+        void from_json(const nlohmann::json& json, TorrentsTrackersListReq& req);
+
+        void to_json(nlohmann::json& json, const TorrentsAddRes& res);
         void to_json(nlohmann::json& json, const TorrentsCountRes& res);
+        void to_json(nlohmann::json& json, const TorrentsFilesListRes& res);
+        void to_json(nlohmann::json& json, const TorrentsFilesProgressRes& res);
+        void to_json(nlohmann::json& json, const TorrentsGetRes& res);
+        void to_json(nlohmann::json& json, const TorrentsListRes& res);
+        void to_json(nlohmann::json& json, const TorrentsMoveRes& res);
         void to_json(nlohmann::json& json, const TorrentsOverviewRes& res);
+        void to_json(nlohmann::json& json, const TorrentsPauseRes& res);
+        void to_json(nlohmann::json& json, const TorrentsPeersAddRes& res);
+        void to_json(nlohmann::json& json, const TorrentsPeersListRes& res);
+        void to_json(nlohmann::json& json, const TorrentsPiecesGetRes& res);
+        void to_json(nlohmann::json& json, const TorrentsPropertiesGetRes& res);
+        void to_json(nlohmann::json& json, const TorrentsRecheckRes& res);
+        void to_json(nlohmann::json& json, const TorrentsRemoveRes& res);
+        void to_json(nlohmann::json& json, const TorrentsResumeRes& res);
+        void to_json(nlohmann::json& json, const TorrentsTrackersListRes& res);
     }
 
     namespace WebUI
@@ -218,61 +282,4 @@ namespace porla::Methods
         void from_json(const nlohmann::json& json, WebUIInstallReq& req);
         void to_json(nlohmann::json& json, const WebUIInstallRes& res);
     }
-
-    void from_json(const nlohmann::json& json, FsSpaceReq& req);
-    void from_json(const nlohmann::json& json, KeyValueGetReq& req);
-    void from_json(const nlohmann::json& json, KeyValueSetReq& req);
-    void from_json(const nlohmann::json& json, PluginsAddReq& req);
-    void from_json(const nlohmann::json& json, PluginsGetReq& req);
-    void from_json(const nlohmann::json& json, PluginsListReq& req);
-    void from_json(const nlohmann::json& json, PluginsReloadReq& req);
-    void from_json(const nlohmann::json& json, PluginsRemoveReq& req);
-    void from_json(const nlohmann::json& json, PluginsUpdateReq& req);
-    void from_json(const nlohmann::json& json, SessionsListReq& req);
-    void from_json(const nlohmann::json& json, SessionsPauseReq& req);
-    void from_json(const nlohmann::json& json, SessionsResumeReq& req);
-    void from_json(const nlohmann::json& json, TorrentsAddReq& req);
-    void from_json(const nlohmann::json& json, TorrentsFilesListReq& req);
-    void from_json(const nlohmann::json& json, TorrentsFilesProgressReq& req);
-    void from_json(const nlohmann::json& json, TorrentsGetReq& req);
-    void from_json(const nlohmann::json& json, TorrentsListReq& req);
-    void from_json(const nlohmann::json& json, TorrentsMoveReq& req);
-    void from_json(const nlohmann::json& json, TorrentsPauseReq& req);
-    void from_json(const nlohmann::json& json, TorrentsPeersAddReq& req);
-    void from_json(const nlohmann::json& json, TorrentsPeersListReq& req);
-    void from_json(const nlohmann::json& json, TorrentsPiecesGetReq& req);
-    void from_json(const nlohmann::json& json, TorrentsPropertiesGetReq& req);
-    void from_json(const nlohmann::json& json, TorrentsPropertiesSetReq& req);
-    void from_json(const nlohmann::json& json, TorrentsRecheckReq& req);
-    void from_json(const nlohmann::json& json, TorrentsResumeReq& req);
-    void from_json(const nlohmann::json& json, TorrentsRemoveReq& req);
-    void from_json(const nlohmann::json& json, TorrentsTrackersListReq& req);
-
-    void to_json(nlohmann::json& json, const FsSpaceRes& res);
-    void to_json(nlohmann::json& json, const KeyValueGetRes& res);
-    void to_json(nlohmann::json& json, const KeyValueSetRes& res);
-    void to_json(nlohmann::json& json, const PluginsAddRes& res);
-    void to_json(nlohmann::json& json, const PluginsGetRes& res);
-    void to_json(nlohmann::json& json, const PluginsListRes& res);
-    void to_json(nlohmann::json& json, const PluginsReloadRes& res);
-    void to_json(nlohmann::json& json, const PluginsRemoveRes& res);
-    void to_json(nlohmann::json& json, const PluginsUpdateRes& res);
-    void to_json(nlohmann::json& json, const SessionsListRes& res);
-    void to_json(nlohmann::json& json, const SessionsPauseRes& res);
-    void to_json(nlohmann::json& json, const SessionsResumeRes& res);
-    void to_json(nlohmann::json& json, const TorrentsAddRes& res);
-    void to_json(nlohmann::json& json, const TorrentsFilesListRes& res);
-    void to_json(nlohmann::json& json, const TorrentsFilesProgressRes& res);
-    void to_json(nlohmann::json& json, const TorrentsGetRes& res);
-    void to_json(nlohmann::json& json, const TorrentsListRes& res);
-    void to_json(nlohmann::json& json, const TorrentsMoveRes& res);
-    void to_json(nlohmann::json& json, const TorrentsPauseRes& res);
-    void to_json(nlohmann::json& json, const TorrentsPeersAddRes& res);
-    void to_json(nlohmann::json& json, const TorrentsPeersListRes& res);
-    void to_json(nlohmann::json& json, const TorrentsPiecesGetRes& res);
-    void to_json(nlohmann::json& json, const TorrentsPropertiesGetRes& res);
-    void to_json(nlohmann::json& json, const TorrentsRecheckRes& res);
-    void to_json(nlohmann::json& json, const TorrentsRemoveRes& res);
-    void to_json(nlohmann::json& json, const TorrentsResumeRes& res);
-    void to_json(nlohmann::json& json, const TorrentsTrackersListRes& res);
 }

@@ -1,9 +1,9 @@
 #include "../all.hpp"
 
-#include "../../methods/torrents/torrentscount_reqres.hpp"
+#include "../../rpc/methods/torrents/torrentscount_reqres.hpp"
 #include "../utils.hpp"
 
-namespace porla::Methods::Torrents
+namespace porla::Rpc::Methods::Torrents
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsCountReq,

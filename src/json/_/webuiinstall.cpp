@@ -1,9 +1,9 @@
 #include "../all.hpp"
 
-#include "../../methods/webui/webuiinstall_reqres.hpp"
+#include "../../rpc/methods/webui/webuiinstall_reqres.hpp"
 #include "../utils.hpp"
 
-namespace porla::Methods::WebUI
+namespace porla::Rpc::Methods::WebUI
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         WebUIInstallReq,

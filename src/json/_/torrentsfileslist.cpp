@@ -2,10 +2,10 @@
 
 #include <unordered_set>
 
-#include "../../methods/torrents/torrentsfileslist_reqres.hpp"
+#include "../../rpc/methods/torrents/torrentsfileslist_reqres.hpp"
 #include "../utils.hpp"
 
-namespace porla::Methods
+namespace porla::Rpc::Methods::Torrents
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsFilesListReq,

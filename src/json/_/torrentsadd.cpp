@@ -1,10 +1,10 @@
 #include "../all.hpp"
 
-#include "../../methods/torrents/torrentsaddreq.hpp"
-#include "../../methods/torrents/torrentsaddres.hpp"
+#include "../../rpc/methods/torrents/torrentsaddreq.hpp"
+#include "../../rpc/methods/torrents/torrentsaddres.hpp"
 #include "../utils.hpp"
 
-namespace porla::Methods
+namespace porla::Rpc::Methods::Torrents
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsAddReq,

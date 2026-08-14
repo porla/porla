@@ -17,5 +17,5 @@ namespace porla::Rpc
         virtual void Write(const nlohmann::json& j) = 0;
     };
 
-    using ResponseWriterHandle = std::unique_ptr<ResponseWriter>;
+    using ResponseWriterHandle = std::shared_ptr<ResponseWriter>;
 }

@@ -148,55 +148,54 @@ add_library(
     src/lua/pluginengine.cpp
     src/lua/pluginsource.cpp
 
-    src/methods/fsspace.cpp
-    src/methods/keyvalueget.cpp
-    src/methods/keyvalueset.cpp
-    src/methods/mmdb/mmdblookup.cpp
-    src/methods/plugins/pluginsadd.cpp
-    src/methods/plugins/pluginsget.cpp
-    src/methods/plugins/pluginsinstall.cpp
-    src/methods/plugins/pluginslist.cpp
-    src/methods/plugins/pluginsreload.cpp
-    src/methods/plugins/pluginsremove.cpp
-    src/methods/plugins/pluginsupdate.cpp
-    src/methods/presets/presetsadd.cpp
-    src/methods/presets/presetsget.cpp
-    src/methods/presets/presetslist.cpp
-    src/methods/presets/presetsremove.cpp
-    src/methods/presets/presetsupdate.cpp
-    src/methods/sessions/sessionsadd.cpp
-    src/methods/sessions/sessionsget.cpp
-    src/methods/sessions/sessionslist.cpp
-    src/methods/sessions/sessionspause.cpp
-    src/methods/sessions/sessionsremove.cpp
-    src/methods/sessions/sessionsresume.cpp
-    src/methods/sessions/sessionssettingsget.cpp
-    src/methods/sessions/sessionssettingsset.cpp
-    src/methods/sessions/sessionsupdate.cpp
-    src/methods/sysstatus.cpp
-    src/methods/sysversions.cpp
-    src/methods/torrents/torrentsadd.cpp
-    src/methods/torrents/torrentscount.cpp
-    src/methods/torrents/torrentsfileslist.cpp
-    src/methods/torrents/torrentsfilesprogress.cpp
-    src/methods/torrents/torrentsget.cpp
-    src/methods/torrents/torrentslist.cpp
-    src/methods/torrents/torrentsmove.cpp
-    src/methods/torrents/torrentspause.cpp
-    src/methods/torrents/torrentspeersadd.cpp
-    src/methods/torrents/torrentspeerslist.cpp
-    src/methods/torrents/torrentspiecesget.cpp
-    src/methods/torrents/torrentspropertiesget.cpp
-    src/methods/torrents/torrentsrecheck.cpp
-    src/methods/torrents/torrentsremove.cpp
-    src/methods/torrents/torrentsresume.cpp
-    src/methods/torrents/torrentspropertiesset.cpp
-    src/methods/torrents/torrentstrackerslist.cpp
-    src/methods/webui/webuiinstall.cpp
-
     src/rpc/jsonrpc.cpp
     src/rpc/methods/auth/authinit.cpp
     src/rpc/methods/auth/authlogin.cpp
+    src/rpc/methods/fs/fsspace.cpp
+    src/rpc/methods/kv/keyvalueget.cpp
+    src/rpc/methods/kv/keyvalueset.cpp
+    src/rpc/methods/mmdb/mmdblookup.cpp
+    src/rpc/methods/plugins/pluginsadd.cpp
+    src/rpc/methods/plugins/pluginsget.cpp
+    src/rpc/methods/plugins/pluginsinstall.cpp
+    src/rpc/methods/plugins/pluginslist.cpp
+    src/rpc/methods/plugins/pluginsreload.cpp
+    src/rpc/methods/plugins/pluginsremove.cpp
+    src/rpc/methods/plugins/pluginsupdate.cpp
+    src/rpc/methods/presets/presetsadd.cpp
+    src/rpc/methods/presets/presetsget.cpp
+    src/rpc/methods/presets/presetslist.cpp
+    src/rpc/methods/presets/presetsremove.cpp
+    src/rpc/methods/presets/presetsupdate.cpp
+    src/rpc/methods/sessions/sessionsadd.cpp
+    src/rpc/methods/sessions/sessionsget.cpp
+    src/rpc/methods/sessions/sessionslist.cpp
+    src/rpc/methods/sessions/sessionspause.cpp
+    src/rpc/methods/sessions/sessionsremove.cpp
+    src/rpc/methods/sessions/sessionsresume.cpp
+    src/rpc/methods/sessions/sessionssettingsget.cpp
+    src/rpc/methods/sessions/sessionssettingsset.cpp
+    src/rpc/methods/sessions/sessionsupdate.cpp
+    src/rpc/methods/sys/sysstatus.cpp
+    src/rpc/methods/sys/sysversions.cpp
+    src/rpc/methods/torrents/torrentsadd.cpp
+    src/rpc/methods/torrents/torrentscount.cpp
+    src/rpc/methods/torrents/torrentsfileslist.cpp
+    src/rpc/methods/torrents/torrentsfilesprogress.cpp
+    src/rpc/methods/torrents/torrentsget.cpp
+    src/rpc/methods/torrents/torrentslist.cpp
+    src/rpc/methods/torrents/torrentsmove.cpp
+    src/rpc/methods/torrents/torrentspause.cpp
+    src/rpc/methods/torrents/torrentspeersadd.cpp
+    src/rpc/methods/torrents/torrentspeerslist.cpp
+    src/rpc/methods/torrents/torrentspiecesget.cpp
+    src/rpc/methods/torrents/torrentspropertiesget.cpp
+    src/rpc/methods/torrents/torrentsrecheck.cpp
+    src/rpc/methods/torrents/torrentsremove.cpp
+    src/rpc/methods/torrents/torrentsresume.cpp
+    src/rpc/methods/torrents/torrentspropertiesset.cpp
+    src/rpc/methods/torrents/torrentstrackerslist.cpp
+    src/rpc/methods/webui/webuiinstall.cpp
 
     src/query/_aux/PorlaQueryLangBaseVisitor.cpp
     src/query/_aux/PorlaQueryLangLexer.cpp

@@ -1,9 +1,9 @@
 #include "../all.hpp"
 
-#include "../../methods/plugins/pluginslist_reqres.hpp"
+#include "../../rpc/methods/plugins/pluginslist_reqres.hpp"
 #include "../utils.hpp"
 
-namespace porla::Methods
+namespace porla::Rpc::Methods::Plugins
 {
     void from_json(const nlohmann::json& json, PluginsListReq& req)
     {

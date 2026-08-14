@@ -1,9 +1,9 @@
 #include "../all.hpp"
 
-#include "../../methods/plugins/pluginsupdate_reqres.hpp"
+#include "../../rpc/methods/plugins/pluginsupdate_reqres.hpp"
 #include "../utils.hpp"
 
-namespace porla::Methods
+namespace porla::Rpc::Methods::Plugins
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         PluginsUpdateReq,

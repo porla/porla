@@ -1,9 +1,9 @@
 #include "../all.hpp"
 
-#include "../../methods/sessions/sessionssettingsget_reqres.hpp"
+#include "../../rpc/methods/sessions/sessionssettingsget_reqres.hpp"
 #include "../utils.hpp"
 
-namespace porla::Methods::Sessions
+namespace porla::Rpc::Methods::Sessions
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         SessionsSettingsGetReq,

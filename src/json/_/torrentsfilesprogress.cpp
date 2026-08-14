@@ -1,9 +1,9 @@
 #include "../all.hpp"
 
-#include "../../methods/torrents/torrentsfilesprogress_reqres.hpp"
+#include "../../rpc/methods/torrents/torrentsfilesprogress_reqres.hpp"
 #include "../utils.hpp"
 
-namespace porla::Methods
+namespace porla::Rpc::Methods::Torrents
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         TorrentsFilesProgressReq,

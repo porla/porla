@@ -1,9 +1,9 @@
 #include "../all.hpp"
 
-#include "../../methods/sessions/sessionsremove_reqres.hpp"
+#include "../../rpc/methods/sessions/sessionsremove_reqres.hpp"
 #include "../utils.hpp"
 
-namespace porla::Methods::Sessions
+namespace porla::Rpc::Methods::Sessions
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         SessionsRemoveReq,

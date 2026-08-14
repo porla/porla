@@ -1,9 +1,9 @@
 #include "../all.hpp"
 
-#include "../../methods/sessions/sessionsresume_reqres.hpp"
+#include "../../rpc/methods/sessions/sessionsresume_reqres.hpp"
 #include "../utils.hpp"
 
-namespace porla::Methods
+namespace porla::Rpc::Methods::Sessions
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
         SessionsResumeReq,

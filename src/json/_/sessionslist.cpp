@@ -1,9 +1,9 @@
 #include "../all.hpp"
 
-#include "../../methods/sessions/sessionslist_reqres.hpp"
+#include "../../rpc/methods/sessions/sessionslist_reqres.hpp"
 #include "../utils.hpp"
 
-namespace porla::Methods
+namespace porla::Rpc::Methods::Sessions
 {
     void from_json(const nlohmann::json& j, SessionsListReq& req)
     {
