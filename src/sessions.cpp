@@ -261,9 +261,10 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
             }
             case lt::storage_moved_alert::alert_type:
             {
-                auto const sma = lt::alert_cast<lt::storage_moved_alert>(alert);
+                const auto sma = lt::alert_cast<lt::storage_moved_alert>(alert);
+                const auto name = sma->handle.status(lt::torrent_handle::query_name).name;
 
-                BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Torrent " << sma->torrent_name() << " moved to " << sma->storage_path();
+                BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Torrent " << name << " moved to " << sma->storage_path();
 
                 if (sma->handle.need_save_resume_data())
                 {
@@ -282,8 +283,9 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
             case lt::torrent_checked_alert::alert_type:
             {
                 const auto tca = lt::alert_cast<lt::torrent_checked_alert>(alert);
+                const auto name = tca->handle.status(lt::torrent_handle::query_name).name;
 
-                BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Torrent " << tca->torrent_name() << " finished checking";
+                BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Torrent " << name << " finished checking";
 
                 state->torrents.at(tca->handle.info_hashes()) = std::make_pair(tca->handle, tca->handle.status());
 
@@ -330,7 +332,7 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
                         });
                 }
 
-                if (status.need_save_resume)
+                if (bool(status.need_save_resume_data))
                 {
                     status.handle.save_resume_data(
                         lt::torrent_handle::flush_disk_cache
@@ -342,9 +344,10 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
             }
             case lt::torrent_paused_alert::alert_type:
             {
-                auto tpa = lt::alert_cast<lt::torrent_paused_alert>(alert);
+                const auto tpa = lt::alert_cast<lt::torrent_paused_alert>(alert);
+                const auto name = tpa->handle.status(lt::torrent_handle::query_name).name;
 
-                BOOST_LOG_TRIVIAL(debug) << "session[" << state->name << "] Torrent " << tpa->torrent_name() << " paused";
+                BOOST_LOG_TRIVIAL(debug) << "session[" << state->name << "] Torrent " << name << " paused";
 
                 state->torrents.at(tpa->handle.info_hashes()) = std::make_pair(tpa->handle, tpa->handle.status());
 
@@ -376,7 +379,7 @@ void Sessions::SaveState(const std::shared_ptr<SessionState>& state)
     std::vector<lt::torrent_status> torrents = state->session->get_torrent_status(
         [](lt::torrent_status const& ts)
         {
-            return ts.need_save_resume;
+            return bool(ts.need_save_resume_data);
         });
 
     if (torrents.empty())
@@ -429,7 +432,7 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
         {
             const auto& [ th, ts ] = current->second;
 
-            if (!th.is_valid() || !ts.has_metadata || !ts.need_save_resume)
+            if (!th.is_valid() || !ts.has_metadata || !bool(ts.need_save_resume_data))
             {
                 std::advance(current, 1);
                 continue;
@@ -450,8 +453,8 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
                                 << " torrent(s) (out of " << chunk_items << ")";
 
         while (outstanding > 0) {
-            lt::alert const *tmp = state->session->wait_for_alert(lt::seconds(10));
-            if (tmp == nullptr) { continue; }
+            const auto found_alert = state->session->wait_for_alert(lt::seconds(10));
+            if (!found_alert) { continue; }
 
             std::vector<lt::alert *> alerts;
             state->session->pop_alerts(&alerts);
@@ -465,12 +468,14 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
 
                 if (auto fail = lt::alert_cast<lt::save_resume_data_failed_alert>(a))
                 {
+                    const auto name = fail->handle.status(lt::torrent_handle::query_name).name;
+
                     outstanding--;
 
                     BOOST_LOG_TRIVIAL(error)
                         << "session[" << state->name << "] " 
                         << "Failed to save resume data for "
-                        << fail->torrent_name()
+                        << name
                         << ": " << fail->message();
 
                     continue;
@@ -495,9 +500,11 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
 
 void Sessions::OnAddTorrentAlert(const SessionStatePtr& state, const lt::add_torrent_alert* alert)
 {
+    const auto name = alert->handle.status(lt::torrent_handle::query_name).name;
+
     if (alert->error)
     {
-        BOOST_LOG_TRIVIAL(error) << "session[" << state->name << "] Failed to add torrent " << alert->torrent_name() << ": " << alert->error.what();
+        BOOST_LOG_TRIVIAL(error) << "session[" << state->name << "] Failed to add torrent " << name << ": " << alert->error.what();
         return;
     }
 
@@ -558,9 +565,11 @@ void Sessions::OnTorrentRemovedAlert(const SessionStatePtr& state, const lt::tor
 {
     AddTorrentParams::Remove(m_options.db, state->id, alert->info_hashes);
 
+    const auto [ _, ts ] = state->torrents.at(alert->info_hashes);
+
     state->torrents.erase(alert->info_hashes);
 
-    BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Torrent " << alert->torrent_name() << " removed";
+    BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Torrent " << ts.name << " removed";
 
     Emit(m_torrent_removed, state, alert->info_hashes);
 }

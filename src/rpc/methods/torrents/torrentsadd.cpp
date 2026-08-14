@@ -124,7 +124,8 @@ void TorrentsAdd::Execute(const TorrentsAddReq& req, ResponseWriterHandle cb)
             return cb->Error(-10, "Failed to bdecode 'ti' parameter");
         }
 
-        p.ti = std::make_shared<lt::torrent_info>(node, ec);
+        lt::load_torrent_limits limits = {};
+        p.ti = std::make_shared<lt::torrent_info>(node, ec, limits, lt::from_info_section);
 
         if (ec)
         {

@@ -18,6 +18,21 @@ namespace libtorrent
         if (state == lt::torrent_status::state_t::checking_resume_data) j = "checking_resume_data";
     }
 
+    void to_json(nlohmann::json& j, const lt::resume_data_flags_t& resume_data_flags)
+    {
+        std::unordered_set<std::string> flags;
+
+        if (resume_data_flags & lt::torrent_handle::flush_disk_cache)     flags.insert("flush_disk_cache");
+        if (resume_data_flags & lt::torrent_handle::save_info_dict)       flags.insert("save_info_dict");
+        if (resume_data_flags & lt::torrent_handle::if_counters_changed)  flags.insert("if_counters_changed");
+        if (resume_data_flags & lt::torrent_handle::if_download_progress) flags.insert("if_download_progress");
+        if (resume_data_flags & lt::torrent_handle::if_config_changed)    flags.insert("if_config_changed");
+        if (resume_data_flags & lt::torrent_handle::if_state_changed)     flags.insert("if_state_changed");
+        if (resume_data_flags & lt::torrent_handle::if_metadata_changed)  flags.insert("if_metadata_changed");
+
+        j = flags;
+    }
+
     void to_json(nlohmann::json& j, const lt::storage_mode_t& storage_mode)
     {
         if (storage_mode == lt::storage_mode_t::storage_mode_allocate) j = "allocate";
@@ -74,7 +89,7 @@ namespace libtorrent
             {"list_seeds", ts.list_seeds},
             {"moving_storage", ts.moving_storage},
             {"name", ts.name},
-            {"need_save_resume", ts.need_save_resume},
+            {"need_save_resume_data", ts.need_save_resume_data},
             {"next_announce", lt::total_seconds(ts.next_announce)},
             {"num_complete", ts.num_complete},
             {"num_connections", ts.num_connections},

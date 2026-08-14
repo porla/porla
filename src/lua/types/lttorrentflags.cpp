@@ -17,8 +17,6 @@ static const std::unordered_map<std::string, lt::torrent_flags_t> FlagsLookup =
     { "super_seeding",       lt::torrent_flags::super_seeding },
     { "sequential_download", lt::torrent_flags::sequential_download },
     { "stop_when_ready",     lt::torrent_flags::stop_when_ready },
-    { "override_trackers",   lt::torrent_flags::override_trackers },
-    { "override_web_seeds",  lt::torrent_flags::override_web_seeds },
     { "need_save_resume",    lt::torrent_flags::need_save_resume },
     { "disable_dht",         lt::torrent_flags::disable_dht },
     { "disable_lsd",         lt::torrent_flags::disable_lsd },
@@ -72,8 +70,6 @@ void LtTorrentFlags::Register(sol::state& lua)
     flags["super_seeding"]         = sol::var(lt::torrent_flags::super_seeding);
     flags["sequential_download"]   = sol::var(lt::torrent_flags::sequential_download);
     flags["stop_when_ready"]       = sol::var(lt::torrent_flags::stop_when_ready);
-    flags["override_trackers"]     = sol::var(lt::torrent_flags::override_trackers);
-    flags["override_web_seeds"]    = sol::var(lt::torrent_flags::override_web_seeds);
     flags["need_save_resume"]      = sol::var(lt::torrent_flags::need_save_resume);
     flags["disable_dht"]           = sol::var(lt::torrent_flags::disable_dht);
     flags["disable_lsd"]           = sol::var(lt::torrent_flags::disable_lsd);

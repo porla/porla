@@ -46,7 +46,7 @@ void LtTorrentStatus::Register(sol::state& lua)
         "list_seeds",             sol::readonly(&lt::torrent_status::list_seeds),
         "moving_storage",         sol::readonly(&lt::torrent_status::moving_storage),
         "name",                   sol::readonly(&lt::torrent_status::name),
-        "need_save_resume",       sol::readonly(&lt::torrent_status::need_save_resume),
+        // "need_save_resume",       sol::readonly(&lt::torrent_status::need_save_resume),
         // next announce
         "num_complete",           sol::readonly(&lt::torrent_status::num_complete),
         "num_connections",        sol::readonly(&lt::torrent_status::num_connections),

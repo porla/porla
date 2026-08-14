@@ -17,8 +17,6 @@ static const std::unordered_map<std::string, lt::torrent_flags_t> FlagsLookup =
     { "super_seeding",       lt::torrent_flags::super_seeding },
     { "sequential_download", lt::torrent_flags::sequential_download },
     { "stop_when_ready",     lt::torrent_flags::stop_when_ready },
-    { "override_trackers",   lt::torrent_flags::override_trackers },
-    { "override_web_seeds",  lt::torrent_flags::override_web_seeds },
     { "need_save_resume",    lt::torrent_flags::need_save_resume },
     { "disable_dht",         lt::torrent_flags::disable_dht },
     { "disable_lsd",         lt::torrent_flags::disable_lsd },
@@ -68,8 +66,6 @@ namespace libtorrent
             JSON_FLAG(super_seeding)
             JSON_FLAG(sequential_download)
             JSON_FLAG(stop_when_ready)
-            JSON_FLAG(override_trackers)
-            JSON_FLAG(override_web_seeds)
             JSON_FLAG(need_save_resume)
             JSON_FLAG(disable_dht)
             JSON_FLAG(disable_lsd)

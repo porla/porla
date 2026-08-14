@@ -1,4 +1,4 @@
-FROM mirror.gcr.io/library/alpine:3.23.3 AS base
+FROM mirror.gcr.io/library/alpine:3.24.1 AS base
 
 FROM base AS build-base
 ARG GITVERSION_SEMVER="0.0.0"
@@ -8,12 +8,10 @@ ENV CCACHE_REMOTE_STORAGE=${CCACHE_REMOTE_STORAGE}
 ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
 WORKDIR /src
 
-RUN echo "@edge-main https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
-
 RUN apk add --no-cache \
     build-base \
-    boost1.84-dev@edge-main \
-    boost1.84-static@edge-main \
+    boost1.84-dev \
+    boost1.84-static \
     ccache \
     cmake \
     libmaxminddb-dev \
@@ -50,6 +48,18 @@ RUN cd curl-8.11.0 \
         -DBUILD_STATIC_LIBS=ON \
     && cmake --build build --target install
 
+# libtorrent
+FROM build-base AS build-libtorrent
+RUN wget https://github.com/arvidn/libtorrent/releases/download/v2.1.1/libtorrent-rasterbar-2.1.1.tar.gz
+RUN tar zxf libtorrent-rasterbar-2.1.1.tar.gz
+RUN cd libtorrent-rasterbar-2.1.1 \
+    && cmake -S . -B build -G Ninja \
+        -DCMAKE_CXX_STANDARD=20 \
+        -DBUILD_SHARED_LIBS=OFF \
+        -Ddeprecated-functions=OFF \
+        -Dwebtorrent=OFF \
+    && cmake --build build --target install
+
 # libzip
 FROM build-base AS build-libzip
 RUN wget https://github.com/nih-at/libzip/releases/download/v1.11.2/libzip-1.11.2.tar.gz
@@ -82,6 +92,10 @@ COPY --from=build-antlr4 /usr/local/lib/libantlr4* /usr/local/lib
 COPY --from=build-curl /usr/local/include/curl /usr/local/include/curl
 COPY --from=build-curl /usr/local/lib/cmake /usr/local/lib/cmake
 COPY --from=build-curl /usr/local/lib/libcurl* /usr/local/lib
+# libtorrent
+COPY --from=build-libtorrent /usr/local/include/libtorrent /usr/local/include/libtorrent
+COPY --from=build-libtorrent /usr/local/lib/cmake /usr/local/lib/cmake
+COPY --from=build-libtorrent /usr/local/lib/libtorrent* /usr/local/lib
 # libzip
 COPY --from=build-libzip /usr/local/include/* /usr/local/include/
 COPY --from=build-libzip /usr/local/lib/cmake /usr/local/lib/cmake
@@ -93,34 +107,17 @@ COPY --from=build-uwebsockets /src/uWebSockets-20.70.0/src/* /usr/local/include/
 
 COPY . .
 
-RUN echo "@edge-community https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
-
 RUN apk add --no-cache \
     git \
     icu-static \
-    libsodium-dev@edge-main \
-    libsodium-static@edge-main \
-    libtorrent-rasterbar-dev@edge-community \
-    libtorrent-rasterbar-static@edge-community \
+    libsodium-dev \
+    libsodium-static \
     lua5.4-dev \
     sqlite-dev \
     sqlite-static
 
-RUN cmake -S . -B build -G Ninja \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-    -DCMAKE_CXX_FLAGS="-Wno-template-body" \
-    -DCMAKE_EXE_LINKER_FLAGS="-static -Os" \
-    -DBUILD_SHARED_LIBS=OFF \
-    -DLINK_WITH_STATIC_LIBRARIES=ON \
-    -DOPENSSL_USE_STATIC_LIBS=TRUE \
-    # boost
-    -DBoost_USE_STATIC_LIBS=ON \
-    # libzip
-    -DENABLE_BZIP2=OFF \
-    -DENABLE_LZMA=OFF
-
-RUN cmake --build build
+RUN cmake --preset release \
+    && cmake --build --preset release
 
 # runtime image
 FROM base AS runtime
@@ -129,5 +126,5 @@ ENV PORLA_HTTP_HOST=0.0.0.0
 EXPOSE 1337
 
 WORKDIR /
-COPY --from=build-porla /src/build/porla /usr/bin/porla
+COPY --from=build-porla /src/build/release/porla /usr/bin/porla
 ENTRYPOINT [ "/usr/bin/porla" ]
