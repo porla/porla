@@ -60,18 +60,16 @@ std::optional<PluginSource> PluginSource::Load(const fs::path& path)
             return std::nullopt;
         }
 
-        auto archive_files = Zip::Load(*archive_buffer);
-
         return PluginSource{
             .entrypoint = "plugin.lua",
-            .sources    = {}
+            .sources    = Zip::Load(*archive_buffer)
         };
     }
 
     if (fs::is_directory(path))
     {
         PluginSource source{
-            .entrypoint = {},
+            .entrypoint = "plugin.lua",
             .sources    = {}
         };
 

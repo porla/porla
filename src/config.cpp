@@ -56,6 +56,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
     auto cfg = std::unique_ptr<Config>(new Config());
     cfg->sessions.insert({ "default", lt::default_settings() });
+    cfg->state_dir = fs::absolute(fs::current_path());
 
     // Check default locations for a config file.
     for (auto const& path : config_file_search_paths)
@@ -336,7 +337,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     // If no db_file is set, default to a file in state_dir.
     if (!cfg->db_file.has_value())
     {
-        cfg->db_file = cfg->state_dir.value_or(fs::current_path()) / "porla.sqlite";
+        cfg->db_file = cfg->state_dir / "porla.sqlite";
     }
 
     if (sqlite3_open(cfg->db_file.value_or("porla.sqlite").c_str(), &cfg->db) != SQLITE_OK)

@@ -11,8 +11,8 @@ namespace porla::Lua
 {
     struct PluginSource
     {
-        fs::path                              entrypoint;
-        std::map<fs::path, std::vector<char>> sources;
+        std::string                              entrypoint;
+        std::map<std::string, std::vector<char>> sources;
 
         static std::optional<PluginSource> Load(const fs::path& path);
     };

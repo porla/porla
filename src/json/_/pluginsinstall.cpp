@@ -9,7 +9,8 @@ namespace porla::Rpc::Methods::Plugins
         PluginsInstallReq,
         owner,
         repository,
-        version)
+        version,
+        config)
 
     NLOHMANN_JSONIFY_ALL_THINGS(
         PluginsInstallRes,

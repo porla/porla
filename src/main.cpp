@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
 
         auto curl_multi_instance = porla::CurlMulti::Create(io);
         auto jsonrpc             = porla::Rpc::JsonRpc::Create(cfg->secret_key);
-        auto webui               = porla::WebUI::Create(io, cfg->state_dir.value_or(fs::path()), cfg->db, curl_multi_instance);
+        auto webui               = porla::WebUI::Create(io, cfg->state_dir, cfg->db, curl_multi_instance);
 
         porla::Sessions sessions(porla::SessionsOptions{
             .db = cfg->db,
@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
         jsonrpc->Register("mmdb.lookup",             std::make_shared<porla::Rpc::Methods::Mmdb::MmdbLookup>(cfg->db, kv_updated_signal));
         jsonrpc->Register("plugins.add",             std::make_shared<porla::Rpc::Methods::Plugins::PluginsAdd>(cfg->db, plugin_engine));
         jsonrpc->Register("plugins.get",             std::make_shared<porla::Rpc::Methods::Plugins::PluginsGet>(cfg->db, plugin_engine));
-        jsonrpc->Register("plugins.install",         std::make_shared<porla::Rpc::Methods::Plugins::PluginsInstall>(cfg->db, curl_multi_instance, plugin_engine));
+        jsonrpc->Register("plugins.install",         std::make_shared<porla::Rpc::Methods::Plugins::PluginsInstall>(cfg->db, curl_multi_instance, plugin_engine, cfg->state_dir));
         jsonrpc->Register("plugins.list",            std::make_shared<porla::Rpc::Methods::Plugins::PluginsList>(cfg->db, plugin_engine));
         jsonrpc->Register("plugins.reload",          std::make_shared<porla::Rpc::Methods::Plugins::PluginsReload>(plugin_engine));
         jsonrpc->Register("plugins.remove",          std::make_shared<porla::Rpc::Methods::Plugins::PluginsRemove>(cfg->db, plugin_engine));

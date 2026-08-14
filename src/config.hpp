@@ -49,7 +49,7 @@ namespace porla
         std::map<std::string, Preset>            presets;
         std::string                              secret_key;
         std::map<std::string, lt::settings_pack> sessions;
-        std::optional<fs::path>                  state_dir;
+        fs::path                                 state_dir;
 
         static std::unique_ptr<Config> Load(const boost::program_options::variables_map& cmd);
 

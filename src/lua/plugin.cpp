@@ -901,6 +901,12 @@ std::unique_ptr<Plugin> Plugin::Load(
         return nullptr;
     }
 
+    if (source->sources.find(source->entrypoint) == source->sources.end())
+    {
+        BOOST_LOG_TRIVIAL(error) << "Plugin entry point (plugin.lua) not found for " << path;
+        return nullptr;
+    }
+
     try
     {
         auto state = std::make_shared<State>(opts, config);

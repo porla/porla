@@ -3,12 +3,31 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/log/trivial.hpp>
 
+#include "../json/utils.hpp"
 #include "../utils/string.hpp"
 
 using porla::Rpc::JsonRpc;
 using porla::Utils::String;
 
 static const std::string AltAuthHeader = "x-porla-token";
+
+namespace porla
+{
+    struct RpcReq
+    {
+        std::string                   jsonrpc;
+        std::string                   method;
+        std::optional<nlohmann::json> params;
+        std::optional<nlohmann::json> id;
+    };
+
+    NLOHMANN_JSONIFY_ALL_THINGS(
+        RpcReq,
+        jsonrpc,
+        method,
+        params,
+        id)
+}
 
 const auto CookieFinder = [](const std::string_view& value) -> std::optional<std::string>
 {
@@ -223,11 +242,11 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
                 }
             }
 
-            json body = {};
+            RpcReq req;
 
             try
             {
-                body = json::parse(*buffer);
+                req = json::parse(*buffer).get<RpcReq>();
             }
             catch (const std::exception& ex)
             {
@@ -246,10 +265,9 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
                 return;
             }
 
-            if (!body.contains("id")
-                && !body["id"].is_string()
-                && !body["id"].is_number()
-                && !body["id"].is_null())
+            if (req.id.has_value()
+                && !req.id->is_string()
+                && !req.id->is_number())
             {
                 res->end(json({
                     {"error", {
@@ -262,25 +280,9 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
                 return;
             }
 
-            if (!body.contains("method")
-                && !body["method"].is_string())
+            if (jsonrpc->m_methods.find(req.method) == jsonrpc->m_methods.end())
             {
-                res->end(json({
-                    {"error", {
-                        {"code", -32600},
-                        {"message", "Invalid Request"},
-                        {"data", "Method is not a string"}
-                    }}
-                }).dump());
-
-                return;
-            }
-
-            std::string method_name = body.at("method").get<std::string>();
-
-            if (jsonrpc->m_methods.find(method_name) == jsonrpc->m_methods.end())
-            {
-                BOOST_LOG_TRIVIAL(debug) << "Failed to find JSONRPC method '" << method_name << "'";
+                BOOST_LOG_TRIVIAL(debug) << "Failed to find JSONRPC method '" << req.method << "'";
 
                 res->end(json({
                     {"error", {
@@ -294,15 +296,11 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
 
             try
             {
-                BOOST_LOG_TRIVIAL(debug) << "Executing JSONRPC method '" << method_name << "'";
+                BOOST_LOG_TRIVIAL(debug) << "Executing JSONRPC method '" << req.method << "'";
 
-                json params = body.contains("params")
-                    ? body.at("params")
-                    : json();
+                auto method = jsonrpc->m_methods.at(req.method);
 
-                auto method = jsonrpc->m_methods.at(method_name);
-
-                auto writer = std::make_shared<DefaultResponseWriter>(res, body["id"]);
+                auto writer = std::make_shared<DefaultResponseWriter>(res, req.id.value_or(json()));
 
                 if (!method->CanInvoke(token))
                 {
@@ -310,11 +308,11 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
                     return;
                 }
 
-                method->Invoke(params, writer);
+                method->Invoke(req.params.value_or(json()), writer);
             }
             catch (const std::exception& ex)
             {
-                BOOST_LOG_TRIVIAL(error) << "Error when executing JSONRPC method '" << method_name << "': " << ex.what();
+                BOOST_LOG_TRIVIAL(error) << "Error when executing JSONRPC method '" << req.method << "': " << ex.what();
 
                 res->end(json({
                     {"error", {
