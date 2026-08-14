@@ -109,6 +109,7 @@ add_library(
     src/json/_/torrentscount.cpp
     src/json/_/torrentsfileslist.cpp
     src/json/_/torrentsfilespriorities.cpp
+    src/json/_/torrentsfilesprioritize.cpp
     src/json/_/torrentsfilesprogress.cpp
     src/json/_/torrentsfilesrename.cpp
     src/json/_/torrentsget.cpp
@@ -182,6 +183,7 @@ add_library(
     src/rpc/methods/torrents/torrentscount.cpp
     src/rpc/methods/torrents/torrentsfileslist.cpp
     src/rpc/methods/torrents/torrentsfilespriorities.cpp
+    src/rpc/methods/torrents/torrentsfilesprioritize.cpp
     src/rpc/methods/torrents/torrentsfilesprogress.cpp
     src/rpc/methods/torrents/torrentsfilesrename.cpp
     src/rpc/methods/torrents/torrentsget.cpp

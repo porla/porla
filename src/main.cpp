@@ -48,6 +48,7 @@
 #include "rpc/methods/torrents/torrentscount.hpp"
 #include "rpc/methods/torrents/torrentsfileslist.hpp"
 #include "rpc/methods/torrents/torrentsfilespriorities.hpp"
+#include "rpc/methods/torrents/torrentsfilesprioritize.hpp"
 #include "rpc/methods/torrents/torrentsfilesprogress.hpp"
 #include "rpc/methods/torrents/torrentsfilesrename.hpp"
 #include "rpc/methods/torrents/torrentsget.hpp"
@@ -149,6 +150,7 @@ int main(int argc, char* argv[])
         jsonrpc->Register("torrents.count",            std::make_shared<porla::Rpc::Methods::Torrents::TorrentsCount>(sessions));
         jsonrpc->Register("torrents.files.list",       std::make_shared<porla::Rpc::Methods::Torrents::TorrentsFilesList>(cfg->db, sessions));
         jsonrpc->Register("torrents.files.priorities", std::make_shared<porla::Rpc::Methods::Torrents::TorrentsFilesPriorities>(cfg->db, sessions));
+        jsonrpc->Register("torrents.files.prioritize", std::make_shared<porla::Rpc::Methods::Torrents::TorrentsFilesPrioritize>(cfg->db, sessions));
         jsonrpc->Register("torrents.files.progress",   std::make_shared<porla::Rpc::Methods::Torrents::TorrentsFilesProgress>(cfg->db, sessions));
         jsonrpc->Register("torrents.files.rename",     std::make_shared<porla::Rpc::Methods::Torrents::TorrentsFilesRename>(cfg->db, sessions));
         jsonrpc->Register("torrents.get",              std::make_shared<porla::Rpc::Methods::Torrents::TorrentsGet>(cfg->db, sessions));

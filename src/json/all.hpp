@@ -3,6 +3,7 @@
 #include <libtorrent/announce_entry.hpp>
 #include <libtorrent/download_priority.hpp>
 #include <libtorrent/torrent_flags.hpp>
+#include <libtorrent/units.hpp>
 #include <nlohmann/json.hpp>
 
 namespace boost::system
@@ -18,7 +19,7 @@ namespace libtorrent
     inline void from_json(const nlohmann::json& json, announce_endpoint& endpoint) {}
     inline void from_json(const nlohmann::json& json, announce_entry& entry) {}
     inline void from_json(const nlohmann::json& json, announce_infohash& infohash) {}
-    inline void from_json(const nlohmann::json& json, download_priority_t& dlp) {}
+    inline void from_json(const nlohmann::json& json, download_priority_t& dlp) { dlp = download_priority_t{json.get<uint8_t>()}; }
     void from_json(const nlohmann::json& json, info_hash_t& infohash);
     inline void from_json(const nlohmann::json& json, peer_info& pi) {}
     void from_json(const nlohmann::json& json, settings_pack& settings);
@@ -34,6 +35,12 @@ namespace libtorrent
     void to_json(nlohmann::json& json, const peer_info& pi);
     void to_json(nlohmann::json& json, const settings_pack& settings);
     void to_json(nlohmann::json& json, const torrent_status& ts);
+
+    namespace aux
+    {
+        inline void to_json(nlohmann::json& j, const file_index_t& fi)   { j = static_cast<int>(fi); }
+        inline void from_json(const nlohmann::json& j, file_index_t& fi) { fi = file_index_t{ j.get<int>() }; }
+    }
 }
 
 namespace porla
@@ -204,6 +211,8 @@ namespace porla::Rpc::Methods
         struct TorrentsFilesListRes;
         struct TorrentsFilesPrioritiesReq;
         struct TorrentsFilesPrioritiesRes;
+        struct TorrentsFilesPrioritizeReq;
+        struct TorrentsFilesPrioritizeRes;
         struct TorrentsFilesProgressReq;
         struct TorrentsFilesProgressRes;
         struct TorrentsFilesRenameReq;
@@ -242,6 +251,7 @@ namespace porla::Rpc::Methods
         void from_json(const nlohmann::json& json, TorrentsCountReq& req);
         void from_json(const nlohmann::json& json, TorrentsFilesListReq& req);
         void from_json(const nlohmann::json& json, TorrentsFilesPrioritiesReq& req);
+        void from_json(const nlohmann::json& json, TorrentsFilesPrioritizeReq& req);
         void from_json(const nlohmann::json& json, TorrentsFilesProgressReq& req);
         void from_json(const nlohmann::json& json, TorrentsFilesRenameReq& req);
         void from_json(const nlohmann::json& json, TorrentsGetReq& req);
@@ -264,6 +274,7 @@ namespace porla::Rpc::Methods
         void to_json(nlohmann::json& json, const TorrentsCountRes& res);
         void to_json(nlohmann::json& json, const TorrentsFilesListRes& res);
         void to_json(nlohmann::json& json, const TorrentsFilesPrioritiesRes& res);
+        void to_json(nlohmann::json& json, const TorrentsFilesPrioritizeRes& res);
         void to_json(nlohmann::json& json, const TorrentsFilesProgressRes& res);
         void to_json(nlohmann::json& json, const TorrentsFilesRenameRes& res);
         void to_json(nlohmann::json& json, const TorrentsGetRes& res);
