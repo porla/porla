@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
         boost::signals2::signal<void(const std::unordered_set<std::string>&)> kv_updated_signal;
 
         auto curl_multi_instance = porla::CurlMulti::Create(io);
-        auto jsonrpc             = porla::Rpc::JsonRpc::Create();
+        auto jsonrpc             = porla::Rpc::JsonRpc::Create(cfg->secret_key);
         auto webui               = porla::WebUI::Create(io, cfg->state_dir.value_or(fs::path()), cfg->db, curl_multi_instance);
 
         porla::Sessions sessions(porla::SessionsOptions{

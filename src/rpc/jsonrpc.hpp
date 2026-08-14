@@ -15,7 +15,7 @@ namespace porla::Rpc
     class JsonRpc : public std::enable_shared_from_this<JsonRpc>
     {
     public:
-        static std::shared_ptr<JsonRpc> Create();
+        static std::shared_ptr<JsonRpc> Create(const std::string& secret_key);
 
         std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> HttpHandler();
 
@@ -25,6 +25,9 @@ namespace porla::Rpc
         }
 
     private:
+        explicit JsonRpc(const std::string& secret_key);
+
         std::map<std::string, std::shared_ptr<Method>> m_methods;
+        std::string                                    m_secret_key;
     };
 }

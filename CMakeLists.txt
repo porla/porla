@@ -71,8 +71,6 @@ add_library(
     src/data/models/users.cpp
     src/data/statement.cpp
 
-    src/http/jsonrpchandler.cpp
-
     src/json/_/authinit.cpp
     src/json/_/authlogin.cpp
     src/json/_/errorcode.cpp
