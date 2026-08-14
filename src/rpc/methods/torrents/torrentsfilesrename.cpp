@@ -1,21 +1,19 @@
-#include "torrentsfileslist.hpp"
-
-#include <algorithm>
+#include "torrentsfilesrename.hpp"
 
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions.hpp"
 
-using porla::Rpc::Methods::Torrents::TorrentsFilesList;
-using porla::Rpc::Methods::Torrents::TorrentsFilesListReq;
-using porla::Rpc::Methods::Torrents::TorrentsFilesListRes;
+using porla::Rpc::Methods::Torrents::TorrentsFilesRename;
+using porla::Rpc::Methods::Torrents::TorrentsFilesRenameReq;
+using porla::Rpc::Methods::Torrents::TorrentsFilesRenameRes;
 
-TorrentsFilesList::TorrentsFilesList(sqlite3* db, porla::Sessions& sessions)
+TorrentsFilesRename::TorrentsFilesRename(sqlite3* db, porla::Sessions& sessions)
     : m_db(db)
     , m_sessions(sessions)
 {
 }
 
-void TorrentsFilesList::Execute(const TorrentsFilesListReq& req, ResponseWriterHandle cb)
+void TorrentsFilesRename::Execute(const TorrentsFilesRenameReq& req, ResponseWriterHandle cb)
 {
     const auto session = req.session_id.has_value()
         ? Data::Models::Sessions::GetById(m_db, req.session_id.value())
@@ -40,15 +38,11 @@ void TorrentsFilesList::Execute(const TorrentsFilesListReq& req, ResponseWriterH
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    const auto& [ th, status ] = handle->second;
+    const auto& [ th, _ ] = handle->second;
 
-    if (auto tf = status.torrent_file.lock())
-    {
-        return cb->Ok(TorrentsFilesListRes{
-            .file_storage  = tf->layout(),
-            .renamed_files = th.get_renamed_files()
-        });
-    }
+    th.rename_file(
+        lt::file_index_t{req.file_index},
+        req.file_path);
 
-    return cb->Error(-4, "Failed to lock torrent file");
+    cb->Ok({});
 }

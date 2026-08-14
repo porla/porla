@@ -201,10 +201,14 @@ namespace porla::Rpc::Methods
         struct TorrentsFilesListRes;
         struct TorrentsFilesProgressReq;
         struct TorrentsFilesProgressRes;
+        struct TorrentsFilesRenameReq;
+        struct TorrentsFilesRenameRes;
         struct TorrentsGetReq;
         struct TorrentsGetRes;
         struct TorrentsListReq;
         struct TorrentsListRes;
+        struct TorrentsMigrateReq;
+        struct TorrentsMigrateRes;
         struct TorrentsMoveReq;
         struct TorrentsMoveRes;
         struct TorrentsOverviewReq;
@@ -233,8 +237,10 @@ namespace porla::Rpc::Methods
         void from_json(const nlohmann::json& json, TorrentsCountReq& req);
         void from_json(const nlohmann::json& json, TorrentsFilesListReq& req);
         void from_json(const nlohmann::json& json, TorrentsFilesProgressReq& req);
+        void from_json(const nlohmann::json& json, TorrentsFilesRenameReq& req);
         void from_json(const nlohmann::json& json, TorrentsGetReq& req);
         void from_json(const nlohmann::json& json, TorrentsListReq& req);
+        void from_json(const nlohmann::json& json, TorrentsMigrateReq& req);
         void from_json(const nlohmann::json& json, TorrentsMoveReq& req);
         void from_json(const nlohmann::json& json, TorrentsOverviewReq& req);
         void from_json(const nlohmann::json& json, TorrentsPauseReq& req);
@@ -252,8 +258,10 @@ namespace porla::Rpc::Methods
         void to_json(nlohmann::json& json, const TorrentsCountRes& res);
         void to_json(nlohmann::json& json, const TorrentsFilesListRes& res);
         void to_json(nlohmann::json& json, const TorrentsFilesProgressRes& res);
+        void to_json(nlohmann::json& json, const TorrentsFilesRenameRes& res);
         void to_json(nlohmann::json& json, const TorrentsGetRes& res);
         void to_json(nlohmann::json& json, const TorrentsListRes& res);
+        void to_json(nlohmann::json& json, const TorrentsMigrateRes& res);
         void to_json(nlohmann::json& json, const TorrentsMoveRes& res);
         void to_json(nlohmann::json& json, const TorrentsOverviewRes& res);
         void to_json(nlohmann::json& json, const TorrentsPauseRes& res);

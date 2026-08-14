@@ -5,6 +5,20 @@
 #include "../../rpc/methods/torrents/torrentsfileslist_reqres.hpp"
 #include "../utils.hpp"
 
+namespace libtorrent
+{
+    void to_json(nlohmann::json& j, const libtorrent::file_flags_t& flags)
+    {
+        std::unordered_set<std::string> f;
+        if (flags & lt::file_storage::flag_pad_file)   f.insert("pad_file");
+        if (flags & lt::file_storage::flag_hidden)     f.insert("hidden");
+        if (flags & lt::file_storage::flag_executable) f.insert("executable");
+        if (flags & lt::file_storage::flag_symlink)    f.insert("symlink");
+
+        j = f;
+    }
+}
+
 namespace porla::Rpc::Methods::Torrents
 {
     NLOHMANN_JSONIFY_ALL_THINGS(
@@ -18,35 +32,23 @@ namespace porla::Rpc::Methods::Torrents
 
         const auto& storage = res.file_storage;
 
-        for (int i = 0; i < storage.num_files(); i++)
+        lt::filenames fn(res.file_storage, res.renamed_files);
+
+        for (const auto idx : fn.file_range())
         {
-            lt::file_index_t idx{i};
-
-            const auto lt_flags = storage.file_flags(idx);
-
-            std::unordered_set<std::string> flags;
-            if (lt_flags & lt::file_storage::flag_pad_file)   flags.insert("pad_file");
-            if (lt_flags & lt::file_storage::flag_hidden)     flags.insert("hidden");
-            if (lt_flags & lt::file_storage::flag_executable) flags.insert("executable");
-            if (lt_flags & lt::file_storage::flag_symlink)    flags.insert("symlink");
-
             files.push_back({
-                {"absolute_path",    storage.file_absolute_path(idx)},
-                {"first_block_node", storage.file_first_block_node(idx)},
-                {"first_piece_node", storage.file_first_piece_node(idx)},
-                {"flags",            flags},
-                {"name",             storage.file_name(idx)},
-                {"num_blocks",       storage.file_num_blocks(idx)},
-                {"num_pieces",       storage.file_num_pieces(idx)},
-                {"offset",           storage.file_offset(idx)},
-                {"path",             storage.file_path(idx)},
-                {"size",             storage.file_size(idx)},
-                {"symlink",          storage.symlink(idx)}
+                {"absolute_path", fn.file_absolute_path(idx)},
+                {"flags",         fn.file_flags(idx)},
+                {"index",         static_cast<int>(idx)},
+                {"offset",        fn.file_offset(idx)},
+                {"path",          fn.file_path(idx)},
+                {"size",          fn.file_size(idx)},
+                {"symlink",       fn.symlink(idx)}
             });
         }
 
         json = {
-            {"files", files}
+            {"files", files},
         };
     }
 }

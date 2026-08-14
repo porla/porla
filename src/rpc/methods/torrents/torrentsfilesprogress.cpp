@@ -43,5 +43,5 @@ void TorrentsFilesProgress::Execute(const TorrentsFilesProgressReq& req, Respons
     TorrentsFilesProgressRes res;
     th.file_progress(res.progress);
 
-    return cb->Ok(res);
+    cb->Ok(res);
 }
