@@ -3,6 +3,7 @@
 #include <libtorrent/announce_entry.hpp>
 #include <libtorrent/download_priority.hpp>
 #include <libtorrent/torrent_flags.hpp>
+#include <libtorrent/torrent_handle.hpp>
 #include <libtorrent/units.hpp>
 #include <nlohmann/json.hpp>
 
@@ -22,6 +23,7 @@ namespace libtorrent
     inline void from_json(const nlohmann::json& json, download_priority_t& dlp) { dlp = download_priority_t{json.get<uint8_t>()}; }
     void from_json(const nlohmann::json& json, info_hash_t& infohash);
     inline void from_json(const nlohmann::json& json, peer_info& pi) {}
+    void from_json(const nlohmann::json& json, queue_position_t& pos);
     void from_json(const nlohmann::json& json, settings_pack& settings);
     void from_json(const nlohmann::json& json, torrent_flags_t& flags);
     inline void from_json(const nlohmann::json& json, torrent_status& ts) {}
@@ -33,6 +35,7 @@ namespace libtorrent
     void to_json(nlohmann::json& json, const torrent_flags_t& flags);
     void to_json(nlohmann::json& json, const info_hash_t& infohash);
     void to_json(nlohmann::json& json, const peer_info& pi);
+    void to_json(nlohmann::json& json, const queue_position_t& pos);
     void to_json(nlohmann::json& json, const settings_pack& settings);
     void to_json(nlohmann::json& json, const torrent_status& ts);
 
@@ -240,6 +243,8 @@ namespace porla::Rpc::Methods
         struct TorrentsPropertiesSetReq;
         struct TorrentsQueueAnyReq;
         struct TorrentsQueueAnyRes;
+        struct TorrentsQueueSetReq;
+        struct TorrentsQueueSetRes;
         struct TorrentsRecheckReq;
         struct TorrentsRecheckRes;
         struct TorrentsRemoveReq;
@@ -268,6 +273,7 @@ namespace porla::Rpc::Methods
         void from_json(const nlohmann::json& json, TorrentsPropertiesGetReq& req);
         void from_json(const nlohmann::json& json, TorrentsPropertiesSetReq& req);
         void from_json(const nlohmann::json& json, TorrentsQueueAnyReq& req);
+        void from_json(const nlohmann::json& json, TorrentsQueueSetReq& req);
         void from_json(const nlohmann::json& json, TorrentsRecheckReq& req);
         void from_json(const nlohmann::json& json, TorrentsResumeReq& req);
         void from_json(const nlohmann::json& json, TorrentsRemoveReq& req);
@@ -291,6 +297,7 @@ namespace porla::Rpc::Methods
         void to_json(nlohmann::json& json, const TorrentsPiecesGetRes& res);
         void to_json(nlohmann::json& json, const TorrentsPropertiesGetRes& res);
         void to_json(nlohmann::json& json, const TorrentsQueueAnyRes& res);
+        void to_json(nlohmann::json& json, const TorrentsQueueSetRes& res);
         void to_json(nlohmann::json& json, const TorrentsRecheckRes& res);
         void to_json(nlohmann::json& json, const TorrentsRemoveRes& res);
         void to_json(nlohmann::json& json, const TorrentsResumeRes& res);
