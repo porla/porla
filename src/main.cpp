@@ -66,6 +66,7 @@
 #include "rpc/methods/torrents/torrentsrecheck.hpp"
 #include "rpc/methods/torrents/torrentsremove.hpp"
 #include "rpc/methods/torrents/torrentsresume.hpp"
+#include "rpc/methods/torrents/torrentstrackersadd.hpp"
 #include "rpc/methods/torrents/torrentstrackerslist.hpp"
 #include "rpc/methods/webui/webuiinstall.hpp"
 
@@ -173,6 +174,7 @@ int main(int argc, char* argv[])
         jsonrpc->Register("torrents.recheck",          std::make_shared<porla::Rpc::Methods::Torrents::TorrentsRecheck>(cfg->db, sessions));
         jsonrpc->Register("torrents.remove",           std::make_shared<porla::Rpc::Methods::Torrents::TorrentsRemove>(cfg->db, sessions));
         jsonrpc->Register("torrents.resume",           std::make_shared<porla::Rpc::Methods::Torrents::TorrentsResume>(cfg->db, sessions));
+        jsonrpc->Register("torrents.trackers.add",     std::make_shared<porla::Rpc::Methods::Torrents::TorrentsTrackersAdd>(cfg->db, sessions));
         jsonrpc->Register("torrents.trackers.list",    std::make_shared<porla::Rpc::Methods::Torrents::TorrentsTrackersList>(cfg->db, sessions));
         jsonrpc->Register("webui.install",             std::make_shared<porla::Rpc::Methods::WebUI::WebUIInstall>(webui));
 

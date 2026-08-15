@@ -251,6 +251,8 @@ namespace porla::Rpc::Methods
         struct TorrentsRemoveRes;
         struct TorrentsResumeReq;
         struct TorrentsResumeRes;
+        struct TorrentsTrackersAddReq;
+        struct TorrentsTrackersAddRes;
         struct TorrentsTrackersListReq;
         struct TorrentsTrackersListRes;
 
@@ -277,6 +279,7 @@ namespace porla::Rpc::Methods
         void from_json(const nlohmann::json& json, TorrentsRecheckReq& req);
         void from_json(const nlohmann::json& json, TorrentsResumeReq& req);
         void from_json(const nlohmann::json& json, TorrentsRemoveReq& req);
+        void from_json(const nlohmann::json& json, TorrentsTrackersAddReq& req);
         void from_json(const nlohmann::json& json, TorrentsTrackersListReq& req);
 
         void to_json(nlohmann::json& json, const TorrentsAddRes& res);
@@ -301,6 +304,7 @@ namespace porla::Rpc::Methods
         void to_json(nlohmann::json& json, const TorrentsRecheckRes& res);
         void to_json(nlohmann::json& json, const TorrentsRemoveRes& res);
         void to_json(nlohmann::json& json, const TorrentsResumeRes& res);
+        void to_json(nlohmann::json& json, const TorrentsTrackersAddRes& res);
         void to_json(nlohmann::json& json, const TorrentsTrackersListRes& res);
     }
 

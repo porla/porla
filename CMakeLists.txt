@@ -128,6 +128,7 @@ add_library(
     src/json/_/torrentsrecheck.cpp
     src/json/_/torrentsremove.cpp
     src/json/_/torrentsresume.cpp
+    src/json/_/torrentstrackersadd.cpp
     src/json/_/torrentstrackerslist.cpp
     src/json/_/webuiinstall.cpp
 
@@ -204,6 +205,7 @@ add_library(
     src/rpc/methods/torrents/torrentsremove.cpp
     src/rpc/methods/torrents/torrentsresume.cpp
     src/rpc/methods/torrents/torrentspropertiesset.cpp
+    src/rpc/methods/torrents/torrentstrackersadd.cpp
     src/rpc/methods/torrents/torrentstrackerslist.cpp
     src/rpc/methods/webui/webuiinstall.cpp
 
