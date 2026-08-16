@@ -22,7 +22,8 @@ static const std::unordered_map<std::string, lt::torrent_flags_t> FlagsLookup =
     { "disable_lsd",         lt::torrent_flags::disable_lsd },
     { "disable_pex",         lt::torrent_flags::disable_pex },
     { "no_verify_files",     lt::torrent_flags::no_verify_files },
-    { "i2p_torrent",         lt::torrent_flags::i2p_torrent }
+    { "i2p_torrent",         lt::torrent_flags::i2p_torrent },
+    { "disable_v1_hashes",   lt::torrent_flags::disable_v1_hashes }
 };
 
 namespace libtorrent
@@ -73,6 +74,7 @@ namespace libtorrent
             JSON_FLAG(no_verify_files)
             JSON_FLAG(default_dont_download)
             JSON_FLAG(i2p_torrent)
+            JSON_FLAG(disable_v1_hashes)
         };
     }
 }

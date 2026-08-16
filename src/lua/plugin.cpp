@@ -29,6 +29,165 @@ namespace fs = std::filesystem;
 using porla::Lua::Plugin;
 using porla::Lua::PluginLoadOptions;
 
+class TorrentsIterator
+{
+public:
+    explicit TorrentsIterator(const std::map<lt::info_hash_t, std::tuple<lt::torrent_handle, lt::torrent_status>>& torrents)
+        : m_torrents(torrents)
+        , m_iterator(m_torrents.begin())
+    {
+    }
+
+    std::optional<lt::torrent_handle> operator()()
+    {
+        if (m_iterator == m_torrents.end())
+        {
+            return std::nullopt;
+        }
+
+        auto [ th, _ ] = m_iterator->second;
+        std::advance(m_iterator, 1);
+
+        return th;
+    }
+
+private:
+    std::map<lt::info_hash_t, std::tuple<lt::torrent_handle, lt::torrent_status>> const&          m_torrents;
+    std::map<lt::info_hash_t, std::tuple<lt::torrent_handle, lt::torrent_status>>::const_iterator m_iterator;
+};
+
+class TorrentsHandle
+{
+public:
+    explicit TorrentsHandle(std::weak_ptr<porla::Sessions::SessionState> state)
+        : m_state(state) {}
+
+    int Count()
+    {
+        return m_state.lock()->torrents.size();
+    }
+
+    std::optional<lt::torrent_handle> Get(const std::string& info_hash)
+    {
+        lt::sha1_hash hash;
+
+        {
+            std::stringstream ss(info_hash);
+            ss >> hash;
+        }
+
+        auto state = m_state.lock();
+        auto found = state->torrents.find(lt::info_hash_t(hash));
+
+        if (found == state->torrents.end())
+        {
+            return std::nullopt;
+        }
+
+        auto [ th, _ ] = found->second;
+
+        return th;
+    }
+
+    TorrentsIterator List()
+    {
+        return TorrentsIterator(m_state.lock()->torrents);
+    }
+
+private:
+    std::weak_ptr<porla::Sessions::SessionState> m_state;
+};
+
+class SessionHandle
+{
+public:
+    explicit SessionHandle(std::weak_ptr<porla::Sessions::SessionState> state)
+        : m_state(state) {}
+
+    std::string Name()
+    {
+        return m_state.lock()->name;
+    }
+
+    std::shared_ptr<TorrentsHandle> Torrents()
+    {
+        return std::make_shared<TorrentsHandle>(m_state);
+    }
+
+private:
+    std::weak_ptr<porla::Sessions::SessionState> m_state;
+};
+
+class SessionsIterator
+{
+public:
+    explicit SessionsIterator(std::map<int, porla::Sessions::SessionStatePtr> sessions)
+        : m_sessions(sessions)
+        , m_iterator(m_sessions.begin())
+    {
+    }
+
+    std::shared_ptr<SessionHandle> operator()()
+    {
+        if (m_iterator == m_sessions.end())
+        {
+            return nullptr;
+        }
+
+        auto session = m_iterator->second;
+        std::advance(m_iterator, 1);
+        return std::make_shared<SessionHandle>(session);
+    }
+
+private:
+    std::map<int, porla::Sessions::SessionStatePtr>                 m_sessions;
+    std::map<int, porla::Sessions::SessionStatePtr>::const_iterator m_iterator;
+};
+
+class SessionsHandle
+{
+public:
+    explicit SessionsHandle(sqlite3* db, porla::Sessions& sessions)
+        : m_db(db)
+        , m_sessions(sessions) {}
+
+    int Count()
+    {
+        const auto all_sessions    = porla::Data::Models::Sessions::List(m_db);
+        const auto loaded_sessions = std::count_if(
+            all_sessions.begin(),
+            all_sessions.end(),
+            [this](const auto s) { return m_sessions.Get(s.id) != nullptr; });
+
+        return loaded_sessions;
+    }
+
+    std::shared_ptr<SessionHandle> Default()
+    {
+        const auto default_session = porla::Data::Models::Sessions::GetDefault(m_db);
+
+        if (!default_session.has_value())
+        {
+            return nullptr;
+        }
+
+        const auto state = m_sessions.Get(default_session->id);
+
+        return std::make_shared<SessionHandle>(state);
+    }
+
+    SessionHandle Get(const std::string& name);
+
+    SessionsIterator List()
+    {
+        return SessionsIterator(m_sessions.All());
+    }
+
+private:
+    sqlite3*         m_db;
+    porla::Sessions& m_sessions;
+};
+
 class HttpResponseHandle : std::enable_shared_from_this<HttpResponseHandle>
 {
 public:
@@ -482,16 +641,176 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             "cancel",     &Subscription::Cancel,
             "disconnect", &Subscription::Cancel);
 
-        lua.new_usertype<lt::torrent_handle>(
-            "lt.torrent_handle",
+        lua.new_usertype<SessionHandle>(
+            "porla.Session",
             sol::no_constructor,
-            "is_valid", &lt::torrent_handle::is_valid,
-            "status", [](const lt::torrent_handle& th) { return th.status(); });
+            "name",     sol::property(&SessionHandle::Name),
+            "torrents", &SessionHandle::Torrents);
+
+        lua.new_usertype<SessionsHandle>(
+            "porla.Sessions",
+            sol::no_constructor,
+            "count",   &SessionsHandle::Count,
+            "default", &SessionsHandle::Default,
+            "list",    &SessionsHandle::List);
+
+        lua.new_usertype<TorrentsHandle>(
+            "porla.Torrents",
+            sol::no_constructor,
+            "count", &TorrentsHandle::Count,
+            "get",   &TorrentsHandle::Get,
+            "list",  &TorrentsHandle::List);
+
+        lua.new_usertype<lt::torrent_handle>(
+            "porla.Torrent",
+            sol::no_constructor,
+            // add_piece
+            // add_tracker
+            "add_url_seed",               &lt::torrent_handle::add_url_seed,
+            "clear_error",                &lt::torrent_handle::clear_error,
+            "clear_peers",                &lt::torrent_handle::clear_peers,
+            "clear_piece_deadlines",      &lt::torrent_handle::clear_piece_deadlines,
+            // connect_peer
+            "download_limit",             &lt::torrent_handle::download_limit,
+            // file_priority
+            // file_progress
+            "file_status",                &lt::torrent_handle::file_status,
+            // flags
+            "flush_cache",                &lt::torrent_handle::flush_cache,
+            "force_dht_announce",         &lt::torrent_handle::force_dht_announce,
+            "force_lsd_announce",         &lt::torrent_handle::force_lsd_announce,
+            // force_reannounce
+            "force_recheck",              &lt::torrent_handle::force_recheck,
+            //"get_download_queue",       &lt::torrent_handle::get_download_queue,
+            // get_file_priorities
+            // get_peer_info
+            // get_piece_priorities
+            "get_renamed_files",          &lt::torrent_handle::get_renamed_files,
+            // get_resume_data
+            "have_piece",                 &lt::torrent_handle::have_piece,
+            "in_session",                 &lt::torrent_handle::in_session,
+            "info_hash",                  &lt::torrent_handle::info_hashes,
+            "is_valid",                   &lt::torrent_handle::is_valid,
+            "max_connections",            &lt::torrent_handle::max_connections,
+            "max_uploads",                &lt::torrent_handle::max_uploads,
+            "move_storage",               &lt::torrent_handle::move_storage,
+            // "need_save_resume_data"
+            "pause",                      &lt::torrent_handle::pause,
+            // piece_availability
+            //"piece_layers",               &lt::torrent_handle::piece_layers,
+            // piece_priority
+            // post_download_queue
+            "post_file_priorities",       &lt::torrent_handle::post_file_priorities,
+            // post_file_progress
+            // post_file_status
+            // post_peer_info
+            "post_piece_availability",    &lt::torrent_handle::post_piece_availability,
+            // post_status
+            "post_trackers",              &lt::torrent_handle::post_trackers,
+            // prioritize_files
+            // prioritize_pieces
+            "queue_position",             &lt::torrent_handle::queue_position,
+            "queue_position_bottom",      &lt::torrent_handle::queue_position_bottom,
+            "queue_position_down",        &lt::torrent_handle::queue_position_down,
+            "queue_position_set",         &lt::torrent_handle::queue_position_set,
+            "queue_position_top",         &lt::torrent_handle::queue_position_top,
+            "queue_position_up",          &lt::torrent_handle::queue_position_up,
+            // read_piece
+            "remove_url_seed",            &lt::torrent_handle::remove_url_seed,
+            "rename_file",                &lt::torrent_handle::rename_file,
+            // replace_trackers
+            // reset_piece_deadline
+            "resume",                     &lt::torrent_handle::resume,
+            // save_resume_data
+            // scrape_tracker
+            "set_download_limit",         &lt::torrent_handle::set_download_limit,
+            // set_flags
+            "set_max_connections",        &lt::torrent_handle::set_max_connections,
+            "set_max_uploads",            &lt::torrent_handle::set_max_uploads,
+            // set_metadata
+            // set_piece_deadline
+            // set_sequential_range
+            "set_ssl_certificate",        &lt::torrent_handle::set_ssl_certificate,
+            "set_ssl_certificate_buffer", &lt::torrent_handle::set_ssl_certificate_buffer,
+            "set_upload_limit",           &lt::torrent_handle::set_upload_limit,
+            "status",                     [](const lt::torrent_handle& th) { return th.status(); },
+            "torrent_file",               &lt::torrent_handle::torrent_file,
+            "trackers",                   &lt::torrent_handle::trackers,
+            // unset_flags
+            "upload_limit",               &lt::torrent_handle::upload_limit,
+            "url_seeds",                  &lt::torrent_handle::url_seeds);
 
         lua.new_usertype<lt::torrent_status>(
             "lt.torrent_status",
             sol::no_constructor,
-            "name", sol::readonly(&lt::torrent_status::name));
+            "active_duration",        sol::property([](const lt::torrent_status& ts) { return ts.active_duration.count(); }),
+            "added_time",             sol::readonly(&lt::torrent_status::added_time),
+            "all_time_download",      sol::readonly(&lt::torrent_status::all_time_download),
+            "all_time_upload",        sol::readonly(&lt::torrent_status::all_time_upload),
+            "announcing_to_dht",      sol::readonly(&lt::torrent_status::announcing_to_dht),
+            "announcing_to_lsd",      sol::readonly(&lt::torrent_status::announcing_to_lsd),
+            "announcing_to_trackers", sol::readonly(&lt::torrent_status::announcing_to_trackers),
+            "block_size",             sol::readonly(&lt::torrent_status::block_size),
+            "completed_time",         sol::readonly(&lt::torrent_status::completed_time),
+            "connect_candidates",     sol::readonly(&lt::torrent_status::connect_candidates),
+            "connections_limit",      sol::readonly(&lt::torrent_status::connections_limit),
+            "current_tracker",        sol::readonly(&lt::torrent_status::current_tracker),
+            "distributed_copies",     sol::readonly(&lt::torrent_status::distributed_copies),
+            "down_bandwidth_queue",   sol::readonly(&lt::torrent_status::down_bandwidth_queue),
+            "download_limit",         sol::readonly(&lt::torrent_status::download_limit),
+            "download_payload_rate",  sol::readonly(&lt::torrent_status::download_payload_rate),
+            "download_rate",          sol::readonly(&lt::torrent_status::download_rate),
+            // flags
+            "finished_duration",      sol::property([](const lt::torrent_status& ts) { return ts.finished_duration.count(); }),
+            "handle",                 sol::readonly(&lt::torrent_status::handle),
+            "has_incoming",           sol::readonly(&lt::torrent_status::has_incoming),
+            "has_metadata",           sol::readonly(&lt::torrent_status::has_metadata),
+            "info_hash",              sol::readonly(&lt::torrent_status::info_hashes),
+            "is_finished",            sol::readonly(&lt::torrent_status::is_finished),
+            "is_seeding",             sol::readonly(&lt::torrent_status::is_seeding),
+            "last_download",          sol::property([](const lt::torrent_status& ts) { return std::chrono::duration_cast<std::chrono::seconds>(ts.last_download.time_since_epoch()).count(); }),
+            "last_seen_complete",     &lt::torrent_status::last_seen_complete,
+            "last_upload",            sol::property([](const lt::torrent_status& ts) { return std::chrono::duration_cast<std::chrono::seconds>(ts.last_upload.time_since_epoch()).count(); }),
+            "list_peers",             sol::readonly(&lt::torrent_status::list_peers),
+            "list_seeds",             sol::readonly(&lt::torrent_status::list_seeds),
+            "moving_storage",         sol::readonly(&lt::torrent_status::moving_storage),
+            "name",                   sol::readonly(&lt::torrent_status::name),
+            // need_save_resume_data
+            "next_announce",          sol::property([](const lt::torrent_status& ts) { return std::chrono::duration_cast<std::chrono::seconds>(ts.next_announce).count(); }),
+            "num_complete",           sol::readonly(&lt::torrent_status::num_complete),
+            "num_connections",        sol::readonly(&lt::torrent_status::num_connections),
+            "num_incomplete",         sol::readonly(&lt::torrent_status::num_incomplete),
+            "num_peers",              sol::readonly(&lt::torrent_status::num_peers),
+            "num_pieces",             sol::readonly(&lt::torrent_status::num_pieces),
+            "num_seeds",              sol::readonly(&lt::torrent_status::num_seeds),
+            "num_uploads",            sol::readonly(&lt::torrent_status::num_uploads),
+            // pieces
+            "progress",               sol::readonly(&lt::torrent_status::progress),
+            "queue_position",         sol::readonly(&lt::torrent_status::queue_position),
+            // renamed_files
+            "save_path",              sol::readonly(&lt::torrent_status::save_path),
+            "seed_rank",              sol::readonly(&lt::torrent_status::seed_rank),
+            "seeding_duration",      sol::property([](const lt::torrent_status& ts) { return ts.seeding_duration.count(); }),
+            // state
+            // storage_mode
+            "torrent_file",           sol::readonly(&lt::torrent_status::torrent_file),
+            "total",                  sol::readonly(&lt::torrent_status::total),
+            "total_done",             sol::readonly(&lt::torrent_status::total_done),
+            "total_download",         sol::readonly(&lt::torrent_status::total_download),
+            "total_failed_bytes",     sol::readonly(&lt::torrent_status::total_failed_bytes),
+            "total_payload_download", sol::readonly(&lt::torrent_status::total_payload_download),
+            "total_payload_upload",   sol::readonly(&lt::torrent_status::total_payload_upload),
+            "total_redundant_bytes",  sol::readonly(&lt::torrent_status::total_redundant_bytes),
+            "total_wanted",           sol::readonly(&lt::torrent_status::total_wanted),
+            "total_wanted_done",      sol::readonly(&lt::torrent_status::total_wanted_done),
+            "total_upload",           sol::readonly(&lt::torrent_status::total_upload),
+            "up_bandwidth_queue",     sol::readonly(&lt::torrent_status::up_bandwidth_queue),
+            "upload_payload_rate",    sol::readonly(&lt::torrent_status::upload_payload_rate),
+            "upload_rate",            sol::readonly(&lt::torrent_status::upload_rate),
+            "upload_limit",           sol::readonly(&lt::torrent_status::upload_limit),
+            "uploads_limit",          sol::readonly(&lt::torrent_status::uploads_limit)
+            // verified_pieces
+            );
 
         lua.globals()["cron"] = [this](const std::string& expr, sol::main_protected_function cb)
         {
@@ -631,25 +950,14 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             return metrics_tbl;
         };
 
-        porla["sessions"] = [](sol::this_state s, const std::string& name) -> std::shared_ptr<porla::Sessions::SessionState>
+        porla["sessions"] = [](sol::this_state s)
         {
             sol::state_view lua{s};
 
-            auto db = lua.registry()["db"].get<porla::Lua::Registry::Sqlite3>().db;
+            auto  db       = lua.registry()["db"].get<porla::Lua::Registry::Sqlite3>().db;
+            auto& sessions = lua.registry()["sessions"].get<porla::Lua::Registry::Sessions>().sessions;
 
-            const auto& sessions = Data::Models::Sessions::List(db);
-
-            auto found = std::find_if(
-                sessions.begin(),
-                sessions.end(),
-                [&name](const auto& iter) { return iter.name == name; });
-
-            if (found == sessions.end())
-            {
-                return nullptr;
-            }
-
-            return lua.registry()["sessions"].get<porla::Lua::Registry::Sessions>().sessions.Get(found->id);
+            return std::make_shared<SessionsHandle>(db, sessions);
         };
 
         return porla;

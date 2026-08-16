@@ -59,6 +59,7 @@ namespace porla
         explicit Sessions(const SessionsOptions& options);
         ~Sessions();
 
+        std::map<int, SessionStatePtr> All() { return m_sessions; }
         SessionStatePtr Get(const int id);
 
         void LoadAll();
