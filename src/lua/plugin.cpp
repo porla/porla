@@ -671,7 +671,10 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         lua.new_usertype<lt::announce_endpoint>(
             "lt.announce_endpoint",
             sol::no_constructor,
-            "enabled", &lt::announce_endpoint::enabled);
+            "enabled",     &lt::announce_endpoint::enabled
+            // "info_hashes", &lt::announce_endpoint::info_hashes
+            // local_endpoint
+            );
 
         lua.new_usertype<lt::announce_entry>(
             "lt.announce_entry",
@@ -699,6 +702,65 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             "start_sent",        sol::readonly_property([](const lt::announce_infohash& ai) { return ai.start_sent; }),
             "updating",          sol::readonly_property([](const lt::announce_infohash& ai) { return ai.updating; }));
 
+        lua.new_usertype<lt::open_file_state>(
+            "lt.open_file_state",
+            sol::no_constructor,
+            "file_index", &lt::open_file_state::file_index,
+            "open_mode",  &lt::open_file_state::open_mode,
+            "last_use",   sol::readonly_property([](const lt::open_file_state& ofs) { return ofs.last_use.time_since_epoch().count(); }));
+
+        lua.new_usertype<lt::peer_info>(
+            "lt.peer_info",
+            sol::no_constructor,
+            "busy_requests",            sol::readonly(&lt::peer_info::busy_requests),
+            "client",                   sol::readonly(&lt::peer_info::client),
+            // connection_type
+            "down_speed",               sol::readonly(&lt::peer_info::down_speed),
+            "download_queue_length",    sol::readonly(&lt::peer_info::download_queue_length),
+            "download_rate_peak",       sol::readonly(&lt::peer_info::download_rate_peak),
+            // download_queue_time
+            "downloading_block_index",  sol::readonly(&lt::peer_info::downloading_block_index),
+            // downloading_piece_index
+            "downloading_progress",     sol::readonly(&lt::peer_info::downloading_progress),
+            "downloading_total",        sol::readonly(&lt::peer_info::downloading_total),
+            "failcount",                sol::readonly(&lt::peer_info::failcount),
+            // flags
+            // last_active
+            // last_request
+            // local_endpoint
+            "num_hashfails",            sol::readonly(&lt::peer_info::num_hashfails),
+            "num_pieces",               sol::readonly(&lt::peer_info::num_hashfails),
+            "payload_down_speed",       sol::readonly(&lt::peer_info::payload_down_speed),
+            "payload_up_speed",         sol::readonly(&lt::peer_info::payload_up_speed),
+            "pending_disk_bytes",       sol::readonly(&lt::peer_info::pending_disk_bytes),
+            "pending_disk_read_bytes",  sol::readonly(&lt::peer_info::pending_disk_read_bytes),
+            // pid
+            // pieces
+            "progress",                 sol::readonly(&lt::peer_info::progress),
+            "queue_bytes",              sol::readonly(&lt::peer_info::queue_bytes),
+            // read_state
+            "receive_buffer_size",      sol::readonly(&lt::peer_info::receive_buffer_size),
+            "receive_buffer_watermark", sol::readonly(&lt::peer_info::receive_buffer_watermark),
+            "receive_quota",            sol::readonly(&lt::peer_info::receive_quota),
+            // remote_endpoint
+            "request_timeout",          sol::readonly(&lt::peer_info::request_timeout),
+            "requests_in_buffer",       sol::readonly(&lt::peer_info::requests_in_buffer),
+            "rtt",                      sol::readonly(&lt::peer_info::rtt),
+            // source
+            "send_buffer_size",         sol::readonly(&lt::peer_info::send_buffer_size),
+            "send_quota",               sol::readonly(&lt::peer_info::send_quota),
+            "target_dl_queue_length",   sol::readonly(&lt::peer_info::target_dl_queue_length),
+            "timed_out_requests",       sol::readonly(&lt::peer_info::timed_out_requests),
+            "total_download",           sol::readonly(&lt::peer_info::total_download),
+            "total_upload",             sol::readonly(&lt::peer_info::total_upload),
+            "up_speed",                 sol::readonly(&lt::peer_info::up_speed),
+            "upload_queue_length",      sol::readonly(&lt::peer_info::upload_queue_length),
+            "upload_rate_peak",         sol::readonly(&lt::peer_info::upload_rate_peak),
+            "used_send_buffer",         sol::readonly(&lt::peer_info::used_send_buffer),
+            "used_receive_buffer",      sol::readonly(&lt::peer_info::used_receive_buffer)
+            // write_state
+        );
+
         lua.new_usertype<lt::torrent_handle>(
             "lt.torrent_handle",
             sol::no_constructor,
@@ -722,6 +784,12 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             //"get_download_queue",       &lt::torrent_handle::get_download_queue,
             // get_file_priorities
             // get_peer_info
+            "get_peer_info",              [](const lt::torrent_handle& th)
+                                          {
+                                              std::vector<lt::peer_info> peers;
+                                              th.get_peer_info(peers);
+                                              return peers;
+                                          },
             // get_piece_priorities
             "get_renamed_files",          &lt::torrent_handle::get_renamed_files,
             // get_resume_data
@@ -829,7 +897,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             // renamed_files
             "save_path",              sol::readonly(&lt::torrent_status::save_path),
             "seed_rank",              sol::readonly(&lt::torrent_status::seed_rank),
-            "seeding_duration",      sol::property([](const lt::torrent_status& ts) { return ts.seeding_duration.count(); }),
+            "seeding_duration",       sol::property([](const lt::torrent_status& ts) { return ts.seeding_duration.count(); }),
             // state
             // storage_mode
             "torrent_file",           sol::readonly(&lt::torrent_status::torrent_file),
