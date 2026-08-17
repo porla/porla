@@ -6,7 +6,6 @@
 #include <utility>
 
 #include <boost/asio/post.hpp>
-#include <boost/asio/steady_timer.hpp>
 #include <boost/log/trivial.hpp>
 #include <libtorrent/session_stats.hpp>
 #include <sol/sol.hpp>
@@ -253,14 +252,7 @@ namespace
 {
     static const auto lt_session_metrics = lt::session_stats_metrics();
 
-    constexpr const char* PluginEntryPoint = "plugin.lua";
     constexpr const char* ConfigRegistryKey = "plugin_config";
-
-    bool IsSuspended(const sol::thread& thread)
-    {
-        lua_State* L = thread.state();
-        return L != nullptr && lua_status(L) == LUA_YIELD;
-    }
 
     // Formats arguments the way stock print() does - each one run through
     // tostring (so __tostring / __name are honored), separated by tabs.
@@ -306,18 +298,12 @@ namespace
 
 struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
 {
-    // main_protected_function, not protected_function: callbacks registered from
-    // inside a coroutine would otherwise be anchored to that coroutine's
-    // lua_State, and referencing them after the thread is collected is a use
-    // after free. main_* re-anchors to the main thread, which outlives us.
     struct EventSubscription
     {
-        std::size_t                  id;
-        sol::main_protected_function callback;
+        std::size_t             id;
+        sol::protected_function callback;
     };
 
-    // Returned to Lua from both cron(...) and porla.on(...). Holds a weak ref
-    // so cancellation stays safe even if the plugin is already gone.
     struct Subscription
     {
         std::weak_ptr<State> state;
@@ -338,23 +324,8 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
 
     std::vector<std::function<void()>> dtors;
 
-    std::vector<sol::thread>                 active_coroutines;
-    boost::asio::steady_timer                coroutine_timer;
-    bool                                     timer_armed = false;
-
-    Plugin::UnloadCallback                                unload_callback;
-    std::optional<std::chrono::steady_clock::time_point>  unload_deadline;
-    bool                                                  destroy_called = false;
-    bool                                                  unloading      = false;
-    bool                                                  unloaded       = false;
-
-    // Subscriptions (cron schedules + event listeners) share one id space so a
-    // single Subscription handle can cancel either.
     std::size_t                                               m_next_id = 1;
 
-    // Copy-on-write: dispatch pins the list with a refcount bump instead of
-    // deep-copying every callback (which costs a luaL_ref/unref pair each).
-    // Mutations swap in a fresh vector, so a dispatch in progress is unaffected.
     using EventSubscriptions = std::shared_ptr<const std::vector<EventSubscription>>;
 
     std::map<std::string, EventSubscriptions>                 m_event_callbacks;
@@ -363,9 +334,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
 
     State(const PluginLoadOptions& opts, const std::optional<std::string>& config)
         : load_options(opts)
-        , coroutine_timer(opts.io)
     {
-        // Configure in-place rather than assigning a moved-from sol::state.
         ConfigureLuaState(config);
     }
 
@@ -375,16 +344,13 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         return "<unnamed plugin>";
     }
 
-    sol::object AddCronSchedule(const std::string& expr, sol::main_protected_function callback)
+    sol::object AddCronSchedule(const std::string& expr, sol::protected_function callback)
     {
         if (!callback.valid())
         {
             BOOST_LOG_TRIVIAL(warning) << Name() << ": cron(...) called without a function";
-            return sol::make_object(lua.lua_state(), sol::lua_nil);
+            return sol::nil;
         }
-
-        if (unloading || unloaded)
-            return sol::make_object(lua.lua_state(), sol::lua_nil);
 
         const std::size_t    id   = m_next_id++;
         std::weak_ptr<State> weak = weak_from_this();
@@ -399,9 +365,9 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
                 [weak, callback = std::move(callback)]()
                 {
                     auto self = weak.lock();
-                    if (!self || self->unloading || self->unloaded) return;
+                    if (!self) return;
 
-                    self->SpawnCoroutine("cron", callback);
+                    callback();
                 });
         }
         catch (const cron::bad_cronexpr& err)
@@ -477,11 +443,6 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             return sol::make_object(lua.lua_state(), sol::lua_nil);
         }
 
-        if (unloading || unloaded)
-        {
-            return sol::make_object(lua.lua_state(), sol::lua_nil);
-        }
-
         if (!EnsureSignalConnected(event))
         {
             BOOST_LOG_TRIVIAL(warning) << Name() << ": porla.on() for unknown event '" << event << "'";
@@ -505,27 +466,19 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
     template<typename... Args>
     void DispatchEvent(const std::string& event, const Args&... args)
     {
-        if (unloaded) return;
-
         const auto it = m_event_callbacks.find(event);
         if (it == m_event_callbacks.end() || !it->second || it->second->empty()) return;
 
-        // Pin the list for the duration of the loop: a handler may add or remove
-        // listeners (or unload the plugin) mid-dispatch, which swaps the map
-        // entry without disturbing what we hold here.
         const EventSubscriptions subs = it->second;
 
         for (const auto& sub : *subs)
         {
             try
             {
-                // Reuse the coroutine machinery so handlers may sleep()/do IO,
-                // and so Unload() waits for them to finish.
-                SpawnCoroutine(event, sub.callback, args...);
+                sub.callback(args...);
             }
             catch (const std::exception& err)
             {
-                // Never let an exception escape into Sessions' alert loop.
                 BOOST_LOG_TRIVIAL(error)
                     << Name() << ": exception dispatching '" << event << "': " << err.what();
             }
@@ -607,16 +560,14 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         }
 
         m_signal_connections.emplace(event, std::move(conn));
+
         return true;
     }
-
-    // -- Lua state -----------------------------------------------------------
 
     void ConfigureLuaState(const std::optional<std::string>& config)
     {
         lua.open_libraries(
             sol::lib::base,
-            sol::lib::coroutine,
             sol::lib::debug,
             sol::lib::io,
             sol::lib::math,
@@ -939,12 +890,12 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             app->get(pattern, [w = weak_from_this(), callback = std::move(func)](uWS::HttpResponse<false>* res, auto req)
             {
                 auto self = w.lock();
-                if (!self || self->unloading || self->unloaded) return;
+                if (!self) return;
 
                 auto response = std::make_shared<HttpResponseHandle>(res);
                 response->Setup();
 
-                self->SpawnCoroutine("http_server.get", callback, req, response);
+                callback(req, response);
             });
 
             dtors.emplace_back([w = weak_from_this(), p = pattern]()
@@ -1069,238 +1020,6 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
 
         return porla;
     }
-
-    // Fn is templated so both protected_function and main_protected_function
-    // pass through without a re-ref round trip.
-    template<typename Fn, typename... Args>
-    bool SpawnCoroutine(std::string origin, const Fn& fn, Args&&... args)
-    {
-        BOOST_LOG_TRIVIAL(debug) << "Spawning coroutine in " << origin;
-
-        if (!fn.valid())
-        {
-            BOOST_LOG_TRIVIAL(warning) << "Function not valid";
-            return false;
-        }
-
-        BOOST_LOG_TRIVIAL(trace) << "Creating Lua thread";
-        sol::thread th = sol::thread::create(lua);
-
-        BOOST_LOG_TRIVIAL(trace) << "Creating Lua coroutine";
-        sol::coroutine co(th.thread_state(), fn);
-
-        if (!co.valid())
-        {
-            BOOST_LOG_TRIVIAL(error) << Name() << ": could not create coroutine for '" << origin << "'";
-            return false;
-        }
-
-        {
-            BOOST_LOG_TRIVIAL(trace) << "Executing coroutine";
-
-            sol::protected_function_result result = co(std::forward<Args>(args)...);
-
-            if (!result.valid())
-            {
-                BOOST_LOG_TRIVIAL(error)
-                    << Name() << ": error in '" << origin << "': " << DescribeError(result);
-                return false;
-            }
-
-            BOOST_LOG_TRIVIAL(trace) << "Exiting coroutine result scope";
-        }
-
-        if (!IsSuspended(th))
-        {
-            return true;
-        }
-
-        active_coroutines.push_back(std::move(th));
-
-        ArmTimer();
-
-        return true;
-    }
-
-    void PruneCoroutines()
-    {
-        active_coroutines.erase(
-            std::remove_if(
-                active_coroutines.begin(),
-                active_coroutines.end(),
-                [](const sol::thread& st) { return !IsSuspended(st); }),
-            active_coroutines.end());
-    }
-
-    void ArmTimer()
-    {
-        if (timer_armed || unloaded)
-        {
-            return;
-        }
-
-        if (active_coroutines.empty() && !unloading)
-        {
-            return;
-        }
-
-        timer_armed = true;
-
-        coroutine_timer.expires_after(load_options.coroutine_poll_interval);
-        coroutine_timer.async_wait(
-            [weak = weak_from_this()](const boost::system::error_code& ec)
-            {
-                auto self = weak.lock();
-
-                if (!self)
-                {
-                    return;
-                }
-
-                self->timer_armed = false;
-
-                if (ec)
-                {
-                    return;
-                }
-
-                self->Tick();
-            });
-    }
-
-    void Tick()
-    {
-        PruneCoroutines();
-
-        if (unloading)
-        {
-            if (active_coroutines.empty())
-            {
-                FinishUnload();
-                return;
-            }
-
-            if (unload_deadline && std::chrono::steady_clock::now() >= *unload_deadline)
-            {
-                BOOST_LOG_TRIVIAL(warning)
-                    << Name() << ": " << active_coroutines.size()
-                    << " coroutine(s) still suspended after the unload timeout - abandoning them";
-
-                active_coroutines.clear();
-
-                FinishUnload();
-
-                return;
-            }
-        }
-
-        ArmTimer();
-    }
-
-    void BeginUnload(Plugin::UnloadCallback callback)
-    {
-        unload_callback = std::move(callback);
-
-        if (unloaded)
-        {
-            FireCallback();
-
-            return;
-        }
-
-        if (!unloading)
-        {
-            unloading       = true;
-            unload_deadline = std::chrono::steady_clock::now() + load_options.unload_timeout;
-
-            CancelAllSubscriptions();
-
-            if (!destroy_called && tbl.valid())
-            {
-                destroy_called = true;
-
-                sol::optional<sol::protected_function> destroy = tbl["destroy"];
-
-                if (destroy && destroy->valid())
-                {
-                    SpawnCoroutine("destroy", *destroy);
-                }
-            }
-        }
-
-        PruneCoroutines();
-
-        if (active_coroutines.empty())
-        {
-            FinishUnload();
-
-            return;
-        }
-
-        ArmTimer();
-    }
-
-    void FinishUnload()
-    {
-        if (unloaded)
-        {
-            return;
-        }
-
-        unloaded  = true;
-        unloading = true;
-
-        CancelTimer();
-        FireCallback();
-    }
-
-    void FireCallback()
-    {
-        auto cb = std::exchange(unload_callback, {});
-
-        if (!cb)
-        {
-            return;
-        }
-
-        boost::asio::post(load_options.io, [cb = std::move(cb)]() { cb(); });
-    }
-
-    void CancelTimer()
-    {
-        try
-        {
-            coroutine_timer.cancel();
-        }
-        catch (const std::exception& err)
-        {
-            BOOST_LOG_TRIVIAL(debug) << Name() << ": failed to cancel coroutine timer: " << err.what();
-        }
-    }
-
-    void CallDestroySync()
-    {
-        if (destroy_called || !tbl.valid())
-        {
-            return;
-        }
-
-        destroy_called = true;
-
-        sol::optional<sol::protected_function> destroy = tbl["destroy"];
-
-        if (!destroy || !destroy->valid())
-        {
-            return;
-        }
-
-        sol::protected_function_result result = (*destroy)();
-
-        if (!result.valid())
-        {
-            BOOST_LOG_TRIVIAL(error) << Name() << ": error in 'destroy': " << DescribeError(result);
-        }
-    }
 };
 
 std::unique_ptr<Plugin> Plugin::Load(
@@ -1339,8 +1058,6 @@ std::unique_ptr<Plugin> Plugin::Load(
             return nullptr;
         }
 
-        // Executed on the main state - it may not yield. It should only build and return
-        // the plugin table; anything that sleeps or does IO belongs in init().
         sol::protected_function_result result = chunk.get<sol::protected_function>()();
 
         if (!result.valid())
@@ -1379,7 +1096,7 @@ std::unique_ptr<Plugin> Plugin::Load(
 
         if (init && init->valid())
         {
-            state->SpawnCoroutine("init", *init);
+            (*init)();
         }
 
         return std::unique_ptr<Plugin>(new Plugin(std::move(state)));
@@ -1404,43 +1121,6 @@ Plugin::~Plugin()
         return;
     }
 
-    try
-    {
-        if (!m_state->unloading)
-        {
-            BOOST_LOG_TRIVIAL(warning)
-                << m_state->Name()
-                << ": destroyed without Unload() - 'destroy' will be called synchronously and cannot yield";
-
-            m_state->CallDestroySync();
-        }
-        else if (!m_state->unloaded)
-        {
-            BOOST_LOG_TRIVIAL(warning) << m_state->Name() << ": destroyed while an unload was still in progress";
-        }
-
-        m_state->PruneCoroutines();
-
-        if (!m_state->active_coroutines.empty())
-        {
-            BOOST_LOG_TRIVIAL(warning)
-                << m_state->Name() << ": discarding " << m_state->active_coroutines.size()
-                << " suspended coroutine(s)";
-        }
-
-        m_state->unload_callback = nullptr;
-        m_state->CancelTimer();
-        m_state->CancelAllSubscriptions();
-    }
-    catch (const std::exception& err)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Error while destroying plugin: " << err.what();
-    }
-    catch (...)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Unknown error while destroying plugin";
-    }
-
     m_state.reset();
 }
 
@@ -1451,15 +1131,18 @@ std::optional<Plugin::Meta> Plugin::GetMeta() const
 
 void Plugin::Unload(UnloadCallback callback)
 {
-    if (!m_state)
+    if (m_state)
     {
-        if (callback)
-        {
-            callback();
-        }
+        sol::optional<sol::protected_function> destroy = m_state->tbl["destroy"];
 
-        return;
+        if (destroy && destroy->valid())
+        {
+            (*destroy)();
+        }
     }
 
-    m_state->BeginUnload(std::move(callback));
+    if (callback)
+    {
+        callback();
+    }
 }

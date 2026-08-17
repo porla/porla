@@ -29,12 +29,6 @@ namespace porla::Lua
         uWS::App*                  http_server;
         boost::asio::io_context&   io;
         porla::Sessions&           sessions;
-
-        // How often we poll suspended coroutines to see whether they finished.
-        std::chrono::milliseconds coroutine_poll_interval = std::chrono::milliseconds(250);
-
-        // How long Unload() waits for outstanding coroutines before giving up on them.
-        std::chrono::milliseconds unload_timeout = std::chrono::seconds(30);
     };
 
     class Plugin

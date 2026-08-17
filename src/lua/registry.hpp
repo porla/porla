@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/asio.hpp>
+#include <sol/sol.hpp>
 #include <sqlite3.h>
 #include <uWebSockets/App.h>
 
@@ -8,6 +9,13 @@
 
 namespace porla::Lua::Registry
 {
+    struct Ops
+    {
+        std::map<std::size_t, sol::protected_function>                    callbacks;
+        std::map<std::size_t, std::shared_ptr<boost::asio::steady_timer>> steady_timers;
+        std::size_t                                                       next_id = 1;
+    };
+
     struct BoostIoContext
     {
         boost::asio::io_context* io;

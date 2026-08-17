@@ -9,32 +9,36 @@ using porla::Lua::Globals::Sleep;
 
 sol::object Sleep::Build(sol::state& lua)
 {
-    sol::table sleep = lua.create_table();
-
-    return sol::make_object(lua, sol::yielding([](sol::this_state L, double seconds)
+    return sol::make_object(lua, [](sol::this_state L, double seconds, sol::protected_function callback)
     {
         sol::state_view lua(L);
 
-        auto io = lua.registry()["io"].get<porla::Lua::Registry::BoostIoContext>().io;
+        auto io  = lua.registry()["io"].get<porla::Lua::Registry::BoostIoContext>().io;
+        auto ops = lua.registry()["ops"].get<std::shared_ptr<porla::Lua::Registry::Ops>>();
 
-        // Anchor the coroutine in the registry for as long as the timer is
-        // pending. Nothing else keeps it alive once the plugin stops tracking
-        // it - the unload path abandons still-suspended coroutines when it
-        // times out - and resuming a collected thread is a use after free.
-        lua_pushthread(L);
-        const int thread_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        auto callback_id = ops->next_id++;
+        auto timer_id    = ops->next_id++;
 
-        auto timer = std::make_shared<boost::asio::steady_timer>(*io);
-        timer->expires_after(std::chrono::milliseconds(static_cast<long long>(seconds * 1000)));
+        ops->callbacks[callback_id] = callback;
 
-        timer->async_wait([L, timer, thread_ref](boost::system::error_code ec)
+        ops->steady_timers[timer_id] = std::make_shared<boost::asio::steady_timer>(*io);
+        ops->steady_timers[timer_id]->expires_after(std::chrono::milliseconds(static_cast<long long>(seconds * 1000)));
+        ops->steady_timers[timer_id]->async_wait([w = std::weak_ptr(ops), callback_id, timer_id](boost::system::error_code ec)
         {
-            int results = 0;
-            lua_resume(L, nullptr, 0, &results);
+            if (ec) { return; }
 
-            // After the resume: if the handler slept again it took a ref of its
-            // own, so dropping ours here is always correct.
-            luaL_unref(L, LUA_REGISTRYINDEX, thread_ref);
+            auto ops = w.lock();
+            if (!ops) { return; }
+
+            auto it = ops->callbacks.find(callback_id);
+            if (it == ops->callbacks.end()) { return; }
+
+            sol::protected_function callback = std::move(it->second);
+
+            ops->callbacks.erase(callback_id);
+            ops->steady_timers.erase(timer_id);
+
+            callback();
         });
-    }));
+    });
 }
