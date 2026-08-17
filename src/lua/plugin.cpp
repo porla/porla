@@ -232,6 +232,12 @@ public:
         m_res->write(data);
     }
 
+    void writeHeader(std::string_view key, std::string_view val)
+    {
+        if (m_aborted) { return; }
+        m_res->writeHeader(key, val);
+    }
+
     void writeStatus(std::string_view status)
     {
         if (m_aborted) { return; }
@@ -622,7 +628,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         lua.new_usertype<porla::CurlMulti>("CurlMulti", sol::no_constructor);
 
         lua.new_usertype<uWS::HttpRequest>(
-            "uWS.HttpRequest",
+            "http_server.Request",
             sol::no_constructor);
 
         lua.new_usertype<HttpResponseHandle>(
@@ -633,6 +639,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
                 [](HttpResponseHandle& h, std::string_view data) { h.end(data); }
             ),
             "write", &HttpResponseHandle::write,
+            "writeHeader", &HttpResponseHandle::writeHeader,
             "writeStatus", &HttpResponseHandle::writeStatus);
 
         // One handle type for cron + events; keep both verbs Lua scripts call.
@@ -661,8 +668,39 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             "get",   &TorrentsHandle::Get,
             "list",  &TorrentsHandle::List);
 
+        lua.new_usertype<lt::announce_endpoint>(
+            "lt.announce_endpoint",
+            sol::no_constructor,
+            "enabled", &lt::announce_endpoint::enabled);
+
+        lua.new_usertype<lt::announce_entry>(
+            "lt.announce_entry",
+            sol::no_constructor,
+            "endpoints",  &lt::announce_entry::endpoints,
+            "fail_limit", &lt::announce_entry::fail_limit,
+            // "source",     &lt::announce_entry::source,
+            "tier",       &lt::announce_entry::tier,
+            "trackerid",  &lt::announce_entry::trackerid,
+            "url",        &lt::announce_entry::url,
+            "verified",   sol::readonly_property([](const lt::announce_entry& ae) { return ae.verified; }));
+
+        lua.new_usertype<lt::announce_infohash>(
+            "lt.announce_infohash",
+            sol::no_constructor,
+            "complete_sent",     sol::readonly_property([](const lt::announce_infohash& ai) { return ai.complete_sent; }),
+            "fails",             sol::readonly_property([](const lt::announce_infohash& ai) { return ai.fails; }),
+            // last_error
+            "message",           &lt::announce_infohash::message,
+            "min_announce",      sol::readonly_property([](const lt::announce_infohash& ai) { return ai.min_announce.time_since_epoch().count(); }),
+            "next_announce",     sol::readonly_property([](const lt::announce_infohash& ai) { return ai.next_announce.time_since_epoch().count(); }),
+            "scrape_complete",   &lt::announce_infohash::scrape_complete,
+            "scrape_downloaded", &lt::announce_infohash::scrape_downloaded,
+            "scrape_incomplete", &lt::announce_infohash::scrape_incomplete,
+            "start_sent",        sol::readonly_property([](const lt::announce_infohash& ai) { return ai.start_sent; }),
+            "updating",          sol::readonly_property([](const lt::announce_infohash& ai) { return ai.updating; }));
+
         lua.new_usertype<lt::torrent_handle>(
-            "porla.Torrent",
+            "lt.torrent_handle",
             sol::no_constructor,
             // add_piece
             // add_tracker
@@ -699,13 +737,13 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             // piece_availability
             //"piece_layers",               &lt::torrent_handle::piece_layers,
             // piece_priority
-            // post_download_queue
+            "post_download_queue",        &lt::torrent_handle::post_download_queue,
             "post_file_priorities",       &lt::torrent_handle::post_file_priorities,
-            // post_file_progress
-            // post_file_status
-            // post_peer_info
+            "post_file_progress",         &lt::torrent_handle::post_file_progress,
+            "post_file_status",           &lt::torrent_handle::post_file_status,
+            "post_peer_info",             &lt::torrent_handle::post_peer_info,
             "post_piece_availability",    &lt::torrent_handle::post_piece_availability,
-            // post_status
+            "post_status",                &lt::torrent_handle::post_status,
             "post_trackers",              &lt::torrent_handle::post_trackers,
             // prioritize_files
             // prioritize_pieces
@@ -715,7 +753,8 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             "queue_position_set",         &lt::torrent_handle::queue_position_set,
             "queue_position_top",         &lt::torrent_handle::queue_position_top,
             "queue_position_up",          &lt::torrent_handle::queue_position_up,
-            // read_piece
+            "read_piece",                 [](const lt::torrent_handle& th, int piece_index)
+                                          { th.read_piece(lt::piece_index_t{piece_index}); },
             "remove_url_seed",            &lt::torrent_handle::remove_url_seed,
             "rename_file",                &lt::torrent_handle::rename_file,
             // replace_trackers
