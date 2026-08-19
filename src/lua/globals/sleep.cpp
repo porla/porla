@@ -3,7 +3,7 @@
 #include <chrono>
 #include <boost/asio.hpp>
 
-#include "../registry.hpp"
+#include "../pluginstate.hpp"
 
 using porla::Lua::Globals::Sleep;
 
@@ -13,17 +13,22 @@ sol::object Sleep::Build(sol::state& lua)
     {
         sol::state_view lua(L);
 
-        auto io  = lua.registry()["io"].get<porla::Lua::Registry::BoostIoContext>().io;
-        auto ops = lua.registry()["ops"].get<std::shared_ptr<porla::Lua::Registry::Ops>>();
+        auto weak_state = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
+        auto state = weak_state.lock();
 
-        auto callback_id = ops->next_id++;
-        auto timer_id    = ops->next_id++;
+        if (state == nullptr)
+        {
+            return;
+        }
 
-        ops->callbacks[callback_id] = callback;
+        auto callback_id = state->next_id++;
+        auto timer_id    = state->next_id++;
 
-        ops->steady_timers[timer_id] = std::make_shared<boost::asio::steady_timer>(*io);
-        ops->steady_timers[timer_id]->expires_after(std::chrono::milliseconds(static_cast<long long>(seconds * 1000)));
-        ops->steady_timers[timer_id]->async_wait([w = std::weak_ptr(ops), callback_id, timer_id](boost::system::error_code ec)
+        state->callbacks[callback_id] = callback;
+
+        state->steady_timers[timer_id] = std::make_shared<boost::asio::steady_timer>(state->io);
+        state->steady_timers[timer_id]->expires_after(std::chrono::milliseconds(static_cast<long long>(seconds * 1000)));
+        state->steady_timers[timer_id]->async_wait([w = std::weak_ptr(state), callback_id, timer_id](boost::system::error_code ec)
         {
             if (ec) { return; }
 

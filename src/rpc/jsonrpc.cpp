@@ -176,6 +176,9 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
                 return;
             }
 
+            res->writeStatus("200 OK")
+                ->writeHeader("Content-Type", "application/json");
+
             Token token;
 
             if (bearer_token)
