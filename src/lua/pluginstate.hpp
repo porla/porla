@@ -14,7 +14,7 @@
 
 namespace porla::Lua
 {
-    struct LuaState : std::enable_shared_from_this<LuaState>
+    struct LuaState : public std::enable_shared_from_this<LuaState>
     {
         uWS::App*                                                         app;
         std::map<std::size_t, sol::protected_function>                    callbacks;

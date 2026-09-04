@@ -12,7 +12,9 @@
 #include <sqlite3.h>
 
 #include "globals.hpp"
+#include "packages/sessions.hpp"
 #include "pluginsource.hpp"
+#include "pluginstate.hpp"
 #include "registry.hpp"
 #include "types.hpp"
 
@@ -463,33 +465,22 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             sol::lib::string,
             sol::lib::table);
 
-        lua.new_usertype<porla::CurlMulti>("CurlMulti", sol::no_constructor);
+        lua["package"]["preload"]["porla_sessions"] = Packages::Sessions::Load;
 
-        // One handle type for cron + events; keep both verbs Lua scripts call.
-        lua.new_usertype<Subscription>(
-            "porla.Subscription",
-            "cancel",     &Subscription::Cancel,
-            "disconnect", &Subscription::Cancel);
+        auto state = std::make_shared<LuaState>();
+        state->app       = load_options.http_server;
+        state->callbacks = {};
+        state->cron_schedules = {};
+        state->db = load_options.db;
+        state->destructors = {};
+        state->io = load_options.io;
+        state->next_id = 1;
+        state->plugin_id = -1;
+        state->sessions = load_options.sessions;
+        state->signals = {};
+        state->steady_timers = {};
 
-        lua.new_usertype<SessionHandle>(
-            "porla.Session",
-            sol::no_constructor,
-            "name",     sol::readonly_property(&SessionHandle::Name),
-            "torrents", &SessionHandle::Torrents);
-
-        lua.new_usertype<SessionsHandle>(
-            "porla.Sessions",
-            sol::no_constructor,
-            "count",   &SessionsHandle::Count,
-            "default", &SessionsHandle::Default,
-            "list",    &SessionsHandle::List);
-
-        lua.new_usertype<TorrentsHandle>(
-            "porla.Torrents",
-            sol::no_constructor,
-            "count", &TorrentsHandle::Count,
-            "get",   &TorrentsHandle::Get,
-            "list",  &TorrentsHandle::List);
+        lua.registry()["state"] = state;
 
         porla::Lua::Types::LtAnnounceEndpoint::Register(lua);
         porla::Lua::Types::LtAnnounceEntry::Register(lua);

@@ -137,6 +137,7 @@ add_library(
     src/lua/globals/httpserver.cpp
     src/lua/globals/porla.cpp
     src/lua/globals/sleep.cpp
+    src/lua/packages/sessions.cpp
 
     src/lua/types/ltannounceendpoint.cpp
     src/lua/types/ltannounceentry.cpp
