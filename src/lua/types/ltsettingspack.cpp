@@ -7,7 +7,7 @@ using porla::Lua::Types::LtSettingsPack;
 
 void LtSettingsPack::Register(sol::state& lua)
 {
-    auto sp = lua.new_usertype<lt::settings_pack>(
+    lua.new_usertype<lt::settings_pack>(
         "lt.settings_pack",
         sol::no_constructor,
         sol::meta_function::index, [](sol::this_state s, lt::settings_pack& pack, const std::string& key) -> sol::object {

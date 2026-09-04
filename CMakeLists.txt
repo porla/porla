@@ -143,6 +143,7 @@ add_library(
     src/lua/types/ltannounceinfohash.cpp
     src/lua/types/ltopenfilestate.cpp
     src/lua/types/ltpeerinfo.cpp
+    src/lua/types/ltsettingspack.cpp
     src/lua/types/lttorrenthandle.cpp
     src/lua/types/lttorrentstatus.cpp
 

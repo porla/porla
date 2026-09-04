@@ -496,9 +496,9 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         porla::Lua::Types::LtAnnounceInfohash::Register(lua);
         porla::Lua::Types::LtOpenFileState::Register(lua);
         porla::Lua::Types::LtPeerInfo::Register(lua);
+        porla::Lua::Types::LtSettingsPack::Register(lua);
         porla::Lua::Types::LtTorrentHandle::Register(lua);
         porla::Lua::Types::LtTorrentStatus::Register(lua);
-
 
         lua.globals()["print"] = [this](sol::this_state s, sol::variadic_args args)
         {

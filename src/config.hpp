@@ -45,7 +45,6 @@ namespace porla
         std::optional<std::string>               http_base_path;
         std::optional<std::string>               http_host;
         std::optional<uint16_t>                  http_port;
-        std::optional<bool>                      http_webui_enabled;
         std::map<std::string, Preset>            presets;
         std::string                              secret_key;
         std::map<std::string, lt::settings_pack> sessions;

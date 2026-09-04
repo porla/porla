@@ -82,13 +82,8 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (auto val = std::getenv("PORLA_HTTP_BASE_PATH"))        cfg->http_base_path  = val;
     if (auto val = std::getenv("PORLA_HTTP_HOST"))             cfg->http_host       = val;
     if (auto val = std::getenv("PORLA_HTTP_PORT"))             cfg->http_port       = std::stoi(val);
-    if (auto val = std::getenv("PORLA_HTTP_WEBUI_ENABLED"))
-    {
-        if (strcmp("true", val) == 0)  cfg->http_webui_enabled = true;
-        if (strcmp("false", val) == 0) cfg->http_webui_enabled = false;
-    }
-    if (auto val = std::getenv("PORLA_SECRET_KEY"))            cfg->secret_key            = val;
-    if (auto val = std::getenv("PORLA_STATE_DIR"))             cfg->state_dir             = val;
+    if (auto val = std::getenv("PORLA_SECRET_KEY"))            cfg->secret_key      = val;
+    if (auto val = std::getenv("PORLA_STATE_DIR"))             cfg->state_dir       = val;
 
     if (cmd.count("config-file"))
     {
@@ -186,9 +181,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
             if (auto val = config_file_tbl["http"]["port"].value<uint16_t>())
                 cfg->http_port = *val;
-
-            if (auto val = config_file_tbl["http"]["webui_enabled"].value<bool>())
-                cfg->http_webui_enabled = *val;
 
             // Load presets
             if (auto const* presets_tbl = config_file_tbl["presets"].as_table())
@@ -319,10 +311,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (cmd.count("http-base-path"))        cfg->http_base_path        = cmd["http-base-path"].as<std::string>();
     if (cmd.count("http-host"))             cfg->http_host             = cmd["http-host"].as<std::string>();
     if (cmd.count("http-port"))             cfg->http_port             = cmd["http-port"].as<uint16_t>();
-    if (cmd.count("http-webui-enabled"))
-    {
-        cfg->http_webui_enabled = cmd["http-webui-enabled"].as<bool>();
-    }
     if (cmd.count("secret-key"))            cfg->secret_key            = cmd["secret-key"].as<std::string>();
     if (cmd.count("session-settings-base"))
     {
