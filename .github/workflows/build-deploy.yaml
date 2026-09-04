@@ -23,13 +23,13 @@ jobs:
           submodules: true
 
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v3.0.3
+        uses: gittools/actions/gitversion/setup@v4.4.2
         with:
-          versionSpec: '6.0.x'
+          versionSpec: '6.7.x'
 
       - name: Calculate version
         id: gitversion
-        uses: gittools/actions/gitversion/execute@v3.0.3
+        uses: gittools/actions/gitversion/execute@v4.4.2
         with:
           useConfigFile: true
 
@@ -39,10 +39,10 @@ jobs:
         platform: [linux-amd64, linux-arm64]
         include:
           - platform: linux-amd64
-            runner: buildjet-4vcpu-ubuntu-2204
+            runner: ubuntu-latest
 
           - platform: linux-arm64
-            runner: buildjet-8vcpu-ubuntu-2204-arm
+            runner: ubuntu-24.04-arm
 
     name: Build Porla (${{ matrix.platform }})
     needs: [calc-version]
@@ -57,23 +57,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Set ccache remote
-        run: |
-          if [[ ${{ github.ref }} == 'refs/heads/main' ]]; then
-            echo "CCACHE_REMOTE_STORAGE=${{ secrets.PORLA_CCACHE_REMOTE_STORAGE_WRITE }}" >> $GITHUB_ENV
-          else
-            echo "CCACHE_REMOTE_STORAGE=http://ccache.porla.org/cache|read-only|connect-timeout=500" >> $GITHUB_ENV
-          fi
-
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
           build-args: |
-            CCACHE_REMOTE_STORAGE=${{ env.CCACHE_REMOTE_STORAGE }}
             GITVERSION_SEMVER=${{ needs.calc-version.outputs.semVer }}
             GITVERSION_MAJOR=${{ needs.calc-version.outputs.major }}
             GITVERSION_MINOR=${{ needs.calc-version.outputs.minor }}
             GITVERSION_PATCH=${{ needs.calc-version.outputs.patch }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           context: .
           load: true
           tags: ghcr.io/porla/porla:${{ needs.calc-version.outputs.shortSha }}-${{ matrix.platform }}

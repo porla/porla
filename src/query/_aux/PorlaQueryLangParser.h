@@ -1,5 +1,5 @@
 
-// Generated from PorlaQueryLang.g4 by ANTLR 4.11.1
+// Generated from PorlaQueryLang.g4 by ANTLR 4.13.2
 
 #pragma once
 
@@ -12,15 +12,14 @@
 class  PorlaQueryLangParser : public antlr4::Parser {
 public:
   enum {
-    T__0 = 1, AND = 2, OR = 3, NOT = 4, OPER_EQ = 5, OPER_CONTAINS = 6, 
-    OPER_GT = 7, OPER_GTE = 8, OPER_LT = 9, OPER_LTE = 10, WHITESPACE = 11, 
-    INT = 12, FLOAT = 13, STRING = 14, UNIT_DURATION = 15, UNIT_SIZE = 16, 
-    UNIT_SPEED = 17, ID = 18
+    T__0 = 1, T__1 = 2, OR = 3, AND = 4, NOT = 5, OPER_EQ = 6, OPER_GTE = 7, 
+    OPER_GT = 8, OPER_LTE = 9, OPER_LT = 10, WHITESPACE = 11, FLOAT = 12, 
+    INT = 13, STRING = 14, QUALIFIER = 15, ID = 16
   };
 
   enum {
-    RuleFilter = 0, RuleExpression = 1, RulePredicate = 2, RuleFlag = 3, 
-    RuleValue = 4, RuleOperator = 5, RuleReference = 6
+    RuleFilter = 0, RuleOrExpr = 1, RuleAndExpr = 2, RuleTerm = 3, RuleQualifier = 4, 
+    RuleOperator = 5, RuleValue = 6, RuleText = 7
   };
 
   explicit PorlaQueryLangParser(antlr4::TokenStream *input);
@@ -41,18 +40,20 @@ public:
 
 
   class FilterContext;
-  class ExpressionContext;
-  class PredicateContext;
-  class FlagContext;
-  class ValueContext;
+  class OrExprContext;
+  class AndExprContext;
+  class TermContext;
+  class QualifierContext;
   class OperatorContext;
-  class ReferenceContext; 
+  class ValueContext;
+  class TextContext; 
 
   class  FilterContext : public antlr4::ParserRuleContext {
   public:
     FilterContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    ExpressionContext *expression();
+    OrExprContext *orExpr();
+    antlr4::tree::TerminalNode *EOF();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -61,12 +62,44 @@ public:
 
   FilterContext* filter();
 
-  class  ExpressionContext : public antlr4::ParserRuleContext {
+  class  OrExprContext : public antlr4::ParserRuleContext {
   public:
-    ExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    OrExprContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    std::vector<AndExprContext *> andExpr();
+    AndExprContext* andExpr(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> OR();
+    antlr4::tree::TerminalNode* OR(size_t i);
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
    
-    ExpressionContext() = default;
-    void copyFrom(ExpressionContext *context);
+  };
+
+  OrExprContext* orExpr();
+
+  class  AndExprContext : public antlr4::ParserRuleContext {
+  public:
+    AndExprContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    std::vector<TermContext *> term();
+    TermContext* term(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> AND();
+    antlr4::tree::TerminalNode* AND(size_t i);
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  AndExprContext* andExpr();
+
+  class  TermContext : public antlr4::ParserRuleContext {
+  public:
+    TermContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+   
+    TermContext() = default;
+    void copyFrom(TermContext *context);
     using antlr4::ParserRuleContext::copyFrom;
 
     virtual size_t getRuleIndex() const override;
@@ -74,122 +107,65 @@ public:
    
   };
 
-  class  AndExpressionContext : public ExpressionContext {
+  class  TextTermContext : public TermContext {
   public:
-    AndExpressionContext(ExpressionContext *ctx);
+    TextTermContext(TermContext *ctx);
 
-    std::vector<ExpressionContext *> expression();
-    ExpressionContext* expression(size_t i);
-    antlr4::tree::TerminalNode *AND();
+    TextContext *text();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 
-  class  FlagExpressionContext : public ExpressionContext {
+  class  NotTermContext : public TermContext {
   public:
-    FlagExpressionContext(ExpressionContext *ctx);
-
-    FlagContext *flag();
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-  };
-
-  class  PredicateExpressionContext : public ExpressionContext {
-  public:
-    PredicateExpressionContext(ExpressionContext *ctx);
-
-    PredicateContext *predicate();
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-  };
-
-  class  OrExpressionContext : public ExpressionContext {
-  public:
-    OrExpressionContext(ExpressionContext *ctx);
-
-    std::vector<ExpressionContext *> expression();
-    ExpressionContext* expression(size_t i);
-    antlr4::tree::TerminalNode *OR();
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-  };
-
-  class  NotFlagExpressionContext : public ExpressionContext {
-  public:
-    NotFlagExpressionContext(ExpressionContext *ctx);
+    NotTermContext(TermContext *ctx);
 
     antlr4::tree::TerminalNode *NOT();
-    FlagContext *flag();
+    TermContext *term();
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 
-  ExpressionContext* expression();
-  ExpressionContext* expression(int precedence);
-  class  PredicateContext : public antlr4::ParserRuleContext {
+  class  GroupTermContext : public TermContext {
   public:
-    PredicateContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-   
-    PredicateContext() = default;
-    void copyFrom(PredicateContext *context);
-    using antlr4::ParserRuleContext::copyFrom;
+    GroupTermContext(TermContext *ctx);
 
-    virtual size_t getRuleIndex() const override;
+    OrExprContext *orExpr();
 
-   
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 
-  class  OperatorPredicateContext : public PredicateContext {
+  class  QualifierTermContext : public TermContext {
   public:
-    OperatorPredicateContext(PredicateContext *ctx);
+    QualifierTermContext(TermContext *ctx);
 
-    ReferenceContext *reference();
-    OperatorContext *operator_();
+    QualifierContext *qualifier();
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+  };
+
+  TermContext* term();
+
+  class  QualifierContext : public antlr4::ParserRuleContext {
+  public:
+    QualifierContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *QUALIFIER();
     ValueContext *value();
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-  };
-
-  PredicateContext* predicate();
-
-  class  FlagContext : public antlr4::ParserRuleContext {
-  public:
-    FlagContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    ReferenceContext *reference();
+    OperatorContext *operator_();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
    
   };
 
-  FlagContext* flag();
-
-  class  ValueContext : public antlr4::ParserRuleContext {
-  public:
-    ValueContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *INT();
-    antlr4::tree::TerminalNode *WHITESPACE();
-    antlr4::tree::TerminalNode *UNIT_DURATION();
-    antlr4::tree::TerminalNode *UNIT_SIZE();
-    antlr4::tree::TerminalNode *UNIT_SPEED();
-    antlr4::tree::TerminalNode *FLOAT();
-    antlr4::tree::TerminalNode *STRING();
-
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-   
-  };
-
-  ValueContext* value();
+  QualifierContext* qualifier();
 
   class  OperatorContext : public antlr4::ParserRuleContext {
   public:
     OperatorContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *OPER_EQ();
-    antlr4::tree::TerminalNode *OPER_CONTAINS();
     antlr4::tree::TerminalNode *OPER_GT();
     antlr4::tree::TerminalNode *OPER_GTE();
     antlr4::tree::TerminalNode *OPER_LT();
@@ -202,23 +178,38 @@ public:
 
   OperatorContext* operator_();
 
-  class  ReferenceContext : public antlr4::ParserRuleContext {
+  class  ValueContext : public antlr4::ParserRuleContext {
   public:
-    ReferenceContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    ValueContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *INT();
+    antlr4::tree::TerminalNode *FLOAT();
     antlr4::tree::TerminalNode *ID();
+    antlr4::tree::TerminalNode *STRING();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
    
   };
 
-  ReferenceContext* reference();
+  ValueContext* value();
+
+  class  TextContext : public antlr4::ParserRuleContext {
+  public:
+    TextContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *STRING();
+    antlr4::tree::TerminalNode *ID();
+    antlr4::tree::TerminalNode *INT();
+    antlr4::tree::TerminalNode *FLOAT();
 
 
-  bool sempred(antlr4::RuleContext *_localctx, size_t ruleIndex, size_t predicateIndex) override;
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
 
-  bool expressionSempred(ExpressionContext *_localctx, size_t predicateIndex);
+  TextContext* text();
+
 
   // By default the static state used to implement the parser is lazily initialized during the first
   // call to the constructor. You can call this function if you wish to initialize the static state

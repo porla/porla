@@ -4,5 +4,5 @@
 
 namespace porla::Utils
 {
-    double Ratio(const libtorrent::torrent_status& ts);
+    double Ratio(const libtorrent::torrent_status& ts, bool real = true);
 }

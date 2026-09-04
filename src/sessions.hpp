@@ -9,7 +9,10 @@
 #include <boost/signals2.hpp>
 #include <libtorrent/session.hpp>
 #include <libtorrent/settings_pack.hpp>
+#include <nlohmann/json.hpp>
 #include <sqlite3.h>
+
+#include "timer.hpp"
 
 namespace porla
 {
@@ -17,24 +20,11 @@ namespace porla
     {
         sqlite3*                 db;
         boost::asio::io_context& io;
-        int                      timer_dht_stats;
-        int                      timer_save_state;
-        int                      timer_session_stats;
-        int                      timer_torrent_updates;
-    };
-
-    struct SessionsLoadOptions
-    {
-        std::string           name;
-        std::filesystem::path session_params_file;
-        lt::settings_pack     settings;
     };
 
     class Sessions
     {
     public:
-        static bool DisallowedSetting(const std::string& name);
-
         struct TorrentFileErrorEvent
         {
             std::string        file;
@@ -45,31 +35,36 @@ namespace porla
         {
             friend class Sessions;
 
+            int                                                                           id;
             std::string                                                                   name;
-            std::shared_ptr<lt::session>                                                  session;
-            std::filesystem::path                                                         session_params_file;
+            std::unique_ptr<lt::session>                                                  session;
             std::map<lt::info_hash_t, std::tuple<lt::torrent_handle, lt::torrent_status>> torrents;
 
             void Recheck(const lt::info_hash_t& hash);
 
         private:
-            std::map<std::pair<int, libtorrent::info_hash_t>, std::vector<std::function<void()>>> m_oneshot_torrent_callbacks;
+            std::vector<Timer> m_timers;
+            std::unordered_set<lt::info_hash_t> m_adding;
+            std::map<std::pair<int, lt::info_hash_t>, std::vector<std::function<void()>>> m_oneshot_torrent_callbacks;
         };
 
-        typedef boost::signals2::signal<void(const std::string& session, const libtorrent::info_hash_t&)> InfoHashSignal;
-        typedef boost::signals2::signal<void(const std::string& session, const lt::span<const int64_t>&)> SessionStatsSignal;
-        typedef boost::signals2::signal<void(const std::string& session, const TorrentFileErrorEvent&)> TorrentFileErrorSignal;
-        typedef boost::signals2::signal<void(const std::string& session, const libtorrent::torrent_handle&)> TorrentHandleSignal;
-        typedef boost::signals2::signal<void(const std::string& session, const std::vector<libtorrent::torrent_status>&)> TorrentStatusListSignal;
+        using SessionStatePtr = std::shared_ptr<SessionState>;
+
+        typedef boost::signals2::signal<void(SessionStatePtr, const lt::info_hash_t&)> InfoHashSignal;
+        typedef boost::signals2::signal<void(SessionStatePtr, const lt::span<const int64_t>&)> SessionStatsSignal;
+        typedef boost::signals2::signal<void(SessionStatePtr, const TorrentFileErrorEvent&)> TorrentFileErrorSignal;
+        typedef boost::signals2::signal<void(SessionStatePtr, const lt::torrent_handle&)> TorrentHandleSignal;
+        typedef boost::signals2::signal<void(SessionStatePtr, const std::vector<lt::torrent_status>&)> TorrentStatusListSignal;
 
         explicit Sessions(const SessionsOptions& options);
         ~Sessions();
 
-        std::map<std::string, std::shared_ptr<SessionState>>& All();
-        std::shared_ptr<SessionState> Default();
-        std::shared_ptr<SessionState> Get(const std::string& name);
+        std::map<int, SessionStatePtr> All() { return m_sessions; }
+        SessionStatePtr Get(const int id);
 
-        void Load(const SessionsLoadOptions& options);
+        void LoadAll();
+        void LoadById(int id);
+        void UnloadById(int id);
 
         boost::signals2::connection OnSessionStats(const SessionStatsSignal::slot_type& subscriber)
         {
@@ -117,19 +112,34 @@ namespace porla
         }
 
     private:
-        class Timer;
+        void PostDhtStats(const SessionStatePtr& state);
+        void PostSessionStats(const SessionStatePtr& state);
+        void PostTorrentUpdates(const SessionStatePtr& state);
 
-        void PostDhtStats();
-        void PostSessionStats();
-        void PostTorrentUpdates();
+        void ReadAlerts(const SessionStatePtr& state);
 
-        void ReadAlerts(const std::shared_ptr<SessionState>& state);
+        void OnAddTorrentAlert(const SessionStatePtr& state, const lt::add_torrent_alert* alert);
+        void OnFileErrorAlert(const SessionStatePtr& state, const lt::file_error_alert* alert);
+        void OnSaveResumeDataAlert(const SessionStatePtr& state, const lt::save_resume_data_alert* alert);
+        void OnTorrentRemovedAlert(const SessionStatePtr& state, const lt::torrent_removed_alert* alert);
+        void OnTorrentResumedAlert(const SessionStatePtr& state, const lt::torrent_resumed_alert* alert);
 
-        void SaveState();
+        void SaveState(const SessionStatePtr& state);
+        void UnloadSession(const SessionStatePtr& state);
+
+        template <typename Signal, typename... Args>
+        void Emit(Signal& signal, std::shared_ptr<SessionState> state, Args... args)
+        {
+            boost::asio::post(
+                m_options.io,
+                [&signal, state = std::move(state), args...]()
+                {
+                    signal(state, args...);
+                });
+        }
 
         SessionsOptions m_options;
-        std::map<std::string, std::shared_ptr<SessionState>> m_sessions;
-        std::vector<Timer> m_timers;
+        std::map<int, SessionStatePtr> m_sessions;
 
         SessionStatsSignal m_session_stats;
         TorrentStatusListSignal m_state_update;

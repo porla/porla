@@ -6,7 +6,7 @@
 #include <nlohmann/json.hpp>
 
 #include "../statement.hpp"
-#include "../../json/torrentclientdata.hpp"
+#include "../../json/all.hpp"
 #include "../../torrentclientdata.hpp"
 
 using json = nlohmann::json;
@@ -21,53 +21,50 @@ static std::string ToString(const T &hash)
     return ss.str();
 }
 
-int AddTorrentParams::Count(sqlite3 *db, const std::string_view& session)
+int AddTorrentParams::Count(sqlite3 *db, const int session_id)
 {
     int count = 0;
 
-    auto stmt = Statement::Prepare(db, "SELECT COUNT(*) FROM addtorrentparams WHERE session_id = $1");
-    stmt.Bind(1, session);
+    auto stmt = Statement::Prepare(db, "SELECT COUNT(*) AS count FROM addtorrentparams WHERE session_id = $session_id");
+    stmt.Bind("$session_id", session_id);
     stmt.Step(
         [&](const Statement::IRow& row)
         {
-            count = row.GetInt32(0);
+            count = row.GetInt32("count");
             return SQLITE_OK;
         });
 
     return count;
 }
 
-void AddTorrentParams::ForEach(sqlite3 *db, const std::string_view& session, const std::function<void(lt::add_torrent_params&)>& cb)
+void AddTorrentParams::ForEach(sqlite3 *db, const int session_id, const std::function<void(lt::add_torrent_params&)>& cb)
 {
-    auto stmt = Statement::Prepare(db, "SELECT client_data,name,resume_data_buf,save_path FROM addtorrentparams\n"
-                                       "WHERE session_id = $1\n"
-                                       "ORDER BY queue_position ASC");
-    stmt.Bind(1, session);
+    const auto Select = R"sql(
+    SELECT
+        params,
+        userdata
+    FROM addtorrentparams
+    WHERE session_id = $session_id
+    ORDER BY CASE WHEN queue_position < 0 THEN 1 ELSE 0 END, queue_position ASC
+    )sql";
+
+    auto stmt = Statement::Prepare(db, Select);
+    stmt.Bind("$session_id", session_id);
     stmt.Step(
         [&cb](const Statement::IRow& row)
         {
-            libtorrent::error_code ec;
-            auto atp = lt::read_resume_data(row.GetBuffer(2), ec);
+            auto client_data = std::make_unique<TorrentClientData>();
 
-            if (ec)
-            {
-                BOOST_LOG_TRIVIAL(error) << "Failed to read resume data from buffer: " << ec;
-                return SQLITE_OK;
-            }
+            const auto params_buffer = row.GetBuffer("params");
+            const auto userdata_buffer = row.GetStdString("userdata");
 
-            atp.userdata = lt::client_data_t(new TorrentClientData());
-            atp.name = row.GetStdString(1);
-            atp.save_path = row.GetStdString(3);
-
-            const auto client_data_str = row.GetStdString(0);
-
-            if (!client_data_str.empty())
+            if (!userdata_buffer.empty())
             {
                 json client_data_json;
 
                 try
                 {
-                    client_data_json = json::parse(client_data_str);
+                    client_data_json = json::parse(userdata_buffer);
                 }
                 catch (const std::exception& e)
                 {
@@ -75,85 +72,133 @@ void AddTorrentParams::ForEach(sqlite3 *db, const std::string_view& session, con
                     return SQLITE_OK;
                 }
 
-                if (client_data_json.contains("category"))
+                if (client_data_json.contains("category") && client_data_json.at("category").is_string())
                 {
-                    atp.userdata.get<TorrentClientData>()->category = client_data_json["category"];
+                    client_data->category = client_data_json["category"];
                 }
 
-                if (client_data_json.contains("metadata"))
+                if (client_data_json.contains("metadata") && client_data_json.at("metadata").is_object())
                 {
-                    atp.userdata.get<TorrentClientData>()->metadata = client_data_json["metadata"];
+                    client_data->metadata = client_data_json["metadata"];
                 }
 
-                if (client_data_json.contains("tags"))
+                if (client_data_json.contains("tags") && client_data_json.at("tags").is_array())
                 {
-                    atp.userdata.get<TorrentClientData>()->tags = client_data_json["tags"];
+                    client_data->tags = client_data_json["tags"];
                 }
             }
 
-            cb(atp);
+            lt::error_code ec;
+            lt::add_torrent_params params = lt::read_resume_data(params_buffer, ec);
+
+            if (ec)
+            {
+                BOOST_LOG_TRIVIAL(error) << "Failed to read resume data from buffer: " << ec;
+                return SQLITE_OK;
+            }
+
+            params.userdata = lt::client_data_t(client_data.release());
+
+            cb(params);
 
             return SQLITE_OK;
         });
 }
 
-void AddTorrentParams::Insert(sqlite3 *db, const std::string_view& session, const libtorrent::info_hash_t& hash, const AddTorrentParams& params)
+void AddTorrentParams::Insert(sqlite3 *db, const int session_id, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const TorrentClientData* client_data, const int queue_pos)
 {
-    std::vector<char> buf = lt::write_resume_data_buf(params.params);
+    const std::map<std::string, json> userdata = {
+        {"category", client_data->category ? json(client_data->category.value()) : json()},
+        {"metadata", client_data->metadata},
+        {"tags",     client_data->tags}
+    };
 
-    const std::string client_data_json = json(*params.client_data).dump();
+    const std::vector<char> buf = lt::write_resume_data_buf(params);
+    const std::string userdata_str = json(userdata).dump();
 
-    auto stmt = Statement::Prepare(db, "INSERT INTO addtorrentparams\n"
-                                       "    (info_hash_v1, info_hash_v2, client_data, name, queue_position, resume_data_buf, save_path, session_id)\n"
-                                       "VALUES ($1, $2, $3, $4, $5, $6, $7, $8);");
+    auto stmt = Statement::Prepare(
+        db,
+        R"sql(
+        INSERT INTO addtorrentparams (
+            info_hash_v1,
+            info_hash_v2,
+            session_id,
+            queue_position,
+            params,
+            userdata
+        )
+        VALUES (
+            $info_hash_v1,
+            $info_hash_v2,
+            $session_id,
+            $queue_position,
+            $params,
+            $userdata
+        );
+        )sql");
     stmt
-        .Bind(1, hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
-        .Bind(2, hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
-        .Bind(3, std::string_view(client_data_json))
-        .Bind(4, std::string_view(params.name))
-        .Bind(5, params.queue_position)
-        .Bind(6, buf)
-        .Bind(7, std::string_view(params.save_path))
-        .Bind(8, session)
+        .Bind("$info_hash_v1", hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
+        .Bind("$info_hash_v2", hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
+        .Bind("$session_id", session_id)
+        .Bind("$queue_position", queue_pos)
+        .Bind("$params", buf)
+        .Bind("$userdata", userdata_str)
         .Execute();
 }
 
-void AddTorrentParams::Remove(sqlite3 *db, const std::string_view& session, const libtorrent::info_hash_t& hash)
+void AddTorrentParams::Remove(sqlite3 *db, const int session_id, const lt::info_hash_t& hash)
 {
     auto stmt = Statement::Prepare(
         db,
-        "DELETE FROM addtorrentparams\n"
-        "WHERE ((info_hash_v1 = $1 AND info_hash_v2 IS NULL)\n"
-        "   OR (info_hash_v1 IS NULL AND info_hash_v2 = $2)\n"
-        "   OR (info_hash_v1 = $1 AND info_hash_v2 = $2))\n"
-        "AND session_id = $3;");
+        R"sql(
+        DELETE FROM addtorrentparams
+        WHERE ((info_hash_v1 = $info_hash_v1 AND info_hash_v2 IS NULL)
+           OR (info_hash_v1 IS NULL AND info_hash_v2 = $info_hash_v2)
+           OR (info_hash_v1 = $info_hash_v1 AND info_hash_v2 = $info_hash_v2))
+        AND session_id = $session_id;
+        )sql");
 
     stmt
-        .Bind(1, hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
-        .Bind(2, hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
-        .Bind(3, session)
+        .Bind("$info_hash_v1", hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
+        .Bind("$info_hash_v2", hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
+        .Bind("$session_id",   session_id)
         .Execute();
 }
 
-void AddTorrentParams::Update(sqlite3 *db, const std::string_view& session, const libtorrent::info_hash_t& hash, const AddTorrentParams& params)
+void AddTorrentParams::Update(sqlite3 *db, const int session_id, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const TorrentClientData* client_data, const int queue_pos)
 {
-    std::vector<char> buf = lt::write_resume_data_buf(params.params);
+    const std::map<std::string, json> userdata = {
+        {"category", client_data->category.has_value() ? json(client_data->category.value()) : json()},
+        {"metadata", client_data->metadata},
+        {"tags",     client_data->tags}
+    };
 
-    const std::string client_data_json = json(*params.client_data).dump();
+    const std::vector<char> buf = lt::write_resume_data_buf(params);
+    const std::string userdata_str = json(userdata).dump();
 
-    auto stmt = Statement::Prepare(db, "UPDATE addtorrentparams SET client_data = $1, name = $2, resume_data_buf = $3, queue_position = $4, save_path = $5\n"
-                                       "WHERE ((info_hash_v1 = $6 AND info_hash_v2 IS NULL)\n"
-                                       "   OR (info_hash_v1 IS NULL AND info_hash_v2 = $7)\n"
-                                       "   OR (info_hash_v1 = $6 AND info_hash_v2 = $7))\n"
-                                       "AND session_id = $8;");
+    auto stmt = Statement::Prepare(
+        db,
+        R"sql(
+        UPDATE addtorrentparams
+        SET
+            queue_position = $queue_position,
+            params         = $params,
+            userdata       = $userdata
+        WHERE
+            (
+                (info_hash_v1 = $info_hash_v1 AND info_hash_v2 IS NULL)
+                OR (info_hash_v1 IS NULL AND info_hash_v2 = $info_hash_v2)
+                OR (info_hash_v1 = $info_hash_v1 AND info_hash_v2 = $info_hash_v2)
+            )
+            AND session_id = $session_id;
+        )sql");
+
     stmt
-        .Bind(1, std::string_view(client_data_json))
-        .Bind(2, std::string_view(params.name))
-        .Bind(3, buf)
-        .Bind(4, params.queue_position)
-        .Bind(5, std::string_view(params.save_path))
-        .Bind(6, hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
-        .Bind(7, hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
-        .Bind(8, session)
+        .Bind("$queue_position", queue_pos)
+        .Bind("$params",         buf)
+        .Bind("$userdata",       userdata_str)
+        .Bind("$info_hash_v1",   hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
+        .Bind("$info_hash_v2",   hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
+        .Bind("$session_id",     session_id)
         .Execute();
 }

@@ -1,64 +1,41 @@
 grammar PorlaQueryLang;
 
-
-AND           : 'and';
-OR            : 'or';
-NOT           : 'not';
+// ---------- Lexer ----------
+OR            : 'OR' | '||' ;
+AND           : 'AND' | '&&' ;
+NOT           : '-' | '!' ;
 
 OPER_EQ       : '=';
-OPER_CONTAINS : 'contains';
-OPER_GT       : '>';
 OPER_GTE      : '>=';
-OPER_LT       : '<';
+OPER_GT       : '>';
 OPER_LTE      : '<=';
+OPER_LT       : '<';
 
 WHITESPACE    : [ \t\r\n]+ -> skip;
-INT           : '-'? [0-9]+ ;
 FLOAT         : '-'? [0-9]+ '.' [0-9]+ ;
+INT           : '-'? [0-9]+ ;
 STRING        : '"' .*? '"';
+QUALIFIER     : [a-zA-Z_]+ ':' ;
+ID            : [a-zA-Z_]+ ('-' [a-zA-Z_]+)* ;
 
-UNIT_DURATION : 's' | 'm' | 'h' | 'd' | 'w';
-UNIT_SIZE     : 'b' | 'kb' | 'mb' | 'gb' | 'tb' | 'pb';
-UNIT_SPEED    : 'bps' | 'kbps' | 'mbps' | 'gbps';
+// ---------- Parser ----------
+filter   : orExpr EOF ;
 
-ID            : [a-zA-Z_]+;
+orExpr   : andExpr (OR andExpr)* ;
 
+andExpr  : term (AND? term)* ;
 
-filter
-    : expression
+term
+    : NOT term        #NotTerm
+    | '(' orExpr ')'  #GroupTerm
+    | qualifier       #QualifierTerm
+    | text            #TextTerm
     ;
 
-expression
-    : expression AND expression #AndExpression
-    | expression OR expression  #OrExpression
-    | predicate                 #PredicateExpression
-    | flag                      #FlagExpression
-    | NOT flag                  #NotFlagExpression
-    ;
+qualifier : QUALIFIER operator? value ;
 
-predicate
-    : reference operator value  #OperatorPredicate
-    ;
+operator  : OPER_EQ | OPER_GT | OPER_GTE | OPER_LT | OPER_LTE ;
 
-flag
-    : 'is:' reference
-    ;
+value     : (INT | FLOAT) ID? | STRING | ID ;
 
-value
-    : INT WHITESPACE? UNIT_DURATION?
-    | INT WHITESPACE? UNIT_SIZE?
-    | INT WHITESPACE? UNIT_SPEED?
-    | FLOAT
-    | STRING
-    ;
-
-operator
-    : OPER_EQ
-    | OPER_CONTAINS
-    | OPER_GT
-    | OPER_GTE
-    | OPER_LT
-    | OPER_LTE
-    ;
-
-reference: ID;
+text      : STRING | ID | INT | FLOAT ;

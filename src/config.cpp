@@ -55,8 +55,8 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     };
 
     auto cfg = std::unique_ptr<Config>(new Config());
-    cfg->http_auth_enabled = true;
     cfg->sessions.insert({ "default", lt::default_settings() });
+    cfg->state_dir = fs::absolute(fs::current_path());
 
     // Check default locations for a config file.
     for (auto const& path : config_file_search_paths)
@@ -79,59 +79,11 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
     if (auto val = std::getenv("PORLA_CONFIG_FILE"))           cfg->config_file     = val;
     if (auto val = std::getenv("PORLA_DB"))                    cfg->db_file         = val;
-    if (auto val = std::getenv("PORLA_HTTP_AUTH_DISABLED_YES_REALLY"))
-    {
-        if (strcmp("true", val) == 0) cfg->http_auth_enabled = false;
-    }
     if (auto val = std::getenv("PORLA_HTTP_BASE_PATH"))        cfg->http_base_path  = val;
     if (auto val = std::getenv("PORLA_HTTP_HOST"))             cfg->http_host       = val;
-    if (auto val = std::getenv("PORLA_HTTP_METRICS_ENABLED"))
-    {
-        if (strcmp("true", val) == 0)  cfg->http_metrics_enabled = true;
-        if (strcmp("false", val) == 0) cfg->http_metrics_enabled = false;
-    }
     if (auto val = std::getenv("PORLA_HTTP_PORT"))             cfg->http_port       = std::stoi(val);
-    if (auto val = std::getenv("PORLA_HTTP_WEBUI_ENABLED"))
-    {
-        if (strcmp("true", val) == 0)  cfg->http_webui_enabled = true;
-        if (strcmp("false", val) == 0) cfg->http_webui_enabled = false;
-    }
     if (auto val = std::getenv("PORLA_SECRET_KEY"))            cfg->secret_key      = val;
-    if (auto val = std::getenv("PORLA_SESSION_SETTINGS_BASE"))
-    {
-        if (strcmp("default", val) == 0)               cfg->sessions.at("default") = lt::default_settings();
-        if (strcmp("high_performance_seed", val) == 0) cfg->sessions.at("default") = lt::high_performance_seed();
-        if (strcmp("min_memory_usage", val) == 0)      cfg->sessions.at("default") = lt::min_memory_usage();
-    }
-    if (auto val = std::getenv("PORLA_SODIUM_MEMLIMIT"))
-    {
-        if (strcmp("interactive", val) == 0) cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_INTERACTIVE;
-        if (strcmp("max", val) == 0)         cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_MAX;
-        if (strcmp("min", val) == 0)         cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_MIN;
-        if (strcmp("moderate", val) == 0)    cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_MODERATE;
-        if (strcmp("sensitive", val) == 0)   cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_SENSITIVE;
-
-        const std::string tmp = val;
-        const auto digits = std::all_of(tmp.begin(), tmp.end(), [](const auto item) { return std::isdigit(item); });
-
-        if (digits)
-        {
-            try
-            {
-                cfg->sodium_memlimit = std::stoi(tmp);
-            }
-            catch (const std::exception& err)
-            {
-                BOOST_LOG_TRIVIAL(error) << "Failed to parse " << tmp << " as integer: " << err.what();
-            }
-        }
-    }
-    if (auto val = std::getenv("PORLA_STATE_DIR"))             cfg->state_dir             = val;
-    if (auto val = std::getenv("PORLA_TIMER_DHT_STATS"))       cfg->timer_dht_stats       = std::stoi(val);
-    if (auto val = std::getenv("PORLA_TIMER_SAVE_STATE"))      cfg->timer_save_state      = std::stoi(val);
-    if (auto val = std::getenv("PORLA_TIMER_SESSION_STATS"))   cfg->timer_session_stats   = std::stoi(val);
-    if (auto val = std::getenv("PORLA_TIMER_TORRENT_UPDATES")) cfg->timer_torrent_updates = std::stoi(val);
-    if (auto val = std::getenv("PORLA_WORKFLOW_DIR"))          cfg->workflow_dir          = val;
+    if (auto val = std::getenv("PORLA_STATE_DIR"))             cfg->state_dir       = val;
 
     if (cmd.count("config-file"))
     {
@@ -227,27 +179,8 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
             if (auto val = config_file_tbl["http"]["host"].value<std::string>())
                 cfg->http_host = *val;
 
-            if (auto val = config_file_tbl["http"]["metrics_enabled"].value<bool>())
-                cfg->http_metrics_enabled = *val;
-
             if (auto val = config_file_tbl["http"]["port"].value<uint16_t>())
                 cfg->http_port = *val;
-
-            if (auto val = config_file_tbl["http"]["webui_enabled"].value<bool>())
-                cfg->http_webui_enabled = *val;
-
-            if (auto val = config_file_tbl["http"]["webui_file"].value<std::string>())
-                cfg->http_webui_file = *val;
-
-            if (auto val = config_file_tbl["http"]["webui_repository"].value<std::string>())
-                cfg->http_webui_repository = *val;
-
-            // Plugins
-            if (auto val = config_file_tbl["plugins"]["allow_git"].value<bool>())
-                cfg->plugins_allow_git = *val;
-
-            if (auto val = config_file_tbl["plugins"]["install_dir"].value<std::string>())
-                cfg->plugins_install_dir = *val;
 
             // Load presets
             if (auto const* presets_tbl = config_file_tbl["presets"].as_table())
@@ -366,38 +299,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
             if (auto val = config_file_tbl["state_dir"].value<std::string>())
                 cfg->state_dir = *val;
-
-            if (auto val = config_file_tbl["sodium_memlimit"])
-            {
-                if (auto memlimit_int = val.value<int>())
-                {
-                    cfg->sodium_memlimit = *memlimit_int;
-                }
-
-                if (auto memlimit_str = val.value<std::string>())
-                {
-                    if (*memlimit_str == "interactive") cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_INTERACTIVE;
-                    if (*memlimit_str == "max")         cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_MAX;
-                    if (*memlimit_str == "min")         cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_MIN;
-                    if (*memlimit_str == "moderate")    cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_MODERATE;
-                    if (*memlimit_str == "sensitive")   cfg->sodium_memlimit = crypto_pwhash_MEMLIMIT_SENSITIVE;
-                }
-            }
-
-            if (auto val = config_file_tbl["timer"]["dht_stats"].value<int>())
-                cfg->timer_dht_stats = *val;
-
-            if (auto val = config_file_tbl["timer"]["save_state"].value<int>())
-                cfg->timer_save_state = *val;
-
-            if (auto val = config_file_tbl["timer"]["session_stats"].value<int>())
-                cfg->timer_session_stats = *val;
-
-            if (auto val = config_file_tbl["timer"]["torrent_updates"].value<int>())
-                cfg->timer_torrent_updates = *val;
-
-            if (auto val = config_file_tbl["workflow_dir"].value<std::string>())
-                cfg->workflow_dir = *val;
         }
         catch (const toml::parse_error& err)
         {
@@ -409,15 +310,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (cmd.count("db"))                    cfg->db_file               = cmd["db"].as<std::string>();
     if (cmd.count("http-base-path"))        cfg->http_base_path        = cmd["http-base-path"].as<std::string>();
     if (cmd.count("http-host"))             cfg->http_host             = cmd["http-host"].as<std::string>();
-    if (cmd.count("http-metrics-enabled"))
-    {
-        cfg->http_metrics_enabled = cmd["http-metrics-enabled"].as<bool>();
-    }
     if (cmd.count("http-port"))             cfg->http_port             = cmd["http-port"].as<uint16_t>();
-    if (cmd.count("http-webui-enabled"))
-    {
-        cfg->http_webui_enabled = cmd["http-webui-enabled"].as<bool>();
-    }
     if (cmd.count("secret-key"))            cfg->secret_key            = cmd["secret-key"].as<std::string>();
     if (cmd.count("session-settings-base"))
     {
@@ -428,21 +321,11 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         if (val == "min_memory_usage")      cfg->sessions.at("default") = lt::min_memory_usage();
     }
     if (cmd.count("state-dir"))             cfg->state_dir             = cmd["state-dir"].as<std::string>();
-    if (cmd.count("timer-dht-stats"))       cfg->timer_dht_stats       = cmd["timer-dht-stats"].as<int>();
-    if (cmd.count("timer-session-stats"))   cfg->timer_session_stats   = cmd["timer-session-stats"].as<pid_t>();
-    if (cmd.count("timer-torrent-updates")) cfg->timer_torrent_updates = cmd["timer-torrent-updates"].as<pid_t>();
-    if (cmd.count("workflow-dir"))          cfg->workflow_dir          = cmd["workflow-dir"].as<std::string>();
-
-    // Set the plugins install dir
-    if (!cfg->plugins_install_dir.has_value())
-    {
-        cfg->plugins_install_dir = cfg->state_dir.value_or(fs::path()) / "installed_plugins";
-    }
 
     // If no db_file is set, default to a file in state_dir.
     if (!cfg->db_file.has_value())
     {
-        cfg->db_file = cfg->state_dir.value_or(fs::current_path()) / "porla.sqlite";
+        cfg->db_file = cfg->state_dir / "porla.sqlite";
     }
 
     if (sqlite3_open(cfg->db_file.value_or("porla.sqlite").c_str(), &cfg->db) != SQLITE_OK)
@@ -457,30 +340,10 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         throw std::runtime_error("Failed to enable WAL journal mode");
     }
 
-    if (!porla::Data::Migrate(cfg->db))
+    if (!porla::Data::Migrate(cfg->db, cfg))
     {
         BOOST_LOG_TRIVIAL(error) << "Failed to run migrations";
         throw std::runtime_error("Failed to apply migrations");
-    }
-
-    // Apply static libtorrent settings here. These are always set after all other settings from
-    // the config are applied, and cannot be overwritten by it.
-    lt::alert_category_t alerts =
-        lt::alert::status_notification
-        | lt::alert::storage_notification
-        | lt::alert::tracker_notification;
-
-    for (auto& [ _, settings ] : cfg->sessions)
-    {
-        settings.set_int(lt::settings_pack::alert_mask, alerts);
-        settings.set_str(
-            lt::settings_pack::peer_fingerprint,
-            lt::generate_fingerprint("PO", BuildInfo::VersionMajor(), BuildInfo::VersionMinor(), BuildInfo::VersionPatch()));
-
-        std::stringstream user_agent;
-        user_agent << "porla/" << BuildInfo::Version() << " libtorrent/" << LIBTORRENT_VERSION;
-
-        settings.set_str(lt::settings_pack::user_agent, user_agent.str());
     }
 
     // If we get here without having a secret key, we must generate one. Also log a warning because
@@ -492,11 +355,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         BOOST_LOG_TRIVIAL(warning) << "Use './porla key:generate' to generate a secret key";
 
         cfg->secret_key = porla::Utils::SecretKey::New();
-    }
-
-    if (cfg->sodium_memlimit.has_value())
-    {
-        BOOST_LOG_TRIVIAL(info) << "Setting sodium memlimit to " << cfg->sodium_memlimit.value();
     }
 
     return std::move(cfg);
@@ -527,11 +385,6 @@ static void ApplySettings(const toml::table& tbl, lt::settings_pack& settings)
         const int type = lt::setting_by_name(key.data());
 
         if (type == -1)
-        {
-            continue;
-        }
-
-        if (porla::Sessions::DisallowedSetting(key.data()))
         {
             continue;
         }

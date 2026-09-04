@@ -92,8 +92,6 @@ configuration and use sensible defaults instead.
    of Porla will be served. Defaults to `/`.
  * `PORLA_HTTP_HOST` or `--http-host` - set to an IP address which to bind the HTTP
    server. Defaults to _127.0.0.1_.
- * `PORLA_HTTP_METRICS_ENABLED` or `--http-metrics-enabled` - set to true/false to
-   enable or disable the metrics endpoint. Defaults to _true_.
  * `PORLA_HTTP_PORT` or `--http-port` - set to the port to use for the HTTP server.
    Defaults to _1337_.
  * `PORLA_LOG_LEVEL` or `--log-level` - the minimum log level to use. Valid values
@@ -117,57 +115,15 @@ information on how to set up the TOML configuration.
 
 ## Development
 
-Various bits and pieces of information regarding development.
-
-### Building
-
-> [!NOTE]
-> I (@vktr) run Arch on my desktop and macOS (Sequoia) which is why the build
-> process might be skewed towards those targets.
-
-
-#### Docker
-
-The Dockerfile in Porla produces a statically linked binary and can be used to
-build a Docker image. Copy the Porla binary from the Docker image if you do not
-want to introduce a Docker dependency on your seedbox.
-
-```sh
-docker build -t porla-tmp .
-docker create --name porla-tmp-bin porla-tmp
-docker cp porla-tmp-bin:/usr/bin/porla .
-docker rm -f porla-tmp-bin
-```
-
-#### Dependencies (on Arch)
-
- * antlr4-runtime (4.13.2)
- * boost (1.86)
- * libgit2 (1.8.4)
- * libtorrent-rasterbar (2.0.10)
- * libzip (1.11.2)
- * uriparser (0.9.8)
-
-#### uWebSockets
-
-uWebSockets is the outlier since it does not provide any packages. Building it
-is easy, however.
-
-```sh
-git clone --recursive https://github.com/uNetworking/uWebSockets
-WITH_ASIO=1 WITH_OPENSSL=1 make -C uWebSockets
-sudo cp uWebSockets/uSockets/uSockets.a /usr/local/lib/libuSockets.a
-sudo cp uWebSockets/uSockets/src/libusockets.h /usr/local/include
-sudo cp uWebSockets/src/* /usr/local/include/uWebSockets
-```
+The recommended way of working with the Porla code is inside the dev container.
 
 ### Generating ANTLR4 grammar source files
 
 This is only needed when `PorlaQueryLang.g4` is modified.
 
 ```shell
-wget https://www.antlr.org/download/antlr-4.11.1-complete.jar
+wget https://www.antlr.org/download/antlr-4.13.2-complete.jar
 pushd src/query
-java -jar ../../antlr-4.11.1-complete.jar -Dlanguage=Cpp -visitor -no-listener -o _aux PorlaQueryLang.g4
+java -jar ../../antlr-4.13.2-complete.jar -Dlanguage=Cpp -visitor -no-listener -o _aux PorlaQueryLang.g4
 popd
 ```
