@@ -138,6 +138,7 @@ add_library(
     src/lua/globals/porla.cpp
     src/lua/globals/sleep.cpp
     src/lua/packages/sessions.cpp
+    src/lua/packages/timers.cpp
 
     src/lua/types/ltannounceendpoint.cpp
     src/lua/types/ltannounceentry.cpp
@@ -147,6 +148,10 @@ add_library(
     src/lua/types/ltsettingspack.cpp
     src/lua/types/lttorrenthandle.cpp
     src/lua/types/lttorrentstatus.cpp
+    src/lua/types/posessionhandle.cpp
+    src/lua/types/posessionsiterator.cpp
+    src/lua/types/potorrentshandle.cpp
+    src/lua/types/potorrentsiterator.cpp
 
     src/lua/plugin.cpp
     src/lua/pluginengine.cpp

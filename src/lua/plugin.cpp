@@ -13,10 +13,14 @@
 
 #include "globals.hpp"
 #include "packages/sessions.hpp"
+#include "packages/timers.hpp"
 #include "pluginsource.hpp"
 #include "pluginstate.hpp"
 #include "registry.hpp"
 #include "types.hpp"
+
+#include "types/posessionhandle.hpp"
+#include "types/potorrentshandle.hpp"
 
 #include "../config.hpp"
 #include "../curlmulti.hpp"
@@ -28,165 +32,6 @@ namespace fs = std::filesystem;
 
 using porla::Lua::Plugin;
 using porla::Lua::PluginLoadOptions;
-
-class TorrentsIterator
-{
-public:
-    explicit TorrentsIterator(const std::map<lt::info_hash_t, std::tuple<lt::torrent_handle, lt::torrent_status>>& torrents)
-        : m_torrents(torrents)
-        , m_iterator(m_torrents.begin())
-    {
-    }
-
-    std::optional<lt::torrent_handle> operator()()
-    {
-        if (m_iterator == m_torrents.end())
-        {
-            return std::nullopt;
-        }
-
-        auto [ th, _ ] = m_iterator->second;
-        std::advance(m_iterator, 1);
-
-        return th;
-    }
-
-private:
-    std::map<lt::info_hash_t, std::tuple<lt::torrent_handle, lt::torrent_status>> const&          m_torrents;
-    std::map<lt::info_hash_t, std::tuple<lt::torrent_handle, lt::torrent_status>>::const_iterator m_iterator;
-};
-
-class TorrentsHandle
-{
-public:
-    explicit TorrentsHandle(std::weak_ptr<porla::Sessions::SessionState> state)
-        : m_state(state) {}
-
-    int Count()
-    {
-        return m_state.lock()->torrents.size();
-    }
-
-    std::optional<lt::torrent_handle> Get(const std::string& info_hash)
-    {
-        lt::sha1_hash hash;
-
-        {
-            std::stringstream ss(info_hash);
-            ss >> hash;
-        }
-
-        auto state = m_state.lock();
-        auto found = state->torrents.find(lt::info_hash_t(hash));
-
-        if (found == state->torrents.end())
-        {
-            return std::nullopt;
-        }
-
-        auto [ th, _ ] = found->second;
-
-        return th;
-    }
-
-    TorrentsIterator List()
-    {
-        return TorrentsIterator(m_state.lock()->torrents);
-    }
-
-private:
-    std::weak_ptr<porla::Sessions::SessionState> m_state;
-};
-
-class SessionHandle
-{
-public:
-    explicit SessionHandle(std::weak_ptr<porla::Sessions::SessionState> state)
-        : m_state(state) {}
-
-    std::string Name()
-    {
-        return m_state.lock()->name;
-    }
-
-    std::shared_ptr<TorrentsHandle> Torrents()
-    {
-        return std::make_shared<TorrentsHandle>(m_state);
-    }
-
-private:
-    std::weak_ptr<porla::Sessions::SessionState> m_state;
-};
-
-class SessionsIterator
-{
-public:
-    explicit SessionsIterator(std::map<int, porla::Sessions::SessionStatePtr> sessions)
-        : m_sessions(sessions)
-        , m_iterator(m_sessions.begin())
-    {
-    }
-
-    std::shared_ptr<SessionHandle> operator()()
-    {
-        if (m_iterator == m_sessions.end())
-        {
-            return nullptr;
-        }
-
-        auto session = m_iterator->second;
-        std::advance(m_iterator, 1);
-        return std::make_shared<SessionHandle>(session);
-    }
-
-private:
-    std::map<int, porla::Sessions::SessionStatePtr>                 m_sessions;
-    std::map<int, porla::Sessions::SessionStatePtr>::const_iterator m_iterator;
-};
-
-class SessionsHandle
-{
-public:
-    explicit SessionsHandle(sqlite3* db, porla::Sessions& sessions)
-        : m_db(db)
-        , m_sessions(sessions) {}
-
-    int Count()
-    {
-        const auto all_sessions    = porla::Data::Models::Sessions::List(m_db);
-        const auto loaded_sessions = std::count_if(
-            all_sessions.begin(),
-            all_sessions.end(),
-            [this](const auto s) { return m_sessions.Get(s.id) != nullptr; });
-
-        return loaded_sessions;
-    }
-
-    std::shared_ptr<SessionHandle> Default()
-    {
-        const auto default_session = porla::Data::Models::Sessions::GetDefault(m_db);
-
-        if (!default_session.has_value())
-        {
-            return nullptr;
-        }
-
-        const auto state = m_sessions.Get(default_session->id);
-
-        return std::make_shared<SessionHandle>(state);
-    }
-
-    SessionHandle Get(const std::string& name);
-
-    SessionsIterator List()
-    {
-        return SessionsIterator(m_sessions.All());
-    }
-
-private:
-    sqlite3*         m_db;
-    porla::Sessions& m_sessions;
-};
 
 namespace
 {
@@ -465,48 +310,32 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
             sol::lib::string,
             sol::lib::table);
 
-        lua["package"]["preload"]["porla_sessions"] = Packages::Sessions::Load;
+        Types::LtAnnounceEndpoint::Register(lua);
+        Types::LtAnnounceEntry::Register(lua);
+        Types::LtAnnounceInfohash::Register(lua);
+        Types::LtOpenFileState::Register(lua);
+        Types::LtPeerInfo::Register(lua);
+        Types::LtSettingsPack::Register(lua);
+        Types::LtTorrentHandle::Register(lua);
+        Types::LtTorrentStatus::Register(lua);
 
-        auto state = std::make_shared<LuaState>();
-        state->app       = load_options.http_server;
-        state->callbacks = {};
-        state->cron_schedules = {};
-        state->db = load_options.db;
-        state->destructors = {};
-        state->io = load_options.io;
-        state->next_id = 1;
-        state->plugin_id = -1;
-        state->sessions = load_options.sessions;
-        state->signals = {};
-        state->steady_timers = {};
+        // Porla wrapper types
+        Types::PoSessionHandle::Register(lua);
+        Types::PoTorrentsHandle::Register(lua);
+
+        lua["package"]["preload"]["porla_sessions"] = Packages::Sessions::Load;
+        lua["package"]["preload"]["porla_timers"]   = Packages::Timers::Load;
+
+        auto state = std::make_shared<LuaState>(load_options.io, load_options.sessions);
+        state->app = load_options.http_server;
+        state->db  = load_options.db;
 
         lua.registry()["state"] = state;
-
-        porla::Lua::Types::LtAnnounceEndpoint::Register(lua);
-        porla::Lua::Types::LtAnnounceEntry::Register(lua);
-        porla::Lua::Types::LtAnnounceInfohash::Register(lua);
-        porla::Lua::Types::LtOpenFileState::Register(lua);
-        porla::Lua::Types::LtPeerInfo::Register(lua);
-        porla::Lua::Types::LtSettingsPack::Register(lua);
-        porla::Lua::Types::LtTorrentHandle::Register(lua);
-        porla::Lua::Types::LtTorrentStatus::Register(lua);
 
         lua.globals()["print"] = [this](sol::this_state s, sol::variadic_args args)
         {
             BOOST_LOG_TRIVIAL(info) << Name() << ": " << Concat(s, args);
         };
-
-        lua.globals()["cron"]        = porla::Lua::Globals::Cron::Build(lua);
-        lua.globals()["http"]        = porla::Lua::Globals::Http::Build(lua);
-        lua.globals()["http_server"] = porla::Lua::Globals::HttpServer::Build(lua);
-        lua.globals()["porla"]       = porla::Lua::Globals::Porla::Build(lua);
-        lua.globals()["sleep"]       = porla::Lua::Globals::Sleep::Build(lua);
-
-        lua.registry()["curl"]        = load_options.curl_multi;
-        lua.registry()["db"]          = porla::Lua::Registry::Sqlite3{.db = load_options.db};
-        lua.registry()["http_server"] = porla::Lua::Registry::uWebSocketsApp{.app = load_options.http_server};
-        lua.registry()["io"]          = porla::Lua::Registry::BoostIoContext{.io = &load_options.io};
-        lua.registry()["sessions"]    = porla::Lua::Registry::Sessions{.sessions = load_options.sessions};
     }
 };
 
@@ -584,7 +413,13 @@ std::unique_ptr<Plugin> Plugin::Load(
 
         if (init && init->valid())
         {
-            (*init)();
+            sol::protected_function_result init_result = (*init)();
+
+            if (!init_result.valid())
+            {
+                BOOST_LOG_TRIVIAL(error) << "Failed to run plugin initializer: " << DescribeError(init_result);
+                return nullptr;
+            }
         }
 
         return std::unique_ptr<Plugin>(new Plugin(std::move(state)));

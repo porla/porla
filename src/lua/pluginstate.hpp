@@ -16,6 +16,12 @@ namespace porla::Lua
 {
     struct LuaState : public std::enable_shared_from_this<LuaState>
     {
+        explicit LuaState(boost::asio::io_context& io, porla::Sessions& sessions)
+            : io(io)
+            , sessions(sessions)
+        {
+        }
+
         uWS::App*                                                         app;
         std::map<std::size_t, sol::protected_function>                    callbacks;
         std::map<std::size_t, std::shared_ptr<CronSchedule>>              cron_schedules;
