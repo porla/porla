@@ -22,40 +22,34 @@ sol::object HttpServer::Load(sol::this_state ts)
             return;
         }
 
-        auto callback_id = state->next_id++;
-
-        state->callbacks[callback_id] = callback;
+        auto callback_id = state->RegisterCallback(callback, false);
 
         state->app->get(path, [weak, callback_id](uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
         {
-            auto self = weak.lock();
+            auto state = weak.lock();
 
-            if (self == nullptr)
+            if (state == nullptr)
             {
                 return;
             }
 
             res->onAborted([](){});
 
-            const sol::protected_function& callback = self->callbacks.at(callback_id);
-
-            sol::state_view lua{callback.lua_state()};
-
-            sol::table headers = lua.create_table();
+            sol::table headers = state->lua.create_table();
 
             for (auto [key, value] : *req)
             {
                 headers[std::string{key}] = std::string{value};
             }
 
-            sol::table request = lua.create_table();
+            sol::table request = state->lua.create_table();
             request["method"]  = std::string{req->getMethod()};
             request["path"]    = std::string{req->getUrl()};
             request["query"]   = std::string{req->getQuery()};
             request["url"]     = std::string{req->getUrl()};
             request["headers"] = headers;
 
-            callback(request);
+            state->InvokeCallback(callback_id, request);
         });
 
 

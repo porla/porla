@@ -10,6 +10,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib .so .dll)
 
+add_subdirectory(vendor/fmt)
+
 find_package(PkgConfig           REQUIRED)
 find_package(ANTLR4              REQUIRED)
 find_package(Boost               CONFIG COMPONENTS log program_options system)
@@ -28,6 +30,7 @@ add_custom_command(
     ${CMAKE_CURRENT_BINARY_DIR}/_version.cpp
     COMMAND ${CMAKE_COMMAND} -P
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateVersion.cmake)
+
 
 add_library(
     ${PROJECT_NAME}_core
@@ -152,6 +155,7 @@ add_library(
     src/lua/types/potorrentshandle.cpp
     src/lua/types/potorrentsiterator.cpp
 
+    src/lua/print.cpp
     src/lua/plugin.cpp
     src/lua/pluginengine.cpp
     src/lua/pluginsource.cpp
@@ -248,6 +252,7 @@ target_link_libraries(
 
     Boost::boost Boost::log Boost::program_options
     CURL::libcurl
+    fmt::fmt
     libzip::zip
     LibtorrentRasterbar::torrent-rasterbar
     PkgConfig::Lua

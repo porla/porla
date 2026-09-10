@@ -16,6 +16,8 @@ namespace porla
         Timer& operator=(const Timer&) = delete;
         Timer& operator=(Timer&&) = delete; // noexcept {}
 
+        void Cancel();
+
     private:
         void OnExpired(boost::system::error_code ec);
 

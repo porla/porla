@@ -7,10 +7,8 @@
 
 struct PoCancellableConnection : public porla::Lua::Types::PoCancellable
 {
-    explicit PoCancellableConnection(boost::signals2::scoped_connection conn, int callback_id, int conn_id)
-        : m_conn(std::move(conn))
-        , m_callback_id(callback_id)
-        , m_conn_id(conn_id)
+    explicit PoCancellableConnection(std::size_t connection_id)
+        : m_connection_id(connection_id)
     {
     }
 
@@ -19,9 +17,7 @@ struct PoCancellableConnection : public porla::Lua::Types::PoCancellable
     }
 
 private:
-    boost::signals2::scoped_connection m_conn;
-    int m_callback_id;
-    int m_conn_id;
+    std::size_t m_connection_id;
 };
 
 sol::object porla::Lua::Packages::Events::Load(sol::this_state ts)
@@ -42,116 +38,95 @@ sol::object porla::Lua::Packages::Events::Load(sol::this_state ts)
             return nullptr;
         }
 
-        std::size_t                        callback_id = state->next_id++;
-        std::size_t                        conn_id     = state->next_id++;
-        boost::signals2::scoped_connection conn;
+        std::size_t                        callback_id = state->RegisterCallback(callback, false);
+        boost::signals2::scoped_connection connection;
 
         if (event == "torrent.added")
         {
-            conn = state->sessions.OnTorrentAdded(
+            connection = state->sessions.OnTorrentAdded(
                 [weak, callback_id](const auto session, const auto& handle)
                 {
                     auto state = weak.lock();
                     if (state == nullptr) { return; }
 
-                    auto it = state->callbacks.find(callback_id);
-                    if (it == state->callbacks.end()) { return; }
-
-                    it->second(handle);
+                    state->InvokeCallback(callback_id, handle);
                 });
         }
         else if (event == "torrent.file_error")
         {
-            conn = state->sessions.OnTorrentFileError(
+            connection = state->sessions.OnTorrentFileError(
                 [weak, callback_id](const auto session, const auto& err)
                 {
                     auto state = weak.lock();
                     if (state == nullptr) { return; }
 
-                    auto it = state->callbacks.find(callback_id);
-                    if (it == state->callbacks.end()) { return; }
-
-                    it->second(err.torrent, err.file);
+                    state->InvokeCallback(callback_id, err.torrent, err.file);
                 });
         }
         else if (event == "torrent.finished")
         {
-            conn = state->sessions.OnTorrentFinished(
+            connection = state->sessions.OnTorrentFinished(
                 [weak, callback_id](const auto session, const auto& handle)
                 {
                     auto state = weak.lock();
                     if (state == nullptr) { return; }
 
-                    auto it = state->callbacks.find(callback_id);
-                    if (it == state->callbacks.end()) { return; }
-
-                    it->second(handle);
+                    state->InvokeCallback(callback_id, handle);
                 });
         }
         else if (event == "torrent.paused")
         {
-            conn = state->sessions.OnTorrentPaused(
+            connection = state->sessions.OnTorrentPaused(
                 [weak, callback_id](const auto session, const auto& handle)
                 {
                     auto state = weak.lock();
                     if (state == nullptr) { return; }
 
-                    auto it = state->callbacks.find(callback_id);
-                    if (it == state->callbacks.end()) { return; }
-
-                    it->second(handle);
+                    state->InvokeCallback(callback_id, handle);
                 });
         }
         else if (event == "torrent.removed")
         {
-            conn = state->sessions.OnTorrentRemoved(
+            connection = state->sessions.OnTorrentRemoved(
                 [weak, callback_id](const auto session, const auto& info_hash)
                 {
                     auto state = weak.lock();
                     if (state == nullptr) { return; }
 
-                    auto it = state->callbacks.find(callback_id);
-                    if (it == state->callbacks.end()) { return; }
-
-                    it->second(info_hash);
+                    state->InvokeCallback(callback_id, info_hash);
                 });
         }
         else if (event == "torrent.resumed")
         {
-            conn = state->sessions.OnTorrentResumed(
+            connection = state->sessions.OnTorrentResumed(
                 [weak, callback_id](const auto session, const auto& handle)
                 {
                     auto state = weak.lock();
                     if (state == nullptr) { return; }
 
-                    auto it = state->callbacks.find(callback_id);
-                    if (it == state->callbacks.end()) { return; }
-
-                    it->second(handle);
+                    state->InvokeCallback(callback_id, handle);
                 });
         }
         else if (event == "torrent.storage_moved")
         {
-            conn = state->sessions.OnStorageMoved(
+            connection = state->sessions.OnStorageMoved(
                 [weak, callback_id](const auto session, const auto& handle)
                 {
                     auto state = weak.lock();
                     if (state == nullptr) { return; }
 
-                    auto it = state->callbacks.find(callback_id);
-                    if (it == state->callbacks.end()) { return; }
-
-                    it->second(handle);
+                    state->InvokeCallback(callback_id, handle);
                 });
         }
         else
         {
+            state->RemoveCallback(callback_id);
             return nullptr;
         }
 
-        state->callbacks[callback_id] = callback;
+        const auto connection_id = state->RegisterScopedConnection(std::move(connection));
 
-        return std::make_shared<PoCancellableConnection>(std::move(conn), callback_id, conn_id);
+        return std::make_shared<PoCancellableConnection>(connection_id);
     });
 
     return tbl;

@@ -18,6 +18,7 @@
 #include "packages/timers.hpp"
 #include "pluginsource.hpp"
 #include "pluginstate.hpp"
+#include "print.hpp"
 #include "types.hpp"
 
 #include "types/pocancellable.hpp"
@@ -79,7 +80,7 @@ namespace
     }
 }
 
-struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
+struct Plugin::State
 {
     PluginLoadOptions           load_options;
     PluginSource                source;
@@ -92,12 +93,6 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         : load_options(opts)
     {
         ConfigureLuaState();
-    }
-
-    std::string Name() const
-    {
-        if (meta && meta->name) return *meta->name;
-        return "<unnamed plugin>";
     }
 
     void ConfigureLuaState()
@@ -132,17 +127,16 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         lua["package"]["preload"]["porla_sessions"]    = Packages::Sessions::Load;
         lua["package"]["preload"]["porla_timers"]      = Packages::Timers::Load;
 
-        lua_state       = std::make_shared<LuaState>(load_options.io, load_options.sessions);
-        lua_state->app  = load_options.http_server;
-        lua_state->curl = load_options.curl_multi;
-        lua_state->db   = load_options.db;
+        lua_state            = std::make_shared<LuaState>(load_options.io, load_options.sessions, lua);
+        lua_state->app       = load_options.http_server;
+        lua_state->curl      = load_options.curl_multi;
+        lua_state->db        = load_options.db;
+        lua_state->lua       = lua;
+        lua_state->plugin_id = load_options.plugin_id;
 
         lua.registry()["state"] = std::weak_ptr(lua_state);
 
-        lua.globals()["print"] = [this](sol::this_state s, sol::variadic_args args)
-        {
-            BOOST_LOG_TRIVIAL(info) << Name() << ": " << Concat(s, args);
-        };
+        lua.globals()["print"] = &Print;
     }
 };
 
@@ -289,26 +283,7 @@ Plugin::~Plugin()
         (*destroy)();
     }
 
-    for (auto& [ _, cron_schedule ] : m_state->lua_state->cron_schedules)
-    {
-        cron_schedule->Cancel();
-    }
-
-    for (auto& [ _, signal ] : m_state->lua_state->signals)
-    {
-        signal.disconnect();
-    }
-
-    for (auto& [ _, timer ] : m_state->lua_state->timers)
-    {
-        timer.reset();
-    }
-
-    for (auto& dtor : m_state->lua_state->destructors)
-    {
-        dtor();
-    }
-
+    m_state->lua_state.reset();
     m_state.reset();
 }
 

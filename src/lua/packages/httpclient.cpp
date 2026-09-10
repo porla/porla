@@ -160,8 +160,7 @@ sol::object HttpClient::Load(sol::this_state ts)
             curl_easy_setopt(easy.get(), CURLOPT_HTTPHEADER, transfer_state->request_header_list);
         }
 
-        auto callback_id = state->next_id++;
-        state->callbacks[callback_id] = callback;
+        auto callback_id = state->RegisterCallback(callback, true);
 
         state->curl->AddTransfer(
             easy.release(),
@@ -178,20 +177,11 @@ sol::object HttpClient::Load(sol::this_state ts)
                     state->io,
                     [state, transfer_state, callback_id]()
                     {
-                        auto it = state->callbacks.find(callback_id);
-                        if (it == state->callbacks.end()) { return; }
-
-                        sol::protected_function callback = std::move(it->second);
-
-                        state->callbacks.erase(callback_id);
-
-                        sol::state_view lua(callback.lua_state());
-
-                        sol::table tbl = lua.create_table();
+                        sol::table tbl = state->lua.create_table();
                         tbl["body"]   = transfer_state->response_body;
                         tbl["status"] = transfer_state->response_status;
 
-                        callback(tbl);
+                        state->InvokeCallback(callback_id, tbl);
                     });
             });
     });

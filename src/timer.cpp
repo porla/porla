@@ -28,6 +28,11 @@ Timer::~Timer()
     m_timer.cancel();
 }
 
+void Timer::Cancel()
+{
+    m_timer.cancel();
+}
+
 void Timer::OnExpired(boost::system::error_code ec)
 {
     if (ec == boost::system::errc::operation_canceled)

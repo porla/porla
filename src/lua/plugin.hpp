@@ -28,6 +28,7 @@ namespace porla::Lua
         sqlite3*                   db;
         uWS::App*                  http_server;
         boost::asio::io_context&   io;
+        int                        plugin_id;
         porla::Sessions&           sessions;
     };
 

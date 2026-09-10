@@ -62,6 +62,7 @@ void PluginEngine::Load(int id)
         .db          = m_options.db,
         .http_server = m_options.http_server,
         .io          = m_options.io,
+        .plugin_id   = id,
         .sessions    = m_options.sessions
     };
 
@@ -94,13 +95,10 @@ const Plugin* PluginEngine::Get(int id) const
 
 void PluginEngine::Reload(int id)
 {
-    if (m_plugins.find(id) == m_plugins.end())
+    if (m_plugins.contains(id))
     {
-        Load(id);
-        return;
+        Unload(id);
     }
-
-    Unload(id);
 
     Load(id);
 }
