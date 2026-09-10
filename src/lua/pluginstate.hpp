@@ -10,6 +10,7 @@
 #include <uWebSockets/App.h>
 
 #include "../cron.hpp"
+#include "../curlmulti.hpp"
 #include "../sessions.hpp"
 #include "../timer.hpp"
 
@@ -26,6 +27,7 @@ namespace porla::Lua
         uWS::App*                                                 app;
         std::map<std::size_t, sol::protected_function>            callbacks;
         std::map<std::size_t, std::shared_ptr<CronSchedule>>      cron_schedules;
+        std::shared_ptr<CurlMulti>                                curl;
         sqlite3*                                                  db;
         std::vector<std::function<void()>>                        destructors;
         boost::asio::io_context&                                  io;

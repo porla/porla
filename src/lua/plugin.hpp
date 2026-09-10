@@ -56,7 +56,7 @@ namespace porla::Lua
 
         [[nodiscard]] std::optional<Meta> GetMeta() const;
 
-        void Unload(UnloadCallback callback);
+        void Unload();
 
     private:
         struct State;

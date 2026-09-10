@@ -16,8 +16,7 @@ PluginsReload::PluginsReload(PluginEngine& plugin_engine)
 
 void PluginsReload::Execute(const PluginsReloadReq& req, ResponseWriterHandle cb)
 {
-    m_plugin_engine.Reload(req.id, [cb]()
-    {
-        cb->Ok({});
-    });
+    m_plugin_engine.Reload(req.id);
+
+    cb->Ok({});
 }

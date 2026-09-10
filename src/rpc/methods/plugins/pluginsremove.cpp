@@ -27,8 +27,7 @@ void PluginsRemove::Execute(const PluginsRemoveReq& req, ResponseWriterHandle cb
 
     Data::Models::Plugins::Remove(m_db, req.id);
 
-    m_plugin_engine.Unload(req.id, [cb]()
-    {
-        cb->Ok({});
-    });
+    m_plugin_engine.Unload(req.id);
+
+    cb->Ok({});
 }

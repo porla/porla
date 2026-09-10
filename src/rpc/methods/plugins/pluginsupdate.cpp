@@ -33,8 +33,7 @@ void PluginsUpdate::Execute(const PluginsUpdateReq& req, ResponseWriterHandle cb
 
     Data::Models::Plugins::Update(m_db, *plugin);
 
-    m_plugin_engine.Reload(req.id, [cb]()
-    {
-        cb->Ok(PluginsUpdateRes{});
-    });
+    m_plugin_engine.Reload(req.id);
+
+    cb->Ok(PluginsUpdateRes{});
 }

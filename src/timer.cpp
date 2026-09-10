@@ -40,8 +40,8 @@ void Timer::OnExpired(boost::system::error_code ec)
         return;
     }
 
-    m_callback();
-
     m_timer.expires_after(std::chrono::milliseconds(m_interval));
     m_timer.async_wait([this](auto &&PH1) { OnExpired(std::forward<decltype(PH1)>(PH1)); });
+
+    m_callback();
 }

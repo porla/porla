@@ -133,7 +133,7 @@ void CurlMulti::HttpGet(const std::string& url, HttpCallback callback)
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_USERAGENT, user_agent.str().c_str());
 
-    BOOST_LOG_TRIVIAL(trace) << "WebUI::HttpGet: " << url.c_str();
+    BOOST_LOG_TRIVIAL(trace) << "CurlMulti::HttpGet: " << url.c_str();
 
     AddTransfer(curl, [w = weak_from_this(), body, callback](CURL* easy, CURLcode result)
     {

@@ -132,9 +132,10 @@ add_library(
     src/json/_/torrentstrackerslist.cpp
     src/json/_/webuiinstall.cpp
 
-    src/lua/globals/http.cpp
-    src/lua/globals/httpserver.cpp
     src/lua/globals/porla.cpp
+
+    src/lua/packages/httpclient.cpp
+    src/lua/packages/httpserver.cpp
     src/lua/packages/sessions.cpp
     src/lua/packages/timers.cpp
 

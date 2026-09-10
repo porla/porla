@@ -51,27 +51,11 @@ namespace porla::Lua
 
         [[nodiscard]] const Plugin* Get(int id) const;
 
-        [[nodiscard]] bool IsUnloading(int id) const;
-
-        void Reload(int id, CompletionCallback callback = {});
-        void Unload(int id, CompletionCallback callback = {});
-        void UnloadAll(CompletionCallback callback = {});
+        void Reload(int id);
+        void Unload(int id);
 
     private:
-        void Post(CompletionCallback callback) const;
-
-        struct PendingUnload
-        {
-            int                     id;
-            std::unique_ptr<Plugin> plugin;
-        };
-
         PluginEngineOptions                    m_options;
         std::map<int, std::unique_ptr<Plugin>> m_plugins;
-
-        std::map<std::uint64_t, PendingUnload> m_pending_unloads;
-        std::uint64_t                          m_next_unload_token = 1;
-
-        std::shared_ptr<void> m_alive = std::make_shared<char>();
     };
 }

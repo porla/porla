@@ -12,6 +12,8 @@
 #include <sqlite3.h>
 
 #include "globals.hpp"
+#include "packages/httpclient.hpp"
+#include "packages/httpserver.hpp"
 #include "packages/sessions.hpp"
 #include "packages/timers.hpp"
 #include "pluginsource.hpp"
@@ -325,12 +327,15 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         Types::PoSessionHandle::Register(lua);
         Types::PoTorrentsHandle::Register(lua);
 
-        lua["package"]["preload"]["porla_sessions"] = Packages::Sessions::Load;
-        lua["package"]["preload"]["porla_timers"]   = Packages::Timers::Load;
+        lua["package"]["preload"]["porla_http_client"] = Packages::HttpClient::Load;
+        lua["package"]["preload"]["porla_http_server"] = Packages::HttpServer::Load;
+        lua["package"]["preload"]["porla_sessions"]    = Packages::Sessions::Load;
+        lua["package"]["preload"]["porla_timers"]      = Packages::Timers::Load;
 
         auto state = std::make_shared<LuaState>(load_options.io, load_options.sessions);
-        state->app = load_options.http_server;
-        state->db  = load_options.db;
+        state->app  = load_options.http_server;
+        state->curl = load_options.curl_multi;
+        state->db   = load_options.db;
 
         lua.registry()["state"] = state;
 
@@ -454,7 +459,7 @@ std::optional<Plugin::Meta> Plugin::GetMeta() const
     return m_state ? m_state->meta : std::nullopt;
 }
 
-void Plugin::Unload(UnloadCallback callback)
+void Plugin::Unload()
 {
     if (m_state)
     {
@@ -464,10 +469,5 @@ void Plugin::Unload(UnloadCallback callback)
         {
             (*destroy)();
         }
-    }
-
-    if (callback)
-    {
-        callback();
     }
 }

@@ -175,22 +175,22 @@ sol::object Timers::Load(sol::this_state ts)
             state->io,
             interval,
             [w = std::weak_ptr(state), callback_id, timer_id]()
-        {
-            auto ops = w.lock();
-            if (!ops) { return; }
+            {
+                auto ops = w.lock();
+                if (!ops) { return; }
 
-            auto it = ops->callbacks.find(callback_id);
-            if (it == ops->callbacks.end()) { return; }
+                auto it = ops->callbacks.find(callback_id);
+                if (it == ops->callbacks.end()) { return; }
 
-            sol::protected_function callback = std::move(it->second);
+                sol::protected_function callback = std::move(it->second);
 
-            ops->callbacks.erase(callback_id);
+                ops->callbacks.erase(callback_id);
 
-            ops->timers.at(timer_id).reset();
-            ops->timers.erase(timer_id);
+                ops->timers.at(timer_id).reset();
+                ops->timers.erase(timer_id);
 
-            callback();
-        });
+                callback();
+            });
 
         return std::make_shared<PoCancellableTimer>(callback_id, timer_id);
     });

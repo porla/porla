@@ -190,21 +190,10 @@ int main(int argc, char* argv[])
         boost::asio::signal_set signals(io, SIGINT, SIGTERM);
 
         signals.async_wait(
-            [&io, &plugin_engine, &signals](boost::system::error_code const& ec, int signal)
+            [&io](boost::system::error_code const& ec, int signal)
             {
-                BOOST_LOG_TRIVIAL(info) << "Interrupt received (" << signal << ") - stopping... Press Ctrl+C again to force";
-
-                plugin_engine.UnloadAll([&io]()
-                {
-                    io.stop();
-                });
-
-                signals.async_wait(
-                    [&io](boost::system::error_code const& ec, int signal)
-                    {
-                        BOOST_LOG_TRIVIAL(warning) << "Second interrupt received (" << signal << ") - forcing shutdown";
-                        io.stop();
-                    });
+                BOOST_LOG_TRIVIAL(info) << "Interrupt received (" << signal << ") - stopping...";
+                io.stop();
             });
 
         std::string http_base_path = cfg->http_base_path.value_or("/");

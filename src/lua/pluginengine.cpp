@@ -30,31 +30,12 @@ PluginEngine::PluginEngine(const PluginEngineOptions& options)
 
 PluginEngine::~PluginEngine()
 {
-    m_alive.reset();
-
-    if (!m_plugins.empty())
+    for (const auto& [ id, _ ] : m_plugins)
     {
-        BOOST_LOG_TRIVIAL(warning)
-            << m_plugins.size() << " plugin(s) still loaded at engine shutdown - "
-            << "their destroy functions will run synchronously and cannot yield. "
-            << "Call UnloadAll() and wait for the callback before destroying the engine.";
-    }
-
-    if (!m_pending_unloads.empty())
-    {
-        BOOST_LOG_TRIVIAL(warning)
-            << m_pending_unloads.size() << " plugin(s) were still unloading at engine shutdown";
+        Unload(id);
     }
 
     m_plugins.clear();
-    m_pending_unloads.clear();
-}
-
-void PluginEngine::Post(CompletionCallback callback) const
-{
-    if (!callback) return;
-
-    boost::asio::post(m_options.io, [callback = std::move(callback)]() { callback(); });
 }
 
 void PluginEngine::LoadAll()
@@ -70,12 +51,6 @@ void PluginEngine::Load(int id)
     if (m_plugins.find(id) != m_plugins.end())
     {
         BOOST_LOG_TRIVIAL(error) << "plugin[" << id << "] Already loaded";
-        return;
-    }
-
-    if (IsUnloading(id))
-    {
-        BOOST_LOG_TRIVIAL(error) << "plugin[" << id << "] Still unloading - cannot load yet";
         return;
     }
 
@@ -122,106 +97,30 @@ const Plugin* PluginEngine::Get(int id) const
     return it == m_plugins.end() ? nullptr : it->second.get();
 }
 
-bool PluginEngine::IsUnloading(int id) const
-{
-    return std::any_of(
-        m_pending_unloads.begin(),
-        m_pending_unloads.end(),
-        [id](const auto& iter) { return iter.second.id == id; });
-}
-
-void PluginEngine::Reload(int id, CompletionCallback callback)
+void PluginEngine::Reload(int id)
 {
     if (m_plugins.find(id) == m_plugins.end())
     {
         Load(id);
-        Post(std::move(callback));
         return;
     }
 
-    Unload(id, [this, alive = std::weak_ptr(m_alive), id, callback = std::move(callback)]() mutable
-    {
-        if (alive.expired()) return;
+    Unload(id);
 
-        Load(id);
-
-        if (callback) callback();
-    });
+    Load(id);
 }
 
-void PluginEngine::Unload(int id, CompletionCallback callback)
+void PluginEngine::Unload(int id)
 {
     const auto it = m_plugins.find(id);
 
     if (it == m_plugins.end())
     {
-        BOOST_LOG_TRIVIAL(error) << "plugin[" << id << "] Cannot unload - plugin not loaded";
-        Post(std::move(callback));
+        BOOST_LOG_TRIVIAL(warning) << "plugin[" << id << "] Cannot unload - plugin not loaded";
         return;
     }
 
-    const auto token = m_next_unload_token++;
-
-    const auto pending = m_pending_unloads.emplace(
-        token,
-        PendingUnload{
-            .id = id,
-            .plugin = std::move(it->second)
-        }).first;
+    it->second->Unload();
 
     m_plugins.erase(it);
-
-    Plugin* plugin = pending->second.plugin.get();
-
-    if (plugin == nullptr)
-    {
-        m_pending_unloads.erase(pending);
-        Post(std::move(callback));
-        return;
-    }
-
-    plugin->Unload(
-        [this, alive = std::weak_ptr(m_alive), token, id, callback = std::move(callback)]() mutable
-        {
-            if (alive.expired())
-            {
-                // Engine (and the plugin with it) is already gone.
-                return;
-            }
-
-            m_pending_unloads.erase(token);
-
-            BOOST_LOG_TRIVIAL(info) << "plugin[" << id << "] unloaded";
-
-            if (callback) callback();
-        });
-}
-
-void PluginEngine::UnloadAll(CompletionCallback callback)
-{
-    std::vector<int> ids;
-    ids.reserve(m_plugins.size());
-
-    for (const auto& [id, _] : m_plugins)
-    {
-        ids.push_back(id);
-    }
-
-    if (ids.empty())
-    {
-        Post(std::move(callback));
-        return;
-    }
-
-    auto remaining = std::make_shared<std::size_t>(ids.size());
-    auto shared_cb = std::make_shared<CompletionCallback>(std::move(callback));
-
-    for (const auto id : ids)
-    {
-        Unload(id, [remaining, shared_cb]()
-        {
-            if (--(*remaining) > 0) return;
-            if (*shared_cb) (*shared_cb)();
-        });
-    }
 }
