@@ -1,5 +1,7 @@
 #include "sessions.hpp"
 
+#include <libtorrent/session_stats.hpp>
+
 #include "../pluginstate.hpp"
 
 #include "../types/posessionhandle.hpp"
@@ -9,6 +11,8 @@
 
 using porla::Lua::Types::PoSessionHandle;
 using porla::Lua::Types::PoSessionsIterator;
+
+static const auto lt_session_metrics = lt::session_stats_metrics();
 
 sol::object porla::Lua::Packages::Sessions::Load(sol::this_state ts)
 {
@@ -106,6 +110,22 @@ sol::object porla::Lua::Packages::Sessions::Load(sol::this_state ts)
         }
 
         return sol::make_object(lua, PoSessionsIterator(state->sessions.All()));
+    });
+
+    tbl.set_function("metrics", [](sol::this_state ts)
+    {
+        sol::state_view lua(ts);
+        sol::table metrics_tbl = lua.create_table();
+
+        for (const auto& m : lt_session_metrics)
+        {
+            metrics_tbl[m.name] = lua.create_table();
+            metrics_tbl[m.name]["type"] = m.type == lt::metric_type_t::counter
+                ? "counter"
+                : "gauge";
+        }
+
+        return metrics_tbl;
     });
 
     return tbl;

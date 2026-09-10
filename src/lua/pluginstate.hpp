@@ -37,9 +37,4 @@ namespace porla::Lua
         std::map<std::size_t, boost::signals2::scoped_connection> signals;
         std::map<std::size_t, std::shared_ptr<Timer>>             timers;
     };
-
-    struct Cancellable
-    {
-        virtual void Cancel() = 0;
-    };
 }

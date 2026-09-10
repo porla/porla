@@ -30,11 +30,6 @@ PluginEngine::PluginEngine(const PluginEngineOptions& options)
 
 PluginEngine::~PluginEngine()
 {
-    for (const auto& [ id, _ ] : m_plugins)
-    {
-        Unload(id);
-    }
-
     m_plugins.clear();
 }
 
@@ -112,15 +107,11 @@ void PluginEngine::Reload(int id)
 
 void PluginEngine::Unload(int id)
 {
-    const auto it = m_plugins.find(id);
-
-    if (it == m_plugins.end())
+    if (m_plugins.contains(id))
     {
-        BOOST_LOG_TRIVIAL(warning) << "plugin[" << id << "] Cannot unload - plugin not loaded";
+        m_plugins.erase(id);
         return;
     }
 
-    it->second->Unload();
-
-    m_plugins.erase(it);
+    BOOST_LOG_TRIVIAL(warning) << "plugin[" << id << "] Cannot unload - plugin not loaded";
 }

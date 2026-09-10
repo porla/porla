@@ -40,8 +40,6 @@ namespace porla::Lua
             std::optional<std::string> version;
         };
 
-        using UnloadCallback = std::function<void()>;
-
         Plugin(const Plugin&)            = delete;
         Plugin(Plugin&&)                 = delete;
         Plugin& operator=(const Plugin&) = delete;
@@ -56,13 +54,11 @@ namespace porla::Lua
 
         [[nodiscard]] std::optional<Meta> GetMeta() const;
 
-        void Unload();
-
     private:
         struct State;
 
-        explicit Plugin(std::shared_ptr<State> state);
+        explicit Plugin(std::unique_ptr<State> state);
 
-        std::shared_ptr<State> m_state;
+        std::unique_ptr<State> m_state;
     };
 }
