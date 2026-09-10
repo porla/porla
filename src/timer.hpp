@@ -19,8 +19,8 @@ namespace porla
     private:
         void OnExpired(boost::system::error_code ec);
 
-        boost::asio::deadline_timer m_timer;
-        int                         m_interval;
-        std::function<void()>       m_callback;
+        boost::asio::steady_timer m_timer;
+        int                       m_interval;
+        std::function<void()>     m_callback;
     };
 }

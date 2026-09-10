@@ -19,6 +19,7 @@
 #include "registry.hpp"
 #include "types.hpp"
 
+#include "types/pocancellable.hpp"
 #include "types/posessionhandle.hpp"
 #include "types/potorrentshandle.hpp"
 
@@ -320,6 +321,7 @@ struct Plugin::State : public std::enable_shared_from_this<Plugin::State>
         Types::LtTorrentStatus::Register(lua);
 
         // Porla wrapper types
+        Types::PoCancellable::Register(lua);
         Types::PoSessionHandle::Register(lua);
         Types::PoTorrentsHandle::Register(lua);
 

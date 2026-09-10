@@ -132,11 +132,9 @@ add_library(
     src/json/_/torrentstrackerslist.cpp
     src/json/_/webuiinstall.cpp
 
-    src/lua/globals/cron.cpp
     src/lua/globals/http.cpp
     src/lua/globals/httpserver.cpp
     src/lua/globals/porla.cpp
-    src/lua/globals/sleep.cpp
     src/lua/packages/sessions.cpp
     src/lua/packages/timers.cpp
 
@@ -148,6 +146,7 @@ add_library(
     src/lua/types/ltsettingspack.cpp
     src/lua/types/lttorrenthandle.cpp
     src/lua/types/lttorrentstatus.cpp
+    src/lua/types/pocancellable.cpp
     src/lua/types/posessionhandle.cpp
     src/lua/types/posessionsiterator.cpp
     src/lua/types/potorrentshandle.cpp

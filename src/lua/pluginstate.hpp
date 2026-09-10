@@ -11,6 +11,7 @@
 
 #include "../cron.hpp"
 #include "../sessions.hpp"
+#include "../timer.hpp"
 
 namespace porla::Lua
 {
@@ -22,17 +23,17 @@ namespace porla::Lua
         {
         }
 
-        uWS::App*                                                         app;
-        std::map<std::size_t, sol::protected_function>                    callbacks;
-        std::map<std::size_t, std::shared_ptr<CronSchedule>>              cron_schedules;
-        sqlite3*                                                          db;
-        std::vector<std::function<void()>>                                destructors;
-        boost::asio::io_context&                                          io;
-        std::size_t                                                       next_id = 1;
-        int                                                               plugin_id;
-        porla::Sessions&                                                  sessions;
-        std::map<std::size_t, boost::signals2::scoped_connection>         signals;
-        std::map<std::size_t, std::shared_ptr<boost::asio::steady_timer>> steady_timers;
+        uWS::App*                                                 app;
+        std::map<std::size_t, sol::protected_function>            callbacks;
+        std::map<std::size_t, std::shared_ptr<CronSchedule>>      cron_schedules;
+        sqlite3*                                                  db;
+        std::vector<std::function<void()>>                        destructors;
+        boost::asio::io_context&                                  io;
+        std::size_t                                               next_id = 1;
+        int                                                       plugin_id;
+        porla::Sessions&                                          sessions;
+        std::map<std::size_t, boost::signals2::scoped_connection> signals;
+        std::map<std::size_t, std::shared_ptr<Timer>>             timers;
     };
 
     struct Cancellable
