@@ -7,54 +7,255 @@ using porla::Lua::Types::LtSettingsPack;
 
 void LtSettingsPack::Register(sol::state& lua)
 {
+    #define BOOL_PROP(name) \
+        #name, sol::property( \
+                [](const lt::settings_pack& sp) { return sp.get_bool(lt::settings_pack:: name); }, \
+                [](lt::settings_pack& sp, bool v) { sp.set_bool(lt::settings_pack:: name, v); })
+
+    #define INT_PROP(name) \
+        #name, sol::property( \
+                [](const lt::settings_pack& sp) { return sp.get_int(lt::settings_pack:: name); }, \
+                [](lt::settings_pack& sp, int v) { sp.set_int(lt::settings_pack:: name, v); })
+
+    #define STR_PROP(name) \
+        #name, sol::property( \
+                [](const lt::settings_pack& sp) { return sp.get_str(lt::settings_pack:: name); }, \
+                [](lt::settings_pack& sp, const std::string& v) { sp.set_str(lt::settings_pack:: name, v); })
+
     lua.new_usertype<lt::settings_pack>(
-        "lt.settings_pack",
-        sol::no_constructor,
-        sol::meta_function::index, [](sol::this_state s, lt::settings_pack& pack, const std::string& key) -> sol::object {
-            sol::state_view lua{s};
+        "LtSettingsPack",
 
-            int setting = lt::setting_by_name(key);
+        sol::call_constructor,   sol::factories([]() { return lt::settings_pack(); }),
 
-            if (setting == -1)
-            {
-                return sol::nil;
-            }
+        "default_settings",      []() { return lt::default_settings(); },
+        "high_performance_seed", []() { return lt::high_performance_seed(); },
+        "min_memory_usage",      []() { return lt::min_memory_usage(); },
 
-            int type = setting & lt::settings_pack::type_mask;
+        STR_PROP(user_agent),
+        STR_PROP(announce_ip),
+        STR_PROP(handshake_client_version),
+        STR_PROP(outgoing_interfaces),
+        STR_PROP(listen_interfaces),
+        STR_PROP(proxy_hostname),
+        STR_PROP(proxy_username),
+        STR_PROP(proxy_password),
+        STR_PROP(i2p_hostname),
+        STR_PROP(peer_fingerprint),
+        STR_PROP(dht_bootstrap_nodes),
+        STR_PROP(natpmp_gateway),
+        STR_PROP(webtorrent_stun_server),
 
-            switch (type)
-            {
-                case lt::settings_pack::string_type_base:
-                    return sol::make_object(lua, pack.get_str(setting));
-                case lt::settings_pack::int_type_base:
-                    return sol::make_object(lua, pack.get_int(setting));
-                case lt::settings_pack::bool_type_base:
-                    return sol::make_object(lua, pack.get_bool(setting));
-            }
+        BOOL_PROP(allow_multiple_connections_per_ip),
+        BOOL_PROP(send_redundant_have),
+        BOOL_PROP(use_dht_as_fallback),
+        BOOL_PROP(upnp_ignore_nonrouters),
+        BOOL_PROP(use_parole_mode),
+        BOOL_PROP(auto_manage_prefer_seeds),
+        BOOL_PROP(dont_count_slow_torrents),
+        BOOL_PROP(close_redundant_connections),
+        BOOL_PROP(prioritize_partial_pieces),
+        BOOL_PROP(rate_limit_ip_overhead),
+        BOOL_PROP(announce_to_all_tiers),
+        BOOL_PROP(announce_to_all_trackers),
+        BOOL_PROP(prefer_udp_trackers),
+        BOOL_PROP(disable_hash_checks),
+        BOOL_PROP(allow_i2p_mixed),
+        BOOL_PROP(no_atime_storage),
+        BOOL_PROP(incoming_starts_queued_torrents),
+        BOOL_PROP(report_true_downloaded),
+        BOOL_PROP(strict_end_game_mode),
+        BOOL_PROP(enable_outgoing_utp),
+        BOOL_PROP(enable_incoming_utp),
+        BOOL_PROP(enable_outgoing_tcp),
+        BOOL_PROP(enable_incoming_tcp),
+        BOOL_PROP(no_recheck_incomplete_resume),
+        BOOL_PROP(anonymous_mode),
+        BOOL_PROP(report_web_seed_downloads),
+        BOOL_PROP(seeding_outgoing_connections),
+        BOOL_PROP(no_connect_privileged_ports),
+        BOOL_PROP(smooth_connects),
+        BOOL_PROP(always_send_user_agent),
+        BOOL_PROP(apply_ip_filter_to_trackers),
+        BOOL_PROP(ban_web_seeds),
+        BOOL_PROP(support_share_mode),
+        BOOL_PROP(report_redundant_bytes),
+        BOOL_PROP(listen_system_port_fallback),
+        BOOL_PROP(announce_crypto_support),
+        BOOL_PROP(enable_upnp),
+        BOOL_PROP(enable_natpmp),
+        BOOL_PROP(enable_lsd),
+        BOOL_PROP(enable_dht),
+        BOOL_PROP(prefer_rc4),
+        BOOL_PROP(proxy_hostnames),
+        BOOL_PROP(proxy_peer_connections),
+        BOOL_PROP(auto_sequential),
+        BOOL_PROP(proxy_tracker_connections),
+        BOOL_PROP(enable_ip_notifier),
+        BOOL_PROP(dht_prefer_verified_node_ids),
+        BOOL_PROP(dht_restrict_routing_ips),
+        BOOL_PROP(dht_restrict_search_ips),
+        BOOL_PROP(dht_extended_routing_table),
+        BOOL_PROP(dht_aggressive_lookups),
+        BOOL_PROP(dht_privacy_lookups),
+        BOOL_PROP(dht_enforce_node_id),
+        BOOL_PROP(dht_ignore_dark_internet),
+        BOOL_PROP(dht_read_only),
+        BOOL_PROP(piece_extent_affinity),
+        BOOL_PROP(validate_https_trackers),
+        BOOL_PROP(ssrf_mitigation),
+        BOOL_PROP(allow_idna),
+        BOOL_PROP(enable_set_file_valid_data),
+        BOOL_PROP(socks5_udp_send_local_ep),
+        BOOL_PROP(proxy_send_host_in_connect),
+        BOOL_PROP(disk_disable_copy_on_write),
+        BOOL_PROP(allow_multiple_connections_per_pid),
+        BOOL_PROP(apply_filter_to_dht),
 
-            return sol::nil;
-        },
-        sol::meta_function::new_index, [](sol::this_state s, lt::settings_pack& pack, const std::string& key, sol::object value) {
-            int setting = lt::setting_by_name(key);
-
-            if (setting == -1)
-            {
-                return;
-            }
-
-            int type = setting & lt::settings_pack::type_mask;
-
-            switch (type)
-            {
-                case lt::settings_pack::string_type_base:
-                    pack.set_str(setting, value.as<std::string>());
-                    break;
-                case lt::settings_pack::int_type_base:
-                    pack.set_int(setting, value.as<int>());
-                    break;
-                case lt::settings_pack::bool_type_base:
-                    pack.set_bool(setting, value.as<bool>());
-                    break;
-            }
-        });
+        INT_PROP(tracker_completion_timeout),
+        INT_PROP(tracker_receive_timeout),
+        INT_PROP(stop_tracker_timeout),
+        INT_PROP(tracker_maximum_response_length),
+        INT_PROP(piece_timeout),
+        INT_PROP(request_timeout),
+        INT_PROP(request_queue_time),
+        INT_PROP(max_allowed_in_request_queue),
+        INT_PROP(max_out_request_queue),
+        INT_PROP(whole_pieces_threshold),
+        INT_PROP(peer_timeout),
+        INT_PROP(urlseed_timeout),
+        INT_PROP(urlseed_pipeline_size),
+        INT_PROP(urlseed_wait_retry),
+        INT_PROP(file_pool_size),
+        INT_PROP(max_failcount),
+        INT_PROP(min_reconnect_time),
+        INT_PROP(peer_connect_timeout),
+        INT_PROP(connection_speed),
+        INT_PROP(inactivity_timeout),
+        INT_PROP(unchoke_interval),
+        INT_PROP(optimistic_unchoke_interval),
+        INT_PROP(num_want),
+        INT_PROP(initial_picker_threshold),
+        INT_PROP(allowed_fast_set_size),
+        INT_PROP(suggest_mode),
+        INT_PROP(max_queued_disk_bytes),
+        INT_PROP(handshake_timeout),
+        INT_PROP(send_buffer_low_watermark),
+        INT_PROP(send_buffer_watermark),
+        INT_PROP(send_buffer_watermark_factor),
+        INT_PROP(choking_algorithm),
+        INT_PROP(seed_choking_algorithm),
+        INT_PROP(disk_io_write_mode),
+        INT_PROP(disk_io_read_mode),
+        INT_PROP(outgoing_port),
+        INT_PROP(num_outgoing_ports),
+        INT_PROP(peer_dscp),
+        INT_PROP(active_downloads),
+        INT_PROP(active_seeds),
+        INT_PROP(active_checking),
+        INT_PROP(active_dht_limit),
+        INT_PROP(active_tracker_limit),
+        INT_PROP(active_lsd_limit),
+        INT_PROP(active_limit),
+        INT_PROP(auto_manage_interval),
+        INT_PROP(seed_time_limit),
+        INT_PROP(auto_scrape_interval),
+        INT_PROP(auto_scrape_min_interval),
+        INT_PROP(max_peerlist_size),
+        INT_PROP(max_paused_peerlist_size),
+        INT_PROP(min_announce_interval),
+        INT_PROP(auto_manage_startup),
+        INT_PROP(seeding_piece_quota),
+        INT_PROP(max_rejects),
+        INT_PROP(recv_socket_buffer_size),
+        INT_PROP(send_socket_buffer_size),
+        INT_PROP(max_peer_recv_buffer_size),
+        INT_PROP(optimistic_disk_retry),
+        INT_PROP(max_suggest_pieces),
+        INT_PROP(local_service_announce_interval),
+        INT_PROP(dht_announce_interval),
+        INT_PROP(udp_tracker_token_expiry),
+        INT_PROP(num_optimistic_unchoke_slots),
+        INT_PROP(max_pex_peers),
+        INT_PROP(tick_interval),
+        INT_PROP(share_mode_target),
+        INT_PROP(upload_rate_limit),
+        INT_PROP(download_rate_limit),
+        INT_PROP(dht_upload_rate_limit),
+        INT_PROP(unchoke_slots_limit),
+        INT_PROP(connections_limit),
+        INT_PROP(connections_slack),
+        INT_PROP(utp_target_delay),
+        INT_PROP(utp_gain_factor),
+        INT_PROP(utp_min_timeout),
+        INT_PROP(utp_syn_resends),
+        INT_PROP(utp_fin_resends),
+        INT_PROP(utp_num_resends),
+        INT_PROP(utp_connect_timeout),
+        INT_PROP(utp_loss_multiplier),
+        INT_PROP(mixed_mode_algorithm),
+        INT_PROP(listen_queue_size),
+        INT_PROP(torrent_connect_boost),
+        INT_PROP(alert_queue_size),
+        INT_PROP(max_metadata_size),
+        INT_PROP(hashing_threads),
+        INT_PROP(checking_mem_usage),
+        INT_PROP(predictive_piece_announce),
+        INT_PROP(aio_threads),
+        INT_PROP(tracker_backoff),
+        INT_PROP(share_ratio_limit),
+        INT_PROP(seed_time_ratio_limit),
+        INT_PROP(peer_turnover),
+        INT_PROP(peer_turnover_cutoff),
+        INT_PROP(peer_turnover_interval),
+        INT_PROP(connect_seed_every_n_download),
+        INT_PROP(max_http_recv_buffer_size),
+        INT_PROP(max_retry_port_bind),
+        INT_PROP(max_retry_port_bind),
+        INT_PROP(alert_mask),
+        INT_PROP(out_enc_policy),
+        INT_PROP(in_enc_policy),
+        INT_PROP(allowed_enc_level),
+        INT_PROP(inactive_down_rate),
+        INT_PROP(inactive_up_rate),
+        INT_PROP(proxy_type),
+        INT_PROP(proxy_port),
+        INT_PROP(i2p_port),
+        INT_PROP(urlseed_max_request_bytes),
+        INT_PROP(web_seed_name_lookup_retry),
+        INT_PROP(close_file_interval),
+        INT_PROP(utp_cwnd_reduce_timer),
+        INT_PROP(max_web_seed_connections),
+        INT_PROP(resolver_cache_timeout),
+        INT_PROP(send_not_sent_low_watermark),
+        INT_PROP(rate_choker_initial_threshold),
+        INT_PROP(upnp_lease_duration),
+        INT_PROP(max_concurrent_http_announces),
+        INT_PROP(dht_max_peers_reply),
+        INT_PROP(dht_search_branching),
+        INT_PROP(dht_max_fail_count),
+        INT_PROP(dht_max_torrents),
+        INT_PROP(dht_max_dht_items),
+        INT_PROP(dht_max_peers),
+        INT_PROP(dht_max_torrent_search_reply),
+        INT_PROP(dht_block_timeout),
+        INT_PROP(dht_block_ratelimit),
+        INT_PROP(dht_item_lifetime),
+        INT_PROP(dht_sample_infohashes_interval),
+        INT_PROP(dht_max_infohashes_sample_count),
+        INT_PROP(max_piece_count),
+        INT_PROP(metadata_token_limit),
+        INT_PROP(disk_write_mode),
+        INT_PROP(mmap_file_size_cutoff),
+        INT_PROP(i2p_inbound_quantity),
+        INT_PROP(i2p_outbound_quantity),
+        INT_PROP(i2p_inbound_length),
+        INT_PROP(i2p_outbound_length),
+        INT_PROP(announce_port),
+        INT_PROP(i2p_inbound_length_variance),
+        INT_PROP(i2p_outbound_length_variance),
+        INT_PROP(natpmp_lease_duration),
+        INT_PROP(min_websocket_announce_interval),
+        INT_PROP(webtorrent_connection_timeout),
+        INT_PROP(max_webtorrent_offers)
+    );
 }

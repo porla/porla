@@ -18,7 +18,7 @@ namespace porla::Lua::Types
 
         int Count();
 
-        std::optional<lt::torrent_handle> Get(const std::string& info_hash);
+        std::optional<std::tuple<lt::torrent_handle, lt::torrent_status>> Get(const lt::info_hash_t& info_hash);
 
         std::shared_ptr<PoTorrentsIterator> List();
 

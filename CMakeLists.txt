@@ -138,12 +138,14 @@ add_library(
     src/lua/packages/events.cpp
     src/lua/packages/httpclient.cpp
     src/lua/packages/httpserver.cpp
+    src/lua/packages/runtime.cpp
     src/lua/packages/sessions.cpp
     src/lua/packages/timers.cpp
 
     src/lua/types/ltannounceendpoint.cpp
     src/lua/types/ltannounceentry.cpp
     src/lua/types/ltannounceinfohash.cpp
+    src/lua/types/ltinfohash.cpp
     src/lua/types/ltopenfilestate.cpp
     src/lua/types/ltpeerinfo.cpp
     src/lua/types/ltsettingspack.cpp

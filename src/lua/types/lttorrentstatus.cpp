@@ -7,7 +7,7 @@ using porla::Lua::Types::LtTorrentStatus;
 void LtTorrentStatus::Register(sol::state& lua)
 {
     lua.new_usertype<lt::torrent_status>(
-        "lt.torrent_status",
+        "LtTorrentStatus",
         sol::no_constructor,
         "active_duration",        sol::property([](const lt::torrent_status& ts) { return ts.active_duration.count(); }),
         "added_time",             sol::readonly(&lt::torrent_status::added_time),

@@ -20,26 +20,17 @@ int PoTorrentsHandle::Count()
     return m_state.lock()->torrents.size();
 }
 
-std::optional<lt::torrent_handle> PoTorrentsHandle::Get(const std::string& info_hash)
+std::optional<std::tuple<lt::torrent_handle, lt::torrent_status>> PoTorrentsHandle::Get(const lt::info_hash_t& info_hash)
 {
-    lt::sha1_hash hash;
-
-    {
-        std::stringstream ss(info_hash);
-        ss >> hash;
-    }
-
     auto state = m_state.lock();
-    auto found = state->torrents.find(lt::info_hash_t(hash));
+    auto found = state->torrents.find(info_hash);
 
     if (found == state->torrents.end())
     {
         return std::nullopt;
     }
 
-    auto [ th, _ ] = found->second;
-
-    return th;
+    return found->second;
 }
 
 std::shared_ptr<PoTorrentsIterator> PoTorrentsHandle::List()

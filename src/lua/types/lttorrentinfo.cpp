@@ -6,12 +6,8 @@ using porla::Lua::Types::LtTorrentInfo;
 
 void LtTorrentInfo::Register(sol::state& lua)
 {
-    sol::table lt = lua["lt"].valid()
-        ? lua["lt"].get<sol::table>()
-        : lua.create_named_table("lt");
-
-    lt["torrent_info"] = lua.new_usertype<lt::torrent_info>(
-        "lt.torrent_info",
+    lua.new_usertype<lt::torrent_info>(
+        "LtTorrentInfo",
         sol::no_constructor,
 
         "info_hash",   &lt::torrent_info::info_hashes,

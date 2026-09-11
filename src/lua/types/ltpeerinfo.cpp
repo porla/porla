@@ -7,7 +7,7 @@ using porla::Lua::Types::LtPeerInfo;
 void LtPeerInfo::Register(sol::state& lua)
 {
     lua.new_usertype<lt::peer_info>(
-        "lt.peer_info",
+        "LtPeerInfo",
         sol::no_constructor,
         "busy_requests",            sol::readonly(&lt::peer_info::busy_requests),
         "client",                   sol::readonly(&lt::peer_info::client),

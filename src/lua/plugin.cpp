@@ -7,13 +7,13 @@
 
 #include <boost/asio/post.hpp>
 #include <boost/log/trivial.hpp>
-#include <libtorrent/session_stats.hpp>
 #include <sol/sol.hpp>
 #include <sqlite3.h>
 
 #include "packages/events.hpp"
 #include "packages/httpclient.hpp"
 #include "packages/httpserver.hpp"
+#include "packages/runtime.hpp"
 #include "packages/sessions.hpp"
 #include "packages/timers.hpp"
 #include "pluginsource.hpp"
@@ -27,9 +27,7 @@
 
 #include "../config.hpp"
 #include "../curlmulti.hpp"
-#include "../data/models/sessions.hpp"
 #include "../sessions.hpp"
-#include "../zip.hpp"
 
 namespace fs = std::filesystem;
 
@@ -38,28 +36,7 @@ using porla::Lua::PluginLoadOptions;
 
 namespace
 {
-    // Formats arguments the way stock print() does - each one run through
-    // tostring (so __tostring / __name are honored), separated by tabs.
-    std::string Concat(lua_State* L, const sol::variadic_args& args)
-    {
-        std::string line;
-
-        for (const auto& arg : args)
-        {
-            std::size_t len = 0;
-
-            // Pushes the string representation; indices in `args` are absolute,
-            // so they survive the push.
-            const char* str = luaL_tolstring(L, arg.stack_index(), &len);
-
-            if (!line.empty()) line += '\t';
-            line.append(str, len);
-
-            lua_pop(L, 1);
-        }
-
-        return line;
-    }
+    static int PORLA_LUA_API_VERSION = 1;
 
     std::string DescribeError(const sol::protected_function_result& result)
     {
@@ -110,6 +87,7 @@ struct Plugin::State
         Types::LtAnnounceEndpoint::Register(lua);
         Types::LtAnnounceEntry::Register(lua);
         Types::LtAnnounceInfohash::Register(lua);
+        Types::LtInfoHash::Register(lua);
         Types::LtOpenFileState::Register(lua);
         Types::LtPeerInfo::Register(lua);
         Types::LtSettingsPack::Register(lua);
@@ -124,6 +102,7 @@ struct Plugin::State
         lua["package"]["preload"]["porla_events"]      = Packages::Events::Load;
         lua["package"]["preload"]["porla_http_client"] = Packages::HttpClient::Load;
         lua["package"]["preload"]["porla_http_server"] = Packages::HttpServer::Load;
+        lua["package"]["preload"]["porla_runtime"]     = Packages::Runtime::Load;
         lua["package"]["preload"]["porla_sessions"]    = Packages::Sessions::Load;
         lua["package"]["preload"]["porla_timers"]      = Packages::Timers::Load;
 

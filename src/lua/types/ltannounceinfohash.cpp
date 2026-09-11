@@ -7,7 +7,7 @@ using porla::Lua::Types::LtAnnounceInfohash;
 void LtAnnounceInfohash::Register(sol::state& lua)
 {
     lua.new_usertype<lt::announce_infohash>(
-        "lt.announce_infohash",
+        "LtAnnounceInfohash",
         sol::no_constructor,
         "complete_sent",     sol::readonly_property([](const lt::announce_infohash& ai) { return ai.complete_sent; }),
         "fails",             sol::readonly_property([](const lt::announce_infohash& ai) { return ai.fails; }),

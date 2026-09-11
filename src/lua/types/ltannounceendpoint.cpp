@@ -7,7 +7,7 @@ using porla::Lua::Types::LtAnnounceEndpoint;
 void LtAnnounceEndpoint::Register(sol::state& lua)
 {
     lua.new_usertype<lt::announce_endpoint>(
-        "lt.announce_endpoint",
+        "LtAnnounceEndpoint",
         sol::no_constructor,
         "enabled", sol::readonly(&lt::announce_endpoint::enabled),
         "info_hashes", sol::readonly(&lt::announce_endpoint::info_hashes),

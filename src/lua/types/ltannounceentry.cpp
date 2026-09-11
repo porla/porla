@@ -7,7 +7,7 @@ using porla::Lua::Types::LtAnnounceEntry;
 void LtAnnounceEntry::Register(sol::state& lua)
 {
     lua.new_usertype<lt::announce_entry>(
-        "lt.announce_entry",
+        "LtAnnounceEntry",
         sol::no_constructor,
         "endpoints",  sol::readonly(&lt::announce_entry::endpoints),
         "fail_limit", sol::readonly(&lt::announce_entry::fail_limit),

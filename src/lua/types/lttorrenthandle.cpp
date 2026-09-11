@@ -9,7 +9,7 @@ using porla::Lua::Types::LtTorrentHandle;
 void LtTorrentHandle::Register(sol::state& lua)
 {
     lua.new_usertype<lt::torrent_handle>(
-        "lt.torrent_handle",
+        "LtTorrentHandle",
         sol::no_constructor,
         // add_piece
         // add_tracker
@@ -29,7 +29,18 @@ void LtTorrentHandle::Register(sol::state& lua)
         // force_reannounce
         "force_recheck",              &lt::torrent_handle::force_recheck,
         //"get_download_queue",       &lt::torrent_handle::get_download_queue,
-        // get_file_priorities
+        "get_file_priorities",        [](sol::this_state ts, const lt::torrent_handle& th)
+        {
+            sol::state_view lua(ts);
+            sol::table tbl = lua.create_table();
+
+            for (const auto prio : th.get_file_priorities())
+            {
+                tbl.add(static_cast<std::uint8_t>(prio));
+            }
+
+            return tbl;
+        },
         // get_peer_info
         "get_peer_info",              [](const lt::torrent_handle& th)
                                         {
@@ -60,7 +71,37 @@ void LtTorrentHandle::Register(sol::state& lua)
         "post_piece_availability",    &lt::torrent_handle::post_piece_availability,
         "post_status",                &lt::torrent_handle::post_status,
         "post_trackers",              &lt::torrent_handle::post_trackers,
-        // prioritize_files
+        "prioritize_files",           [](const lt::torrent_handle& th, const sol::table& prios)
+        {
+            std::vector<lt::download_priority_t> file_priorities;
+            file_priorities.reserve(prios.size());
+
+            for (auto i = 1; i <= prios.size(); i++)
+            {
+                std::optional<sol::object> val = prios[i];
+
+                if (!val)
+                {
+                    throw std::invalid_argument("missing value");
+                }
+
+                if (val->get_type() != sol::type::number)
+                {
+                    throw std::invalid_argument("invalid type (not number");
+                }
+
+                const auto n = val->as<int>();
+
+                if (n < 0 || n > 7)
+                {
+                    throw std::invalid_argument("priority must be 0-7");
+                }
+
+                file_priorities.push_back(lt::download_priority_t(static_cast<std::uint8_t>(n)));
+            }
+
+            th.prioritize_files(file_priorities);
+        },
         // prioritize_pieces
         "queue_position",             &lt::torrent_handle::queue_position,
         "queue_position_bottom",      &lt::torrent_handle::queue_position_bottom,
