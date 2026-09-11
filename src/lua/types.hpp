@@ -11,6 +11,7 @@
 
 namespace porla::Lua::Types
 {
+    DECLARE_TYPE_REGISTRY(LtAddTorrentParams)
     DECLARE_TYPE_REGISTRY(LtAnnounceEndpoint)
     DECLARE_TYPE_REGISTRY(LtAnnounceEntry)
     DECLARE_TYPE_REGISTRY(LtAnnounceInfohash)

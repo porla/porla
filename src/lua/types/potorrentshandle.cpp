@@ -10,9 +10,19 @@ void PoTorrentsHandle::Register(sol::state& lua)
     lua.new_usertype<PoTorrentsHandle>(
         "PoTorrentsHandle",
         sol::no_constructor,
-        "count", &PoTorrentsHandle::Count,
-        "get",   &PoTorrentsHandle::Get,
-        "list",  &PoTorrentsHandle::List);
+        "add",    &PoTorrentsHandle::Add,
+        "count",  &PoTorrentsHandle::Count,
+        "get",    &PoTorrentsHandle::Get,
+        "list",   &PoTorrentsHandle::List,
+        "remove", sol::overload(
+            sol::resolve<void(const lt::info_hash_t&)>(&PoTorrentsHandle::Remove),
+            sol::resolve<void(const lt::torrent_handle&)>(&PoTorrentsHandle::Remove))
+        );
+}
+
+void PoTorrentsHandle::Add(const lt::add_torrent_params& params)
+{
+    m_state.lock()->session->async_add_torrent(params);
 }
 
 int PoTorrentsHandle::Count()
@@ -36,4 +46,14 @@ std::optional<std::tuple<lt::torrent_handle, lt::torrent_status>> PoTorrentsHand
 std::shared_ptr<PoTorrentsIterator> PoTorrentsHandle::List()
 {
     return std::make_shared<PoTorrentsIterator>(m_state.lock()->torrents);
+}
+
+void PoTorrentsHandle::Remove(const lt::info_hash_t& ih)
+{
+
+}
+
+void PoTorrentsHandle::Remove(const lt::torrent_handle& th)
+{
+
 }

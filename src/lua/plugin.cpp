@@ -84,6 +84,7 @@ struct Plugin::State
             sol::lib::string,
             sol::lib::table);
 
+        Types::LtAddTorrentParams::Register(lua);
         Types::LtAnnounceEndpoint::Register(lua);
         Types::LtAnnounceEntry::Register(lua);
         Types::LtAnnounceInfohash::Register(lua);

@@ -142,6 +142,7 @@ add_library(
     src/lua/packages/sessions.cpp
     src/lua/packages/timers.cpp
 
+    src/lua/types/ltaddtorrentparams.cpp
     src/lua/types/ltannounceendpoint.cpp
     src/lua/types/ltannounceentry.cpp
     src/lua/types/ltannounceinfohash.cpp
