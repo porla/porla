@@ -48,5 +48,16 @@ void Timer::OnExpired(boost::system::error_code ec)
     m_timer.expires_after(std::chrono::milliseconds(m_interval));
     m_timer.async_wait([this](auto &&PH1) { OnExpired(std::forward<decltype(PH1)>(PH1)); });
 
-    m_callback();
+    try
+    {
+        m_callback();
+    }
+    catch (const std::exception& ex)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Unhandled exception in timer callback: " << ex.what();
+    }
+    catch (...)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Unknown exception in timer callback";
+    }
 }

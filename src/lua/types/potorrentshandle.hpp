@@ -16,7 +16,7 @@ namespace porla::Lua::Types
         explicit PoTorrentsHandle(std::weak_ptr<porla::Sessions::SessionState> state)
             : m_state(state) {}
 
-        void Add(const lt::add_torrent_params& params);
+        void Add(const sol::table& params);
 
         int Count();
 

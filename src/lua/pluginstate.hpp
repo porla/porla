@@ -81,18 +81,18 @@ namespace porla::Lua
 
             if (!result.valid())
             {
-                BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Error when invoking callback: " << result.get<std::string>();
+                BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Error when invoking callback: " << (int)result.get_type();
             }
         }
 
-        std::size_t RegisterCallback(sol::protected_function func, bool one_shot)
+        std::size_t RegisterCallback(sol::main_protected_function func, bool one_shot)
         {
             const auto id = NextId();
             m_callbacks[id] = CallbackRef{.callback = std::move(func), .one_shot = one_shot};
             return id;
         }
 
-        std::size_t RegisterCronSchedule(const std::string& expression, sol::protected_function func)
+        std::size_t RegisterCronSchedule(const std::string& expression, sol::main_protected_function func)
         {
             const auto cron_schedule_id = NextId();
             const auto callback_id      = RegisterCallback(std::move(func), false);
@@ -123,7 +123,7 @@ namespace porla::Lua
             return connection_id;
         }
 
-        std::size_t RegisterTimer(int interval, sol::protected_function func, bool one_shot)
+        std::size_t RegisterTimer(int interval, sol::main_protected_function func, bool one_shot)
         {
             const auto timer_id    = NextId();
             const auto callback_id = RegisterCallback(std::move(func), one_shot);
@@ -173,8 +173,8 @@ namespace porla::Lua
     private:
         struct CallbackRef
         {
-            sol::protected_function callback;
-            bool                    one_shot;
+            sol::main_protected_function callback;
+            bool                         one_shot;
         };
 
         struct CronScheduleRef

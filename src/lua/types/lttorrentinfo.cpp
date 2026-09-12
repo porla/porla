@@ -1,5 +1,6 @@
 #include "../types.hpp"
 
+#include <libtorrent/load_torrent.hpp>
 #include <libtorrent/torrent_info.hpp>
 
 using porla::Lua::Types::LtTorrentInfo;

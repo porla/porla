@@ -36,10 +36,22 @@
         "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "ON",
         "CMAKE_EXE_LINKER_FLAGS": "-static -s -Os"
       }
+    },
+    {
+      "name": "relwithdebinfo",
+      "displayName": "Release with debug info",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g3 -fno-omit-frame-pointer -DNDEBUG",
+        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "OFF",
+        "CMAKE_EXE_LINKER_FLAGS": "-static"
+      }
     }
   ],
   "buildPresets": [
     { "name": "debug",   "configurePreset": "debug" },
-    { "name": "release", "configurePreset": "release" }
+    { "name": "release", "configurePreset": "release" },
+    { "name": "relwithdebinfo", "configurePreset": "relwithdebinfo" }
   ]
 }

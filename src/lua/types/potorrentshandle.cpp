@@ -1,6 +1,9 @@
 #include "potorrentshandle.hpp"
 
+#include "ltaddtorrentparams.hpp"
 #include "potorrentsiterator.hpp"
+
+#include "../../torrentclientdata.hpp"
 
 using porla::Lua::Types::PoTorrentsHandle;
 using porla::Lua::Types::PoTorrentsIterator;
@@ -20,9 +23,13 @@ void PoTorrentsHandle::Register(sol::state& lua)
         );
 }
 
-void PoTorrentsHandle::Add(const lt::add_torrent_params& params)
+void PoTorrentsHandle::Add(const sol::table& params)
 {
-    m_state.lock()->session->async_add_torrent(params);
+    lt::add_torrent_params atp = LtAddTorrentParams::ToParams(params);
+    atp.userdata = lt::client_data_t(new TorrentClientData());
+    atp.userdata.get<TorrentClientData>()->state = m_state;
+
+    m_state.lock()->session->async_add_torrent(atp);
 }
 
 int PoTorrentsHandle::Count()

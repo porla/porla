@@ -21,6 +21,7 @@
 #include "print.hpp"
 #include "types.hpp"
 
+#include "types/ltaddtorrentparams.hpp"
 #include "types/pocancellable.hpp"
 #include "types/posessionhandle.hpp"
 #include "types/potorrentshandle.hpp"
@@ -92,6 +93,8 @@ struct Plugin::State
         Types::LtOpenFileState::Register(lua);
         Types::LtPeerInfo::Register(lua);
         Types::LtSettingsPack::Register(lua);
+        Types::LtTorrentFlags::Register(lua);
+        Types::LtTorrentInfo::Register(lua);
         Types::LtTorrentHandle::Register(lua);
         Types::LtTorrentStatus::Register(lua);
 
@@ -256,11 +259,28 @@ Plugin::~Plugin()
         return;
     }
 
-    sol::optional<sol::protected_function> destroy = m_state->tbl["destroy"];
-
-    if (destroy && destroy->valid())
+    try
     {
-        (*destroy)();
+        sol::optional<sol::protected_function> destroy = m_state->tbl["destroy"];
+
+        if (destroy && destroy->valid())
+        {
+            sol::protected_function_result result = (*destroy)();
+
+            if (!result.valid())
+            {
+                BOOST_LOG_TRIVIAL(error)
+                    << "plugin[" << m_state->load_options.plugin_id << "] Error in destroy: " << DescribeError(result);
+            }
+        }
+    }
+    catch (const std::exception& err)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Exception during plugin teardown: " << err.what();
+    }
+    catch (...)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Unknown exception during plugin teardown";
     }
 
     m_state->lua_state.reset();

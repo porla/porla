@@ -150,9 +150,12 @@ add_library(
     src/lua/types/ltopenfilestate.cpp
     src/lua/types/ltpeerinfo.cpp
     src/lua/types/ltsettingspack.cpp
+    src/lua/types/lttorrentflags.cpp
+    src/lua/types/lttorrentinfo.cpp
     src/lua/types/lttorrenthandle.cpp
     src/lua/types/lttorrentstatus.cpp
     src/lua/types/pocancellable.cpp
+    src/lua/types/poerror.cpp
     src/lua/types/posessionhandle.cpp
     src/lua/types/posessionsiterator.cpp
     src/lua/types/potorrentshandle.cpp
@@ -232,6 +235,7 @@ add_library(
 target_compile_definitions(
     ${PROJECT_NAME}_core
     PUBLIC
+    -DSOL_ALL_SAFETIES_ON=1
     -DSQLITE_CORE
 )
 
