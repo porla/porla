@@ -14,15 +14,16 @@ void PoTcpClient::Register(sol::state& lua)
         "PoTcpClient",
         sol::no_constructor,
         "connect", &PoTcpClient::Connect,
-        "read",    &PoTcpClient::Read);
+        "read",    &PoTcpClient::Read,
+        "tls",     &PoTcpClient::Tls);
 }
 
-PoTcpClient::PoTcpClient(const std::shared_ptr<LuaState>& lua_state, const std::shared_ptr<boost::asio::ssl::context>& tls_ctx)
+PoTcpClient::PoTcpClient(const std::shared_ptr<LuaState>& lua_state)
     : m_io(lua_state->io)
     , m_resolver(lua_state->io)
     , m_socket(lua_state->io)
     , m_state(lua_state)
-    , m_tls_ctx(tls_ctx)
+    , m_tls_ctx(nullptr)
 {
 }
 
@@ -54,24 +55,7 @@ void PoTcpClient::ConnectComplete(std::size_t callback_id, const boost::system::
         return;
     }
 
-    BOOST_LOG_TRIVIAL(info) << "connected to " << endpoint;
-
-    if (m_tls_ctx == nullptr)
-    {
-        state->InvokeCallback(callback_id);
-        return;
-    }
-
-    boost::system::error_code verify_ec;
-
-    m_tls.emplace(m_socket, *m_tls_ctx);
-    m_tls->set_verify_callback(boost::asio::ssl::host_name_verification("irc.libera.chat"), verify_ec);
-
-    SSL_set_tlsext_host_name(m_tls->native_handle(), "irc.libera.chat");
-
-    m_tls->async_handshake(
-        boost::asio::ssl::stream_base::client,
-        std::bind_front(&PoTcpClient::HandshakeComplete, shared_from_this(), callback_id));
+    state->InvokeCallback(callback_id);
 }
 
 void PoTcpClient::HandshakeComplete(std::size_t callback_id, const boost::system::error_code& ec)
@@ -143,4 +127,40 @@ void PoTcpClient::ReadComplete(std::size_t callback_id, const boost::system::err
     std::string data(m_buffer.data(), n);
 
     state->InvokeCallback(callback_id, data);
+}
+
+void PoTcpClient::Tls(sol::main_protected_function callback)
+{
+    auto state = m_state.lock();
+
+    if (state == nullptr)
+    {
+        return;
+    }
+
+    boost::system::error_code ec;
+
+    m_tls_ctx = std::make_shared<boost::asio::ssl::context>(
+        boost::asio::ssl::context::tls_client);
+
+    m_tls_ctx->set_options(
+        boost::asio::ssl::context::default_workarounds |
+        boost::asio::ssl::context::no_sslv2 |
+        boost::asio::ssl::context::no_sslv3 |
+        boost::asio::ssl::context::no_tlsv1 |
+        boost::asio::ssl::context::no_tlsv1_1,
+        ec);
+
+    m_tls_ctx->set_default_verify_paths(ec);
+
+    m_tls.emplace(m_socket, *m_tls_ctx);
+    m_tls->set_verify_callback(boost::asio::ssl::host_name_verification("irc.libera.chat"), ec);
+
+    SSL_set_tlsext_host_name(m_tls->native_handle(), "irc.libera.chat");
+
+    auto callback_id = state->RegisterCallback(callback, true);
+
+    m_tls->async_handshake(
+        boost::asio::ssl::stream_base::client,
+        std::bind_front(&PoTcpClient::HandshakeComplete, shared_from_this(), callback_id));
 }
