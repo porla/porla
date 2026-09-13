@@ -140,6 +140,7 @@ add_library(
     src/lua/packages/httpserver.cpp
     src/lua/packages/runtime.cpp
     src/lua/packages/sessions.cpp
+    src/lua/packages/sockets.cpp
     src/lua/packages/timers.cpp
 
     src/lua/types/ltaddtorrentparams.cpp
@@ -158,6 +159,7 @@ add_library(
     src/lua/types/poerror.cpp
     src/lua/types/posessionhandle.cpp
     src/lua/types/posessionsiterator.cpp
+    src/lua/types/potcpclient.cpp
     src/lua/types/potorrentshandle.cpp
     src/lua/types/potorrentsiterator.cpp
 

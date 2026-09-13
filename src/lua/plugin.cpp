@@ -15,6 +15,7 @@
 #include "packages/httpserver.hpp"
 #include "packages/runtime.hpp"
 #include "packages/sessions.hpp"
+#include "packages/sockets.hpp"
 #include "packages/timers.hpp"
 #include "pluginsource.hpp"
 #include "pluginstate.hpp"
@@ -24,6 +25,7 @@
 #include "types/ltaddtorrentparams.hpp"
 #include "types/pocancellable.hpp"
 #include "types/posessionhandle.hpp"
+#include "types/potcpclient.hpp"
 #include "types/potorrentshandle.hpp"
 
 #include "../config.hpp"
@@ -101,6 +103,7 @@ struct Plugin::State
         // Porla wrapper types
         Types::PoCancellable::Register(lua);
         Types::PoSessionHandle::Register(lua);
+        Types::PoTcpClient::Register(lua);
         Types::PoTorrentsHandle::Register(lua);
 
         lua["package"]["preload"]["porla_events"]      = Packages::Events::Load;
@@ -108,6 +111,7 @@ struct Plugin::State
         lua["package"]["preload"]["porla_http_server"] = Packages::HttpServer::Load;
         lua["package"]["preload"]["porla_runtime"]     = Packages::Runtime::Load;
         lua["package"]["preload"]["porla_sessions"]    = Packages::Sessions::Load;
+        lua["package"]["preload"]["porla_sockets"]     = Packages::Sockets::Load;
         lua["package"]["preload"]["porla_timers"]      = Packages::Timers::Load;
 
         lua_state            = std::make_shared<LuaState>(load_options.io, load_options.sessions, lua);
