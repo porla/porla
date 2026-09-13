@@ -52,7 +52,6 @@ sol::object HttpServer::Load(sol::this_state ts)
             state->InvokeCallback(callback_id, request);
         });
 
-
         state->destructors.emplace_back([weak, path]()
         {
             auto state = weak.lock();

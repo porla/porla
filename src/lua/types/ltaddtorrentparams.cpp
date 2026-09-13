@@ -44,9 +44,43 @@ lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params)
         }
     }
 
-    if (sol::optional<lt::info_hash_t> v = t["info_hash"]) atp.info_hashes = *v;
-    if (sol::optional<std::string>     v = t["save_path"]) atp.save_path   = *v;
+    if (sol::optional<int>                               v = t["active_time"])        atp.active_time        = *v;
+    if (sol::optional<std::time_t>                       v = t["added_time"])         atp.added_time         = *v;
+    if (sol::optional<std::string>                       v = t["comment"])            atp.comment            = *v;
+    if (sol::optional<std::time_t>                       v = t["completed_time"])     atp.completed_time     = *v;
+    if (sol::optional<std::string>                       v = t["created_by"])         atp.created_by         = *v;
+    if (sol::optional<std::time_t>                       v = t["creation_date"])      atp.creation_date      = *v;
+    if (sol::optional<int>                               v = t["download_limit"])     atp.download_limit     = *v;
+    if (sol::optional<std::time_t>                       v = t["finished_time"])      atp.finished_time      = *v;
+    if (sol::optional<lt::torrent_flags_t>               v = t["flags"])              atp.flags              = *v;
+    if (sol::optional<lt::info_hash_t>                   v = t["info_hash"])          atp.info_hashes        = *v;
+    if (sol::optional<std::time_t>                       v = t["last_download"])      atp.last_download      = *v;
+    if (sol::optional<std::time_t>                       v = t["last_seen_complete"]) atp.last_seen_complete = *v;
+    if (sol::optional<std::time_t>                       v = t["last_upload"])        atp.last_upload        = *v;
+    if (sol::optional<int>                               v = t["max_connections"])    atp.max_connections    = *v;
+    if (sol::optional<int>                               v = t["max_uploads"])        atp.max_uploads        = *v;
+    if (sol::optional<std::string>                       v = t["name"])               atp.name               = *v;
+    if (sol::optional<int>                               v = t["num_complete"])       atp.num_complete       = *v;
+    if (sol::optional<int>                               v = t["num_downloaded"])     atp.num_downloaded     = *v;
+    if (sol::optional<int>                               v = t["num_incomplete"])     atp.num_incomplete     = *v;
+    if (sol::optional<std::string>                       v = t["part_file_dir"])      atp.part_file_dir      = *v;
+    if (sol::optional<std::string>                       v = t["root_certificate"])   atp.root_certificate   = *v;
+    if (sol::optional<std::string>                       v = t["save_path"])          atp.save_path          = *v;
+    if (sol::optional<std::time_t>                       v = t["seeding_time"])       atp.seeding_time       = *v;
+    if (sol::optional<std::string>                       v = t["trackerid"])          atp.trackerid          = *v;
+    if (sol::optional<std::shared_ptr<lt::torrent_info>> v = t["ti"])                 atp.ti                 = *v;
+    if (sol::optional<std::int64_t>                      v = t["total_downloaded"])   atp.total_downloaded   = *v;
+    if (sol::optional<std::int64_t>                      v = t["total_uploaded"])     atp.total_uploaded     = *v;
+    if (sol::optional<int>                               v = t["upload_limit"])       atp.upload_limit       = *v;
 
+    // banned peers
+    // dht nodes
+    //tbl["file_priorities"]    = file_priorities;
+    // peers
+    //tbl["storage_mode"]       = params.storage_mode == lt::storage_mode_allocate ? "allocate" : "sparse";
+    //tbl["tracker_tiers"]      = tracker_tiers;
+    // tbl["trackers"]           = trackers;
+    //tbl["url_seeds"]          = url_seeds;
     return atp;
 }
 
