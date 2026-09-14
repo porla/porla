@@ -6,6 +6,7 @@
 
 namespace porla::Lua::Types
 {
+    class PoQuery;
     class PoTorrentsIterator;
 
     class PoTorrentsHandle
@@ -23,9 +24,10 @@ namespace porla::Lua::Types
         std::optional<std::tuple<lt::torrent_handle, lt::torrent_status>> Get(const lt::info_hash_t& info_hash);
 
         std::shared_ptr<PoTorrentsIterator> List();
+        std::shared_ptr<PoTorrentsIterator> List(const PoQuery& query);
 
-        void Remove(const lt::info_hash_t& ih);
-        void Remove(const lt::torrent_handle& th);
+        void Remove(const lt::info_hash_t& ih, std::optional<sol::table> opts);
+        void Remove(const lt::torrent_handle& th, std::optional<sol::table> opts);
 
     private:
         std::weak_ptr<porla::Sessions::SessionState> m_state;

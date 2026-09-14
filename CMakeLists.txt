@@ -157,6 +157,7 @@ add_library(
     src/lua/types/lttorrentstatus.cpp
     src/lua/types/pocancellable.cpp
     src/lua/types/poerror.cpp
+    src/lua/types/poquery.cpp
     src/lua/types/posessionhandle.cpp
     src/lua/types/posessionsiterator.cpp
     src/lua/types/potcpclient.cpp

@@ -525,23 +525,7 @@ public:
     }
 };
 
-struct PqlFilter : public PQL::Filter
-{
-    explicit PqlFilter(TorrentStatusFilter filter)
-        : m_filter(std::move(filter))
-    {
-    }
-
-    [[nodiscard]] bool Includes(const libtorrent::torrent_status& ts) const override
-    {
-        return m_filter(ts);
-    }
-
-private:
-    TorrentStatusFilter m_filter;
-};
-
-std::unique_ptr<PQL::Filter> PQL::Parse(const std::string_view &input)
+TorrentStatusFilter PQL::Parse(const std::string_view &input)
 {
     ExceptionErrorListener errorListener;
 
@@ -557,6 +541,5 @@ std::unique_ptr<PQL::Filter> PQL::Parse(const std::string_view &input)
     parser.addErrorListener(&errorListener);
 
     Visitor visitor;
-    return std::make_unique<PqlFilter>(
-        std::any_cast<TorrentStatusFilter>(visitor.visitFilter(parser.filter())));
+    return std::any_cast<TorrentStatusFilter>(visitor.visitFilter(parser.filter()));
 }

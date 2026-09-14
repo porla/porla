@@ -25,13 +25,24 @@ void porla::Lua::Print(sol::this_state ts, const std::string& pattern, sol::vari
     auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
     auto state = weak.lock();
 
+    std::string msg;
+
+    try
+    {
+        msg = fmt::vformat(pattern, store);
+    }
+    catch (const fmt::format_error& e)
+    {
+        msg = std::string("<bad format: ") + e.what() + ">";
+    }
+
     if (state == nullptr)
     {
-        BOOST_LOG_TRIVIAL(info) << "plugin[unknown] " << fmt::vformat(pattern, store);
+        BOOST_LOG_TRIVIAL(info) << "plugin[unknown] " << msg;
     }
     else
     {
-        BOOST_LOG_TRIVIAL(info) << "plugin[" << state->plugin_id << "] " << fmt::vformat(pattern, store);
+        BOOST_LOG_TRIVIAL(info) << "plugin[" << state->plugin_id << "] " << msg;
     }
 }
 
@@ -56,5 +67,14 @@ void PushArgument(
     case sol::type::string:
         store.push_back(arg.as<std::string>());
         break;
+
+    default:
+    {
+        lua_State* L = arg.lua_state();
+        luaL_tolstring(L, arg.stack_index(), nullptr);
+        store.push_back(std::string(lua_tostring(L, -1)));
+        lua_pop(L, 1);
+        break;
+    }
     }
 }

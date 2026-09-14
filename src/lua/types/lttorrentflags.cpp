@@ -32,6 +32,25 @@ void LtTorrentFlags::Register(sol::state& lua)
     lua.new_usertype<lt::torrent_flags_t>(
         "LtTorrentFlags",
         sol::call_constructor, sol::factories([]() { return lt::torrent_flags_t{}; }),
+        sol::meta_function::to_string, [](const lt::torrent_flags_t& flags)
+        {
+            std::string out;
+
+            for (const auto& [name, flag] : FlagsLookup)
+            {
+                if ((flags & flag) == flag)
+                {
+                    if (!out.empty()) out += "|";
+                    out += name;
+                }
+            }
+
+            return out.empty() ? "(none)" : out;
+        },
+        "clear", [](const lt::torrent_flags_t& flags, const std::string& flag)
+        {
+
+        },
         "has", [](const lt::torrent_flags_t& flags, const std::string& flag)
         {
             const auto flag_value = FlagsLookup.at(flag);

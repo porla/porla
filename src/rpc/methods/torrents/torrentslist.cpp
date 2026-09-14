@@ -101,15 +101,13 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
     }
 
     std::optional<std::function<bool(const lt::torrent_status&)>> filter_query;
-    std::unique_ptr<Query::PQL::Filter> filter_ptr;
 
     if (req.filters.has_value()
         && req.filters->query.has_value())
     {
         try
         {
-            filter_ptr   = Query::PQL::Parse(req.filters->query.value());
-            filter_query = [&filter_ptr](const lt::torrent_status& ts) { return filter_ptr->Includes(ts); };
+            filter_query = Query::PQL::Parse(req.filters->query.value());
         }
         catch (const Query::QueryError& qe)
         {

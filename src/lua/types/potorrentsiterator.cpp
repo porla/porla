@@ -2,15 +2,19 @@
 
 using porla::Lua::Types::PoTorrentsIterator;
 
-std::optional<lt::torrent_handle> PoTorrentsIterator::operator()()
+std::optional<std::tuple<lt::torrent_handle, lt::torrent_status>> PoTorrentsIterator::operator()()
 {
-    if (m_iterator == m_torrents.end())
+    while (m_iterator != m_torrents.end())
     {
-        return std::nullopt;
+        const auto& [th, ts] = m_iterator->second;
+
+        ++m_iterator;
+
+        if (!m_query.has_value() || m_query->Includes(ts))
+        {
+            return std::make_tuple(th, ts);
+        }
     }
 
-    auto [ th, _ ] = m_iterator->second;
-    std::advance(m_iterator, 1);
-
-    return th;
+    return std::nullopt;
 }

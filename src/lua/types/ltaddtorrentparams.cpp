@@ -14,6 +14,19 @@ void LtAddTorrentParams::Register(sol::state& lua)
 {
     sol::table atp = lua.create_table();
 
+    atp.set_function("from_buffer", [](sol::this_state ts, const std::string& buffer) -> std::tuple<sol::object, sol::object>
+    {
+        lt::error_code ec;
+        lt::add_torrent_params params = lt::load_torrent_buffer(buffer, ec, {});
+
+        if (ec)
+        {
+            return std::make_tuple(sol::nil, PoError::Construct(ts, ec));
+        }
+
+        return std::make_tuple(ToTable(ts, params), sol::nil);
+    });
+
     atp.set_function("from_path", [](sol::this_state ts, const std::string& path) -> std::tuple<sol::object, sol::object>
     {
         lt::error_code ec;
@@ -73,14 +86,99 @@ lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params)
     if (sol::optional<std::int64_t>                      v = t["total_uploaded"])     atp.total_uploaded     = *v;
     if (sol::optional<int>                               v = t["upload_limit"])       atp.upload_limit       = *v;
 
+    if (sol::optional<std::string> storage_mode = t["storage_mode"])
+    {
+        atp.storage_mode = storage_mode.value() == "allocate"
+            ? lt::storage_mode_allocate
+            : lt::storage_mode_sparse;
+    }
+
+    if (sol::optional<sol::table> prios = t["file_priorities"])
+    {
+        std::vector<lt::download_priority_t> file_priorities;
+        file_priorities.reserve(prios.value().size());
+
+        for (auto i = 1; i <= prios.value().size(); i++)
+        {
+            std::optional<sol::object> val = (*prios)[i];
+
+            if (!val)
+            {
+                throw std::invalid_argument("missing value");
+            }
+
+            if (val->get_type() != sol::type::number)
+            {
+                throw std::invalid_argument("invalid type (not number)");
+            }
+
+            const auto n = val->as<int>();
+
+            if (n < 0 || n > 7)
+            {
+                throw std::invalid_argument("priority must be 0-7");
+            }
+
+            file_priorities.push_back(lt::download_priority_t(static_cast<std::uint8_t>(n)));
+        }
+
+        atp.file_priorities = file_priorities;
+    }
+
+    if (sol::optional<sol::table> tr = t["trackers"])
+    {
+        std::vector<std::string> trackers;
+        trackers.reserve(tr.value().size());
+
+        for (auto i = 1; i <= tr.value().size(); i++)
+        {
+            std::optional<sol::object> val = (*tr)[i];
+
+            if (!val)
+            {
+                throw std::invalid_argument("missing value");
+            }
+
+            if (val->get_type() != sol::type::string)
+            {
+                throw std::invalid_argument("invalid type (not string)");
+            }
+
+            trackers.push_back(val->as<std::string>());
+        }
+
+        atp.trackers = trackers;
+    }
+
+    if (sol::optional<sol::table> us = t["url_seeds"])
+    {
+        std::vector<std::string> url_seeds;
+        url_seeds.reserve(us.value().size());
+
+        for (auto i = 1; i <= us.value().size(); i++)
+        {
+            std::optional<sol::object> val = (*us)[i];
+
+            if (!val)
+            {
+                throw std::invalid_argument("missing value");
+            }
+
+            if (val->get_type() != sol::type::string)
+            {
+                throw std::invalid_argument("invalid type (not string)");
+            }
+
+            url_seeds.push_back(val->as<std::string>());
+        }
+
+        atp.url_seeds = url_seeds;
+    }
+
     // banned peers
     // dht nodes
-    //tbl["file_priorities"]    = file_priorities;
     // peers
-    //tbl["storage_mode"]       = params.storage_mode == lt::storage_mode_allocate ? "allocate" : "sparse";
     //tbl["tracker_tiers"]      = tracker_tiers;
-    // tbl["trackers"]           = trackers;
-    //tbl["url_seeds"]          = url_seeds;
     return atp;
 }
 
@@ -102,7 +200,7 @@ sol::table LtAddTorrentParams::ToTable(sol::this_state ts, const lt::add_torrent
 
     sol::table meta = lua.create_table();
     meta["__atp"]   = std::make_shared<lt::add_torrent_params>(params);
-    meta["__name"]  = "lt::add_torrent_params";
+    meta["__name"]  = "LtAddTorrentParams";
 
     sol::table tbl = lua.create_table();
     tbl[sol::metatable_key]   = meta;

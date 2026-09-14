@@ -24,6 +24,7 @@
 
 #include "types/ltaddtorrentparams.hpp"
 #include "types/pocancellable.hpp"
+#include "types/poquery.hpp"
 #include "types/posessionhandle.hpp"
 #include "types/potcpclient.hpp"
 #include "types/potorrentshandle.hpp"
@@ -48,15 +49,9 @@ namespace
             return "unknown error";
         }
 
-        sol::object value = result.get<sol::object>();
+        sol::error err = result;
 
-        if (value.is<std::string>())
-        {
-            return value.as<std::string>();
-        }
-
-        return "non-string error value of type "
-            + std::string(sol::type_name(result.lua_state(), value.get_type()));
+        return err.what();
     }
 }
 
@@ -102,6 +97,7 @@ struct Plugin::State
 
         // Porla wrapper types
         Types::PoCancellable::Register(lua);
+        Types::PoQuery::Register(lua);
         Types::PoSessionHandle::Register(lua);
         Types::PoTcpClient::Register(lua);
         Types::PoTorrentsHandle::Register(lua);
@@ -162,7 +158,6 @@ std::unique_ptr<Plugin> Plugin::Load(
             BOOST_LOG_TRIVIAL(error) << "Failed to load plugin: " << err.what();
             return nullptr;
         }
-
         sol::protected_function_result result = chunk.get<sol::protected_function>()();
 
         if (!result.valid())
