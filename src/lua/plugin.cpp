@@ -62,7 +62,6 @@ struct Plugin::State
     sol::state                  lua;
     std::shared_ptr<LuaState>   lua_state;
     sol::table                  tbl;
-    std::optional<Plugin::Meta> meta;
 
     State(const PluginLoadOptions& opts)
         : load_options(opts)
@@ -175,22 +174,7 @@ std::unique_ptr<Plugin> Plugin::Load(
             return nullptr;
         }
 
-        state->meta = Meta{
-            .name    = path.filename(),
-            .version = std::nullopt
-        };
-
-        state->tbl  = result.get<sol::table>();
-
-        if (auto name = state->tbl.get<sol::optional<std::string>>("name"))
-        {
-            state->meta->name = *name;
-        }
-
-        if (auto version = state->tbl.get<sol::optional<std::string>>("version"))
-        {
-            state->meta->version = *version;
-        }
+        state->tbl = result.get<sol::table>();
 
         sol::optional<sol::protected_function> init = state->tbl["init"];
 
@@ -286,7 +270,7 @@ Plugin::~Plugin()
     m_state.reset();
 }
 
-std::optional<Plugin::Meta> Plugin::GetMeta() const
+porla::Lua::PluginSource& Plugin::Source() const
 {
-    return m_state ? m_state->meta : std::nullopt;
+    return m_state->source;
 }

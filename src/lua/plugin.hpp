@@ -32,15 +32,11 @@ namespace porla::Lua
         porla::Sessions&           sessions;
     };
 
+    class PluginSource;
+
     class Plugin
     {
     public:
-        struct Meta
-        {
-            std::optional<std::string> name;
-            std::optional<std::string> version;
-        };
-
         Plugin(const Plugin&)            = delete;
         Plugin(Plugin&&)                 = delete;
         Plugin& operator=(const Plugin&) = delete;
@@ -48,12 +44,12 @@ namespace porla::Lua
 
         ~Plugin();
 
+        PluginSource& Source() const;
+
         static std::unique_ptr<Plugin> Load(
             const std::filesystem::path& path,
             const std::optional<std::string>& config,
             const PluginLoadOptions& opts);
-
-        [[nodiscard]] std::optional<Meta> GetMeta() const;
 
     private:
         struct State;

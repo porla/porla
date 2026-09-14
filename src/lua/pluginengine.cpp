@@ -79,12 +79,7 @@ void PluginEngine::Load(int id)
 
     m_plugins.emplace(id, std::move(loaded_plugin));
 
-    if (const auto meta = m_plugins.at(id)->GetMeta(); meta && meta->name)
-    {
-        BOOST_LOG_TRIVIAL(info)
-            << "plugin[" << id << "] Loaded " << *meta->name
-            << " " << meta->version.value_or("(no version)");
-    }
+    BOOST_LOG_TRIVIAL(info) << "plugin[" << id << "] Loaded from " << plugin->path;
 }
 
 const Plugin* PluginEngine::Get(int id) const
