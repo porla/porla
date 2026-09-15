@@ -27,6 +27,7 @@
 #include "types/poquery.hpp"
 #include "types/posessionhandle.hpp"
 #include "types/potcpclient.hpp"
+#include "types/potorrentdata.hpp"
 #include "types/potorrentshandle.hpp"
 
 #include "../config.hpp"
@@ -100,6 +101,7 @@ struct Plugin::State
         Types::PoSessionHandle::Register(lua);
         Types::PoTcpClient::Register(lua);
         Types::PoTorrentsHandle::Register(lua);
+        Types::PoTorrentData::Register(lua);
 
         lua["package"]["preload"]["porla_events"]      = Packages::Events::Load;
         lua["package"]["preload"]["porla_http_client"] = Packages::HttpClient::Load;

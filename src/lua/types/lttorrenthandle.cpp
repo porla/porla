@@ -133,5 +133,10 @@ void LtTorrentHandle::Register(sol::state& lua)
         "trackers",                   &lt::torrent_handle::trackers,
         // unset_flags
         "upload_limit",               &lt::torrent_handle::upload_limit,
-        "url_seeds",                  &lt::torrent_handle::url_seeds);
+        "url_seeds",                  &lt::torrent_handle::url_seeds,
+
+        "userdata", [](const lt::torrent_handle& th)
+        {
+            return th.userdata().get<TorrentClientData>();
+        });
 }

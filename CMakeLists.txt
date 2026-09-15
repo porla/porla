@@ -161,6 +161,7 @@ add_library(
     src/lua/types/posessionhandle.cpp
     src/lua/types/posessionsiterator.cpp
     src/lua/types/potcpclient.cpp
+    src/lua/types/potorrentdata.cpp
     src/lua/types/potorrentshandle.cpp
     src/lua/types/potorrentsiterator.cpp
 

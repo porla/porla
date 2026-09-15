@@ -198,18 +198,7 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
                 catch (const jwt::error::signature_verification_exception& ex)
                 {
                     BOOST_LOG_TRIVIAL(debug) << "Failed to verify JWT signature: " << ex.what();
-
-                    res->end(json({
-                        {"error", {
-                            {"code", 1000},
-                            {"message", "Invalid JWT signature"},
-                            {"data", {
-                                {"what", ex.what()}
-                            }}
-                        }}
-                    }).dump());
-
-                    return;
+                    token = std::nullopt;
                 }
                 catch (const jwt::error::token_verification_exception& ex)
                 {
@@ -283,7 +272,9 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
                 return;
             }
 
-            if (jsonrpc->m_methods.find(req.method) == jsonrpc->m_methods.end())
+            auto method = jsonrpc->m_methods.find(req.method);
+
+            if (method == jsonrpc->m_methods.end())
             {
                 BOOST_LOG_TRIVIAL(debug) << "Failed to find JSONRPC method '" << req.method << "'";
 
@@ -301,17 +292,15 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
             {
                 BOOST_LOG_TRIVIAL(debug) << "Executing JSONRPC method '" << req.method << "'";
 
-                auto method = jsonrpc->m_methods.at(req.method);
-
                 auto writer = std::make_shared<DefaultResponseWriter>(res, req.id.value_or(json()));
 
-                if (!method->CanInvoke(token))
+                if (!method->second->CanInvoke(token))
                 {
                     writer->Error(1001, "Invocation not allowed");
                     return;
                 }
 
-                method->Invoke(req.params.value_or(json()), writer);
+                method->second->Invoke(req.params.value_or(json()), writer);
             }
             catch (const std::exception& ex)
             {

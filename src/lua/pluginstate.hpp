@@ -81,7 +81,8 @@ namespace porla::Lua
 
             if (!result.valid())
             {
-                BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Error when invoking callback: " << (int)result.get_type();
+                sol::error err = result;
+                BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Error when invoking callback: " << err.what();
             }
         }
 
