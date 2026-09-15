@@ -1,0 +1,18 @@
+name: Build
+
+on:
+  pull_request:
+
+jobs:
+  version:
+    uses: ./.github/workflows/_version.yml
+
+  build:
+    needs: [version]
+    uses: ./.github/workflows/_build.yml
+    with:
+      fullSemVer: ${{ needs.version.outputs.fullSemVer }}
+      shortSha:   ${{ needs.version.outputs.shortSha }}
+      major:      ${{ needs.version.outputs.major }}
+      minor:      ${{ needs.version.outputs.minor }}
+      patch:      ${{ needs.version.outputs.patch }}
