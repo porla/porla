@@ -2,6 +2,7 @@
 
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions.hpp"
+#include "../../../torrentclientdata.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsPropertiesSet;
 using porla::Rpc::Methods::Torrents::TorrentsPropertiesSetReq;
@@ -45,6 +46,11 @@ void TorrentsPropertiesSet::Execute(const TorrentsPropertiesSetReq& req, Respons
         return cb->Error(-4, "Torrent not valid");
     }
 
+    if (req.category.has_value())
+    {
+        th.userdata().get<TorrentClientData>()->category = req.category.value();
+    }
+
     if (const auto val = req.download_limit)
         th.set_download_limit(*val);
 
@@ -59,6 +65,11 @@ void TorrentsPropertiesSet::Execute(const TorrentsPropertiesSetReq& req, Respons
 
     if (const auto val = req.max_uploads)
         th.set_max_uploads(*val);
+
+    if (req.tags.has_value())
+    {
+        th.userdata().get<TorrentClientData>()->tags = req.tags.value();
+    }
 
     if (const auto val = req.upload_limit)
         th.set_upload_limit(*val);

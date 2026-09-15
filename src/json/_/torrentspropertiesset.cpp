@@ -9,10 +9,12 @@ namespace porla::Rpc::Methods::Torrents
         TorrentsPropertiesSetReq,
         info_hash,
         session_id,
+        category,
         download_limit,
         flags,
         flags_mask,
         max_connections,
         max_uploads,
+        tags,
         upload_limit)
 }

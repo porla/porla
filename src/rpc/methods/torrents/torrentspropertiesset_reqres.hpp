@@ -11,11 +11,13 @@ namespace porla::Rpc::Methods::Torrents
         libtorrent::info_hash_t info_hash;
         std::optional<int>      session_id;
 
+        std::optional<std::string> category;
         std::optional<int> download_limit;
         std::optional<libtorrent::torrent_flags_t> flags;
         std::optional<libtorrent::torrent_flags_t> flags_mask;
         std::optional<int> max_connections;
         std::optional<int> max_uploads;
+        std::optional<std::unordered_set<std::string>> tags;
         std::optional<int> upload_limit;
     };
 
