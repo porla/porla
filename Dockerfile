@@ -1,8 +1,6 @@
 FROM mirror.gcr.io/library/alpine:3.24.1 AS base
 
 FROM base AS build-base
-ARG GITVERSION_SEMVER="0.0.0"
-ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
 WORKDIR /src
 
 RUN apk add --no-cache \
@@ -79,6 +77,9 @@ RUN wget -O uWebSockets-20.79.0.tar.gz https://github.com/uNetworking/uWebSocket
 RUN tar zxf uWebSockets-20.79.0.tar.gz
 
 FROM build-base AS build-porla
+ARG GITVERSION_SEMVER="0.0.0"
+ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
+
 # antlr4
 COPY --from=build-antlr4 /usr/local/include/antlr4-runtime /usr/local/include/antlr4-runtime
 COPY --from=build-antlr4 /usr/local/lib/libantlr4* /usr/local/lib
