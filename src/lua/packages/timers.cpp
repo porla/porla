@@ -82,6 +82,12 @@ sol::object Timers::Load(sol::this_state ts)
         return std::make_shared<PoCancellableCronSchedule>(cron_schedule_id);
     });
 
+    tbl.set_function("epoch", []()
+    {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+    });
+
     tbl.set_function("interval", [](sol::this_state ts, int interval, sol::protected_function callback) -> std::shared_ptr<Types::PoCancellable>
     {
         sol::state_view lua(ts);

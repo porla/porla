@@ -1,9 +1,16 @@
 #include "events.hpp"
 
 #include <boost/signals2.hpp>
+#include <libtorrent/session_stats.hpp>
 
 #include "../pluginstate.hpp"
 #include "../types/pocancellable.hpp"
+#include "../types/posessionhandle.hpp"
+
+namespace
+{
+    static const auto lt_session_metrics = lt::session_stats_metrics();
+}
 
 struct PoCancellableConnection : public porla::Lua::Types::PoCancellable
 {
@@ -41,7 +48,25 @@ sol::object porla::Lua::Packages::Events::Load(sol::this_state ts)
         std::size_t                        callback_id = state->RegisterCallback(callback, false);
         boost::signals2::scoped_connection connection;
 
-        if (event == "torrent.added")
+        if (event == "session.stats")
+        {
+            connection = state->sessions.OnSessionStats(
+                [weak, callback_id](const auto session, const auto& stats)
+                {
+                    auto state = weak.lock();
+                    if (state == nullptr) { return; }
+
+                    sol::table translated = state->lua.create_table();
+
+                    for (const auto& m : lt_session_metrics)
+                    {
+                        translated[m.name] = stats[m.value_index];
+                    }
+
+                    state->InvokeCallback(callback_id, std::make_shared<Types::PoSessionHandle>(session), translated);
+                });
+        }
+        else if (event == "torrent.added")
         {
             connection = state->sessions.OnTorrentAdded(
                 [weak, callback_id](const auto session, const auto& handle)

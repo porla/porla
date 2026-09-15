@@ -111,7 +111,8 @@ RUN apk add --no-cache \
     libunistring-static \
     lua5.4-dev \
     sqlite-dev \
-    sqlite-static
+    sqlite-static \
+    zip
 
 RUN addgroup -S vscode \
     && adduser -S vscode -G vscode --shell /bin/bash

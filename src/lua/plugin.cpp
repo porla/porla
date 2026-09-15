@@ -24,6 +24,7 @@
 
 #include "types/ltaddtorrentparams.hpp"
 #include "types/pocancellable.hpp"
+#include "types/pohttpserverresponse.hpp"
 #include "types/poquery.hpp"
 #include "types/posessionhandle.hpp"
 #include "types/potcpclient.hpp"
@@ -97,19 +98,74 @@ struct Plugin::State
 
         // Porla wrapper types
         Types::PoCancellable::Register(lua);
+        Types::PoHttpServerResponse::Register(lua);
         Types::PoQuery::Register(lua);
         Types::PoSessionHandle::Register(lua);
         Types::PoTcpClient::Register(lua);
         Types::PoTorrentsHandle::Register(lua);
         Types::PoTorrentData::Register(lua);
 
-        lua["package"]["preload"]["porla_events"]      = Packages::Events::Load;
-        lua["package"]["preload"]["porla_http_client"] = Packages::HttpClient::Load;
-        lua["package"]["preload"]["porla_http_server"] = Packages::HttpServer::Load;
-        lua["package"]["preload"]["porla_runtime"]     = Packages::Runtime::Load;
-        lua["package"]["preload"]["porla_sessions"]    = Packages::Sessions::Load;
-        lua["package"]["preload"]["porla_sockets"]     = Packages::Sockets::Load;
-        lua["package"]["preload"]["porla_timers"]      = Packages::Timers::Load;
+        sol::table package = lua["package"];
+        package["preload"]["porla_events"]      = Packages::Events::Load;
+        package["preload"]["porla_http_client"] = Packages::HttpClient::Load;
+        package["preload"]["porla_http_server"] = Packages::HttpServer::Load;
+        package["preload"]["porla_runtime"]     = Packages::Runtime::Load;
+        package["preload"]["porla_sessions"]    = Packages::Sessions::Load;
+        package["preload"]["porla_sockets"]     = Packages::Sockets::Load;
+        package["preload"]["porla_timers"]      = Packages::Timers::Load;
+
+        auto searcher = [this](sol::this_state ts, std::string name) -> sol::variadic_results
+        {
+            sol::state_view lua_view(ts);
+            sol::variadic_results results;
+
+            std::string base = name;
+            std::replace(base.begin(), base.end(), '.', '/');
+
+            const std::string candidates[] = { base + ".lua", base + "/init.lua" };
+
+            std::string tried;
+
+            for (const auto& candidate : candidates)
+            {
+                const auto it = source.sources.find(candidate);
+
+                if (it == source.sources.end())
+                {
+                    tried += "\n\tno source '" + candidate + "' in plugin";
+                    continue;
+                }
+
+                sol::load_result chunk = lua_view.load_buffer(
+                    it->second.data(),
+                    it->second.size(),
+                    "@" + candidate);
+
+                if (!chunk.valid())
+                {
+                    sol::error err = chunk;
+                    throw std::runtime_error(
+                        "error loading module '" + name + "' from plugin source '"
+                        + candidate + "':\n\t" + err.what());
+                }
+
+                results.push_back({ ts, sol::in_place, chunk.get<sol::protected_function>() });
+                results.push_back({ ts, sol::in_place, candidate });
+
+                return results;
+            }
+
+            results.push_back({ ts, sol::in_place, tried });
+
+            return results;
+        };
+
+        sol::table searchers = package["searchers"].valid()
+            ? package["searchers"].get<sol::table>()
+            : package["loaders"].get<sol::table>();
+
+        sol::protected_function table_insert = lua["table"]["insert"];
+        table_insert(searchers, 2, sol::make_object(lua, searcher));
 
         lua_state            = std::make_shared<LuaState>(load_options.io, load_options.sessions, lua);
         lua_state->app       = load_options.http_server;
@@ -133,13 +189,13 @@ std::unique_ptr<Plugin> Plugin::Load(
 
     if (!source.has_value())
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to load plugin source from " << path;
+        BOOST_LOG_TRIVIAL(error) << "plugin[" << opts.plugin_id << "] Failed to load plugin source from " << path;
         return nullptr;
     }
 
     if (source->sources.find(source->entrypoint) == source->sources.end())
     {
-        BOOST_LOG_TRIVIAL(error) << "Plugin entry point (plugin.lua) not found for " << path;
+        BOOST_LOG_TRIVIAL(error) << "plugin[" << opts.plugin_id << "] Plugin entry point (plugin.lua) not found for " << path;
         return nullptr;
     }
 
@@ -151,12 +207,12 @@ std::unique_ptr<Plugin> Plugin::Load(
         sol::load_result chunk = state->lua.load_buffer(
             state->source.sources.at(state->source.entrypoint).data(),
             state->source.sources.at(state->source.entrypoint).size(),
-            state->source.entrypoint);
+            "@" + state->source.entrypoint);
 
         if (!chunk.valid())
         {
             sol::error err = chunk;
-            BOOST_LOG_TRIVIAL(error) << "Failed to load plugin: " << err.what();
+            BOOST_LOG_TRIVIAL(error) << "plugin[" << opts.plugin_id << "] Failed to load plugin: " << err.what();
             return nullptr;
         }
         sol::protected_function_result result = chunk.get<sol::protected_function>()();
@@ -164,14 +220,14 @@ std::unique_ptr<Plugin> Plugin::Load(
         if (!result.valid())
         {
             BOOST_LOG_TRIVIAL(error)
-                << "Failed to run plugin: " << DescribeError(result);
+                << "plugin[" << opts.plugin_id << "] Failed to run plugin: " << DescribeError(result);
             return nullptr;
         }
 
         if (result.return_count() < 1 || result.get_type() != sol::type::table)
         {
             BOOST_LOG_TRIVIAL(error)
-                << "Plugin did not return a table (got "
+                << "plugin[" << opts.plugin_id << "] Plugin did not return a table (got "
                 << sol::type_name(state->lua.lua_state(), result.get_type()) << ")";
             return nullptr;
         }
@@ -201,14 +257,14 @@ std::unique_ptr<Plugin> Plugin::Load(
                     }
                     else
                     {
-                        BOOST_LOG_TRIVIAL(error) << "Failed to evaluate plugin config: " << DescribeError(config_value);
+                        BOOST_LOG_TRIVIAL(error) << "plugin[" << opts.plugin_id << "] Failed to evaluate plugin config: " << DescribeError(config_value);
                         return nullptr;
                     }
                 }
                 else
                 {
                     sol::error err = config_result;
-                    BOOST_LOG_TRIVIAL(error) << "Failed to parse plugin config: " << err.what();
+                    BOOST_LOG_TRIVIAL(error) << "plugin[" << opts.plugin_id << "] Failed to parse plugin config: " << err.what();
                     return nullptr;
                 }
             }
@@ -217,7 +273,7 @@ std::unique_ptr<Plugin> Plugin::Load(
 
             if (!init_result.valid())
             {
-                BOOST_LOG_TRIVIAL(error) << "Failed to run plugin initializer: " << DescribeError(init_result);
+                BOOST_LOG_TRIVIAL(error) << "plugin[" << opts.plugin_id << "] Failed to run plugin initializer: " << DescribeError(init_result);
                 return nullptr;
             }
         }

@@ -15,6 +15,8 @@
 #include "../sessions.hpp"
 #include "../timer.hpp"
 
+#include "types/pohttpserverresponse.hpp"
+
 namespace porla::Lua
 {
     struct LuaState : public std::enable_shared_from_this<LuaState>
@@ -167,6 +169,7 @@ namespace porla::Lua
         sqlite3*                                                  db;
         std::vector<std::function<void()>>                        destructors;
         boost::asio::io_context&                                  io;
+        std::unordered_set<std::shared_ptr<Types::PoHttpServerResponse>> http_responses;
         sol::state_view                                           lua;
         int                                                       plugin_id;
         porla::Sessions&                                          sessions;
