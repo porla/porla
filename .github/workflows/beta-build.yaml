@@ -1,0 +1,75 @@
+name: Build and deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  version:
+    uses: ./.github/workflows/_version.yml
+
+  build:
+    needs: [version]
+    uses: ./.github/workflows/_build.yml
+    with:
+      fullSemVer: ${{ needs.version.outputs.fullSemVer }}
+      shortSha:   ${{ needs.version.outputs.shortSha }}
+      major:      ${{ needs.version.outputs.major }}
+      minor:      ${{ needs.version.outputs.minor }}
+      patch:      ${{ needs.version.outputs.patch }}
+
+  push-docker-image-beta:
+    name: Push Docker image (beta)
+    runs-on: ubuntu-latest
+    needs: [version,build]
+
+    permissions:
+      contents: write
+      packages: write
+      pull-requests: read
+
+    steps:
+      - name: Download Docker artifact (linux-amd64)
+        uses: actions/download-artifact@v7
+        with:
+          name: porla-linux-amd64-docker.tar
+          path: /tmp
+
+      - name: Download Docker artifact (linux-arm64)
+        uses: actions/download-artifact@v7
+        with:
+          name: porla-linux-arm64-docker.tar
+          path: /tmp
+
+      - name: Login to the container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Load Docker images
+        run: |
+          docker load -i /tmp/porla-linux-amd64-docker.tar
+          docker load -i /tmp/porla-linux-arm64-docker.tar
+
+      - name: Push platform specific Docker images
+        run: |
+          docker push ghcr.io/porla/porla:${{ needs.version.outputs.shortSha }}-linux-amd64
+          docker push ghcr.io/porla/porla:${{ needs.version.outputs.shortSha }}-linux-arm64
+
+      - name: Create Docker manifest
+        run: |
+          docker manifest create ghcr.io/porla/porla:beta-latest \
+            ghcr.io/porla/porla:${{ needs.version.outputs.shortSha }}-linux-amd64 \
+            ghcr.io/porla/porla:${{ needs.version.outputs.shortSha }}-linux-arm64
+
+          docker manifest create ghcr.io/porla/porla:beta-${{ needs.version.outputs.shortSha }} \
+            ghcr.io/porla/porla:${{ needs.version.outputs.shortSha }}-linux-amd64 \
+            ghcr.io/porla/porla:${{ needs.version.outputs.shortSha }}-linux-arm64
+
+      - name: Push Docker manifest
+        run: |
+          docker manifest push ghcr.io/porla/porla:beta-latest
+          docker manifest push ghcr.io/porla/porla:beta-${{ needs.version.outputs.shortSha }}
