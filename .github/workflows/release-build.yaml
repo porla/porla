@@ -71,14 +71,14 @@ jobs:
             ghcr.io/porla/porla:${{ needs.version.outputs.shortSha }}-linux-amd64 \
             ghcr.io/porla/porla:${{ needs.version.outputs.shortSha }}-linux-arm64
 
-          docker manifest create ghcr.io/porla/porla:${{ needs.version.outputs.semVer }} \
+          docker manifest create ghcr.io/porla/porla:${{ needs.version.outputs.fullSemVer }} \
             ghcr.io/porla/porla:${{ needs.version.outputs.shortSha }}-linux-amd64 \
             ghcr.io/porla/porla:${{ needs.version.outputs.shortSha }}-linux-arm64
 
       - name: Push Docker manifest
         run: |
           docker manifest push ghcr.io/porla/porla:latest
-          docker manifest push ghcr.io/porla/porla:${{ needs.version.outputs.semVer }}
+          docker manifest push ghcr.io/porla/porla:${{ needs.version.outputs.fullSemVer }}
 
       - name: Download Porla binary artifact (linux-amd64)
         uses: actions/download-artifact@v7
