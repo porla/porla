@@ -30,12 +30,6 @@ namespace porla::Query
     class PQL
     {
     public:
-        struct Filter
-        {
-            virtual ~Filter() = default;
-            [[nodiscard]] virtual bool Includes(const libtorrent::torrent_status& ts) const = 0;
-        };
-
-        static std::unique_ptr<Filter> Parse(const std::string_view& input);
+        static std::function<bool(const libtorrent::torrent_status&)> Parse(const std::string_view& input);
     };
 }

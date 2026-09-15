@@ -1,0 +1,28 @@
+#include "../all.hpp"
+
+#include "../../rpc/methods/presets/presetsupdate_reqres.hpp"
+#include "../utils.hpp"
+
+namespace porla::Rpc::Methods::Presets
+{
+    NLOHMANN_JSONIFY_ALL_THINGS(
+        PresetsUpdateReq,
+        id,
+        name,
+        is_default,
+        category,
+        download_limit,
+        max_connections,
+        max_uploads,
+        metadata,
+        session_id,
+        save_path,
+        storage_mode,
+        tags,
+        upload_limit);
+
+    void to_json(nlohmann::json& j, const PresetsUpdateRes& res)
+    {
+        j = {};
+    }
+}

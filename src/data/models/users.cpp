@@ -8,11 +8,11 @@ bool Users::Any(sqlite3* db)
 {
     bool any = false;
 
-    Statement::Prepare(db, "SELECT COUNT(*) FROM users")
+    Statement::Prepare(db, "SELECT COUNT(*) AS count FROM users")
         .Step(
             [&any](auto const& row)
             {
-                any = row.GetInt32(0) > 0;
+                any = row.GetInt32("count") > 0;
                 return SQLITE_OK;
             });
 
@@ -23,14 +23,14 @@ std::optional<Users::User> Users::GetByUsername(sqlite3* db, const std::string& 
 {
     std::optional<User> user;
 
-    Statement::Prepare(db, "SELECT username,password FROM users WHERE username = $1")
-        .Bind(1, std::string_view(username))
+    Statement::Prepare(db, "SELECT username,password FROM users WHERE username = $username")
+        .Bind("$username", username)
         .Step(
             [&user](auto const& row)
             {
                 user = User{
-                    .username        = row.GetStdString(0),
-                    .password_hashed = row.GetStdString(1)
+                    .username        = row.GetStdString("username"),
+                    .password_hashed = row.GetStdString("password")
                 };
 
                 return SQLITE_OK;
@@ -41,8 +41,8 @@ std::optional<Users::User> Users::GetByUsername(sqlite3* db, const std::string& 
 
 void Users::Insert(sqlite3* db, const porla::Data::Models::Users::User &user)
 {
-    Statement::Prepare(db, "INSERT INTO users (username, password) VALUES ($1, $2);")
-        .Bind(1, std::string_view(user.username))
-        .Bind(2, std::string_view(user.password_hashed))
+    Statement::Prepare(db, "INSERT INTO users (username, password) VALUES ($username, $password);")
+        .Bind("$username", user.username)
+        .Bind("$password", user.password_hashed)
         .Execute();
 }

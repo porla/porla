@@ -1,115 +1,126 @@
-#include "../packages.hpp"
+#include "timers.hpp"
 
-#include <boost/asio.hpp>
-#include <boost/log/trivial.hpp>
+#include "../../cron.hpp"
+#include "../pluginstate.hpp"
+#include "../types/pocancellable.hpp"
 
-#include "../plugin.hpp"
-
+using porla::Lua::LuaState;
 using porla::Lua::Packages::Timers;
 
-class Timer
+struct PoCancellableCronSchedule : public porla::Lua::Types::PoCancellable
 {
-public:
-    explicit Timer(boost::asio::io_context& io, sol::table args)
-        : m_timer(io)
-        , m_args(std::move(args))
-        , m_should_cancel(false)
+    explicit PoCancellableCronSchedule(std::size_t cron_schedule_id)
+        : m_cron_schedule_id(cron_schedule_id)
     {
-        Next();
     }
 
-    Timer(const Timer&) = delete;
-    Timer(Timer&&) = delete;
-    Timer& operator=(const Timer&) = delete;
-    Timer& operator=(Timer&&) = delete;
-
-    ~Timer()
+    void Cancel(sol::this_state ts) override
     {
-        BOOST_LOG_TRIVIAL(debug) << "Destroying timer";
+        sol::state_view lua(ts);
 
-        m_should_cancel = true;
-        m_timer.cancel();
-    }
+        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
+        auto state = weak.lock();
 
-    void Cancel()
-    {
-        BOOST_LOG_TRIVIAL(debug) << "Cancelling timer";
+        if (state == nullptr)
+        {
+            return;
+        }
 
-        m_should_cancel = true;
-        m_timer.cancel();
+        state->CancelCronSchedule(m_cron_schedule_id);
     }
 
 private:
-    void Next()
-    {
-        const int milliseconds = m_args["interval"];
-        const auto expiry = boost::posix_time::milliseconds(milliseconds);
-
-        BOOST_LOG_TRIVIAL(debug) << "Timer expiry in " << expiry.total_milliseconds() << " milliseconds";
-
-        m_timer.expires_from_now(expiry);
-        m_timer.async_wait([&](const boost::system::error_code& ec) { OnTimerExpired(ec); });
-    }
-
-    void OnTimerExpired(const boost::system::error_code &ec)
-    {
-        if (ec)
-        {
-            if (ec == boost::system::errc::operation_canceled)
-            {
-                BOOST_LOG_TRIVIAL(debug) << "Timer cancelled";
-                return;
-            }
-
-            BOOST_LOG_TRIVIAL(error) << "Timer error: " << ec.message();
-
-            return;
-        }
-
-        if (m_args["callback"].is<sol::function>())
-        {
-            try
-            {
-                m_args["callback"]();
-            }
-            catch (const sol::error& err)
-            {
-                BOOST_LOG_TRIVIAL(error) << "Error when invoking callback: " << err.what();
-            }
-        }
-        else
-        {
-            BOOST_LOG_TRIVIAL(warning) << "Callback is not a function";
-            return;
-        }
-
-        if (!m_should_cancel) Next();
-    }
-
-    boost::asio::deadline_timer m_timer;
-    sol::table m_args;
-    bool m_should_cancel;
+    std::size_t m_cron_schedule_id;
 };
 
-void Timers::Register(sol::state& lua)
+struct PoCancellableTimer : public porla::Lua::Types::PoCancellable
 {
-    auto timer_type = lua.new_usertype<Timer>(
-        "porla.Timer",
-        sol::no_constructor,
-        "cancel", &Timer::Cancel);
-
-    lua["package"]["preload"]["timers"] = [](sol::this_state s)
+    explicit PoCancellableTimer(std::size_t timer_id)
+        : m_timer_id(timer_id)
     {
-        sol::state_view lua{s};
-        sol::table timers = lua.create_table();
+    }
 
-        timers["new"] = [](sol::this_state s, const sol::table& args)
+    void Cancel(sol::this_state ts) override
+    {
+        sol::state_view lua(ts);
+
+        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
+        auto state = weak.lock();
+
+        if (state == nullptr)
         {
-            sol::state_view lua{s};
-            const auto& options = lua.globals()["__load_opts"].get<const PluginLoadOptions&>();
-            return std::make_unique<Timer>(options.io, args);
-        };
+            return;
+        }
 
-        return timers;
-    };
+        state->CancelTimer(m_timer_id);
+    }
+
+private:
+    std::size_t m_timer_id;
+};
+
+sol::object Timers::Load(sol::this_state ts)
+{
+    sol::state_view lua(ts);
+
+    sol::table tbl = lua.create_table();
+
+    tbl.set_function("cron", [](sol::this_state ts, std::string expression, sol::protected_function callback) -> std::shared_ptr<Types::PoCancellable>
+    {
+        sol::state_view lua(ts);
+
+        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
+        auto state = weak.lock();
+
+        if (state == nullptr)
+        {
+            return nullptr;
+        }
+
+        auto cron_schedule_id = state->RegisterCronSchedule(expression, callback);
+
+        return std::make_shared<PoCancellableCronSchedule>(cron_schedule_id);
+    });
+
+    tbl.set_function("epoch", []()
+    {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+    });
+
+    tbl.set_function("interval", [](sol::this_state ts, int interval, sol::protected_function callback) -> std::shared_ptr<Types::PoCancellable>
+    {
+        sol::state_view lua(ts);
+
+        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
+        auto state = weak.lock();
+
+        if (state == nullptr)
+        {
+            return nullptr;
+        }
+
+        const auto timer_id = state->RegisterTimer(interval, callback, false);
+
+        return std::make_shared<PoCancellableTimer>(timer_id);
+    });
+
+    tbl.set_function("timeout", [](sol::this_state ts, int interval, sol::protected_function callback) -> std::shared_ptr<Types::PoCancellable>
+    {
+        sol::state_view lua(ts);
+
+        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
+        auto state = weak.lock();
+
+        if (state == nullptr)
+        {
+            return nullptr;
+        }
+
+        const auto timer_id = state->RegisterTimer(interval, callback, true);
+
+        return std::make_shared<PoCancellableTimer>(timer_id);
+    });
+
+    return tbl;
 }

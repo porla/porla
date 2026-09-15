@@ -15,9 +15,11 @@ namespace porla::Data
         class IRow
         {
         public:
-            virtual std::vector<char> GetBuffer(int index) const = 0;
-            virtual int GetInt32(int index) const = 0;
-            virtual std::string GetStdString(int index) const = 0;
+            virtual std::vector<char> GetBuffer(const std::string& col) const = 0;
+            virtual int GetInt32(const std::string& col) const = 0;
+            virtual std::optional<int> GetOptionalInt32(const std::string& col) const = 0;
+            virtual std::string GetStdString(const std::string& col) const = 0;
+            virtual std::optional<std::string> GetOptionalStdString(const std::string& col) const = 0;
         };
 
         ~Statement();
@@ -25,10 +27,11 @@ namespace porla::Data
 
         static Statement Prepare(sqlite3* db, const std::string_view& sql);
 
-        Statement& Bind(int pos, int value);
-        Statement& Bind(int pos, const std::string_view& value);
-        Statement& Bind(int pos, const std::optional<std::string_view>& value);
-        Statement& Bind(int pos, const std::vector<char>& buffer);
+        Statement& Bind(const std::string& param, int value);
+        Statement& Bind(const std::string& param, const std::optional<int>& value);
+        Statement& Bind(const std::string& param, const std::string& value);
+        Statement& Bind(const std::string& param, const std::optional<std::string>& value);
+        Statement& Bind(const std::string& param, const std::vector<char>& buffer);
 
         void Execute();
         void Step(const std::function<int(const IRow&)>& cb);

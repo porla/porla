@@ -1,5 +1,5 @@
 
-// Generated from PorlaQueryLang.g4 by ANTLR 4.11.1
+// Generated from PorlaQueryLang.g4 by ANTLR 4.13.2
 
 #pragma once
 
@@ -21,25 +21,25 @@ public:
    */
     virtual std::any visitFilter(PorlaQueryLangParser::FilterContext *context) = 0;
 
-    virtual std::any visitAndExpression(PorlaQueryLangParser::AndExpressionContext *context) = 0;
+    virtual std::any visitOrExpr(PorlaQueryLangParser::OrExprContext *context) = 0;
 
-    virtual std::any visitFlagExpression(PorlaQueryLangParser::FlagExpressionContext *context) = 0;
+    virtual std::any visitAndExpr(PorlaQueryLangParser::AndExprContext *context) = 0;
 
-    virtual std::any visitPredicateExpression(PorlaQueryLangParser::PredicateExpressionContext *context) = 0;
+    virtual std::any visitNotTerm(PorlaQueryLangParser::NotTermContext *context) = 0;
 
-    virtual std::any visitOrExpression(PorlaQueryLangParser::OrExpressionContext *context) = 0;
+    virtual std::any visitGroupTerm(PorlaQueryLangParser::GroupTermContext *context) = 0;
 
-    virtual std::any visitNotFlagExpression(PorlaQueryLangParser::NotFlagExpressionContext *context) = 0;
+    virtual std::any visitQualifierTerm(PorlaQueryLangParser::QualifierTermContext *context) = 0;
 
-    virtual std::any visitOperatorPredicate(PorlaQueryLangParser::OperatorPredicateContext *context) = 0;
+    virtual std::any visitTextTerm(PorlaQueryLangParser::TextTermContext *context) = 0;
 
-    virtual std::any visitFlag(PorlaQueryLangParser::FlagContext *context) = 0;
-
-    virtual std::any visitValue(PorlaQueryLangParser::ValueContext *context) = 0;
+    virtual std::any visitQualifier(PorlaQueryLangParser::QualifierContext *context) = 0;
 
     virtual std::any visitOperator(PorlaQueryLangParser::OperatorContext *context) = 0;
 
-    virtual std::any visitReference(PorlaQueryLangParser::ReferenceContext *context) = 0;
+    virtual std::any visitValue(PorlaQueryLangParser::ValueContext *context) = 0;
+
+    virtual std::any visitText(PorlaQueryLangParser::TextContext *context) = 0;
 
 
 };

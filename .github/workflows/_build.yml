@@ -1,0 +1,88 @@
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        default: ''
+      fullSemVer:
+        type: string
+        required: true
+      shortSha:
+        type: string
+        required: true
+      major:
+        type: string
+        required: true
+      minor:
+        type: string
+        required: true
+      patch:
+        type: string
+        required: true
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        platform: [linux-amd64, linux-arm64]
+        include:
+          - platform: linux-amd64
+            runner: ubuntu-latest
+
+          - platform: linux-arm64
+            runner: ubuntu-24.04-arm
+
+    name: Build Porla (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
+          ref: ${{ inputs.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v7
+        with:
+          build-args: |
+            GITVERSION_SEMVER=${{ inputs.fullSemVer }}
+            GITVERSION_MAJOR=${{ inputs.major }}
+            GITVERSION_MINOR=${{ inputs.minor }}
+            GITVERSION_PATCH=${{ inputs.patch }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          context: .
+          load: true
+          tags: ${{ env.IMAGE }}:${{ inputs.shortSha }}-${{ matrix.platform }}
+
+      - name: Copy Porla binary from image
+        run: |
+          docker create --name tmp "$IMAGE:${{ inputs.shortSha }}-${{ matrix.platform }}"
+          docker cp tmp:/usr/bin/porla /tmp/porla-${{ matrix.platform }}
+          docker rm -f tmp
+
+      - name: Save Docker container
+        run: |
+          docker save -o /tmp/porla-${{ matrix.platform }}-docker.tar \
+            "$IMAGE:${{ inputs.shortSha }}-${{ matrix.platform }}"
+
+      - name: Upload Docker container to artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: porla-${{ matrix.platform }}-docker.tar
+          path: /tmp/porla-${{ matrix.platform }}-docker.tar
+
+      - name: Upload Porla binary to artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: porla-${{ matrix.platform }}
+          path: /tmp/porla-${{ matrix.platform }}

@@ -1,17 +1,23 @@
 #pragma once
 
+#include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
+#include <string>
+#include <vector>
 
-#include <boost/asio.hpp>
+#include <boost/asio/io_context.hpp>
+#include <nlohmann/json.hpp>
 #include <sqlite3.h>
-#include <toml++/toml.hpp>
+#include <uWebSockets/App.h>
 
 namespace porla
 {
     class Config;
+    class CurlMulti;
     class Sessions;
 }
 
@@ -21,44 +27,35 @@ namespace porla::Lua
 
     struct PluginEngineOptions
     {
-        Config&                  config;
-        sqlite3*                 db;
-        boost::asio::io_context& io;
-        Sessions&                sessions;
-    };
-
-    struct PluginState
-    {
-        bool                       can_configure;
-        bool                       can_uninstall;
-        std::optional<std::string> config;
-        std::filesystem::path      path;
-        std::unique_ptr<Plugin>    plugin;
-    };
-
-    struct PluginInstallOptions
-    {
-        std::optional<std::string> config;
-        bool                       enable;
-        std::filesystem::path      path;
+        std::shared_ptr<CurlMulti> curl_multi;
+        sqlite3*                   db;
+        uWS::App*                  http_server;
+        boost::asio::io_context&   io;
+        Sessions&                  sessions;
     };
 
     class PluginEngine
     {
     public:
-        explicit PluginEngine(PluginEngineOptions options);
+        using CompletionCallback = std::function<void()>;
+
+        explicit PluginEngine(const PluginEngineOptions& options);
+
+        PluginEngine(const PluginEngine&)            = delete;
+        PluginEngine& operator=(const PluginEngine&) = delete;
+
         ~PluginEngine();
 
-        void Configure(const std::string& name, const std::optional<std::string>& config);
-        void Install(const PluginInstallOptions& options, std::error_code& ec);
-        std::map<std::string, PluginState>& Plugins();
-        void Reload(const std::string& name);
-        void Uninstall(const std::string& name, std::error_code& ec);
+        void Load(int id);
+        void LoadAll();
 
-        void UnloadAll();
+        [[nodiscard]] const Plugin* Get(int id) const;
+
+        void Reload(int id);
+        void Unload(int id);
 
     private:
-        PluginEngineOptions m_options;
-        std::map<std::string, PluginState> m_plugins;
+        PluginEngineOptions                    m_options;
+        std::map<int, std::unique_ptr<Plugin>> m_plugins;
     };
 }

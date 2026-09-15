@@ -1,5 +1,5 @@
 
-// Generated from PorlaQueryLang.g4 by ANTLR 4.11.1
+// Generated from PorlaQueryLang.g4 by ANTLR 4.13.2
 
 #pragma once
 
@@ -19,35 +19,31 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitAndExpression(PorlaQueryLangParser::AndExpressionContext *ctx) override {
+  virtual std::any visitOrExpr(PorlaQueryLangParser::OrExprContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitFlagExpression(PorlaQueryLangParser::FlagExpressionContext *ctx) override {
+  virtual std::any visitAndExpr(PorlaQueryLangParser::AndExprContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitPredicateExpression(PorlaQueryLangParser::PredicateExpressionContext *ctx) override {
+  virtual std::any visitNotTerm(PorlaQueryLangParser::NotTermContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitOrExpression(PorlaQueryLangParser::OrExpressionContext *ctx) override {
+  virtual std::any visitGroupTerm(PorlaQueryLangParser::GroupTermContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitNotFlagExpression(PorlaQueryLangParser::NotFlagExpressionContext *ctx) override {
+  virtual std::any visitQualifierTerm(PorlaQueryLangParser::QualifierTermContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitOperatorPredicate(PorlaQueryLangParser::OperatorPredicateContext *ctx) override {
+  virtual std::any visitTextTerm(PorlaQueryLangParser::TextTermContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitFlag(PorlaQueryLangParser::FlagContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitValue(PorlaQueryLangParser::ValueContext *ctx) override {
+  virtual std::any visitQualifier(PorlaQueryLangParser::QualifierContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -55,7 +51,11 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitReference(PorlaQueryLangParser::ReferenceContext *ctx) override {
+  virtual std::any visitValue(PorlaQueryLangParser::ValueContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitText(PorlaQueryLangParser::TextContext *ctx) override {
     return visitChildren(ctx);
   }
 

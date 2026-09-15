@@ -1,5 +1,5 @@
 
-// Generated from PorlaQueryLang.g4 by ANTLR 4.11.1
+// Generated from PorlaQueryLang.g4 by ANTLR 4.13.2
 
 #pragma once
 
@@ -12,10 +12,9 @@
 class  PorlaQueryLangLexer : public antlr4::Lexer {
 public:
   enum {
-    T__0 = 1, AND = 2, OR = 3, NOT = 4, OPER_EQ = 5, OPER_CONTAINS = 6, 
-    OPER_GT = 7, OPER_GTE = 8, OPER_LT = 9, OPER_LTE = 10, WHITESPACE = 11, 
-    INT = 12, FLOAT = 13, STRING = 14, UNIT_DURATION = 15, UNIT_SIZE = 16, 
-    UNIT_SPEED = 17, ID = 18
+    T__0 = 1, T__1 = 2, OR = 3, AND = 4, NOT = 5, OPER_EQ = 6, OPER_GTE = 7, 
+    OPER_GT = 8, OPER_LTE = 9, OPER_LT = 10, WHITESPACE = 11, FLOAT = 12, 
+    INT = 13, STRING = 14, QUALIFIER = 15, ID = 16
   };
 
   explicit PorlaQueryLangLexer(antlr4::CharStream *input);

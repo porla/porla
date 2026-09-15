@@ -1,200 +1,158 @@
-#include "../packages.hpp"
+#include "events.hpp"
 
-#include <boost/log/trivial.hpp>
 #include <boost/signals2.hpp>
-#include <libtorrent/alert_types.hpp>
+#include <libtorrent/session_stats.hpp>
 
-#include "../plugin.hpp"
-#include "../../sessions.hpp"
+#include "../pluginstate.hpp"
+#include "../types/pocancellable.hpp"
+#include "../types/posessionhandle.hpp"
 
-using porla::Lua::Packages::Events;
-
-struct SignalConnection
+namespace
 {
-    explicit SignalConnection(boost::signals2::connection c)
-        : connection(std::move(c))
+    static const auto lt_session_metrics = lt::session_stats_metrics();
+}
+
+struct PoCancellableConnection : public porla::Lua::Types::PoCancellable
+{
+    explicit PoCancellableConnection(std::size_t connection_id)
+        : m_connection_id(connection_id)
     {
     }
 
-    ~SignalConnection()
+    void Cancel(sol::this_state ts) override
     {
-        BOOST_LOG_TRIVIAL(trace) << "Disconnecting signal";
-        if (connection.connected()) connection.disconnect();
     }
 
-    boost::signals2::connection connection;
+private:
+    std::size_t m_connection_id;
 };
 
-void Events::Register(sol::state& lua)
+sol::object porla::Lua::Packages::Events::Load(sol::this_state ts)
 {
-    auto type = lua.new_usertype<SignalConnection>(
-        "events.SignalConnection",
-        sol::no_constructor);
+    sol::state_view lua(ts);
 
-    type["disconnect"] = [](const std::shared_ptr<SignalConnection>& c)
+    sol::table tbl = lua.create_table();
+
+    tbl.set_function("on", [](sol::this_state ts, std::string event, sol::protected_function callback) -> std::shared_ptr<Types::PoCancellable>
     {
-        c->connection.disconnect();
-    };
+        sol::state_view lua(ts);
 
-    lua["package"]["preload"]["events"] = [](sol::this_state s)
-    {
-        sol::state_view lua{s};
-        sol::table events = lua.create_table();
+        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
+        auto state = weak.lock();
 
-        events["on"] = [](sol::this_state s, const std::string& name, const sol::function& callback)
+        if (state == nullptr)
         {
-            sol::state_view lua{s};
-            const auto options = lua.globals()["__load_opts"].get<const PluginLoadOptions&>();
+            return nullptr;
+        }
 
-            if (name == "session_stats")
-            {
-                auto connection = options.sessions.OnSessionStats(
-                    [cb = callback](const std::string& session, const lt::span<const int64_t>& counters)
+        std::size_t                        callback_id = state->RegisterCallback(callback, false);
+        boost::signals2::scoped_connection connection;
+
+        if (event == "session.stats")
+        {
+            connection = state->sessions.OnSessionStats(
+                [weak, callback_id](const auto session, const auto& stats)
+                {
+                    auto state = weak.lock();
+                    if (state == nullptr) { return; }
+
+                    sol::table translated = state->lua.create_table();
+
+                    for (const auto& m : lt_session_metrics)
                     {
-                        try
-                        {
-                            std::vector<int64_t> c;
-                            for (const int64_t counter : counters) { c.emplace_back(counter); }
-                            cb(session, c);
-                        }
-                        catch (const sol::error& err)
-                        {
-                            BOOST_LOG_TRIVIAL(error) << "An error occurred in an event handler: " << err.what();
-                        }
-                    });
+                        translated[m.name] = stats[m.value_index];
+                    }
 
-                return std::make_shared<SignalConnection>(connection);
-            }
+                    state->InvokeCallback(callback_id, std::make_shared<Types::PoSessionHandle>(session), translated);
+                });
+        }
+        else if (event == "torrent.added")
+        {
+            connection = state->sessions.OnTorrentAdded(
+                [weak, callback_id](const auto session, const auto& handle)
+                {
+                    auto state = weak.lock();
+                    if (state == nullptr) { return; }
 
-            if (name == "torrent_added")
-            {
-                auto connection = options.sessions.OnTorrentAdded(
-                    [cb = callback](const std::string& session, const lt::torrent_handle& th)
-                    {
-                        try
-                        {
-                            cb(th);
-                        }
-                        catch (const sol::error& err)
-                        {
-                            BOOST_LOG_TRIVIAL(error) << "An error occurred in an event handler: " << err.what();
-                        }
-                    });
+                    state->InvokeCallback(callback_id, handle);
+                });
+        }
+        else if (event == "torrent.file_error")
+        {
+            connection = state->sessions.OnTorrentFileError(
+                [weak, callback_id](const auto session, const auto& err)
+                {
+                    auto state = weak.lock();
+                    if (state == nullptr) { return; }
 
-                return std::make_shared<SignalConnection>(connection);
-            }
+                    state->InvokeCallback(callback_id, err.torrent, err.file);
+                });
+        }
+        else if (event == "torrent.finished")
+        {
+            connection = state->sessions.OnTorrentFinished(
+                [weak, callback_id](const auto session, const auto& handle)
+                {
+                    auto state = weak.lock();
+                    if (state == nullptr) { return; }
 
-            if (name == "torrent_file_error")
-            {
-                auto connection = options.sessions.OnTorrentFileError(
-                    [cb = callback](const std::string& session, const porla::Sessions::TorrentFileErrorEvent& evt)
-                    {
-                        try
-                        {
-                            cb(evt.torrent, evt.file);
-                        }
-                        catch (const sol::error& err)
-                        {
-                            BOOST_LOG_TRIVIAL(error) << "An error occurred in an event handler: " << err.what();
-                        }
-                    });
+                    state->InvokeCallback(callback_id, handle);
+                });
+        }
+        else if (event == "torrent.paused")
+        {
+            connection = state->sessions.OnTorrentPaused(
+                [weak, callback_id](const auto session, const auto& handle)
+                {
+                    auto state = weak.lock();
+                    if (state == nullptr) { return; }
 
-                return std::make_shared<SignalConnection>(connection);
-            }
+                    state->InvokeCallback(callback_id, handle);
+                });
+        }
+        else if (event == "torrent.removed")
+        {
+            connection = state->sessions.OnTorrentRemoved(
+                [weak, callback_id](const auto session, const auto& info_hash)
+                {
+                    auto state = weak.lock();
+                    if (state == nullptr) { return; }
 
-            if (name == "torrent_finished")
-            {
-                auto connection = options.sessions.OnTorrentFinished(
-                    [cb = callback](const std::string& session, const lt::torrent_handle& th)
-                    {
-                        try
-                        {
-                            cb(th);
-                        }
-                        catch (const sol::error& err)
-                        {
-                            BOOST_LOG_TRIVIAL(error) << "An error occurred in an event handler: " << err.what();
-                        }
-                    });
+                    state->InvokeCallback(callback_id, info_hash);
+                });
+        }
+        else if (event == "torrent.resumed")
+        {
+            connection = state->sessions.OnTorrentResumed(
+                [weak, callback_id](const auto session, const auto& handle)
+                {
+                    auto state = weak.lock();
+                    if (state == nullptr) { return; }
 
-                return std::make_shared<SignalConnection>(connection);
-            }
+                    state->InvokeCallback(callback_id, handle);
+                });
+        }
+        else if (event == "torrent.storage_moved")
+        {
+            connection = state->sessions.OnStorageMoved(
+                [weak, callback_id](const auto session, const auto& handle)
+                {
+                    auto state = weak.lock();
+                    if (state == nullptr) { return; }
 
-            if (name == "torrent_moved")
-            {
-                auto connection = options.sessions.OnStorageMoved(
-                    [cb = callback](const std::string& session, const lt::torrent_handle& th)
-                    {
-                        try
-                        {
-                            cb(th);
-                        }
-                        catch (const sol::error& err)
-                        {
-                            BOOST_LOG_TRIVIAL(error) << "An error occurred in an event handler: " << err.what();
-                        }
-                    });
+                    state->InvokeCallback(callback_id, handle);
+                });
+        }
+        else
+        {
+            state->RemoveCallback(callback_id);
+            return nullptr;
+        }
 
-                return std::make_shared<SignalConnection>(connection);
-            }
+        const auto connection_id = state->RegisterScopedConnection(std::move(connection));
 
-            if (name == "torrent_paused")
-            {
-                auto connection = options.sessions.OnTorrentPaused(
-                    [cb = callback](const std::string& session, const lt::torrent_handle& th)
-                    {
-                        try
-                        {
-                            cb(th);
-                        }
-                        catch (const sol::error& err)
-                        {
-                            BOOST_LOG_TRIVIAL(error) << "An error occurred in an event handler: " << err.what();
-                        }
-                    });
+        return std::make_shared<PoCancellableConnection>(connection_id);
+    });
 
-                return std::make_shared<SignalConnection>(connection);
-            }
-
-            if (name == "torrent_removed")
-            {
-                auto connection = options.sessions.OnTorrentRemoved(
-                    [cb = callback](const std::string& session, const lt::info_hash_t& ih)
-                    {
-                        try
-                        {
-                            cb(ih);
-                        }
-                        catch (const sol::error& err)
-                        {
-                            BOOST_LOG_TRIVIAL(error) << "An error occurred in an event handler: " << err.what();
-                        }
-                    });
-
-                return std::make_shared<SignalConnection>(connection);
-            }
-
-            if (name == "torrent_resumed")
-            {
-                auto connection = options.sessions.OnTorrentResumed(
-                    [cb = callback](const std::string& session, const lt::torrent_handle& th)
-                    {
-                        try
-                        {
-                            cb(th);
-                        }
-                        catch (const sol::error& err)
-                        {
-                            BOOST_LOG_TRIVIAL(error) << "An error occurred in an event handler: " << err.what();
-                        }
-                    });
-
-                return std::make_shared<SignalConnection>(connection);
-            }
-
-            return std::shared_ptr<SignalConnection>();
-        };
-
-        return events;
-    };
+    return tbl;
 }
