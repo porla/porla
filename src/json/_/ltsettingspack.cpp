@@ -6,7 +6,7 @@ namespace libtorrent
 {
     void from_json(const nlohmann::json& j, settings_pack& settings)
     {
-        settings = lt::default_settings();
+        settings = lt::settings_pack();
 
         const auto& input = j.get<std::map<std::string, nlohmann::json>>();
 
