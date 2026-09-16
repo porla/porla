@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_set>
 
+#include <libtorrent/torrent_flags.hpp>
 #include <nlohmann/json.hpp>
 #include <sqlite3.h>
 
@@ -19,6 +20,8 @@ namespace porla::Data::Models
             bool                                                 is_default;
             std::optional<std::string>                           category;
             std::optional<int>                                   download_limit;
+            std::optional<lt::torrent_flags_t>                   flags;
+            std::optional<lt::torrent_flags_t>                   flags_mask;
             std::optional<int>                                   max_connections;
             std::optional<int>                                   max_uploads;
             std::optional<std::map<std::string, nlohmann::json>> metadata;

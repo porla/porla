@@ -27,6 +27,18 @@ public:
         return sqlite3_column_int(m_stmt, m_cols.at(col));
     }
 
+    [[nodiscard]] std::int64_t GetInt64(const std::string& col) const override
+    {
+        const auto type = sqlite3_column_type(m_stmt, m_cols.at(col));
+
+        if (type != SQLITE_INTEGER)
+        {
+            throw std::runtime_error("Invalid column type - expected INTEGER, found: " + std::to_string(type));
+        }
+
+        return sqlite3_column_int64(m_stmt, m_cols.at(col));
+    }
+
     [[nodiscard]] std::optional<int> GetOptionalInt32(const std::string& col) const override
     {
         const auto type = sqlite3_column_type(m_stmt, m_cols.at(col));
@@ -37,6 +49,18 @@ public:
         }
 
         return GetInt32(col);
+    }
+
+    [[nodiscard]] std::optional<std::int64_t> GetOptionalInt64(const std::string& col) const override
+    {
+        const auto type = sqlite3_column_type(m_stmt, m_cols.at(col));
+
+        if (type == SQLITE_NULL)
+        {
+            return std::nullopt;
+        }
+
+        return GetInt64(col);
     }
 
     [[nodiscard]] std::vector<char> GetBuffer(const std::string& col) const override
@@ -151,6 +175,28 @@ Statement& Statement::Bind(const std::string& portal, const std::optional<int>& 
     int res = value == std::nullopt
         ? sqlite3_bind_null(m_stmt, index)
         : sqlite3_bind_int(m_stmt, index, value.value());
+
+    if (res != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value: " << sqlite3_errstr(res);
+        throw std::runtime_error("Failed to bind SQLite value");
+    }
+
+    return *this;
+}
+
+Statement& Statement::Bind(const std::string& portal, const std::optional<std::uint64_t>& value)
+{
+    const int index = sqlite3_bind_parameter_index(m_stmt, portal.c_str());
+
+    if (index == 0)
+    {
+        throw std::runtime_error("No parameter named " + portal);
+    }
+
+    int res = value == std::nullopt
+        ? sqlite3_bind_null(m_stmt, index)
+        : sqlite3_bind_int64(m_stmt, index, value.value());
 
     if (res != SQLITE_OK)
     {

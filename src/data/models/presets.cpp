@@ -14,6 +14,8 @@ const std::string PresetSelectPrefix = R"sql(
         is_default,
         category,
         download_limit,
+        flags,
+        flags_mask,
         max_connections,
         max_uploads,
         metadata,
@@ -34,12 +36,17 @@ static Presets::Preset LoadFromRow(const porla::Data::Statement::IRow &row)
         ? json::parse(metadata.value())
         : json();
 
+    const auto flags = row.GetOptionalInt64("flags");
+    const auto flags_mask = row.GetOptionalInt64("flags_mask");
+
     return Presets::Preset{
         .id = row.GetInt32("id"),
         .name = row.GetStdString("name"),
         .is_default = row.GetInt32("is_default") == 1,
         .category = row.GetOptionalStdString("category"),
         .download_limit = row.GetOptionalInt32("download_limit"),
+        .flags = flags.has_value() ? lt::torrent_flags_t(flags.value()) : std::optional<lt::torrent_flags_t>(),
+        .flags_mask = flags_mask.has_value() ? lt::torrent_flags_t(flags_mask.value()) : std::optional<lt::torrent_flags_t>(),
         .max_connections = row.GetOptionalInt32("max_connections"),
         .max_uploads = row.GetOptionalInt32("max_uploads"),
         .metadata = metadata_json.is_object()
@@ -143,6 +150,8 @@ void Presets::Update(sqlite3 *db, const Presets::Preset &preset)
             is_default      = $is_default,
             category        = $category,
             download_limit  = $download_limit,
+            flags           = $flags,
+            flags_mask      = $flags_mask,
             max_connections = $max_connections,
             max_uploads     = $max_uploads,
             metadata        = $metadata,
@@ -160,6 +169,8 @@ void Presets::Update(sqlite3 *db, const Presets::Preset &preset)
     stmt.Bind("$is_default",      preset.is_default ? 1 : 0);
     stmt.Bind("$category",        preset.category);
     stmt.Bind("$download_limit",  preset.download_limit);
+    stmt.Bind("$flags",           preset.flags.has_value() ? static_cast<std::uint64_t>(preset.flags.value()) : std::optional<std::uint64_t>());
+    stmt.Bind("$flags_mask",      preset.flags_mask.has_value() ? static_cast<std::uint64_t>(preset.flags_mask.value()) : std::optional<std::uint64_t>());
     stmt.Bind("$max_connections", preset.max_connections);
     stmt.Bind("$max_uploads",     preset.max_uploads);
     stmt.Bind("$metadata",        metadata);
