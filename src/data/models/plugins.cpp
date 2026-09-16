@@ -15,8 +15,8 @@ const std::string PluginsSelectPrefix = R"sql(
 
 static Plugins::Plugin LoadFromRow(const porla::Data::Statement::IRow &row)
 {
-    const auto metadata = row.GetStdString("metadata");
-    const auto metadata_json = nlohmann::json::parse(metadata);
+    const auto metadata = row.GetOptionalStdString("metadata");
+    const auto metadata_json = nlohmann::json::parse(metadata.value_or("{}"));
 
     return Plugins::Plugin{
         .id = row.GetInt32("id"),
