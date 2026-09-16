@@ -93,15 +93,18 @@ int Presets::Migrate(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
             );
             )sql");
 
+        const auto metadata_dump = metadata.dump();
+        const auto tags_dump     = json(preset.tags).dump();
+
         stmt.Bind("$name",            name);
         stmt.Bind("$category",        preset.category);
         stmt.Bind("$download_limit",  preset.download_limit);
         stmt.Bind("$max_connections", preset.max_connections);
         stmt.Bind("$max_uploads",     preset.max_uploads);
-        stmt.Bind("$metadata",        metadata.dump());
+        stmt.Bind("$metadata",        metadata_dump);
         stmt.Bind("$save_path",       preset.save_path);
         stmt.Bind("$storage_mode",    storage_mode);
-        stmt.Bind("$tags",            json(preset.tags).dump());
+        stmt.Bind("$tags",            tags_dump);
         stmt.Bind("$upload_limit",    preset.upload_limit);
         stmt.Execute();
     }
