@@ -31,13 +31,13 @@ jobs:
 
     steps:
       - name: Download Docker artifact (linux-amd64)
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: porla-linux-amd64-docker.tar
           path: /tmp
 
       - name: Download Docker artifact (linux-arm64)
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: porla-linux-arm64-docker.tar
           path: /tmp
