@@ -20,11 +20,9 @@ void PresetsUpdate::Execute(const PresetsUpdateReq &req, ResponseWriterHandle cb
         return cb->Error(-1, "Preset not found", {{"id", req.id}});
     }
 
-    auto flags = req.flags;
-
-    if (flags.has_value() && req.flags_mask.has_value())
+    if (req.flags.has_value() != req.flags_mask.has_value())
     {
-        *flags &= *req.flags_mask;
+        return cb->Error(-2, "'flags' and 'flags_mask' must be set together");
     }
 
     Data::Models::Presets::Update(
@@ -35,7 +33,7 @@ void PresetsUpdate::Execute(const PresetsUpdateReq &req, ResponseWriterHandle cb
             .is_default = req.is_default.value_or(preset->is_default),
             .category = req.category,
             .download_limit = req.download_limit,
-            .flags = flags,
+            .flags = req.flags,
             .flags_mask = req.flags_mask,
             .max_connections = req.max_connections,
             .max_uploads = req.max_uploads,

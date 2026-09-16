@@ -28,10 +28,10 @@ static void ApplyPreset(lt::add_torrent_params& p, const porla::Data::Models::Pr
     if (preset.upload_limit.has_value())    p.upload_limit    = preset.upload_limit.value();
 
     // Apply flags (if any)
-    if (preset.flags.has_value())
+    if (preset.flags.has_value() && preset.flags_mask.has_value())
     {
         const auto flags = preset.flags.value();
-        const auto mask  = preset.flags_mask.value_or(lt::torrent_flags::all);
+        const auto mask  = preset.flags_mask.value();
 
         p.flags = (p.flags & ~mask) | (flags & mask);
     }
