@@ -1,6 +1,7 @@
 #include "torrentscount.hpp"
 
 #include "../../../sessions.hpp"
+#include "../../../torrentclientdata.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsCount;
 using porla::Rpc::Methods::Torrents::TorrentsCountReq;
@@ -26,6 +27,7 @@ void TorrentsCount::Execute(const TorrentsCountReq& req, ResponseWriterHandle cb
     for (const auto& [ _, pair ] : session_state->torrents)
     {
         const auto& [ th, ts ] = pair;
+        const auto  userdata   = th.userdata().get<TorrentClientData>();
 
         if ((ts.state == lt::torrent_status::state_t::downloading
             || ts.state == lt::torrent_status::state_t::downloading_metadata)
@@ -76,6 +78,20 @@ void TorrentsCount::Execute(const TorrentsCountReq& req, ResponseWriterHandle cb
             && (ts.flags & lt::torrent_flags::paused))
         {
             res.seeding_queued++;
+        }
+
+        if (userdata->category.has_value())
+        {
+            if (userdata->category.value().empty()) continue;
+            res.categories[userdata->category.value()]++;
+        }
+
+        res.trackers[ts.current_tracker]++;
+
+        for (const auto& tag : userdata->tags)
+        {
+            if (tag.empty()) continue;
+            res.tags[tag]++;
         }
     }
 
