@@ -20,6 +20,8 @@
 #include "migrations/0011_presets.hpp"
 #include "migrations/0012_alterplugins.hpp"
 #include "migrations/0013_addkeyvaluestore.hpp"
+#include "migrations/0014_morepresets.hpp"
+
 #include "statement.hpp"
 
 int GetUserVersion(sqlite3* db)
@@ -59,6 +61,7 @@ bool porla::Data::Migrate(sqlite3* db, const std::unique_ptr<porla::Config>& cfg
         [&cfg](sqlite3* db) { return porla::Data::Migrations::Presets::Migrate(db, cfg); },
         &porla::Data::Migrations::AlterPlugins::Migrate,
         &porla::Data::Migrations::AddKeyValueStore::Migrate,
+        &porla::Data::Migrations::MorePresets::Migrate
     };
 
     int user_version = GetUserVersion(db);

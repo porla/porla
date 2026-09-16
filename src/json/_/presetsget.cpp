@@ -17,6 +17,8 @@ namespace porla::Rpc::Methods::Presets
         metadata,
         category,
         download_limit,
+        flags,
+        flags_mask,
         max_connections,
         max_uploads,
         session_id,

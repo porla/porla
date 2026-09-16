@@ -54,10 +54,12 @@ void TorrentsPropertiesSet::Execute(const TorrentsPropertiesSetReq& req, Respons
     if (const auto val = req.download_limit)
         th.set_download_limit(*val);
 
-    if (const auto val = req.flags)
+    if (req.flags.has_value() && req.flags_mask.has_value())
     {
-        lt::torrent_flags_t mask  = {};
-        th.set_flags(*val, mask);
+        const auto flags = req.flags.value();
+        const auto mask  = req.flags_mask.value();
+
+        th.set_flags(flags, mask);
     }
 
     if (const auto val = req.max_connections)

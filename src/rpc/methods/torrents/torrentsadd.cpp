@@ -27,6 +27,15 @@ static void ApplyPreset(lt::add_torrent_params& p, const porla::Data::Models::Pr
     if (preset.storage_mode.has_value())    p.storage_mode    = lt::storage_mode_sparse; // preset.storage_mode.value();
     if (preset.upload_limit.has_value())    p.upload_limit    = preset.upload_limit.value();
 
+    // Apply flags (if any)
+    if (preset.flags.has_value() && preset.flags_mask.has_value())
+    {
+        const auto flags = preset.flags.value();
+        const auto mask  = preset.flags_mask.value();
+
+        p.flags = (p.flags & ~mask) | (flags & mask);
+    }
+
     // Set our custom client data
     if (preset.category.has_value())
         p.userdata.get<porla::TorrentClientData>()->category = preset.category.value();

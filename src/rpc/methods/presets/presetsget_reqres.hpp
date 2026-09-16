@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_set>
 
+#include <libtorrent/torrent_flags.hpp>
 #include <nlohmann/json.hpp>
 
 namespace porla::Rpc::Methods::Presets
@@ -23,6 +24,8 @@ namespace porla::Rpc::Methods::Presets
 
             std::optional<std::string>                             category;
             std::optional<int>                                     download_limit;
+            std::optional<lt::torrent_flags_t>                     flags;
+            std::optional<lt::torrent_flags_t>                     flags_mask;
             std::optional<int>                                     max_connections;
             std::optional<int>                                     max_uploads;
             std::optional<std::string>                             save_path;

@@ -30,6 +30,8 @@ void PresetsGet::Execute(const PresetsGetReq &req, ResponseWriterHandle cb)
                 : std::map<std::string, nlohmann::json>(),
             .category = preset->category,
             .download_limit = preset->download_limit,
+            .flags = preset->flags,
+            .flags_mask = preset->flags_mask,
             .max_connections = preset->max_connections,
             .max_uploads = preset->max_uploads,
             .save_path = preset->save_path,
