@@ -11,6 +11,25 @@ using porla::Data::Migrations::Presets;
 
 namespace lt = libtorrent;
 
+std::optional<int> GetSessionId(sqlite3* db, std::string session_name)
+{
+    std::optional<int> session_id;
+
+    porla::Data::Statement::Prepare(
+        db,
+        R"sql(
+        SELECT id AS session_id FROM sessions WHERE name = $name
+        )sql")
+        .Bind("$name", session_name)
+        .Step([&session_id](const auto& row)
+        {
+            session_id = row.GetOptionalInt32("session_id");
+            return SQLITE_OK;
+        });
+
+    return session_id;
+}
+
 int Presets::Migrate(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
 {
     BOOST_LOG_TRIVIAL(info) << "Adding 'presets' table";
@@ -62,6 +81,10 @@ int Presets::Migrate(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
             metadata["$hidden"] = preset.dollar_hidden.value();
         }
 
+        const auto session_id = preset.session.has_value()
+            ? GetSessionId(db, preset.session.value())
+            : std::optional<int>();
+
         auto stmt = Statement::Prepare(
             db,
             R"sql(
@@ -85,7 +108,7 @@ int Presets::Migrate(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
                 $max_connections,
                 $max_uploads,
                 $metadata,
-                NULL,
+                $session_id,
                 $save_path,
                 $storage_mode,
                 $tags,
@@ -103,6 +126,7 @@ int Presets::Migrate(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
         stmt.Bind("$max_uploads",     preset.max_uploads);
         stmt.Bind("$metadata",        metadata_dump);
         stmt.Bind("$save_path",       preset.save_path);
+        stmt.Bind("$session_id",      session_id);
         stmt.Bind("$storage_mode",    storage_mode);
         stmt.Bind("$tags",            tags_dump);
         stmt.Bind("$upload_limit",    preset.upload_limit);
