@@ -37,13 +37,13 @@ jobs:
           submodules: true
 
       - name: Download Docker artifact (linux-amd64)
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: porla-linux-amd64-docker.tar
           path: /tmp
 
       - name: Download Docker artifact (linux-arm64)
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: porla-linux-arm64-docker.tar
           path: /tmp
@@ -81,13 +81,13 @@ jobs:
           docker manifest push ghcr.io/porla/porla:${{ needs.version.outputs.fullSemVer }}
 
       - name: Download Porla binary artifact (linux-amd64)
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: porla-linux-amd64
           path: /tmp
 
       - name: Download Porla binary artifact (linux-arm64)
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: porla-linux-arm64
           path: /tmp
