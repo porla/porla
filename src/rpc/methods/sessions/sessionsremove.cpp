@@ -17,16 +17,23 @@ SessionsRemove::SessionsRemove(sqlite3* db, porla::Sessions& sessions)
 
 void SessionsRemove::Execute(const SessionsRemoveReq& req, ResponseWriterHandle cb)
 {
-    const auto& session = m_sessions.Get(req.id);
+    const auto session = porla::Data::Models::Sessions::GetById(m_db, req.id);
 
-    if (session == nullptr)
+    if (!session)
     {
         return cb->Error(-1, "Session not found");
     }
 
-    if (session->name == "default")
+    if (session->is_default)
     {
         return cb->Error(-2, "Cannot remove default session");
+    }
+
+    const auto session_state = m_sessions.Get(session->id);
+
+    if (session_state != nullptr && session_state->torrents.size() > 0)
+    {
+        return cb->Error(-3, "Cannot remove session with torrents");
     }
 
     m_sessions.UnloadById(session->id);
