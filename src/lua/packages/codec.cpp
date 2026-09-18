@@ -1,6 +1,9 @@
 #include "codec.hpp"
 
+#include <nlohmann/json.hpp>
 #include <sodium.h>
+
+#include "../types/pojson.hpp"
 
 using porla::Lua::Packages::Codec;
 
@@ -82,6 +85,38 @@ sol::object Codec::Load(sol::this_state ts)
         return output;
     });
 
+    sol::table json_tbl = lua.create_table();
+    json_tbl.set_function("array", [](sol::this_state ts, sol::optional<sol::table> tbl)
+    {
+        sol::state_view lua(ts);
+        sol::table t = tbl.value_or(lua.create_table());
+
+        Types::PoJson::TagArray(t);
+
+        return t;
+    });
+
+    json_tbl["null"] = sol::light(Types::PoJson::NullSentinel());
+
+    json_tbl.set_function("decode", [](sol::this_state ts, const std::string& data)
+    {
+        const auto parsed_json = nlohmann::json::parse(data);
+        return Types::PoJson::ToLua(ts, parsed_json, 0);
+    });
+
+    json_tbl.set_function("encode", [](sol::this_state ts, const sol::object& data)
+    {
+        try
+        {
+            return Types::PoJson::ToJson(ts, data, 0).dump();
+        }
+        catch (const nlohmann::json::type_error& e)
+        {
+            throw sol::error(std::string("json: ") + e.what() +
+                            " (binary data must be base64-encoded first)");
+        }
+    });
+
     sol::table hex = lua.create_table();
     hex.set_function("decode", [](const std::string& data)
     {
@@ -130,6 +165,7 @@ sol::object Codec::Load(sol::this_state ts)
     sol::table tbl = lua.create_table();
     tbl["base64"] = b64;
     tbl["hex"] = hex;
+    tbl["json"] = json_tbl;
 
     return tbl;
 }
