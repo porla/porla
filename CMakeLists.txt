@@ -167,6 +167,7 @@ add_library(
     src/lua/types/potorrentdata.cpp
     src/lua/types/potorrentshandle.cpp
     src/lua/types/potorrentsiterator.cpp
+    src/lua/types/sohashstate.cpp
 
     src/lua/print.cpp
     src/lua/plugin.cpp

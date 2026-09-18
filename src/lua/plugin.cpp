@@ -31,6 +31,7 @@
 #include "types/potcpclient.hpp"
 #include "types/potorrentdata.hpp"
 #include "types/potorrentshandle.hpp"
+#include "types/sohashstate.hpp"
 
 #include "../config.hpp"
 #include "../curlmulti.hpp"
@@ -105,6 +106,7 @@ struct Plugin::State
         Types::PoTcpClient::Register(lua);
         Types::PoTorrentsHandle::Register(lua);
         Types::PoTorrentData::Register(lua);
+        Types::SoHashState::Register(lua);
 
         sol::table package = lua["package"];
         package["preload"]["porla_crypto"]      = Packages::Crypto::Load;

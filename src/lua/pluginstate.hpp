@@ -25,11 +25,14 @@ namespace porla::Lua
             : io(io)
             , sessions(sessions)
             , lua(lua)
+            , sodium_hash_pool(2)
         {
         }
 
         ~LuaState()
         {
+            sodium_hash_pool.join();
+
             for (auto& [ _, cron_schedule ] : m_cron_schedules)
             {
                 cron_schedule.handle->Cancel();
@@ -87,6 +90,8 @@ namespace porla::Lua
                 BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Error when invoking callback: " << err.what();
             }
         }
+
+        boost::asio::any_io_executor IoExecutor() const { return io.get_executor(); }
 
         std::size_t RegisterCallback(sol::main_protected_function func, bool one_shot)
         {
@@ -173,6 +178,7 @@ namespace porla::Lua
         sol::state_view                                           lua;
         int                                                       plugin_id;
         porla::Sessions&                                          sessions;
+        boost::asio::thread_pool                                  sodium_hash_pool;
 
     private:
         struct CallbackRef
