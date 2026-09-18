@@ -149,12 +149,18 @@ sol::object Crypto::Load(sol::this_state ts)
             });
     });
 
-    tbl.set_function("random_bytes", [](int n)
+    tbl.set_function("randombytes", [](lua_Integer size)
     {
-        std::string bytes;
-        bytes.resize(n, '\0');
+        if (size < 0)    { throw sol::error("size must be non-negative"); }
+        if (size > 4096) { throw sol::error("size exceeds maximum of 4096 bytes"); }
 
-        randombytes_buf(bytes.data(), n);
+        std::string bytes;
+        bytes.resize(static_cast<std::size_t>(size));
+
+        if (size > 0)
+        {
+            randombytes_buf(bytes.data(), bytes.size());
+        }
 
         return bytes;
     });
