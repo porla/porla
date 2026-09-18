@@ -136,6 +136,7 @@ add_library(
     src/json/_/torrentstrackerslist.cpp
     src/json/_/webuiinstall.cpp
 
+    src/lua/packages/codec.cpp
     src/lua/packages/crypto.cpp
     src/lua/packages/events.cpp
     src/lua/packages/httpclient.cpp
