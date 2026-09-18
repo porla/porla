@@ -27,6 +27,19 @@ void LtAddTorrentParams::Register(sol::state& lua)
         return std::make_tuple(ToTable(ts, params), sol::nil);
     });
 
+    atp.set_function("from_magnet", [](sol::this_state ts, const std::string& magnet_uri) -> std::tuple<sol::object, sol::object>
+    {
+        lt::error_code ec;
+        lt::add_torrent_params params = lt::parse_magnet_uri(magnet_uri, ec);
+
+        if (ec)
+        {
+            return std::make_tuple(sol::nil, PoError::Construct(ts, ec));
+        }
+
+        return std::make_tuple(ToTable(ts, params), sol::nil);
+    });
+
     atp.set_function("from_path", [](sol::this_state ts, const std::string& path) -> std::tuple<sol::object, sol::object>
     {
         lt::error_code ec;
