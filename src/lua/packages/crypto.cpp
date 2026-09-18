@@ -159,5 +159,73 @@ sol::object Crypto::Load(sol::this_state ts)
         return bytes;
     });
 
+    tbl.set_function("secretbox", [](const std::string& message, const std::string& key)
+    {
+        if (key.size() != crypto_secretbox_KEYBYTES)
+        {
+            throw sol::error("invalid key size");
+        }
+
+        std::string out;
+        out.resize(crypto_secretbox_NONCEBYTES + crypto_secretbox_MACBYTES + message.size());
+
+        auto* buf = reinterpret_cast<unsigned char*>(out.data());
+
+        randombytes_buf(buf, crypto_secretbox_NONCEBYTES);
+
+        const int result = crypto_secretbox_easy(
+            buf + crypto_secretbox_NONCEBYTES,
+            reinterpret_cast<const unsigned char*>(message.data()),
+            message.size(),
+            buf,
+            reinterpret_cast<const unsigned char*>(key.data()));
+
+        if (result != 0)
+        {
+            throw sol::error("crypto_secretbox_easy failed");
+        }
+
+        return out;
+    });
+
+    tbl.set_function("secretbox_keygen", []()
+    {
+        unsigned char key[crypto_secretbox_KEYBYTES];
+        crypto_secretbox_keygen(key);
+
+        std::string out(reinterpret_cast<const char*>(key), sizeof(key));
+
+        sodium_memzero(key, sizeof(key));
+
+        return out;
+    });
+
+    tbl.set_function("secretbox_open", [](const std::string& box, const std::string& key) -> sol::optional<std::string>
+    {
+        constexpr std::size_t overhead = crypto_secretbox_NONCEBYTES + crypto_secretbox_MACBYTES;
+
+        if (key.size() != crypto_secretbox_KEYBYTES) { throw sol::error("invalid key size"); }
+        if (box.size() < overhead)                   { return sol::nullopt; }
+
+        const auto* buf = reinterpret_cast<const unsigned char*>(box.data());
+
+        std::string out;
+        out.resize(box.size() - overhead);
+
+        const int result = crypto_secretbox_open_easy(
+            reinterpret_cast<unsigned char*>(out.data()),
+            buf + crypto_secretbox_NONCEBYTES,
+            box.size() - crypto_secretbox_NONCEBYTES,
+            buf,
+            reinterpret_cast<const unsigned char*>(key.data()));
+
+        if (result != 0)
+        {
+            return sol::nullopt;
+        }
+
+        return out;
+    });
+
     return tbl;
 }
