@@ -165,6 +165,15 @@ sol::object Crypto::Load(sol::this_state ts)
         return bytes;
     });
 
+    tbl.set_function("randombytes_uniform", [](lua_Integer upper_bound)
+    {
+        if (upper_bound <= 0)           { throw sol::error("upper_bound must be positive"); }
+        if (upper_bound > 0xFFFFFFFFll) { throw sol::error("upper_bound too large"); }
+
+        return static_cast<lua_Integer>(
+            randombytes_uniform(static_cast<uint32_t>(upper_bound)));
+    });
+
     tbl.set_function("secretbox", [](const std::string& message, const std::string& key)
     {
         if (key.size() != crypto_secretbox_KEYBYTES)
