@@ -72,7 +72,17 @@
 
 int main(int argc, char* argv[])
 {
-    curl_global_init(CURL_GLOBAL_DEFAULT);
+    if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
+    {
+        std::cerr << "curl_global_init failed";
+        return -1;
+    }
+
+    if (sodium_init() == -1)
+    {
+        std::cerr << "sodium_init failed";
+        return -1;
+    }
 
     const boost::program_options::variables_map cmd = porla::CmdArgs::Parse(argc, argv);
 
