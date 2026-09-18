@@ -22,7 +22,7 @@ void LtTorrentHandle::Register(sol::state& lua)
         // file_priority
         // file_progress
         "file_status",                &lt::torrent_handle::file_status,
-        // flags
+        "flags",                      &lt::torrent_handle::flags,
         "flush_cache",                &lt::torrent_handle::flush_cache,
         "force_dht_announce",         &lt::torrent_handle::force_dht_announce,
         "force_lsd_announce",         &lt::torrent_handle::force_lsd_announce,
@@ -119,7 +119,13 @@ void LtTorrentHandle::Register(sol::state& lua)
         // save_resume_data
         // scrape_tracker
         "set_download_limit",         &lt::torrent_handle::set_download_limit,
-        // set_flags
+        "set_flags",                  sol::overload(
+            [](const lt::torrent_handle& th, const lt::torrent_flags_t& flags) { th.set_flags(flags); },
+            [](const lt::torrent_handle& th, const lt::torrent_flags_t& flags, const lt::torrent_flags_t& mask)
+            {
+                th.set_flags(flags, mask);
+            }
+        ),
         "set_max_connections",        &lt::torrent_handle::set_max_connections,
         "set_max_uploads",            &lt::torrent_handle::set_max_uploads,
         // set_metadata
