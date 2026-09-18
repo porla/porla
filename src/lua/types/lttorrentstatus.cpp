@@ -2,6 +2,8 @@
 
 #include <libtorrent/torrent_status.hpp>
 
+#include "poerror.hpp"
+
 using porla::Lua::Types::LtTorrentStatus;
 
 void LtTorrentStatus::Register(sol::state& lua)
@@ -26,7 +28,9 @@ void LtTorrentStatus::Register(sol::state& lua)
         "download_limit",         sol::readonly(&lt::torrent_status::download_limit),
         "download_payload_rate",  sol::readonly(&lt::torrent_status::download_payload_rate),
         "download_rate",          sol::readonly(&lt::torrent_status::download_rate),
-        // flags
+        "errc",                   sol::property(
+            [](sol::this_state ts, const lt::torrent_status& status) { return PoError::Construct(ts, status.errc); }),
+        "flags",                  sol::readonly(&lt::torrent_status::flags),
         "finished_duration",      sol::property([](const lt::torrent_status& ts) { return ts.finished_duration.count(); }),
         "handle",                 sol::readonly(&lt::torrent_status::handle),
         "has_incoming",           sol::readonly(&lt::torrent_status::has_incoming),
@@ -57,7 +61,17 @@ void LtTorrentStatus::Register(sol::state& lua)
         "save_path",              sol::readonly(&lt::torrent_status::save_path),
         "seed_rank",              sol::readonly(&lt::torrent_status::seed_rank),
         "seeding_duration",       sol::property([](const lt::torrent_status& ts) { return ts.seeding_duration.count(); }),
-        // state
+        "state",                  sol::property(
+            [](const lt::torrent_status& ts) -> std::optional<std::string>
+            {
+                if (ts.state == lt::torrent_status::state_t::checking_files)       return "checking_files";
+                if (ts.state == lt::torrent_status::state_t::downloading_metadata) return "downloading_metadata";
+                if (ts.state == lt::torrent_status::state_t::downloading)          return "downloading";
+                if (ts.state == lt::torrent_status::state_t::finished)             return "finished";
+                if (ts.state == lt::torrent_status::state_t::seeding)              return "seeding";
+                if (ts.state == lt::torrent_status::state_t::checking_resume_data) return "checking_resume_data";
+                return std::nullopt;
+            }),
         // storage_mode
         "torrent_file",           sol::readonly(&lt::torrent_status::torrent_file),
         "total",                  sol::readonly(&lt::torrent_status::total),
