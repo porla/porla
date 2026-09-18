@@ -30,6 +30,7 @@ namespace porla::Lua::Types
         void Finish(const std::string& data);
         void OnData(std::string_view data, std::uint64_t len);
         void Write(const std::string& data);
+        void WriteHeader(const std::string& key, const std::string& value);
         void WriteStatus(const std::string& status);
 
         std::optional<std::string> m_body;

@@ -16,6 +16,7 @@ void PoHttpServerResponse::Register(sol::state& lua)
             sol::resolve<void(const std::string&)>(&PoHttpServerResponse::Finish)
         ),
         "write", &PoHttpServerResponse::Write,
+        "writeHeader", &PoHttpServerResponse::WriteHeader,
         "writeStatus", &PoHttpServerResponse::WriteStatus);
 }
 
@@ -123,6 +124,12 @@ void PoHttpServerResponse::Write(const std::string& data)
 {
     if (m_is_aborted) { return; }
     m_response->write(data);
+}
+
+void PoHttpServerResponse::WriteHeader(const std::string& key, const std::string& value)
+{
+    if (m_is_aborted) { return; }
+    m_response->writeHeader(key, value);
 }
 
 void PoHttpServerResponse::WriteStatus(const std::string& status)
