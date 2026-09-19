@@ -71,7 +71,7 @@ sol::object porla::Lua::Packages::Sessions::Load(sol::this_state ts)
     });
 
     tbl.set_function("get", sol::overload(
-        [](sol::this_state ts, int id) -> sol::object
+        [](sol::this_state ts, int id) -> std::shared_ptr<PoSessionHandle>
         {
             sol::state_view lua(ts);
 
@@ -80,21 +80,45 @@ sol::object porla::Lua::Packages::Sessions::Load(sol::this_state ts)
 
             if (state == nullptr)
             {
-                return sol::nil;
+                return nullptr;
             }
 
             auto session_ptr = state->sessions.Get(id);
 
             if (session_ptr == nullptr)
             {
-                return sol::nil;
+                return nullptr;
             }
 
-            return sol::make_object(lua, std::make_shared<PoSessionHandle>(session_ptr));
+            return std::make_shared<PoSessionHandle>(session_ptr);
         },
-        [](sol::this_state ts, const std::string name)
+        [](sol::this_state ts, const std::string name) -> std::shared_ptr<PoSessionHandle>
         {
-            return "by name";
+            sol::state_view lua(ts);
+
+            auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
+            auto state = weak.lock();
+
+            if (state == nullptr)
+            {
+                return nullptr;
+            }
+
+            const auto& session_db = Data::Models::Sessions::GetByName(state->db, name);
+
+            if (!session_db)
+            {
+                return nullptr;
+            }
+
+            auto session_ptr = state->sessions.Get(session_db->id);
+
+            if (session_ptr == nullptr)
+            {
+                return nullptr;
+            }
+
+            return std::make_shared<PoSessionHandle>(session_ptr);
         }));
 
     tbl.set_function("list", [](sol::this_state ts) -> sol::object

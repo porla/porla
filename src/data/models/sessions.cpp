@@ -87,6 +87,22 @@ std::optional<Sessions::Session> Sessions::GetById(sqlite3* db, int id)
     return session;
 }
 
+std::optional<Sessions::Session> Sessions::GetByName(sqlite3* db, const std::string& name)
+{
+    std::optional<Sessions::Session> session;
+
+    Statement::Prepare(db, SessionsSelectPrefix + " WHERE name = $name")
+        .Bind("$name", name)
+        .Step(
+            [&session](auto const& row)
+            {
+                session = LoadSessionFromRow(row);
+                return SQLITE_OK;
+            });
+
+    return session;
+}
+
 int Sessions::Insert(sqlite3* db, const Sessions::Session& session)
 {
     std::vector params_buffer = lt::write_session_params_buf(session.params);

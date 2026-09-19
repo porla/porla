@@ -29,6 +29,7 @@ namespace porla::Data::Models
 
         static std::optional<Session> GetDefault(sqlite3* db);
         static std::optional<Session> GetById(sqlite3* db, int id);
+        static std::optional<Session> GetByName(sqlite3* db, const std::string& name);
         static int Insert(sqlite3* db, const Session& session);
         static std::vector<Session> List(sqlite3* db);
         static void Remove(sqlite3* db, int id);
