@@ -17,6 +17,7 @@ namespace porla::Rpc::Methods::Torrents
         max_uploads,
         metadata,
         name,
+        preset,
         preset_id,
         save_path,
         session_id,

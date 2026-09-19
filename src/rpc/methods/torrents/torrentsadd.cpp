@@ -65,9 +65,20 @@ void TorrentsAdd::Execute(const TorrentsAddReq& req, ResponseWriterHandle cb)
 
     const auto& default_preset = Data::Models::Presets::GetDefault(m_db);
 
-    const auto& preset = req.preset_id.has_value()
-        ? Data::Models::Presets::GetById(m_db, req.preset_id.value())
-        : default_preset;
+    std::optional<Data::Models::Presets::Preset> preset;
+
+    if (req.preset_id)
+    {
+        preset = Data::Models::Presets::GetById(m_db, *req.preset_id);
+    }
+    else if (req.preset)
+    {
+        preset = Data::Models::Presets::GetByName(m_db, *req.preset);
+    }
+    else
+    {
+        preset = default_preset;
+    }
 
     const auto session = req.session_id.has_value()
         ? Data::Models::Sessions::GetById(m_db, req.session_id.value())
