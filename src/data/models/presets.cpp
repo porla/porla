@@ -89,6 +89,22 @@ std::optional<Presets::Preset> Presets::GetById(sqlite3 *db, int id)
     return preset;
 }
 
+std::optional<Presets::Preset> Presets::GetByName(sqlite3 *db, const std::string& name)
+{
+    std::optional<Preset> preset;
+
+    Statement::Prepare(db, PresetSelectPrefix + " WHERE name = $name")
+        .Bind("$name", name)
+        .Step(
+            [&preset](auto const &row)
+            {
+                preset = LoadFromRow(row);
+                return SQLITE_OK;
+            });
+
+    return preset;
+}
+
 std::optional<Presets::Preset> Presets::GetDefault(sqlite3 *db)
 {
     std::optional<Preset> preset;
