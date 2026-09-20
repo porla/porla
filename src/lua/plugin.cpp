@@ -15,6 +15,7 @@
 #include "packages/events.hpp"
 #include "packages/httpclient.hpp"
 #include "packages/httpserver.hpp"
+#include "packages/presets.hpp"
 #include "packages/runtime.hpp"
 #include "packages/sessions.hpp"
 #include "packages/sockets.hpp"
@@ -27,6 +28,7 @@
 #include "types/ltaddtorrentparams.hpp"
 #include "types/pocancellable.hpp"
 #include "types/pohttpserverresponse.hpp"
+#include "types/popreset.hpp"
 #include "types/poquery.hpp"
 #include "types/posessionhandle.hpp"
 #include "types/potcpclient.hpp"
@@ -102,6 +104,7 @@ struct Plugin::State
         // Porla wrapper types
         Types::PoCancellable::Register(lua);
         Types::PoHttpServerResponse::Register(lua);
+        Types::PoPreset::Register(lua);
         Types::PoQuery::Register(lua);
         Types::PoSessionHandle::Register(lua);
         Types::PoTcpClient::Register(lua);
@@ -115,6 +118,7 @@ struct Plugin::State
         package["preload"]["porla_events"]      = Packages::Events::Load;
         package["preload"]["porla_http_client"] = Packages::HttpClient::Load;
         package["preload"]["porla_http_server"] = Packages::HttpServer::Load;
+        package["preload"]["porla_presets"]     = Packages::Presets::Load;
         package["preload"]["porla_runtime"]     = Packages::Runtime::Load;
         package["preload"]["porla_sessions"]    = Packages::Sessions::Load;
         package["preload"]["porla_sockets"]     = Packages::Sockets::Load;
