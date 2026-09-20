@@ -44,14 +44,16 @@ namespace porla
         static int TimerCallback(CURLM* multi, long timeout_ms, void* userp);
 
         void DoAddTransfer(CURL* easy, TransferComplete callback);
-        void OnSocketUpdate(curl_socket_t sock, int what);
         void ArmSocket(curl_socket_t sock);
+        void DriveSocket(curl_socket_t sock, int mask);
         void OnSocketReady(curl_socket_t sock, const boost::system::error_code& ec, int direction);
+        void OnSocketUpdate(curl_socket_t sock, int what);
         void OnTimeout(std::uint64_t generation);
         void SocketAction(curl_socket_t sock, int event_bitmask);
         void CheckCompleted();
         void FinishTransfer(CURL* easy, CURLcode result);
         void SafeInvoke(const TransferComplete& callback, CURL* easy, CURLcode result);
+        bool StillReadable(curl_socket_t sock); 
 
         boost::asio::io_context&                                    m_io;
         boost::asio::strand<boost::asio::io_context::executor_type> m_strand;
