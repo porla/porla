@@ -141,6 +141,7 @@ add_library(
     src/lua/packages/events.cpp
     src/lua/packages/httpclient.cpp
     src/lua/packages/httpserver.cpp
+    src/lua/packages/presets.cpp
     src/lua/packages/runtime.cpp
     src/lua/packages/sessions.cpp
     src/lua/packages/sockets.cpp
@@ -162,6 +163,7 @@ add_library(
     src/lua/types/poerror.cpp
     src/lua/types/pojson.cpp
     src/lua/types/pohttpserverresponse.cpp
+    src/lua/types/popreset.cpp
     src/lua/types/poquery.cpp
     src/lua/types/posessionhandle.cpp
     src/lua/types/posessionsiterator.cpp
