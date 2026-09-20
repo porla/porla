@@ -181,7 +181,7 @@ void TorrentsAdd::Execute(const TorrentsAddReq& req, ResponseWriterHandle cb)
 
     if (p->save_path.empty())
     {
-        return cb->Error(-5, "'save_path' missing");
+        return cb->Error(-6, "'save_path' missing");
     }
 
     try
@@ -191,7 +191,7 @@ void TorrentsAdd::Execute(const TorrentsAddReq& req, ResponseWriterHandle cb)
     catch (const std::exception& ex)
     {
         BOOST_LOG_TRIVIAL(error) << "Failed to add torrent to session: " << ex.what();
-        return cb->Error(-5, "Failed to add torrent to session", {"what", ex.what()});
+        return cb->Error(-7, "Failed to add torrent to session", {"what", ex.what()});
     }
 
     cb->Ok(TorrentsAddRes{
