@@ -127,6 +127,20 @@ void TorrentsAdd::Execute(const TorrentsAddReq& req, ResponseWriterHandle cb)
         return cb->Error(-3, "Either 'ti' or 'magnet_uri' must be set");
     }
 
+    const auto info_hash = p->ti
+        ? p->ti->info_hashes()
+        : p->info_hashes;
+
+    if (info_hash == lt::info_hash_t())
+    {
+        return cb->Error(-4, "Failed to get info_hash from params");
+    }
+
+    if (session_state->torrents.find(info_hash) != session_state->torrents.end())
+    {
+        return cb->Error(-5, "Torrent already in session");
+    }
+
     p->userdata = lt::client_data_t(new TorrentClientData());
     p->userdata.get<TorrentClientData>()->state = session_state;
 
@@ -167,29 +181,21 @@ void TorrentsAdd::Execute(const TorrentsAddReq& req, ResponseWriterHandle cb)
 
     if (p->save_path.empty())
     {
-        return cb->Error(-4, "'save_path' missing");
+        return cb->Error(-6, "'save_path' missing");
     }
-
-    lt::info_hash_t hash;
 
     try
     {
         session_state->session->async_add_torrent(*p);
-        hash = p->ti ? p->ti->info_hashes() : p->info_hashes;
     }
     catch (const std::exception& ex)
     {
         BOOST_LOG_TRIVIAL(error) << "Failed to add torrent to session: " << ex.what();
-        return cb->Error(-5, "Failed to add torrent to session", {"what", ex.what()});
-    }
-
-    if (hash == lt::info_hash_t())
-    {
-        return cb->Error(-6, "Failed to add torrent");
+        return cb->Error(-7, "Failed to add torrent to session", {"what", ex.what()});
     }
 
     cb->Ok(TorrentsAddRes{
-        .info_hash  = hash,
+        .info_hash  = info_hash,
         .session_id = session_state->id
     });
 }
