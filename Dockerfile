@@ -2,7 +2,9 @@ FROM mirror.gcr.io/library/alpine:3.24.2 AS base
 
 FROM base AS build-porla
 
+ARG CCACHE_REMOTE_STORAGE="http://ccache.porla.org|read-only"
 ARG GITVERSION_SEMVER="0.0.0"
+
 ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
 
 WORKDIR /src
@@ -12,9 +14,10 @@ RUN apk add --no-cache \
     boost1.84-static \
     brotli-static \
     build-base \
+    ccache \
+    cmake \
     curl-dev \
     curl-static \
-    cmake \
     git \
     icu-static \
     libmaxminddb-dev \
@@ -40,7 +43,12 @@ RUN apk add --no-cache \
 
 COPY . .
 
-RUN cmake --preset alpine-static \
+RUN --mount=type=secret,id=ccache_url \
+    if [ -f /run/secrets/ccache_url ]; then \
+      export CCACHE_REMOTE_STORAGE="$(cat /run/secrets/ccache_url)"; \
+    fi \
+    && export CCACHE_REMOTE_STORAGE \
+    && cmake --preset alpine-static \
     && cmake --build --preset alpine-static
 
 # runtime image
