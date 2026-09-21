@@ -2,7 +2,7 @@ FROM mirror.gcr.io/library/alpine:3.24.2 AS base
 
 FROM base AS build-porla
 
-ARG CCACHE_REMOTE_STORAGE="http://ccache.porla.org|read-only"
+ARG CCACHE_REMOTE_STORAGE="http://ccache.porla.org|connect-timeout=5000|operation-timeout=30000|read-only"
 ARG GITVERSION_SEMVER="0.0.0"
 
 ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
