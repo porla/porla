@@ -114,6 +114,8 @@ void PluginsUpgrade::Execute(const PluginsUpgradeReq& req, ResponseWriterHandle 
                 BOOST_LOG_TRIVIAL(debug) << "Wrote plugin to " << plugin_zip;
             }
 
+            const auto old_path = plugin->path;
+
             auto metadata = plugin->metadata;
             metadata["version"] = tag_name;
 
@@ -127,6 +129,16 @@ void PluginsUpgrade::Execute(const PluginsUpgradeReq& req, ResponseWriterHandle 
                 });
 
             self->m_plugin_engine.Reload(plugin->id);
+
+            if (fs::exists(old_path))
+            {
+                std::error_code ec;
+
+                if (!fs::remove(old_path, ec))
+                {
+                    BOOST_LOG_TRIVIAL(warning) << "Failed to remove old plugin path " << old_path << ": " << ec;
+                }
+            }
 
             cb->Ok(PluginsUpgradeRes{});
         });
