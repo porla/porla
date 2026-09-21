@@ -44,12 +44,14 @@ RUN apk add --no-cache \
 COPY . .
 
 RUN --mount=type=secret,id=ccache_url \
-    if [ -f /run/secrets/ccache_url ]; then \
+    if [ -s /run/secrets/ccache_url ]; then \
       export CCACHE_REMOTE_STORAGE="$(cat /run/secrets/ccache_url)"; \
     fi \
     && export CCACHE_REMOTE_STORAGE \
     && cmake --preset alpine-static \
-    && cmake --build --preset alpine-static
+    && ccache -z \
+    && cmake --build --preset alpine-static \
+    && ccache -s
 
 # runtime image
 FROM base AS runtime

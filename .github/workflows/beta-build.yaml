@@ -18,6 +18,8 @@ jobs:
       major:      ${{ needs.version.outputs.major }}
       minor:      ${{ needs.version.outputs.minor }}
       patch:      ${{ needs.version.outputs.patch }}
+    secrets:
+      ccache_url: ${{ secrets.CCACHE_URL }}
 
   push-docker-image-beta:
     name: Push Docker image (beta)
