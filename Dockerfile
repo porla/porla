@@ -50,5 +50,5 @@ ENV PORLA_HTTP_HOST=0.0.0.0
 EXPOSE 1337
 
 WORKDIR /
-COPY --from=build-porla /src/build/release-static/porla /usr/bin/porla
+COPY --from=build-porla /src/build/alpine-static/porla /usr/bin/porla
 ENTRYPOINT [ "/usr/bin/porla" ]
