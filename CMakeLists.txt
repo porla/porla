@@ -95,6 +95,7 @@ add_library(
     src/json/_/pluginsreload.cpp
     src/json/_/pluginsremove.cpp
     src/json/_/pluginsupdate.cpp
+    src/json/_/pluginsupgrade.cpp
     src/json/_/presetsadd.cpp
     src/json/_/presetsget.cpp
     src/json/_/presetslist.cpp
@@ -192,6 +193,7 @@ add_library(
     src/rpc/methods/plugins/pluginsreload.cpp
     src/rpc/methods/plugins/pluginsremove.cpp
     src/rpc/methods/plugins/pluginsupdate.cpp
+    src/rpc/methods/plugins/pluginsupgrade.cpp
     src/rpc/methods/presets/presetsadd.cpp
     src/rpc/methods/presets/presetsget.cpp
     src/rpc/methods/presets/presetslist.cpp

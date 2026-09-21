@@ -119,9 +119,9 @@ void PluginsInstall::Execute(const PluginsInstallReq& req, ResponseWriterHandle 
                     .config   = req.config,
                     .metadata = {
                         {"source", "github"},
-                        {"repository", req.repository},
                         {"owner", req.owner},
-                        {"tag", tag_name}
+                        {"repository", req.repository},
+                        {"version", tag_name}
                     }
                 });
 
