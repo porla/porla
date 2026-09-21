@@ -29,7 +29,7 @@ sol::object porla::Lua::Packages::Sessions::Load(sol::this_state ts)
 
         if (state == nullptr)
         {
-            return sol::nil;
+            return sol::lua_nil;
         }
 
         const auto all_sessions    = porla::Data::Models::Sessions::List(state->db);
@@ -130,7 +130,7 @@ sol::object porla::Lua::Packages::Sessions::Load(sol::this_state ts)
 
         if (state == nullptr)
         {
-            return sol::nil;
+            return sol::lua_nil;
         }
 
         return sol::make_object(lua, PoSessionsIterator(state->sessions.All()));

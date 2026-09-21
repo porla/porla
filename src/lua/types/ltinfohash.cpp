@@ -5,6 +5,8 @@
 #include <libtorrent/hex.hpp>
 #include <libtorrent/info_hash.hpp>
 
+#include "../../utils/hex.hpp"
+
 using porla::Lua::Types::LtInfoHash;
 
 namespace
@@ -24,7 +26,7 @@ namespace
 
         THash out;
 
-        if (!lt::aux::from_hex({hex.data(), chars}, out.data()))
+        if (!porla::Utils::FromHex(hex, out.data(), static_cast<std::size_t>(THash::size())))
         {
             throw std::invalid_argument(
                 "info hash " + std::string(label) + " contains invalid hex characters");
@@ -63,10 +65,20 @@ void LtInfoHash::Register(sol::state& lua)
         }),
         "v1", sol::property([](const lt::info_hash_t& ih) -> std::optional<std::string>
         {
-            return ih.has_v1() ? std::optional(lt::aux::to_hex(ih.v1)) : std::nullopt;
+            if (!ih.has_v1())
+            {
+                return std::nullopt;
+            }
+
+            return porla::Utils::ToHex({ih.v1.data(), static_cast<size_t>(ih.v1.size())});
         }),
         "v2", sol::property([](const lt::info_hash_t& ih) -> std::optional<std::string>
         {
-            return ih.has_v2() ? std::optional(lt::aux::to_hex(ih.v2)) : std::nullopt;
+            if (!ih.has_v2())
+            {
+                return std::nullopt;
+            }
+
+            return porla::Utils::ToHex({ih.v2.data(), static_cast<size_t>(ih.v2.size())});
         }));
 }

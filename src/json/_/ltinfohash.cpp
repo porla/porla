@@ -2,9 +2,10 @@
 
 #include <sstream>
 
-#include <libtorrent/hex.hpp>
 #include <libtorrent/info_hash.hpp>
 #include <nlohmann/json.hpp>
+
+#include "../../utils/hex.hpp"
 
 using json = nlohmann::json;
 
@@ -23,8 +24,16 @@ namespace libtorrent
         // v1 info hash as a string
         if (j.is_string() && j.get<std::string>().size() == 40)
         {
+            const auto hash = j.get<std::string>();
+
             lt::sha1_hash h;
-            lt::aux::from_hex({j.get<std::string>().c_str(),40}, h.data());
+
+            if (!porla::Utils::FromHex(hash, h.data(), hash.size()))
+            {
+                throw std::invalid_argument(
+                    "info hash " + hash + " contains invalid hex characters");
+            }
+
             ih = lt::info_hash_t(h);
 
             return;
@@ -33,8 +42,16 @@ namespace libtorrent
         // v2 info hash as a string
         if (j.is_string() && j.get<std::string>().size() == 64)
         {
+            const auto hash = j.get<std::string>();
+
             lt::sha256_hash h;
-            lt::aux::from_hex({j.get<std::string>().c_str(),64}, h.data());
+
+            if (!porla::Utils::FromHex(hash, h.data(), hash.size()))
+            {
+                throw std::invalid_argument(
+                    "info hash " + hash + " contains invalid hex characters");
+            }
+
             ih = lt::info_hash_t(h);
 
             return;
@@ -45,8 +62,16 @@ namespace libtorrent
             // v1 info hash with null v2 hash
             if (j.at(0).is_string() && j.at(0).get<std::string>().size() == 40 && j.at(1).is_null())
             {
+                const auto hash = j.at(0).get<std::string>();
+
                 lt::sha1_hash h;
-                lt::aux::from_hex({j[0].get<std::string>().c_str(),40}, h.data());
+                
+                if (!porla::Utils::FromHex(hash, h.data(), hash.size()))
+                {
+                    throw std::invalid_argument(
+                        "info hash " + hash + " contains invalid hex characters");
+                }
+
                 ih = lt::info_hash_t(h);
 
                 return;
@@ -55,8 +80,16 @@ namespace libtorrent
             // null v1 info hash with v2 info hash
             if (j.at(0).is_null() && j.at(1).is_string() && j.at(1).get<std::string>().size() == 64)
             {
+                const auto hash = j.at(1).get<std::string>();
+
                 lt::sha256_hash h;
-                lt::aux::from_hex({j[1].get<std::string>().c_str(),64}, h.data());
+                
+                if (!porla::Utils::FromHex(hash, h.data(), hash.size()))
+                {
+                    throw std::invalid_argument(
+                        "info hash " + hash + " contains invalid hex characters");
+                }
+
                 ih = lt::info_hash_t(h);
 
                 return;
@@ -66,11 +99,24 @@ namespace libtorrent
             if (j.at(0).is_string() && j[0].get<std::string>().size() == 40
                 && j.at(1).is_string() && j[1].get<std::string>().size() == 64)
             {
+                const auto h1 = j.at(0).get<std::string>();
+                const auto h2 = j.at(1).get<std::string>();
+
                 lt::sha1_hash v1;
-                lt::aux::from_hex({j[0].get<std::string>().c_str(),40}, v1.data());
+
+                if (!porla::Utils::FromHex(h1, v1.data(), h1.size()))
+                {
+                    throw std::invalid_argument(
+                        "info hash " + h1 + " contains invalid hex characters");
+                }
 
                 lt::sha256_hash v2;
-                lt::aux::from_hex({j[1].get<std::string>().c_str(),64}, v2.data());
+
+                if (!porla::Utils::FromHex(h2, v2.data(), h2.size()))
+                {
+                    throw std::invalid_argument(
+                        "info hash " + h2 + " contains invalid hex characters");
+                }
 
                 ih = lt::info_hash_t(v1, v2);
 

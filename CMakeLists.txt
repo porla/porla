@@ -1,29 +1,120 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.28)
 
 cmake_policy(SET CMP0114 NEW)
 cmake_policy(SET CMP0135 NEW)
 
 project(porla)
 
+include(FetchContent)
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib .so .dll)
+set(CMAKE_CXX_STANDARD              20)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+if(NOT PORLA_CORE_TYPE)
+    if(BUILD_SHARED_LIBS)
+        set(PORLA_CORE_TYPE SHARED)
+    else()
+        set(PORLA_CORE_TYPE STATIC)
+    endif()
+endif()
+
+find_package(PkgConfig REQUIRED)
+
+# pkg-config's Libs.private (nghttp2, psl, brotli, ...) is only needed when
+# linking statically, and CMAKE_FIND_LIBRARY_SUFFIXES does not reach pkg-config.
+function(porla_link_pkg target prefix)
+    if(BUILD_SHARED_LIBS)
+        target_link_libraries(${target} PUBLIC PkgConfig::${prefix})
+    else()
+        target_include_directories(${target} PUBLIC ${${prefix}_STATIC_INCLUDE_DIRS})
+        target_link_libraries(${target}      PUBLIC ${${prefix}_STATIC_LDFLAGS})
+    endif()
+endfunction()
+
+FetchContent_Declare(
+    ANTLR4
+    URL https://github.com/antlr/antlr4/archive/refs/tags/4.13.2.tar.gz
+    SOURCE_SUBDIR runtime/Cpp
+    EXCLUDE_FROM_ALL
+)
+
+FetchContent_Declare(
+    uSockets
+    GIT_REPOSITORY https://github.com/uNetworking/uSockets.git
+    GIT_TAG        v0.8.8
+    GIT_SHALLOW    TRUE
+    EXCLUDE_FROM_ALL
+)
+
+FetchContent_Declare(
+    uWebSockets
+    GIT_REPOSITORY https://github.com/uNetworking/uWebSockets.git
+    GIT_TAG        v20.79.0
+    GIT_SHALLOW    TRUE
+    EXCLUDE_FROM_ALL
+)
+
+FetchContent_Declare(
+    LibtorrentRasterbar
+    GIT_REPOSITORY         https://github.com/arvidn/libtorrent.git
+    GIT_TAG                v2.1.1
+    GIT_SHALLOW            TRUE
+    GIT_SUBMODULES_RECURSE TRUE
+    EXCLUDE_FROM_ALL
+)
+
+FetchContent_Declare(
+    Libzip
+    GIT_REPOSITORY https://github.com/nih-at/libzip.git
+    GIT_TAG        v1.11.4
+    GIT_SHALLOW    TRUE
+    EXCLUDE_FROM_ALL
+)
+
+# antlr4
+set(ANTLR4_INSTALL        OFF CACHE BOOL "" FORCE)
+set(ANTLR_BUILD_CPP_TESTS OFF CACHE BOOL "" FORCE)
+set(ANTLR_BUILD_SHARED    OFF CACHE BOOL "" FORCE)
+set(ANTLR_BUILD_STATIC    ON  CACHE BOOL "" FORCE)
+set(WITH_DEMO             OFF CACHE BOOL "" FORCE)
+
+# libzip options
+set(BUILD_OSSFUZZ   OFF CACHE BOOL "" FORCE)
+set(BUILD_EXAMPLES  OFF CACHE BOOL "" FORCE)
+set(BUILD_DOC       OFF CACHE BOOL "" FORCE)
+set(BUILD_TOOLS     OFF CACHE BOOL "" FORCE)
+set(BUILD_REGRESS   OFF CACHE BOOL "" FORCE)
+set(ENABLE_BZIP2 OFF CACHE BOOL "" FORCE)
+set(ENABLE_LZMA  OFF CACHE BOOL "" FORCE)
+
+# lt options
+set(deprecated-functions OFF CACHE BOOL "" FORCE)
+set(build_examples       OFF CACHE BOOL "" FORCE)
+set(build_tests          OFF CACHE BOOL "" FORCE)
+set(build_tools          OFF CACHE BOOL "" FORCE)
+set(python-bindings      OFF CACHE BOOL "" FORCE)
+set(webtorrent           OFF CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(
+    ANTLR4
+    LibtorrentRasterbar
+    Libzip
+    uSockets
+    uWebSockets)
 
 add_subdirectory(vendor/fmt)
 
-find_package(PkgConfig           REQUIRED)
-find_package(ANTLR4              REQUIRED)
 find_package(Boost               CONFIG COMPONENTS log program_options system)
-find_package(CURL                REQUIRED)
-find_package(libzip              REQUIRED)
-find_package(LibtorrentRasterbar REQUIRED)
 find_package(OpenSSL             REQUIRED)
 find_package(SQLite3             REQUIRED)
 find_package(ZLIB                REQUIRED)
 
+pkg_check_modules(Curl      REQUIRED IMPORTED_TARGET libcurl)
+pkg_check_modules(Sodium    REQUIRED IMPORTED_TARGET libsodium)
 pkg_check_modules(Lua       REQUIRED IMPORTED_TARGET lua5.4)
-pkg_check_modules(MAXMINDDB REQUIRED libmaxminddb)
+pkg_check_modules(MAXMINDDB REQUIRED IMPORTED_TARGET libmaxminddb)
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
@@ -31,10 +122,31 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -P
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateVersion.cmake)
 
+file(GLOB_RECURSE usockets_sources ${usockets_SOURCE_DIR}/src/*.c)
+list(FILTER usockets_sources EXCLUDE REGEX "(libuv|gcd|wolfssl|epoll_kqueue)\\.c$")
+
+add_library(uSockets STATIC
+    ${usockets_sources}
+    ${usockets_SOURCE_DIR}/src/crypto/sni_tree.cpp
+    ${usockets_SOURCE_DIR}/src/eventing/asio.cpp
+)
+
+target_include_directories(uSockets PUBLIC ${usockets_SOURCE_DIR}/src)
+target_compile_definitions(uSockets PUBLIC LIBUS_USE_OPENSSL LIBUS_USE_ASIO)
+target_link_libraries(uSockets PUBLIC OpenSSL::SSL OpenSSL::Crypto ZLIB::ZLIB Boost::boost)
+
+file(GLOB uws_headers ${uwebsockets_SOURCE_DIR}/src/*.h ${uwebsockets_SOURCE_DIR}/src/*/*.h)
+
+file(COPY ${uwebsockets_SOURCE_DIR}/src/
+     DESTINATION ${CMAKE_BINARY_DIR}/uws-include/uWebSockets)
+
+add_library(uWebSockets INTERFACE)
+target_include_directories(uWebSockets INTERFACE ${CMAKE_BINARY_DIR}/uws-include)
+target_link_libraries(uWebSockets INTERFACE uSockets)
 
 add_library(
     ${PROJECT_NAME}_core
-    STATIC
+    ${PORLA_CORE_TYPE}
     ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
 
     src/buildinfo.cpp
@@ -256,8 +368,6 @@ target_compile_definitions(
 target_include_directories(
     ${PROJECT_NAME}_core
     PUBLIC
-    ${ANTLR4_INCLUDE_DIRS}
-    ${MAXMINDDB_INCLUDE_DIRS}
     vendor/croncpp/include
     vendor/jwt-cpp/include
     vendor/nlohmann-json/include
@@ -267,24 +377,25 @@ target_include_directories(
 
 target_link_libraries(
     ${PROJECT_NAME}_core
+    PUBLIC
 
-    ${ANTLR4_LIBRARIES}
-    ${MAXMINDDB_LIBRARIES}
+    antlr4_static
+    libzip::zip
+    torrent-rasterbar
 
     Boost::boost Boost::log Boost::program_options
-    CURL::libcurl
     fmt::fmt
-    libzip::zip
-    LibtorrentRasterbar::torrent-rasterbar
-    PkgConfig::Lua
-    sodium
+    OpenSSL::SSL
+    OpenSSL::Crypto
     SQLite::SQLite3
-    -luSockets
-    -lcrypto
-    -lssl
-    -lunistring
-    -lz
+    uWebSockets
+    ZLIB::ZLIB
 )
+
+porla_link_pkg(${PROJECT_NAME}_core Curl)
+porla_link_pkg(${PROJECT_NAME}_core Lua)
+porla_link_pkg(${PROJECT_NAME}_core MAXMINDDB)
+porla_link_pkg(${PROJECT_NAME}_core Sodium)
 
 add_executable(
     ${PROJECT_NAME}
@@ -293,6 +404,6 @@ add_executable(
 
 target_link_libraries(
     ${PROJECT_NAME}
+    PRIVATE
     ${PROJECT_NAME}_core
-    uSockets
 )

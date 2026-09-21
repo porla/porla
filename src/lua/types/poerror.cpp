@@ -6,7 +6,7 @@ sol::object PoError::Construct(sol::this_state ts, const lt::error_code& ec)
 {
     if (!ec)
     {
-        return sol::nil;
+        return sol::lua_nil;
     }
 
     sol::state_view lua(ts);

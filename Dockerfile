@@ -1,120 +1,47 @@
-FROM mirror.gcr.io/library/alpine:3.24.1 AS base
+FROM mirror.gcr.io/library/alpine:3.24.2 AS base
 
-FROM base AS build-base
+FROM base AS build-porla
+
+ARG GITVERSION_SEMVER="0.0.0"
+ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
+
 WORKDIR /src
 
 RUN apk add --no-cache \
-    build-base \
     boost1.84-dev \
     boost1.84-static \
+    brotli-static \
+    build-base \
+    curl-dev \
+    curl-static \
     cmake \
+    git \
+    icu-static \
     libmaxminddb-dev \
     libmaxminddb-static \
+    libidn2-static \
     libpsl-static \
+    libsodium-dev \
+    libsodium-static \
+    libunistring-static \
     linux-headers \
+    lua5.4-dev \
+    nghttp2-dev \
+    nghttp2-static \
     ninja \
     openssl-dev \
     openssl-libs-static \
+    sqlite-dev \
+    sqlite-static \
     zlib-dev \
     zlib-static \
     zstd-dev \
     zstd-static
 
-# antlr4
-FROM build-base AS build-antlr4
-RUN wget -O antlr4-4.13.2.tar.gz https://github.com/antlr/antlr4/archive/refs/tags/4.13.2.tar.gz
-RUN tar zxf antlr4-4.13.2.tar.gz
-RUN cd antlr4-4.13.2/runtime/Cpp \
-    && cmake -S . -B build -G Ninja \
-        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-        -DCMAKE_BUILD_TYPE=Release \
-    && cmake --build build --target install
-
-# libcurl
-FROM build-base AS build-curl
-RUN wget https://github.com/curl/curl/releases/download/curl-8_21_0/curl-8.21.0.tar.gz
-RUN tar zxf curl-8.21.0.tar.gz
-RUN cd curl-8.21.0 \
-    && cmake -S . -B build -G Ninja \
-        -DBUILD_CURL_EXE=OFF \
-        -DBUILD_SHARED_LIBS=OFF \
-        -DBUILD_STATIC_LIBS=ON \
-    && cmake --build build --target install
-
-# libtorrent
-FROM build-base AS build-libtorrent
-RUN wget https://github.com/arvidn/libtorrent/releases/download/v2.1.1/libtorrent-rasterbar-2.1.1.tar.gz
-RUN tar zxf libtorrent-rasterbar-2.1.1.tar.gz
-RUN cd libtorrent-rasterbar-2.1.1 \
-    && cmake -S . -B build -G Ninja \
-        -DCMAKE_CXX_STANDARD=20 \
-        -DBUILD_SHARED_LIBS=OFF \
-        -Ddeprecated-functions=OFF \
-        -Dwebtorrent=OFF \
-    && cmake --build build --target install
-
-# libzip
-FROM build-base AS build-libzip
-RUN wget https://github.com/nih-at/libzip/releases/download/v1.11.2/libzip-1.11.2.tar.gz
-RUN tar zxf libzip-1.11.2.tar.gz
-RUN cd libzip-1.11.2 \
-    && cmake -S . -B build -G Ninja \
-        -DBUILD_SHARED_LIBS=OFF \
-        -DBUILD_TOOLS=OFF \
-        -DBUILD_DOCS=OFF \
-        -DBUILD_EXAMPLES=OFF \
-        -DENABLE_BZIP2=OFF \
-        -DENABLE_LZMA=OFF \
-    && cmake --build build --target install
-
-# uWebSockets
-FROM build-base AS build-uwebsockets
-RUN wget -O uSockets-0.8.8.tar.gz https://github.com/uNetworking/uSockets/archive/refs/tags/v0.8.8.tar.gz
-RUN tar zxf uSockets-0.8.8.tar.gz
-RUN cd uSockets-0.8.8 \
-    && WITH_ASIO=1 WITH_OPENSSL=1 make
-RUN wget -O uWebSockets-20.79.0.tar.gz https://github.com/uNetworking/uWebSockets/archive/refs/tags/v20.79.0.tar.gz
-RUN tar zxf uWebSockets-20.79.0.tar.gz
-
-FROM build-base AS build-porla
-ARG GITVERSION_SEMVER="0.0.0"
-ENV GITVERSION_SEMVER=${GITVERSION_SEMVER}
-
-# antlr4
-COPY --from=build-antlr4 /usr/local/include/antlr4-runtime /usr/local/include/antlr4-runtime
-COPY --from=build-antlr4 /usr/local/lib/libantlr4* /usr/local/lib
-# libcurl
-COPY --from=build-curl /usr/local/include/curl /usr/local/include/curl
-COPY --from=build-curl /usr/local/lib/cmake /usr/local/lib/cmake
-COPY --from=build-curl /usr/local/lib/libcurl* /usr/local/lib
-# libtorrent
-COPY --from=build-libtorrent /usr/local/include/libtorrent /usr/local/include/libtorrent
-COPY --from=build-libtorrent /usr/local/lib/cmake /usr/local/lib/cmake
-COPY --from=build-libtorrent /usr/local/lib/libtorrent* /usr/local/lib
-# libzip
-COPY --from=build-libzip /usr/local/include/* /usr/local/include/
-COPY --from=build-libzip /usr/local/lib/cmake /usr/local/lib/cmake
-COPY --from=build-libzip /usr/local/lib/libzip* /usr/local/lib
-# uwebsockets
-COPY --from=build-uwebsockets /src/uSockets-0.8.8/src/libusockets.h /usr/local/include/libusockets.h
-COPY --from=build-uwebsockets /src/uSockets-0.8.8/uSockets.a /usr/local/lib/libuSockets.a
-COPY --from=build-uwebsockets /src/uWebSockets-20.79.0/src/* /usr/local/include/uWebSockets/
-
 COPY . .
 
-RUN apk add --no-cache \
-    git \
-    icu-static \
-    libidn2-static \
-    libsodium-dev \
-    libsodium-static \
-    libunistring-static \
-    lua5.4-dev \
-    sqlite-dev \
-    sqlite-static
-
-RUN cmake --preset release \
-    && cmake --build --preset release
+RUN cmake --preset alpine-static \
+    && cmake --build --preset alpine-static
 
 # runtime image
 FROM base AS runtime
@@ -123,5 +50,5 @@ ENV PORLA_HTTP_HOST=0.0.0.0
 EXPOSE 1337
 
 WORKDIR /
-COPY --from=build-porla /src/build/release/porla /usr/bin/porla
+COPY --from=build-porla /src/build/release-static/porla /usr/bin/porla
 ENTRYPOINT [ "/usr/bin/porla" ]

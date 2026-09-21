@@ -34,7 +34,7 @@ void SessionsAdd::Execute(const SessionsAddReq& req, ResponseWriterHandle cb)
         .id                    = -1,
         .name                  = req.name,
         .is_default            = false,
-        .metadata              = req.metadata.value_or({}),
+        .metadata              = req.metadata.value_or(std::map<std::string, nlohmann::json>()),
         .params                = lt::session_params(settings),
         .timer_dht_stats       = req.timer_dht_stats.value_or(5000),
         .timer_save_state      = req.timer_save_state.value_or(300000),
