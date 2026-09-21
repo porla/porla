@@ -7,14 +7,7 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "CMAKE_CXX_FLAGS": "-Wno-template-body",
-        "BUILD_SHARED_LIBS": "OFF",
-        "LINK_WITH_STATIC_LIBRARIES": "ON",
-        "OPENSSL_USE_STATIC_LIBS": "TRUE",
-        "Boost_USE_STATIC_LIBS": "ON",
-        "ENABLE_BZIP2": "OFF",
-        "ENABLE_LZMA": "OFF"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
     {
@@ -22,9 +15,10 @@
       "displayName": "Debug",
       "inherits": "base",
       "cacheVariables": {
+        "BUILD_SHARED_LIBS": "ON",
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "OFF",
-        "CMAKE_EXE_LINKER_FLAGS": "-static"
+        "PORLA_CORE_TYPE": "SHARED"
       }
     },
     {
@@ -32,26 +26,33 @@
       "displayName": "Release",
       "inherits": "base",
       "cacheVariables": {
+        "BUILD_SHARED_LIBS": "ON",
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "ON",
-        "CMAKE_EXE_LINKER_FLAGS": "-static -s -Os"
+        "PORLA_CORE_TYPE": "SHARED"
       }
     },
     {
-      "name": "relwithdebinfo",
-      "displayName": "Release with debug info",
+      "name": "alpine-static",
       "inherits": "base",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g3 -fno-omit-frame-pointer -DNDEBUG",
+        "Boost_USE_STATIC_LIBS": "ON",
+        "BUILD_SHARED_LIBS": "OFF",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXE_LINKER_FLAGS": "-static -s",
+        "CMAKE_FIND_LIBRARY_SUFFIXES": ".a",
         "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "OFF",
-        "CMAKE_EXE_LINKER_FLAGS": "-static"
+        "OPENSSL_USE_STATIC_LIBS": "TRUE",
+        "PORLA_CORE_TYPE": "STATIC",
+        "SQLite3_LIBRARY": "/usr/lib/libsqlite3.a",
+        "SQLite3_INCLUDE_DIR": "/usr/include",
+        "ZLIB_LIBRARY": "/usr/lib/libz.a"
       }
     }
   ],
   "buildPresets": [
-    { "name": "debug",   "configurePreset": "debug" },
-    { "name": "release", "configurePreset": "release" },
-    { "name": "relwithdebinfo", "configurePreset": "relwithdebinfo" }
+    { "name": "debug",         "configurePreset": "debug" },
+    { "name": "release",       "configurePreset": "release" },
+    { "name": "alpine-static", "configurePreset": "alpine-static" }
   ]
 }

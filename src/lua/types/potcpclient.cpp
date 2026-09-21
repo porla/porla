@@ -72,7 +72,7 @@ void PoTcpClient::ConnectComplete(std::size_t callback_id, const boost::system::
         return;
     }
 
-    state->InvokeCallback(callback_id, sol::nil);
+    state->InvokeCallback(callback_id, sol::lua_nil);
 }
 
 void PoTcpClient::HandshakeComplete(std::size_t callback_id, const boost::system::error_code& ec)
@@ -86,7 +86,7 @@ void PoTcpClient::HandshakeComplete(std::size_t callback_id, const boost::system
         return;
     }
 
-    state->InvokeCallback(callback_id, sol::nil);
+    state->InvokeCallback(callback_id, sol::lua_nil);
 }
 
 void PoTcpClient::Read(sol::main_protected_function callback)
@@ -120,13 +120,13 @@ void PoTcpClient::ReadComplete(std::size_t callback_id, const boost::system::err
 
     if (ec)
     {
-        state->InvokeCallback(callback_id, ec.message(), sol::nil);
+        state->InvokeCallback(callback_id, ec.message(), sol::lua_nil);
         return;
     }
 
     std::string data(m_read_buffer.data(), n);
 
-    state->InvokeCallback(callback_id, sol::nil, data);
+    state->InvokeCallback(callback_id, sol::lua_nil, data);
 }
 
 void PoTcpClient::ReadExactly(std::size_t n, sol::main_protected_function callback)

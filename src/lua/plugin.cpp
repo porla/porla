@@ -248,7 +248,7 @@ std::unique_ptr<Plugin> Plugin::Load(
 
         if (init && init->valid())
         {
-            sol::object cfg = sol::nil;
+            sol::object cfg = sol::lua_nil;
 
             if (config.has_value())
             {

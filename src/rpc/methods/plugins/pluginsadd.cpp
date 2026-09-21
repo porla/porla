@@ -43,7 +43,7 @@ void PluginsAdd::Execute(const PluginsAddReq& req, ResponseWriterHandle cb)
             .id       = -1,
             .path     = plugin_path,
             .config   = req.config,
-            .metadata = req.metadata.value_or({})
+            .metadata = req.metadata.value_or(std::map<std::string, nlohmann::json>())
         });
 
     BOOST_LOG_TRIVIAL(info) << "Plugin " << plugin_id << " installed with path " << plugin_path;

@@ -21,10 +21,10 @@ void LtAddTorrentParams::Register(sol::state& lua)
 
         if (ec)
         {
-            return std::make_tuple(sol::nil, PoError::Construct(ts, ec));
+            return std::make_tuple(sol::lua_nil, PoError::Construct(ts, ec));
         }
 
-        return std::make_tuple(ToTable(ts, params), sol::nil);
+        return std::make_tuple(ToTable(ts, params), sol::lua_nil);
     });
 
     atp.set_function("from_magnet", [](sol::this_state ts, const std::string& magnet_uri) -> std::tuple<sol::object, sol::object>
@@ -34,10 +34,10 @@ void LtAddTorrentParams::Register(sol::state& lua)
 
         if (ec)
         {
-            return std::make_tuple(sol::nil, PoError::Construct(ts, ec));
+            return std::make_tuple(sol::lua_nil, PoError::Construct(ts, ec));
         }
 
-        return std::make_tuple(ToTable(ts, params), sol::nil);
+        return std::make_tuple(ToTable(ts, params), sol::lua_nil);
     });
 
     atp.set_function("from_path", [](sol::this_state ts, const std::string& path) -> std::tuple<sol::object, sol::object>
@@ -47,10 +47,10 @@ void LtAddTorrentParams::Register(sol::state& lua)
 
         if (ec)
         {
-            return std::make_tuple(sol::nil, PoError::Construct(ts, ec));
+            return std::make_tuple(sol::lua_nil, PoError::Construct(ts, ec));
         }
 
-        return std::make_tuple(ToTable(ts, params), sol::nil);
+        return std::make_tuple(ToTable(ts, params), sol::lua_nil);
     });
 
     lua["LtAddTorrentParams"] = atp;

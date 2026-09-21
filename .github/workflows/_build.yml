@@ -21,6 +21,9 @@ on:
       patch:
         type: string
         required: true
+    secrets:
+      ccache_url:
+        required: false
 
 env:
   IMAGE: ghcr.io/${{ github.repository }}
@@ -58,6 +61,8 @@ jobs:
             GITVERSION_MAJOR=${{ inputs.major }}
             GITVERSION_MINOR=${{ inputs.minor }}
             GITVERSION_PATCH=${{ inputs.patch }}
+          secrets: |
+            ccache_url=${{ secrets.ccache_url }}
           cache-from: type=gha,scope=${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
           context: .

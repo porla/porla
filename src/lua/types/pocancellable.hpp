@@ -8,6 +8,7 @@ namespace porla::Lua::Types
     {
         static void Register(sol::state& lua);
 
+        virtual ~PoCancellable() {}
         virtual void Cancel(sol::this_state ts) = 0;
     };
 }

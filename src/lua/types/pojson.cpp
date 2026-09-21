@@ -200,7 +200,7 @@ nlohmann::json PoJson::ToJson(sol::this_state ts, const sol::object& data, int d
 
     switch (data.get_type())
     {
-        case sol::type::nil:
+        case sol::type::lua_nil:
         case sol::type::none:
             return nlohmann::json();
 
