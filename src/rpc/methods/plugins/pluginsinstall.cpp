@@ -42,6 +42,11 @@ void PluginsInstall::Execute(const PluginsInstallReq& req, ResponseWriterHandle 
 
     curl->HttpGet(url.str(), [w = weak_from_this(), cb, req](int status, std::string body)
     {
+        if (status != 200)
+        {
+            return cb->Error(-2, "Release not found - HTTP status: " + std::to_string(status));
+        }
+
         auto self = w.lock();
 
         if (self == nullptr)
@@ -49,9 +54,16 @@ void PluginsInstall::Execute(const PluginsInstallReq& req, ResponseWriterHandle 
             return cb->Error(-1, "Failed to lock this");
         }
 
-        const auto release = nlohmann::json::parse(body);
+        nlohmann::json release;
 
-        BOOST_LOG_TRIVIAL(debug) << "GitHub release JSON: " << release;
+        try
+        {
+            release = nlohmann::json::parse(body);
+        }
+        catch (const std::exception& e)
+        {
+            return cb->Error(-3, "Failed to parse release body as JSON");
+        }
 
         std::string tag_name = release["tag_name"];
         std::string download_url = release["assets"][0]["browser_download_url"];
@@ -68,12 +80,16 @@ void PluginsInstall::Execute(const PluginsInstallReq& req, ResponseWriterHandle 
 
         curl->HttpGet(download_url, [cb, w, req, tag_name](int status, std::string body)
         {
+            if (status != 200)
+            {
+                return cb->Error(4, "Failed to fetch release asset");
+            }
+
             auto self = w.lock();
 
             if (self == nullptr)
             {
-                cb->Error(-1, "Failed to lock self");
-                return;
+                return cb->Error(-1, "Failed to lock self");
             }
 
             BOOST_LOG_TRIVIAL(info) << "Plugin archive fetched. Installing.";
@@ -103,8 +119,8 @@ void PluginsInstall::Execute(const PluginsInstallReq& req, ResponseWriterHandle 
                     .config   = req.config,
                     .metadata = {
                         {"source", "github"},
-                        {"repository", req.repository},
                         {"owner", req.owner},
+                        {"repository", req.repository},
                         {"version", tag_name}
                     }
                 });

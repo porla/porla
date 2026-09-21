@@ -116,6 +116,8 @@ namespace porla::Rpc::Methods
         struct PluginsRemoveRes;
         struct PluginsUpdateReq;
         struct PluginsUpdateRes;
+        struct PluginsUpgradeReq;
+        struct PluginsUpgradeRes;
 
 
         void from_json(const nlohmann::json& json, PluginsAddReq& req);
@@ -125,6 +127,7 @@ namespace porla::Rpc::Methods
         void from_json(const nlohmann::json& json, PluginsReloadReq& req);
         void from_json(const nlohmann::json& json, PluginsRemoveReq& req);
         void from_json(const nlohmann::json& json, PluginsUpdateReq& req);
+        void from_json(const nlohmann::json& json, PluginsUpgradeReq& req);
 
         void to_json(nlohmann::json& json, const PluginsAddRes& res);
         void to_json(nlohmann::json& json, const PluginsGetRes& res);
@@ -133,6 +136,7 @@ namespace porla::Rpc::Methods
         void to_json(nlohmann::json& json, const PluginsReloadRes& res);
         void to_json(nlohmann::json& json, const PluginsRemoveRes& res);
         void to_json(nlohmann::json& json, const PluginsUpdateRes& res);
+        void to_json(nlohmann::json& json, const PluginsUpgradeRes& res);
     }
 
     namespace Presets

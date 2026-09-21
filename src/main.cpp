@@ -28,6 +28,7 @@
 #include "rpc/methods/plugins/pluginsreload.hpp"
 #include "rpc/methods/plugins/pluginsremove.hpp"
 #include "rpc/methods/plugins/pluginsupdate.hpp"
+#include "rpc/methods/plugins/pluginsupgrade.hpp"
 #include "rpc/methods/presets/presetsget.hpp"
 #include "rpc/methods/presets/presetslist.hpp"
 #include "rpc/methods/presets/presetsadd.hpp"
@@ -143,6 +144,7 @@ int main(int argc, char* argv[])
         jsonrpc->Register("plugins.reload",            std::make_shared<porla::Rpc::Methods::Plugins::PluginsReload>(plugin_engine));
         jsonrpc->Register("plugins.remove",            std::make_shared<porla::Rpc::Methods::Plugins::PluginsRemove>(cfg->db, plugin_engine));
         jsonrpc->Register("plugins.update",            std::make_shared<porla::Rpc::Methods::Plugins::PluginsUpdate>(cfg->db, plugin_engine));
+        jsonrpc->Register("plugins.upgrade",           std::make_shared<porla::Rpc::Methods::Plugins::PluginsUpgrade>(cfg->db, curl_multi_instance, plugin_engine, cfg->state_dir));
         jsonrpc->Register("presets.add",               std::make_shared<porla::Rpc::Methods::Presets::PresetsAdd>(cfg->db));
         jsonrpc->Register("presets.get",               std::make_shared<porla::Rpc::Methods::Presets::PresetsGet>(cfg->db));
         jsonrpc->Register("presets.list",              std::make_shared<porla::Rpc::Methods::Presets::PresetsList>(cfg->db));
