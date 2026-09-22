@@ -70,7 +70,6 @@
 #include "rpc/methods/torrents/torrentsresume.hpp"
 #include "rpc/methods/torrents/torrentstrackersadd.hpp"
 #include "rpc/methods/torrents/torrentstrackerslist.hpp"
-#include "rpc/methods/webui/webuiinstall.hpp"
 
 CMRC_DECLARE(porla_lua);
 

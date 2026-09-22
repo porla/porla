@@ -177,7 +177,6 @@ add_library(
     src/mmdb.cpp
     src/sessions.cpp
     src/timer.cpp
-    src/webui.cpp
     src/zip.cpp
     src/utils/eta.cpp
     src/utils/secretkey.cpp
@@ -267,7 +266,6 @@ add_library(
     src/json/_/torrentsresume.cpp
     src/json/_/torrentstrackersadd.cpp
     src/json/_/torrentstrackerslist.cpp
-    src/json/_/webuiinstall.cpp
 
     src/lua/packages/codec.cpp
     src/lua/packages/crypto.cpp
@@ -371,7 +369,6 @@ add_library(
     src/rpc/methods/torrents/torrentspropertiesset.cpp
     src/rpc/methods/torrents/torrentstrackersadd.cpp
     src/rpc/methods/torrents/torrentstrackerslist.cpp
-    src/rpc/methods/webui/webuiinstall.cpp
 
     src/query/_aux/PorlaQueryLangBaseVisitor.cpp
     src/query/_aux/PorlaQueryLangLexer.cpp
