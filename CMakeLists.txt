@@ -297,6 +297,7 @@ add_library(
     src/lua/types/pocancellable.cpp
     src/lua/types/poerror.cpp
     src/lua/types/pojson.cpp
+    src/lua/types/pohttpformfile.cpp
     src/lua/types/pohttpserverresponse.cpp
     src/lua/types/pojsonrpcresponse.cpp
     src/lua/types/popreset.cpp
