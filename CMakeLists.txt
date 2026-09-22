@@ -286,9 +286,12 @@ add_library(
     src/lua/types/ltannounceendpoint.cpp
     src/lua/types/ltannounceentry.cpp
     src/lua/types/ltannounceinfohash.cpp
+    src/lua/types/ltfilenames.cpp
+    src/lua/types/ltfilestorage.cpp
     src/lua/types/ltinfohash.cpp
     src/lua/types/ltopenfilestate.cpp
     src/lua/types/ltpeerinfo.cpp
+    src/lua/types/ltrenamedfiles.cpp
     src/lua/types/ltsettingspack.cpp
     src/lua/types/lttorrentflags.cpp
     src/lua/types/lttorrentinfo.cpp

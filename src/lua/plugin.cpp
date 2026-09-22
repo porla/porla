@@ -31,6 +31,8 @@
 #include "types.hpp"
 
 #include "types/ltaddtorrentparams.hpp"
+#include "types/ltfilenames.hpp"
+#include "types/ltrenamedfiles.hpp"
 #include "types/pocancellable.hpp"
 #include "types/pohttpserverresponse.hpp"
 #include "types/pojsonrpcresponse.hpp"
@@ -99,9 +101,12 @@ struct Plugin::State
         Types::LtAnnounceEndpoint::Register(lua);
         Types::LtAnnounceEntry::Register(lua);
         Types::LtAnnounceInfohash::Register(lua);
+        Types::LtFilenames::Register(lua);
+        Types::LtFileStorage::Register(lua);
         Types::LtInfoHash::Register(lua);
         Types::LtOpenFileState::Register(lua);
         Types::LtPeerInfo::Register(lua);
+        Types::LtRenamedFiles::Register(lua);
         Types::LtSettingsPack::Register(lua);
         Types::LtTorrentFlags::Register(lua);
         Types::LtTorrentInfo::Register(lua);

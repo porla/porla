@@ -49,7 +49,7 @@ void LtTorrentHandle::Register(sol::state& lua)
                                             return peers;
                                         },
         // get_piece_priorities
-        // "get_renamed_files",          &lt::torrent_handle::get_renamed_files,
+        "get_renamed_files",          &lt::torrent_handle::get_renamed_files,
         // get_resume_data
         "have_piece",                 &lt::torrent_handle::have_piece,
         "in_session",                 &lt::torrent_handle::in_session,
