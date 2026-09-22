@@ -19,9 +19,14 @@ namespace porla::Rpc
 
         std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> HttpHandler();
 
-        void Register(const std::string& name, const std::shared_ptr<Method>& method)
+        bool Register(const std::string& name, const std::shared_ptr<Method>& method)
         {
-            m_methods[name] = method;
+            return m_methods.try_emplace(name, method).second;
+        }
+
+        void Unregister(const std::string& name)
+        {
+            m_methods.erase(name);
         }
 
     private:

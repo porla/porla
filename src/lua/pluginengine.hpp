@@ -21,18 +21,25 @@ namespace porla
     class Sessions;
 }
 
+namespace porla::Rpc
+{
+    class JsonRpc;
+}
+
 namespace porla::Lua
 {
     class Plugin;
+    struct PluginSource;
 
     struct PluginEngineOptions
     {
-        Config&                    cfg;
-        std::shared_ptr<CurlMulti> curl_multi;
-        sqlite3*                   db;
-        uWS::App*                  http_server;
-        boost::asio::io_context&   io;
-        Sessions&                  sessions;
+        Config&                     cfg;
+        std::shared_ptr<CurlMulti>  curl_multi;
+        sqlite3*                    db;
+        uWS::App*                   http_server;
+        std::weak_ptr<Rpc::JsonRpc> jsonrpc;
+        boost::asio::io_context&    io;
+        Sessions&                   sessions;
     };
 
     class PluginEngine
@@ -47,6 +54,8 @@ namespace porla::Lua
 
         ~PluginEngine();
 
+        void SetCore(const PluginSource& sources);
+
         void Load(int id);
         void LoadAll();
 
@@ -56,6 +65,7 @@ namespace porla::Lua
         void Unload(int id);
 
     private:
+        std::unique_ptr<Plugin>                m_core_plugin;
         PluginEngineOptions                    m_options;
         std::map<int, std::unique_ptr<Plugin>> m_plugins;
     };

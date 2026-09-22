@@ -39,6 +39,8 @@ local function set_entries(files)
     end
 
     entries = files
+
+    print("Updated web UI files")
 end
 
 ---@param path string
@@ -60,63 +62,74 @@ local function resolve_request_path(path)
     return name
 end
 
----@param res PoHttpClientResponse
-local function handle_asset_request(res)
-    if res.status ~= 200 then
-        print("Failed to fetch release asset - got status {}", res.status)
-        return
+---@param callback function
+local function handle_asset_request(callback, owner, repository, tag_name)
+    ---@param res PoHttpClientResponse
+    return function(res)
+        if res.status ~= 200 then
+            return callback("invalid http status")
+        end
+
+        local webui_dir = string.format("%s/webui", runtime.args["state-dir"])
+
+        local _, create_err = fs.create_directories(webui_dir)
+
+        if create_err then
+            return callback(create_err)
+        end
+
+        local webui_file_path = string.format(
+            "%s/%s_%s_%s.zip",
+            webui_dir,
+            owner,
+            repository,
+            tag_name);
+
+        local output, output_err = io.open(webui_file_path, "wb")
+
+        if not output then
+            return callback(output_err)
+        end
+
+        output:write(res.body)
+        output:close()
+        output = nil
+
+        callback(nil, webui_file_path)
     end
-
-    local files, err = zip.read(res.body)
-
-    if err then
-        print("Failed to read release asset: {}", err)
-        return
-    end
-
-    if not files then
-        print("No error but files was missing")
-        return
-    end
-
-    -- todo: store webui zip file
-
-    set_entries(files)
 end
 
----@param res PoHttpClientResponse
-local function handle_release_request(res)
-    if res.status ~= 200 then
-        print("Failed to fetch release data - got status {}", res.status)
-        return
+local function handle_release_request(callback, owner, repository)
+    ---@param res PoHttpClientResponse
+    return function(res)
+        if res.status ~= 200 then
+            return callback("invalid http status")
+        end
+
+        local body, err = codec.json.decode(res.body)
+
+        if err then
+            return callback(err)
+        end
+
+        if type(body.assets) ~= "table" or #body.assets == 0 then
+            return callback("invalid release assets")
+        end
+
+        local asset_url = body.assets[1].browser_download_url
+
+        if not asset_url then
+            return callback("no asset url")
+        end
+
+        http_client.request(asset_url, handle_asset_request(callback, owner, repository, body.tag_name), http_client_opts)
     end
-
-    local body, err = codec.json.decode(res.body)
-
-    if err then
-        print("Failed to JSON decode release: {}", err)
-        return
-    end
-
-    if type(body.assets) ~= "table" or #body.assets == 0 then
-        print("Invalid assets in release: {}", res.body)
-        return
-    end
-
-    local asset_url = body.assets[1].browser_download_url
-
-    if not asset_url then
-        print("Failed to find asset URL: {}", res.body)
-        return
-    end
-
-    print("Found version {} of web UI - fetching from {}", body.tag_name, asset_url)
-
-    http_client.request(asset_url, handle_asset_request, http_client_opts)
 end
 
----@param version string
-local function install(version)
+local webui = {}
+
+---@param version string # The version to install
+function webui.install(version, callback)
     local owner = kv.get("porla.webui.owner")
     local repository = kv.get("porla.webui.repository")
 
@@ -127,35 +140,56 @@ local function install(version)
 
     print("Installing Web UI from {}", url)
 
-    http_client.request(url, handle_release_request, http_client_opts)
+    http_client.request(url, handle_release_request(callback, owner, repository), http_client_opts)
 end
 
-return function()
+---@param path string # The path to a zip archive
+function webui.load_archive(path)
+    local archive = io.open(path, "rb")
+
+    if not archive then
+        print("Failed to open archive file: {}", path)
+        return false
+    end
+
+    local buffer = archive:read("a")
+    archive:close()
+    archive = nil
+
+    local files, err = zip.read(buffer)
+
+    if err then
+        print("Failed to read archive: {}", err)
+        return false
+    end
+
+    if not files then
+        print("No error but files was missing")
+        return false
+    end
+
+    set_entries(files)
+
+    return true
+end
+
+function webui.load()
     local current_webui = kv.get("porla.webui.current")
 
     if type(current_webui) ~= "string" or not fs.exists(current_webui) then
-        install("latest")
-    else
-        local file = io.open(current_webui, "rb")
-
-        if not file then
-            print("Failed to read web UI zip file")
-        else
-            local buffer = file:read("a")
-            local files, err = zip.read(buffer)
-
+        webui.install("latest", function(err, file)
             if err then
-                print("Failed to web UI file: {}", err)
-                return
+                return print("Failed to install web UI: {}", err)
             end
 
-            if not files then
-                print("No error but files was missing")
-                return
+            if not webui.load_archive(file) then
+                return print("Failed to load web UI archive")
             end
 
-            set_entries(files)
-        end
+            webui.set_current(file)
+        end)
+    else
+        webui.load_archive(current_webui)
     end
 
     http_server.get(base_path .. "/*", function(req, res)
@@ -187,3 +221,9 @@ return function()
         res:finish(content)
     end)
 end
+
+function webui.set_current(path)
+    kv.set("porla.webui.current", path)
+end
+
+return webui

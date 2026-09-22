@@ -1,6 +1,7 @@
 #include <boost/asio.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
+#include <cmrc/cmrc.hpp>
 #include <curl/curl.h>
 #include <sodium.h>
 
@@ -9,8 +10,8 @@
 #include "curlmulti.hpp"
 #include "logger.hpp"
 #include "lua/pluginengine.hpp"
+#include "lua/pluginsource.hpp"
 #include "sessions.hpp"
-#include "webui.hpp"
 
 #include "data/models/keyvaluestore.hpp"
 
@@ -71,6 +72,31 @@
 #include "rpc/methods/torrents/torrentstrackerslist.hpp"
 #include "rpc/methods/webui/webuiinstall.hpp"
 
+CMRC_DECLARE(porla_lua);
+
+static void Traverse(
+    const cmrc::embedded_filesystem& fs,
+    const std::string& dir,
+    std::map<std::string, std::vector<char>>& entries)
+{
+    for (auto&& entry : fs.iterate_directory(dir))
+    {
+        const auto path = dir.empty()
+            ? entry.filename()
+            : dir + "/" + entry.filename();
+
+        if (entry.is_directory())
+        {
+            Traverse(fs, path, entries);
+        }
+        else
+        {
+            const auto file = fs.open(path);
+            entries.emplace(path, std::vector<char>(file.begin(), file.end()));
+        }
+    }
+}
+
 int main(int argc, char* argv[])
 {
     if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
@@ -116,7 +142,6 @@ int main(int argc, char* argv[])
 
         auto curl_multi_instance = porla::CurlMulti::Create(io);
         auto jsonrpc             = porla::Rpc::JsonRpc::Create(cfg->secret_key);
-        auto webui               = porla::WebUI::Create(io, cfg->state_dir, cfg->db, curl_multi_instance);
 
         porla::Sessions sessions(porla::SessionsOptions{
             .db = cfg->db,
@@ -128,6 +153,7 @@ int main(int argc, char* argv[])
             .curl_multi  = curl_multi_instance,
             .db          = cfg->db,
             .http_server = &http_server,
+            .jsonrpc     = jsonrpc,
             .io          = io,
             .sessions    = sessions
         }};
@@ -189,11 +215,15 @@ int main(int argc, char* argv[])
         jsonrpc->Register("torrents.resume",           std::make_shared<porla::Rpc::Methods::Torrents::TorrentsResume>(cfg->db, sessions));
         jsonrpc->Register("torrents.trackers.add",     std::make_shared<porla::Rpc::Methods::Torrents::TorrentsTrackersAdd>(cfg->db, sessions));
         jsonrpc->Register("torrents.trackers.list",    std::make_shared<porla::Rpc::Methods::Torrents::TorrentsTrackersList>(cfg->db, sessions));
-        jsonrpc->Register("webui.install",             std::make_shared<porla::Rpc::Methods::WebUI::WebUIInstall>(webui));
 
-        if (!webui->Has())
+              auto embedded_core       = porla::Lua::PluginSource{.entrypoint = "plugin.lua", .sources = {}};
+        const auto embedded_core_files = cmrc::porla_lua::get_filesystem();
+
+        Traverse(embedded_core_files, "", embedded_core.sources);
+
+        if (embedded_core.sources.find(embedded_core.entrypoint) != embedded_core.sources.end())
         {
-            webui->Install("latest");
+            plugin_engine.SetCore(embedded_core);
         }
 
         sessions.LoadAll();
@@ -215,7 +245,6 @@ int main(int argc, char* argv[])
         if (http_base_path.ends_with("/")) http_base_path = http_base_path.substr(0, http_base_path.size() - 1);
 
         http_server.post(http_base_path + "/api/v1/jsonrpc", jsonrpc->HttpHandler());
-        http_server.get(http_base_path  + "/*",              webui->HttpHandler());
 
         http_server.listen(
             cfg->http_host.value_or("127.0.0.1"),

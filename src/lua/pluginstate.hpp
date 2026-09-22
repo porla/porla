@@ -13,6 +13,7 @@
 #include "../config.hpp"
 #include "../cron.hpp"
 #include "../curlmulti.hpp"
+#include "../rpc/jsonrpc.hpp"
 #include "../sessions.hpp"
 #include "../timer.hpp"
 
@@ -178,6 +179,7 @@ namespace porla::Lua
         std::vector<std::function<void()>>                        destructors;
         boost::asio::io_context&                                  io;
         std::unordered_set<std::shared_ptr<Types::PoHttpServerResponse>> http_responses;
+        std::weak_ptr<Rpc::JsonRpc>                               jsonrpc;
         sol::state_view                                           lua;
         int                                                       plugin_id;
         porla::Sessions&                                          sessions;

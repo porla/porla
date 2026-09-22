@@ -1,5 +1,6 @@
 return {
     init = function()
-        require("webui")()
+        require("jsonrpc.webui_install")()
+        require("webui").load()
     end
 }
