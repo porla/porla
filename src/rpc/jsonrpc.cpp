@@ -83,14 +83,19 @@ const auto HeaderFinder = [](uWS::HttpRequest* req, const std::string& header_na
 class DefaultResponseWriter : public porla::Rpc::ResponseWriter
 {
 public:
-    explicit DefaultResponseWriter(uWS::HttpResponse<false>* res, const nlohmann::json& id)
+    explicit DefaultResponseWriter(uWS::HttpResponse<false>* res, const nlohmann::json& id, std::shared_ptr<bool> aborted)
         : m_id(id)
         , m_res(res)
+        , m_aborted(aborted)
+        , m_responded(false)
     {
     }
 
     void Error(int code, const std::string& message, const nlohmann::json& data = {}) override
     {
+        if (*m_aborted || m_responded) { return; }
+        m_responded = true;
+
         m_res->end(json({
             {"jsonrpc", "2.0"},
             {"id", m_id},
@@ -104,11 +109,16 @@ public:
 
     void Header(const std::string& key, const std::string& value) override
     {
+        if (*m_aborted) { return; }
+
         m_res->writeHeader(key, value);
     }
 
     void Ok(const nlohmann::json& result) override
     {
+        if (*m_aborted || m_responded) { return; }
+        m_responded = true;
+
         m_res->end(json({
             {"jsonrpc", "2.0"},
             {"id", m_id},
@@ -119,6 +129,8 @@ public:
 private:
     nlohmann::json            m_id;
     uWS::HttpResponse<false>* m_res;
+    std::shared_ptr<bool>     m_aborted;
+    bool                      m_responded;
 };
 
 JsonRpc::JsonRpc(const std::string& secret_key)
@@ -158,10 +170,12 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
             bearer_token = CookieFinder(req->getHeader("cookie"));
         }
 
+        auto aborted = std::make_shared<bool>(false);
         auto buffer = std::make_shared<std::string>();
 
-        res->onAborted([]{});
-        res->onData([buffer, res, weak, bearer_token = std::move(bearer_token)](std::string_view data, bool last)
+        res->onAborted([aborted] { *aborted = true; });
+
+        res->onData([aborted, buffer, res, weak, bearer_token = std::move(bearer_token)](std::string_view data, bool last)
         {
             buffer->append(data);
             if (!last) return;
@@ -292,7 +306,7 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
             {
                 BOOST_LOG_TRIVIAL(debug) << "Executing JSONRPC method '" << req.method << "'";
 
-                auto writer = std::make_shared<DefaultResponseWriter>(res, req.id.value_or(json()));
+                auto writer = std::make_shared<DefaultResponseWriter>(res, req.id.value_or(json()), aborted);
 
                 if (!method->second->CanInvoke(token))
                 {

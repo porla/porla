@@ -14,9 +14,10 @@ project(porla)
 
 set(FETCHCONTENT_BASE_DIR "${CMAKE_SOURCE_DIR}/.deps" CACHE PATH "")
 
-include(FetchContent)
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+include(CMakeRC)
+include(FetchContent)
 
 set(CMAKE_CXX_STANDARD              20)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -154,6 +155,15 @@ add_library(uWebSockets INTERFACE)
 target_include_directories(uWebSockets INTERFACE ${CMAKE_BINARY_DIR}/uws-include)
 target_link_libraries(uWebSockets INTERFACE uSockets)
 
+cmrc_add_resource_library(
+    porla-lua-resources
+    ALIAS porla_lua
+    NAMESPACE porla_lua
+    WHENCE lua
+    lua/plugin.lua
+    lua/jsonrpc/webui_install.lua
+    lua/webui/init.lua)
+
 add_library(
     ${PROJECT_NAME}_core
     ${PORLA_CORE_TYPE}
@@ -167,7 +177,6 @@ add_library(
     src/mmdb.cpp
     src/sessions.cpp
     src/timer.cpp
-    src/webui.cpp
     src/zip.cpp
     src/utils/eta.cpp
     src/utils/secretkey.cpp
@@ -257,18 +266,21 @@ add_library(
     src/json/_/torrentsresume.cpp
     src/json/_/torrentstrackersadd.cpp
     src/json/_/torrentstrackerslist.cpp
-    src/json/_/webuiinstall.cpp
 
     src/lua/packages/codec.cpp
     src/lua/packages/crypto.cpp
     src/lua/packages/events.cpp
+    src/lua/packages/filesystem.cpp
     src/lua/packages/httpclient.cpp
     src/lua/packages/httpserver.cpp
+    src/lua/packages/jsonrpc.cpp
+    src/lua/packages/kv.cpp
     src/lua/packages/presets.cpp
     src/lua/packages/runtime.cpp
     src/lua/packages/sessions.cpp
     src/lua/packages/sockets.cpp
     src/lua/packages/timers.cpp
+    src/lua/packages/zip.cpp
 
     src/lua/types/ltaddtorrentparams.cpp
     src/lua/types/ltannounceendpoint.cpp
@@ -286,6 +298,7 @@ add_library(
     src/lua/types/poerror.cpp
     src/lua/types/pojson.cpp
     src/lua/types/pohttpserverresponse.cpp
+    src/lua/types/pojsonrpcresponse.cpp
     src/lua/types/popreset.cpp
     src/lua/types/poquery.cpp
     src/lua/types/posessionhandle.cpp
@@ -356,7 +369,6 @@ add_library(
     src/rpc/methods/torrents/torrentspropertiesset.cpp
     src/rpc/methods/torrents/torrentstrackersadd.cpp
     src/rpc/methods/torrents/torrentstrackerslist.cpp
-    src/rpc/methods/webui/webuiinstall.cpp
 
     src/query/_aux/PorlaQueryLangBaseVisitor.cpp
     src/query/_aux/PorlaQueryLangLexer.cpp
@@ -416,4 +428,5 @@ target_link_libraries(
     ${PROJECT_NAME}
     PRIVATE
     ${PROJECT_NAME}_core
+    porla_lua
 )

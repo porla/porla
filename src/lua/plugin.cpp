@@ -13,13 +13,18 @@
 #include "packages/codec.hpp"
 #include "packages/crypto.hpp"
 #include "packages/events.hpp"
+#include "packages/filesystem.hpp"
 #include "packages/httpclient.hpp"
 #include "packages/httpserver.hpp"
+#include "packages/jsonrpc.hpp"
+#include "packages/kv.hpp"
 #include "packages/presets.hpp"
 #include "packages/runtime.hpp"
 #include "packages/sessions.hpp"
 #include "packages/sockets.hpp"
 #include "packages/timers.hpp"
+#include "packages/zip.hpp"
+
 #include "pluginsource.hpp"
 #include "pluginstate.hpp"
 #include "print.hpp"
@@ -28,6 +33,7 @@
 #include "types/ltaddtorrentparams.hpp"
 #include "types/pocancellable.hpp"
 #include "types/pohttpserverresponse.hpp"
+#include "types/pojsonrpcresponse.hpp"
 #include "types/popreset.hpp"
 #include "types/poquery.hpp"
 #include "types/posessionhandle.hpp"
@@ -44,6 +50,7 @@ namespace fs = std::filesystem;
 
 using porla::Lua::Plugin;
 using porla::Lua::PluginLoadOptions;
+using porla::Lua::PluginSource;
 
 namespace
 {
@@ -104,6 +111,7 @@ struct Plugin::State
         // Porla wrapper types
         Types::PoCancellable::Register(lua);
         Types::PoHttpServerResponse::Register(lua);
+        Types::PoJsonRpcResponse::Register(lua);
         Types::PoPreset::Register(lua);
         Types::PoQuery::Register(lua);
         Types::PoSessionHandle::Register(lua);
@@ -116,13 +124,17 @@ struct Plugin::State
         package["preload"]["porla_codec"]       = Packages::Codec::Load;
         package["preload"]["porla_crypto"]      = Packages::Crypto::Load;
         package["preload"]["porla_events"]      = Packages::Events::Load;
+        package["preload"]["porla_filesystem"]  = Packages::Filesystem::Load;
         package["preload"]["porla_http_client"] = Packages::HttpClient::Load;
         package["preload"]["porla_http_server"] = Packages::HttpServer::Load;
+        package["preload"]["porla_jsonrpc"]     = Packages::JsonRpc::Load;
+        package["preload"]["porla_kv"]          = Packages::Kv::Load;
         package["preload"]["porla_presets"]     = Packages::Presets::Load;
         package["preload"]["porla_runtime"]     = Packages::Runtime::Load;
         package["preload"]["porla_sessions"]    = Packages::Sessions::Load;
         package["preload"]["porla_sockets"]     = Packages::Sockets::Load;
         package["preload"]["porla_timers"]      = Packages::Timers::Load;
+        package["preload"]["porla_zip"]         = Packages::Zip::Load;
 
         auto searcher = [this](sol::this_state ts, std::string name) -> sol::variadic_results
         {
@@ -177,10 +189,11 @@ struct Plugin::State
         sol::protected_function table_insert = lua["table"]["insert"];
         table_insert(searchers, 2, sol::make_object(lua, searcher));
 
-        lua_state            = std::make_shared<LuaState>(load_options.io, load_options.sessions, lua);
+        lua_state            = std::make_shared<LuaState>(load_options.io, load_options.cfg, load_options.sessions, lua);
         lua_state->app       = load_options.http_server;
         lua_state->curl      = load_options.curl_multi;
         lua_state->db        = load_options.db;
+        lua_state->jsonrpc   = load_options.jsonrpc;
         lua_state->lua       = lua;
         lua_state->plugin_id = load_options.plugin_id;
 
@@ -189,6 +202,68 @@ struct Plugin::State
         lua.globals()["print"] = &Print;
     }
 };
+
+std::unique_ptr<Plugin> Plugin::Load(
+    const PluginSource& source,
+    const PluginLoadOptions& opts)
+{
+    try
+    {
+        auto state = std::make_unique<State>(opts);
+        state->source = source;
+
+        sol::load_result chunk = state->lua.load_buffer(
+            state->source.sources.at(state->source.entrypoint).data(),
+            state->source.sources.at(state->source.entrypoint).size(),
+            "@" + state->source.entrypoint);
+
+        if (!chunk.valid())
+        {
+            sol::error err = chunk;
+            BOOST_LOG_TRIVIAL(error) << "plugin[" << opts.plugin_id << "] Failed to load plugin: " << err.what();
+            return nullptr;
+        }
+        sol::protected_function_result result = chunk.get<sol::protected_function>()();
+
+        if (!result.valid())
+        {
+            BOOST_LOG_TRIVIAL(error)
+                << "plugin[" << opts.plugin_id << "] Failed to run plugin: " << DescribeError(result);
+            return nullptr;
+        }
+
+        if (result.return_count() < 1 || result.get_type() != sol::type::table)
+        {
+            BOOST_LOG_TRIVIAL(error)
+                << "plugin[" << opts.plugin_id << "] Plugin did not return a table (got "
+                << sol::type_name(state->lua.lua_state(), result.get_type()) << ")";
+            return nullptr;
+        }
+
+        state->tbl = result.get<sol::table>();
+
+        sol::optional<sol::protected_function> init = state->tbl["init"];
+
+        if (init && init->valid())
+        {
+            sol::protected_function_result init_result = (*init)();
+
+            if (!init_result.valid())
+            {
+                BOOST_LOG_TRIVIAL(error) << "plugin[" << opts.plugin_id << "] Failed to run plugin initializer: " << DescribeError(init_result);
+                return nullptr;
+            }
+        }
+
+        return std::unique_ptr<Plugin>(new Plugin(std::move(state)));
+    }
+    catch (const std::exception& err)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to load plugin: " << err.what();
+    }
+
+    return nullptr;
+}
 
 std::unique_ptr<Plugin> Plugin::Load(
     const std::filesystem::path& path,

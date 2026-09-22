@@ -311,13 +311,4 @@ namespace porla::Rpc::Methods
         void to_json(nlohmann::json& json, const TorrentsTrackersAddRes& res);
         void to_json(nlohmann::json& json, const TorrentsTrackersListRes& res);
     }
-
-    namespace WebUI
-    {
-        struct WebUIInstallReq;
-        struct WebUIInstallRes;
-
-        void from_json(const nlohmann::json& json, WebUIInstallReq& req);
-        void to_json(nlohmann::json& json, const WebUIInstallRes& res);
-    }
 }

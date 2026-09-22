@@ -31,6 +31,32 @@ PluginEngine::PluginEngine(const PluginEngineOptions& options)
 PluginEngine::~PluginEngine()
 {
     m_plugins.clear();
+    m_core_plugin.reset();
+}
+
+void PluginEngine::SetCore(const PluginSource& sources)
+{
+    const PluginLoadOptions load_options{
+        .cfg         = m_options.cfg,
+        .curl_multi  = m_options.curl_multi,
+        .db          = m_options.db,
+        .http_server = m_options.http_server,
+        .jsonrpc     = m_options.jsonrpc,
+        .io          = m_options.io,
+        .plugin_id   = 0,
+        .sessions    = m_options.sessions
+    };
+
+    std::unique_ptr<Plugin> core_plugin = Plugin::Load(
+        sources,
+        load_options);
+
+    if (core_plugin == nullptr)
+    {
+        throw std::runtime_error("Failed to load core Lua plugin");
+    }
+
+    m_core_plugin = std::move(core_plugin);
 }
 
 void PluginEngine::LoadAll()
@@ -58,6 +84,7 @@ void PluginEngine::Load(int id)
     }
 
     const PluginLoadOptions load_options{
+        .cfg         = m_options.cfg,
         .curl_multi  = m_options.curl_multi,
         .db          = m_options.db,
         .http_server = m_options.http_server,
