@@ -30,12 +30,29 @@ local http_client_opts = {
     }
 }
 
+---@param html string
+---@return string
+local function rewrite_index(html)
+    local token_value   = base_path ~= "" and base_path or "/"
+    local escaped_token = token_value:gsub("%%", "%%%%")
+    local escaped_base  = base_path:gsub("%%", "%%%%")
+
+    html                = html:gsub("%%BASE_PATH%%", escaped_token)
+
+    if base_path ~= "" then
+        html = html:gsub('src="/([^/])', 'src="' .. escaped_base .. "/%1")
+        html = html:gsub('href="/([^/])', 'href="' .. escaped_base .. "/%1")
+    end
+
+    return html
+end
+
 ---@param files table<string, string>
 local function set_entries(files)
     local index = files["index.html"]
 
     if index then
-        files["index.html"] = index:gsub("%%BASE_PATH%%", (base_path:gsub("%%", "%%%%")))
+        files["index.html"] = rewrite_index(index)
     end
 
     entries = files
