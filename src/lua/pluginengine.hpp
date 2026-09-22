@@ -27,6 +27,7 @@ namespace porla::Lua
 
     struct PluginEngineOptions
     {
+        Config&                    cfg;
         std::shared_ptr<CurlMulti> curl_multi;
         sqlite3*                   db;
         uWS::App*                  http_server;

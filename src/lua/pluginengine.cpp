@@ -58,6 +58,7 @@ void PluginEngine::Load(int id)
     }
 
     const PluginLoadOptions load_options{
+        .cfg         = m_options.cfg,
         .curl_multi  = m_options.curl_multi,
         .db          = m_options.db,
         .http_server = m_options.http_server,

@@ -10,6 +10,7 @@
 #include <sqlite3.h>
 #include <uWebSockets/App.h>
 
+#include "../config.hpp"
 #include "../cron.hpp"
 #include "../curlmulti.hpp"
 #include "../sessions.hpp"
@@ -21,8 +22,9 @@ namespace porla::Lua
 {
     struct LuaState : public std::enable_shared_from_this<LuaState>
     {
-        explicit LuaState(boost::asio::io_context& io, porla::Sessions& sessions, sol::state_view lua)
+        explicit LuaState(boost::asio::io_context& io, porla::Config& cfg, porla::Sessions& sessions, sol::state_view lua)
             : io(io)
+            , cfg(cfg)
             , sessions(sessions)
             , lua(lua)
             , sodium_hash_pool(2)
@@ -170,6 +172,7 @@ namespace porla::Lua
         }
 
         uWS::App*                                                 app;
+        Config&                                                   cfg;
         std::shared_ptr<CurlMulti>                                curl;
         sqlite3*                                                  db;
         std::vector<std::function<void()>>                        destructors;

@@ -99,9 +99,19 @@ sol::object Codec::Load(sol::this_state ts)
     json_tbl["null"] = sol::light(Types::PoJson::NullSentinel());
 
     json_tbl.set_function("decode", [](sol::this_state ts, const std::string& data)
+        -> std::tuple<sol::object, std::optional<std::string>>
     {
-        const auto parsed_json = nlohmann::json::parse(data);
-        return Types::PoJson::ToLua(ts, parsed_json, 0);
+        nlohmann::json parsed_json;
+
+        try
+        {
+            parsed_json = nlohmann::json::parse(data);
+            return std::make_tuple(Types::PoJson::ToLua(ts, parsed_json, 0), std::nullopt);
+        }
+        catch (const std::exception& ex)
+        {
+            return std::make_tuple(sol::lua_nil, ex.what());
+        }
     });
 
     json_tbl.set_function("encode", [](sol::this_state ts, const sol::object& data)

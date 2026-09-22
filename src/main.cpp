@@ -124,6 +124,7 @@ int main(int argc, char* argv[])
         });
 
         porla::Lua::PluginEngine plugin_engine{porla::Lua::PluginEngineOptions{
+            .cfg         = *cfg,
             .curl_multi  = curl_multi_instance,
             .db          = cfg->db,
             .http_server = &http_server,

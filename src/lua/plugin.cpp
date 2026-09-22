@@ -13,13 +13,17 @@
 #include "packages/codec.hpp"
 #include "packages/crypto.hpp"
 #include "packages/events.hpp"
+#include "packages/filesystem.hpp"
 #include "packages/httpclient.hpp"
 #include "packages/httpserver.hpp"
+#include "packages/kv.hpp"
 #include "packages/presets.hpp"
 #include "packages/runtime.hpp"
 #include "packages/sessions.hpp"
 #include "packages/sockets.hpp"
 #include "packages/timers.hpp"
+#include "packages/zip.hpp"
+
 #include "pluginsource.hpp"
 #include "pluginstate.hpp"
 #include "print.hpp"
@@ -116,13 +120,16 @@ struct Plugin::State
         package["preload"]["porla_codec"]       = Packages::Codec::Load;
         package["preload"]["porla_crypto"]      = Packages::Crypto::Load;
         package["preload"]["porla_events"]      = Packages::Events::Load;
+        package["preload"]["porla_filesystem"]  = Packages::Filesystem::Load;
         package["preload"]["porla_http_client"] = Packages::HttpClient::Load;
         package["preload"]["porla_http_server"] = Packages::HttpServer::Load;
+        package["preload"]["porla_kv"]          = Packages::Kv::Load;
         package["preload"]["porla_presets"]     = Packages::Presets::Load;
         package["preload"]["porla_runtime"]     = Packages::Runtime::Load;
         package["preload"]["porla_sessions"]    = Packages::Sessions::Load;
         package["preload"]["porla_sockets"]     = Packages::Sockets::Load;
         package["preload"]["porla_timers"]      = Packages::Timers::Load;
+        package["preload"]["porla_zip"]         = Packages::Zip::Load;
 
         auto searcher = [this](sol::this_state ts, std::string name) -> sol::variadic_results
         {
@@ -177,7 +184,7 @@ struct Plugin::State
         sol::protected_function table_insert = lua["table"]["insert"];
         table_insert(searchers, 2, sol::make_object(lua, searcher));
 
-        lua_state            = std::make_shared<LuaState>(load_options.io, load_options.sessions, lua);
+        lua_state            = std::make_shared<LuaState>(load_options.io, load_options.cfg, load_options.sessions, lua);
         lua_state->app       = load_options.http_server;
         lua_state->curl      = load_options.curl_multi;
         lua_state->db        = load_options.db;

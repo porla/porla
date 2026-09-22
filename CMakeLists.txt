@@ -262,13 +262,16 @@ add_library(
     src/lua/packages/codec.cpp
     src/lua/packages/crypto.cpp
     src/lua/packages/events.cpp
+    src/lua/packages/filesystem.cpp
     src/lua/packages/httpclient.cpp
     src/lua/packages/httpserver.cpp
+    src/lua/packages/kv.cpp
     src/lua/packages/presets.cpp
     src/lua/packages/runtime.cpp
     src/lua/packages/sessions.cpp
     src/lua/packages/sockets.cpp
     src/lua/packages/timers.cpp
+    src/lua/packages/zip.cpp
 
     src/lua/types/ltaddtorrentparams.cpp
     src/lua/types/ltannounceendpoint.cpp
