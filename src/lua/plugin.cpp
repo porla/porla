@@ -34,6 +34,7 @@
 #include "types/ltfilenames.hpp"
 #include "types/ltrenamedfiles.hpp"
 #include "types/pocancellable.hpp"
+#include "types/pohttpformfile.hpp"
 #include "types/pohttpserverresponse.hpp"
 #include "types/pojsonrpcresponse.hpp"
 #include "types/popreset.hpp"
@@ -115,6 +116,7 @@ struct Plugin::State
 
         // Porla wrapper types
         Types::PoCancellable::Register(lua);
+        Types::PoHttpFormFile::Register(lua);
         Types::PoHttpServerResponse::Register(lua);
         Types::PoJsonRpcResponse::Register(lua);
         Types::PoPreset::Register(lua);

@@ -7,7 +7,8 @@ void PoHttpFormFile::Register(sol::state& lua)
     lua.new_usertype<PoHttpFormFile>(
         "PoHttpFormFile",
         sol::no_constructor,
-        "name", sol::property([](const PoHttpFormFile& f) { return f.m_name; })
+        "name", sol::property([](const PoHttpFormFile& f) { return f.m_name; }),
+        "data", [](const PoHttpFormFile& f) { return std::string(f.m_content); }
     );
 }
 

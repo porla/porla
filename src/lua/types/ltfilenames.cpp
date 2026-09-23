@@ -13,6 +13,10 @@ void LtFilenames::Register(sol::state& lua)
         {
             return lt::filenames(storage, renamed);
         }),
+        "file_absolute_path", [](const lt::filenames& fn, int file_index)
+        {
+            return fn.file_absolute_path(lt::file_index_t{file_index});
+        },
         "file_path", sol::overload(
             [](const lt::filenames& fn, int file_index)
             {
