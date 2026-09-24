@@ -29,7 +29,7 @@ void AuthInit::Execute(const AuthInitReq& req, ResponseWriterHandle out)
         req.password.c_str(),
         req.password.size(),
         crypto_pwhash_OPSLIMIT_INTERACTIVE,
-        crypto_pwhash_MEMLIMIT_MIN);
+        crypto_pwhash_MEMLIMIT_INTERACTIVE);
 
     porla::Data::Models::Users::Insert(
         m_db,
