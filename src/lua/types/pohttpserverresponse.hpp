@@ -26,6 +26,9 @@ namespace porla::Lua::Types
         void Setup();
 
     private:
+        void BuildForm(LuaState& state);
+        bool ParseMultipart(LuaState& state, sol::table& fields, sol::table& files);
+
         void Finish();
         void Finish(const std::string& data);
         void OnData(std::string_view data, std::uint64_t len);
@@ -33,11 +36,12 @@ namespace porla::Lua::Types
         void WriteHeader(const std::string& key, const std::string& value);
         void WriteStatus(const std::string& status);
 
-        std::optional<std::string> m_body;
-        std::size_t                m_callback_id;
-        bool                       m_is_aborted;
-        sol::table                 m_request;
-        uWS::HttpResponse<false>*  m_response;
-        std::weak_ptr<LuaState>    m_state;
+        std::shared_ptr<std::string> m_body;
+        std::size_t                  m_callback_id;
+        std::string                  m_content_type;
+        bool                         m_is_aborted;
+        sol::table                   m_request;
+        uWS::HttpResponse<false>*    m_response;
+        std::weak_ptr<LuaState>      m_state;
     };
 }

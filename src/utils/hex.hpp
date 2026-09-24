@@ -6,7 +6,7 @@
 
 namespace porla::Utils
 {
-        inline std::string ToHex(std::string_view in)
+    inline std::string ToHex(std::string_view in)
     {
         std::string out(in.size() * 2 + 1, '\0');
 

@@ -33,8 +33,16 @@ void PoTorrentsHandle::Add(const sol::table& params)
     if (state == nullptr) { return; }
 
     lt::add_torrent_params atp = LtAddTorrentParams::ToParams(params);
-    atp.userdata = lt::client_data_t(new TorrentClientData());
-    atp.userdata.get<TorrentClientData>()->state = m_state;
+
+    if (auto userdata = atp.userdata.get<TorrentClientData>())
+    {
+        userdata->state = m_state;
+    }
+    else
+    {
+        atp.userdata = lt::client_data_t(new TorrentClientData());
+        atp.userdata.get<TorrentClientData>()->state = m_state;
+    }
 
     state->session->async_add_torrent(atp);
 }

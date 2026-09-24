@@ -188,6 +188,18 @@ lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params)
         atp.url_seeds = url_seeds;
     }
 
+    if (sol::optional<sol::table> userdata = t["userdata"])
+    {
+        if (!atp.userdata.get<TorrentClientData>()) { atp.userdata = lt::client_data_t(new TorrentClientData()); }
+
+        auto ud = atp.userdata.get<TorrentClientData>();
+
+        if (sol::optional<std::string> v = (*userdata)["category"])
+        {
+            ud->category = *v;
+        }
+    }
+
     // banned peers
     // dht nodes
     // peers
@@ -254,7 +266,16 @@ sol::table LtAddTorrentParams::ToTable(sol::this_state ts, const lt::add_torrent
     tbl["total_uploaded"]     = params.total_uploaded;
     tbl["upload_limit"]       = params.upload_limit;
     tbl["url_seeds"]          = url_seeds;
+
     // userdata
+    const auto userdata = params.userdata.get<TorrentClientData>();
+
+    if (userdata)
+    {
+        tbl["userdata"] = lua.create_table();
+        tbl["userdata"]["category"] = userdata->category;
+        tbl["userdata"]["tags"]     = sol::as_table(userdata->tags);
+    }
 
     return tbl;
 }

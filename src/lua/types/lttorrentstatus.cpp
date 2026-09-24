@@ -29,7 +29,10 @@ void LtTorrentStatus::Register(sol::state& lua)
         "download_payload_rate",  sol::readonly(&lt::torrent_status::download_payload_rate),
         "download_rate",          sol::readonly(&lt::torrent_status::download_rate),
         "errc",                   sol::property(
-            [](sol::this_state ts, const lt::torrent_status& status) { return PoError::Construct(ts, status.errc); }),
+            [](const lt::torrent_status& status, sol::this_state ts)
+            {
+                return PoError::Construct(ts, status.errc);
+            }),
         "flags",                  sol::readonly(&lt::torrent_status::flags),
         "finished_duration",      sol::property([](const lt::torrent_status& ts) { return ts.finished_duration.count(); }),
         "handle",                 sol::readonly(&lt::torrent_status::handle),
