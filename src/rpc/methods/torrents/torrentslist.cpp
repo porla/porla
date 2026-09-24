@@ -58,7 +58,7 @@ static const std::map<std::pair<std::string, bool>, std::function<bool(const lt:
         {
             if (static_cast<int>(lhs.queue_position) < 0) return false;
             if (static_cast<int>(rhs.queue_position) < 0) return true;
-            return lhs.queue_position >= rhs.queue_position;
+            return lhs.queue_position > rhs.queue_position;
         }
     },
     {
@@ -90,8 +90,20 @@ TorrentsList::TorrentsList(sqlite3* db, porla::Sessions& sessions)
 
 void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
 {
+    const int         page         = req.page.value_or(0);
+    const int         page_size    = req.page_size.value_or(50);
     const std::string order_by     = req.order_by.value_or("queue_position");
     const bool        order_by_asc = req.order_by_dir.value_or("asc") == "asc";
+
+    if (page < 0)
+    {
+        return cb->Error(-1, "'page' must be >= 0");
+    }
+
+    if (page_size < 1 || page_size > 1000)
+    {
+        return cb->Error(-1, "'page_size' must be between 1 and 1000");
+    }
 
     const auto& sorter = TorrentSort.find({ order_by, order_by_asc });
 
@@ -276,15 +288,10 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
         torrents.emplace_back(ts);
     }
 
-    int page_beg = req.page.value_or(0) * req.page_size.value_or(50);
-    int page_end = std::min(
-        page_beg + req.page_size.value_or(50),
-        static_cast<int>(torrents.size()));
-
-    if (page_beg > torrents.size())
-    {
-        return cb->Error(-3, "Invalid page - too large.");
-    }
+    const auto total    = static_cast<std::int64_t>(torrents.size());
+    const auto page_beg = std::min<std::int64_t>(
+        static_cast<std::int64_t>(page) * page_size, total);
+    const auto page_end = std::min<std::int64_t>(page_beg + page_size, total);
 
     std::partial_sort(
         torrents.begin(),
@@ -296,11 +303,12 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
         });
 
     cb->Ok(TorrentsListRes{
-        .order_by       = req.order_by.value_or("queue_position"),
-        .order_by_dir   = req.order_by_dir.value_or("asc"),
-        .page           = req.page.value_or(0),
-        .page_size      = req.page_size.value_or(50),
-        .torrents       = std::vector(torrents.begin() + page_beg, torrents.begin() + page_end),
-        .torrents_total = static_cast<int>(torrents.size())
+        .order_by                  = req.order_by.value_or("queue_position"),
+        .order_by_dir              = req.order_by_dir.value_or("asc"),
+        .page                      = req.page.value_or(0),
+        .page_size                 = req.page_size.value_or(50),
+        .torrents                  = std::vector(torrents.begin() + page_beg, torrents.begin() + page_end),
+        .torrents_total            = static_cast<int>(torrents.size()),
+        .torrents_total_unfiltered = static_cast<int>(session_state->torrents.size())
     });
 }
