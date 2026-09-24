@@ -24,16 +24,6 @@ void PoTorrentData::Register(sol::state& lua)
             d.tags.erase(tag);
         },
         "session", sol::property([](const TorrentClientData& tcd) { return std::make_shared<PoSessionHandle>(tcd.state); }),
-        "tags", [](sol::this_state ts, const TorrentClientData& d)
-        {
-            sol::state_view lua(ts);
-            sol::table tags = lua.create_table();
-
-            for (const auto& tag : d.tags)
-            {
-                tags.add(tag);
-            }
-
-            return tags;
-        });
+        "tags", [](const TorrentClientData& d) { return sol::as_table(d.tags); }
+    );
 }

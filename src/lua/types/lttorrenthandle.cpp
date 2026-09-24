@@ -21,12 +21,31 @@ void LtTorrentHandle::Register(sol::state& lua)
         "download_limit",             &lt::torrent_handle::download_limit,
         // file_priority
         // file_progress
-        "file_status",                &lt::torrent_handle::file_status,
+        "file_status",                [](const lt::torrent_handle& th) { return sol::as_table(th.file_status()); },
         "flags",                      &lt::torrent_handle::flags,
         "flush_cache",                &lt::torrent_handle::flush_cache,
         "force_dht_announce",         &lt::torrent_handle::force_dht_announce,
         "force_lsd_announce",         &lt::torrent_handle::force_lsd_announce,
-        // force_reannounce
+        "force_reannounce", [](
+            const lt::torrent_handle& th,
+            std::optional<int> seconds,
+            std::optional<int> index,
+            std::optional<sol::table> opts)
+        {
+            lt::reannounce_flags_t flags{};
+
+            if (opts && opts->get_or("ignore_min_interval", false))
+            {
+                flags |= lt::torrent_handle::ignore_min_interval;
+            }
+
+            if (opts && opts->get_or("high_priority", false))
+            {
+                flags |= lt::torrent_handle::high_priority;
+            }
+
+            th.force_reannounce(seconds.value_or(0), index.value_or(-1), flags);
+        },
         "force_recheck",              &lt::torrent_handle::force_recheck,
         //"get_download_queue",       &lt::torrent_handle::get_download_queue,
         "get_file_priorities",        [](sol::this_state ts, const lt::torrent_handle& th)
@@ -46,30 +65,59 @@ void LtTorrentHandle::Register(sol::state& lua)
                                         {
                                             std::vector<lt::peer_info> peers;
                                             th.get_peer_info(peers);
-                                            return peers;
+                                            return sol::as_table(peers);
                                         },
         // get_piece_priorities
         "get_renamed_files",          &lt::torrent_handle::get_renamed_files,
         // get_resume_data
-        "have_piece",                 &lt::torrent_handle::have_piece,
+        "have_piece",                 [](const lt::torrent_handle& th, int piece_index) { return th.have_piece(lt::piece_index_t{piece_index}); },
         "in_session",                 &lt::torrent_handle::in_session,
         "info_hash",                  &lt::torrent_handle::info_hashes,
         "is_valid",                   &lt::torrent_handle::is_valid,
         "max_connections",            &lt::torrent_handle::max_connections,
         "max_uploads",                &lt::torrent_handle::max_uploads,
-        "move_storage",               &lt::torrent_handle::move_storage,
+        "move_storage",               [](const lt::torrent_handle& th, const std::string& save_path, std::optional<sol::table> opts)
+        {
+            static const std::unordered_map<std::string_view, lt::move_flags_t> lookup =
+            {
+                {"always_replace_files",      lt::move_flags_t::always_replace_files},
+                {"fail_if_exist",             lt::move_flags_t::fail_if_exist},
+                {"dont_replace",              lt::move_flags_t::dont_replace},
+                {"reset_save_path",           lt::move_flags_t::reset_save_path},
+                {"reset_save_path_unchecked", lt::move_flags_t::reset_save_path_unchecked},
+            };
+
+            lt::move_flags_t move_flags = lt::move_flags_t::always_replace_files;
+
+            if (opts)
+            {
+                if (const auto flag = opts->get<sol::optional<std::string>>("flags"))
+                {
+                    const auto it = lookup.find(*flag);
+
+                    if (it == lookup.end())
+                    {
+                        throw std::invalid_argument("move_storage: unknown flags value '" + *flag + "'");
+                    }
+
+                    move_flags = it->second;
+                }
+            }
+
+            th.move_storage(save_path, move_flags);
+        },
         // "need_save_resume_data"
-        "pause",                      &lt::torrent_handle::pause,
+        "pause", [](const lt::torrent_handle& th) { th.pause(); },
         // piece_availability
         //"piece_layers",               &lt::torrent_handle::piece_layers,
         // piece_priority
         "post_download_queue",        &lt::torrent_handle::post_download_queue,
         "post_file_priorities",       &lt::torrent_handle::post_file_priorities,
-        "post_file_progress",         &lt::torrent_handle::post_file_progress,
+        "post_file_progress",         [](const lt::torrent_handle& th) { th.post_file_progress(lt::torrent_handle::piece_granularity); },
         "post_file_status",           &lt::torrent_handle::post_file_status,
         "post_peer_info",             &lt::torrent_handle::post_peer_info,
         "post_piece_availability",    &lt::torrent_handle::post_piece_availability,
-        "post_status",                &lt::torrent_handle::post_status,
+        "post_status",                [](const lt::torrent_handle& th) { th.post_status(); },
         "post_trackers",              &lt::torrent_handle::post_trackers,
         "prioritize_files",           [](const lt::torrent_handle& th, const sol::table& prios)
         {
@@ -136,11 +184,10 @@ void LtTorrentHandle::Register(sol::state& lua)
         "set_upload_limit",           &lt::torrent_handle::set_upload_limit,
         "status",                     [](const lt::torrent_handle& th) { return th.status(); },
         "torrent_file",               &lt::torrent_handle::torrent_file,
-        "trackers",                   &lt::torrent_handle::trackers,
+        "trackers",                   [](const lt::torrent_handle& th) { return sol::as_table(th.trackers()); },
         // unset_flags
         "upload_limit",               &lt::torrent_handle::upload_limit,
-        "url_seeds",                  &lt::torrent_handle::url_seeds,
-
+        "url_seeds",                  [](const lt::torrent_handle& th) { return sol::as_table(th.url_seeds()); },
         "userdata", [](const lt::torrent_handle& th)
         {
             return th.userdata().get<TorrentClientData>();
