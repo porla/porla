@@ -3,6 +3,7 @@
 #include <libtorrent/torrent_status.hpp>
 
 #include "poerror.hpp"
+#include "../../utils/ratio.hpp"
 
 using porla::Lua::Types::LtTorrentStatus;
 
@@ -83,6 +84,8 @@ void LtTorrentStatus::Register(sol::state& lua)
         // pieces
         "progress",               sol::readonly(&lt::torrent_status::progress),
         "queue_position",         sol::readonly(&lt::torrent_status::queue_position),
+        "ratio",                  sol::property([](const lt::torrent_status& ts) { return Utils::Ratio(ts); }),
+        "ratio_real",             sol::property([](const lt::torrent_status& ts) { return Utils::RealRatio(ts); }),
         "renamed_files",          sol::readonly(&lt::torrent_status::renamed_files),
         "save_path",              sol::readonly(&lt::torrent_status::save_path),
         "seed_rank",              sol::readonly(&lt::torrent_status::seed_rank),
