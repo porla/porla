@@ -9,16 +9,18 @@ using porla::Rpc::Methods::Auth::AuthInit;
 using porla::Rpc::Methods::Auth::AuthInitReq;
 using porla::Rpc::Methods::Auth::AuthInitRes;
 
-AuthInit::AuthInit(sqlite3* db)
-    : m_db(db)
+AuthInit::AuthInit(boost::asio::io_context& io, sqlite3* db)
+    : TypedAsyncMethod(io.get_executor())
+    , m_db(db)
 {
 }
 
-void AuthInit::Execute(const AuthInitReq& req, ResponseWriterHandle out)
+boost::asio::awaitable<void> AuthInit::ExecuteAsync(AuthInitReq req, ResponseWriterHandle out)
 {
     if (porla::Data::Models::Users::Any(m_db))
     {
-        return out->Error(-1, "Already initialized");
+        out->Error(-1, "Already initialized");
+        co_return;
     }
 
     std::string password_hashed;

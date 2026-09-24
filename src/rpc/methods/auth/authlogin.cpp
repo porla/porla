@@ -27,13 +27,14 @@ static std::string CreateAuthCookie(const std::string& name, const std::string& 
     return ss.str();
 }
 
-AuthLogin::AuthLogin(sqlite3* db, const std::string& secret_key)
-    : m_db(db)
+AuthLogin::AuthLogin(boost::asio::io_context& io, sqlite3* db, const std::string& secret_key)
+    : TypedAsyncMethod(io.get_executor())
+    , m_db(db)
     , m_secret_key(secret_key)
 {
 }
 
-void AuthLogin::Execute(const AuthLoginReq& req, ResponseWriterHandle cb)
+boost::asio::awaitable<void> AuthLogin::ExecuteAsync(AuthLoginReq req, ResponseWriterHandle cb)
 {
     const auto user = Users::GetByUsername(m_db, req.username);
 
@@ -63,7 +64,8 @@ void AuthLogin::Execute(const AuthLoginReq& req, ResponseWriterHandle cb)
 
     if (result != 0 || !user.has_value())
     {
-        return cb->Error(-1, "Invalid username/password combination");
+        cb->Error(-1, "Invalid username/password combination");
+        co_return;
     }
 
     const auto token = jwt::create()

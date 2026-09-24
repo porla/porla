@@ -159,8 +159,8 @@ int main(int argc, char* argv[])
             .sessions    = sessions
         }};
 
-        jsonrpc->Register("auth.init",                 std::make_shared<porla::Rpc::Methods::Auth::AuthInit>(cfg->db));
-        jsonrpc->Register("auth.login",                std::make_shared<porla::Rpc::Methods::Auth::AuthLogin>(cfg->db, cfg->secret_key));
+        jsonrpc->Register("auth.init",                 std::make_shared<porla::Rpc::Methods::Auth::AuthInit>(io, cfg->db));
+        jsonrpc->Register("auth.login",                std::make_shared<porla::Rpc::Methods::Auth::AuthLogin>(io, cfg->db, cfg->secret_key));
         jsonrpc->Register("fs.space",                  std::make_shared<porla::Rpc::Methods::Fs::FsSpace>());
         jsonrpc->Register("kv.get",                    std::make_shared<porla::Rpc::Methods::Kv::KeyValueGet>(cfg->db));
         jsonrpc->Register("kv.set",                    std::make_shared<porla::Rpc::Methods::Kv::KeyValueSet>(io, cfg->db, kv_updated_signal));
