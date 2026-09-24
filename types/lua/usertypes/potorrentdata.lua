@@ -1,0 +1,2 @@
+---@meta
+---@class PoTorrentData

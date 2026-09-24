@@ -7,7 +7,7 @@ using porla::Lua::Types::LtOpenFileState;
 void LtOpenFileState::Register(sol::state& lua)
 {
     lua.new_usertype<lt::open_file_state>(
-        "lt.open_file_state",
+        "LtOpenFileState",
         sol::no_constructor,
         "file_index", &lt::open_file_state::file_index,
         "open_mode",  &lt::open_file_state::open_mode,

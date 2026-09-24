@@ -1,20 +1,69 @@
 ---@meta
 
 ---@class LtTorrentStatus
+---@field active_duration integer
 ---@field added_time integer
 ---@field all_time_download integer
 ---@field all_time_upload integer
+---@field announcing_to_dht boolean
+---@field announcing_to_lsd boolean
+---@field announcing_to_trackers boolean
+---@field block_size integer
+---@field completed_time integer?
+---@field connect_candidates integer
+---@field connections_limit integer
+---@field current_tracker string
+---@field distributed_copies number
+---@field down_bandwidth_queue integer
+---@field download_limit integer
 ---@field download_payload_rate integer
+---@field download_rate integer
 ---@field errc PoError?
 ---@field flags LtTorrentFlags
+---@field finished_duration integer
+---@field handle LtTorrentHandle
+---@field has_incoming boolean
+---@field has_metadata boolean
 ---@field info_hash LtInfoHash
+---@field is_finished boolean
+---@field is_seeding boolean
+---@field last_download integer?
+---@field last_seen_complete integer?
+---@field last_upload integer?
+---@field list_peers integer
+---@field list_seeds integer
 ---@field moving_storage boolean
 ---@field name string
+---@field next_announce integer
+---@field num_complete integer
+---@field num_connections integer
+---@field num_incomplete integer
+---@field num_peers integer
+---@field num_pieces integer
+---@field num_seeds integer
+---@field num_uploads integer
 ---@field progress number
+---@field queue_position integer
+---@field renamed_files LtRenamedFiles
 ---@field save_path string
+---@field seed_rank integer
 ---@field seeding_duration integer
----@field state string?
+---@field state "checking_files" |"downloading_metadata" |"downloading" |"finished" |"seeding" |"checking_resume_data" | nil
+---@field storage_mode "allocate" | "sparse"
+---@field torrent_file LtTorrentInfo?
+---@field total integer
+---@field total_done integer
+---@field total_download integer
+---@field total_failed_bytes integer
+---@field total_payload_download integer
+---@field total_payload_upload integer
+---@field total_redundant_bytes integer
 ---@field total_wanted integer
 ---@field total_wanted_done integer
+---@field total_upload integer
+---@field up_bandwidth_queue integer
 ---@field upload_payload_rate integer
+---@field upload_rate integer
+---@field upload_limit integer
+---@field uploads_limit integer
 local LtTorrentStatus = {}
