@@ -47,10 +47,6 @@ void LtTorrentFlags::Register(sol::state& lua)
 
             return out.empty() ? "(none)" : out;
         },
-        "clear", [](const lt::torrent_flags_t& flags, const std::string& flag)
-        {
-
-        },
         "has", [](const lt::torrent_flags_t& flags, const std::string& flag)
         {
             const auto flag_value = FlagsLookup.at(flag);
@@ -60,6 +56,11 @@ void LtTorrentFlags::Register(sol::state& lua)
         {
             const auto flag_value = FlagsLookup.at(flag);
             flags |= flag_value;
+        },
+        "unset", [](lt::torrent_flags_t& flags, const std::string& flag)
+        {
+            const auto flag_value = FlagsLookup.at(flag);
+            flags &= ~flag_value;
         }
     );
 }
