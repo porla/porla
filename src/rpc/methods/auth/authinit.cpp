@@ -3,15 +3,18 @@
 #include <boost/log/trivial.hpp>
 #include <sodium.h>
 
+#include "../../../auth/password.hpp"
 #include "../../../data/models/users.hpp"
 
+using porla::Auth::Password;
 using porla::Rpc::Methods::Auth::AuthInit;
 using porla::Rpc::Methods::Auth::AuthInitReq;
 using porla::Rpc::Methods::Auth::AuthInitRes;
 
-AuthInit::AuthInit(boost::asio::io_context& io, sqlite3* db)
+AuthInit::AuthInit(boost::asio::io_context& io, boost::asio::thread_pool& hash_pool, sqlite3* db)
     : TypedAsyncMethod(io.get_executor())
     , m_db(db)
+    , m_hash_pool(hash_pool)
 {
 }
 
@@ -19,25 +22,21 @@ boost::asio::awaitable<void> AuthInit::ExecuteAsync(AuthInitReq req, ResponseWri
 {
     if (porla::Data::Models::Users::Any(m_db))
     {
-        out->Error(-1, "Already initialized");
-        co_return;
+        co_return out->Error(-1, "Already initialized");
     }
 
-    std::string password_hashed;
-    password_hashed.resize(crypto_pwhash_STRBYTES);
+    const auto hashed_password = co_await Password::Hash(m_hash_pool, std::move(req.password));
 
-    int result = crypto_pwhash_str(
-        password_hashed.data(),
-        req.password.c_str(),
-        req.password.size(),
-        crypto_pwhash_OPSLIMIT_INTERACTIVE,
-        crypto_pwhash_MEMLIMIT_INTERACTIVE);
+    if (!hashed_password.has_value())
+    {
+        co_return out->Error(-2, "Failed to hash password");
+    }
 
     porla::Data::Models::Users::Insert(
         m_db,
         porla::Data::Models::Users::User{
             .username        = req.username,
-            .password_hashed = password_hashed,
+            .password_hashed = hashed_password.value()
         });
 
     BOOST_LOG_TRIVIAL(info) << "User " << req.username << " created";

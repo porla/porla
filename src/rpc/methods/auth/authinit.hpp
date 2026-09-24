@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/asio/io_context.hpp>
+#include <boost/asio/thread_pool.hpp>
 #include <sqlite3.h>
 
 #include "../../typedasyncmethod.hpp"
@@ -12,7 +13,7 @@ namespace porla::Rpc::Methods::Auth
     class AuthInit : public TypedAsyncMethod<AuthInitReq, AuthInitRes>
     {
     public:
-        explicit AuthInit(boost::asio::io_context& io, sqlite3* db);
+        explicit AuthInit(boost::asio::io_context& io, boost::asio::thread_pool& hash_pool, sqlite3* db);
 
     protected:
         bool CanInvoke(const porla::Auth::Context& auth_ctx) override
@@ -23,6 +24,7 @@ namespace porla::Rpc::Methods::Auth
         boost::asio::awaitable<void> ExecuteAsync(AuthInitReq req, ResponseWriterHandle writer) override;
 
     private:
-        sqlite3* m_db;
+        boost::asio::thread_pool& m_hash_pool;
+        sqlite3*                  m_db;
     };
 }
