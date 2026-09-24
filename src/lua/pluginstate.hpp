@@ -23,12 +23,12 @@ namespace porla::Lua
 {
     struct LuaState : public std::enable_shared_from_this<LuaState>
     {
-        explicit LuaState(boost::asio::io_context& io, porla::Config& cfg, porla::Sessions& sessions, sol::state_view lua)
+        explicit LuaState(boost::asio::io_context& io, boost::asio::thread_pool& hash_pool, porla::Config& cfg, porla::Sessions& sessions, sol::state_view lua)
             : io(io)
             , cfg(cfg)
             , sessions(sessions)
             , lua(lua)
-            , sodium_hash_pool(2)
+            , sodium_hash_pool(hash_pool)
         {
         }
 
@@ -196,7 +196,7 @@ namespace porla::Lua
         sol::state_view                                           lua;
         int                                                       plugin_id;
         porla::Sessions&                                          sessions;
-        boost::asio::thread_pool                                  sodium_hash_pool;
+        boost::asio::thread_pool&                                 sodium_hash_pool;
 
     private:
         struct CallbackRef

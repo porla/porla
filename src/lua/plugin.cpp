@@ -196,7 +196,13 @@ struct Plugin::State
         sol::protected_function table_insert = lua["table"]["insert"];
         table_insert(searchers, 2, sol::make_object(lua, searcher));
 
-        lua_state            = std::make_shared<LuaState>(load_options.io, load_options.cfg, load_options.sessions, lua);
+        lua_state = std::make_shared<LuaState>(
+            load_options.io,
+            load_options.hash_pool,
+            load_options.cfg,
+            load_options.sessions,
+            lua);
+
         lua_state->app       = load_options.http_server;
         lua_state->curl      = load_options.curl_multi;
         lua_state->db        = load_options.db;

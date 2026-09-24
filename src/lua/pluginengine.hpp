@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <boost/asio/io_context.hpp>
+#include <boost/asio/thread_pool.hpp>
 #include <nlohmann/json.hpp>
 #include <sqlite3.h>
 #include <uWebSockets/App.h>
@@ -36,6 +37,7 @@ namespace porla::Lua
         Config&                     cfg;
         std::shared_ptr<CurlMulti>  curl_multi;
         sqlite3*                    db;
+        boost::asio::thread_pool&   hash_pool;
         uWS::App*                   http_server;
         std::weak_ptr<Rpc::JsonRpc> jsonrpc;
         boost::asio::io_context&    io;

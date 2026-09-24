@@ -154,6 +154,7 @@ int main(int argc, char* argv[])
             .cfg         = *cfg,
             .curl_multi  = curl_multi_instance,
             .db          = cfg->db,
+            .hash_pool   = sodium_hash_pool,
             .http_server = &http_server,
             .jsonrpc     = jsonrpc,
             .io          = io,
