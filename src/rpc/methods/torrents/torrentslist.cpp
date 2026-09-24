@@ -22,8 +22,8 @@ static const std::map<std::pair<std::string, bool>, std::function<bool(const lt:
         {"eta", false},
         [](auto const& lhs, auto const& rhs)
         {
-            const auto lhs_eta = porla::Utils::Ratio(lhs);
-            const auto rhs_eta = porla::Utils::Ratio(rhs);
+            const auto lhs_eta = porla::Utils::ETA(lhs).count();
+            const auto rhs_eta = porla::Utils::ETA(rhs).count();
             if (lhs_eta < 0) return false;
             if (rhs_eta < 0) return true;
             return lhs_eta > rhs_eta;
@@ -33,8 +33,8 @@ static const std::map<std::pair<std::string, bool>, std::function<bool(const lt:
         {"eta", true},
         [](auto const& lhs, auto const& rhs)
         {
-            const auto lhs_eta = porla::Utils::Ratio(lhs);
-            const auto rhs_eta = porla::Utils::Ratio(rhs);
+            const auto lhs_eta = porla::Utils::ETA(lhs).count();
+            const auto rhs_eta = porla::Utils::ETA(rhs).count();
             if (lhs_eta < 0) return false;
             if (rhs_eta < 0) return true;
             return lhs_eta < rhs_eta;

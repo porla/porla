@@ -1,5 +1,6 @@
 #include "potorrentdata.hpp"
 
+#include "pojson.hpp"
 #include "posessionhandle.hpp"
 #include "../../torrentclientdata.hpp"
 
@@ -24,6 +25,26 @@ void PoTorrentData::Register(sol::state& lua)
             d.tags.erase(tag);
         },
         "session", sol::property([](const TorrentClientData& tcd) { return std::make_shared<PoSessionHandle>(tcd.state); }),
+        "get_metadata", [](const TorrentClientData& d, const std::string& key, sol::this_state ts) -> std::optional<sol::object>
+        {
+            const auto val = d.metadata.find(key);
+
+            if (val != d.metadata.end())
+            {
+                if (val->second.is_null())
+                {
+                    return sol::lua_nil;
+                }
+
+                return PoJson::ToLua(ts, val->second, 0);
+            }
+
+            return std::nullopt;
+        },
+        "set_metadata", [](TorrentClientData& d, const std::string& key, sol::object value, sol::this_state ts)
+        {
+            d.metadata[key] = PoJson::ToJson(ts, value, 0);
+        },
         "tags", [](const TorrentClientData& d) { return sol::as_table(d.tags); }
     );
 }

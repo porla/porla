@@ -126,6 +126,8 @@ function LtTorrentHandle:rename_file(index, name) end
 
 function LtTorrentHandle:resume() end
 
+function LtTorrentHandle:save_resume_data() end
+
 ---@param limit integer
 function LtTorrentHandle:set_download_limit(limit) end
 
