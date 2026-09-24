@@ -5,10 +5,10 @@
 #include <jwt-cpp/traits/nlohmann-json/traits.h>
 #include <jwt-cpp/jwt.h>
 
-#include <sodium.h>
-
+#include "../../../auth/password.hpp"
 #include "../../../data/models/users.hpp"
 
+using porla::Auth::Password;
 using porla::Data::Models::Users;
 using porla::Rpc::Methods::Auth::AuthLogin;
 using porla::Rpc::Methods::Auth::AuthLoginReq;
@@ -27,43 +27,43 @@ static std::string CreateAuthCookie(const std::string& name, const std::string& 
     return ss.str();
 }
 
-AuthLogin::AuthLogin(sqlite3* db, const std::string& secret_key)
-    : m_db(db)
+AuthLogin::AuthLogin(boost::asio::io_context& io, boost::asio::thread_pool& hash_pool, sqlite3* db, const std::string& secret_key)
+    : TypedAsyncMethod(io.get_executor())
+    , m_hash_pool(hash_pool)
+    , m_db(db)
     , m_secret_key(secret_key)
 {
 }
 
-void AuthLogin::Execute(const AuthLoginReq& req, ResponseWriterHandle cb)
+boost::asio::awaitable<void> AuthLogin::ExecuteAsync(AuthLoginReq req, ResponseWriterHandle cb)
 {
     const auto user = Users::GetByUsername(m_db, req.username);
 
-    int result = -1;
+    const std::string stored = user.has_value()
+        ? user->password_hashed
+        : "$argon2id$v=19$m=65536,t=2,p=1$Po8JYTODUsewD1r3zg1XsQ$icZxLXBcZRDPKybU+9MkOIdrATTmhENNG7EfckW5zvg";
 
-    if (user)
-    {
-        result = crypto_pwhash_str_verify(
-            user->password_hashed.c_str(),
-            req.password.c_str(),
-            req.password.size());
-    }
-    else
-    {
-        // No user found. Still calculate a pwhash to not make it easy to
-        // enumerate usernames. Do not set the result. The hashed password is
-        // just 'hunter2'.
+    const auto [ verified, needs_rehash ] = co_await Password::Verify(m_hash_pool, stored, req.password);
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-result"
-        (void) crypto_pwhash_str_verify(
-            "$argon2id$v=19$m=8,t=2,p=1$+6Dhs+XwJA6aMr+EpEirUA$5+DoNO4hoWzPUnTM0BTg3a0JZx0c9LI1FkfZvDX1lTw",
-            "hunter2",
-            7);
-#pragma GCC diagnostic pop
+    if (!verified || !user.has_value())
+    {
+        cb->Error(-1, "Invalid username/password combination");
+        co_return;
     }
 
-    if (result != 0 || !user.has_value())
+    if (needs_rehash)
     {
-        return cb->Error(-1, "Invalid username/password combination");
+        const auto fresh_password = co_await Password::Hash(m_hash_pool, req.password);
+
+        if (fresh_password)
+        {
+            Data::Models::Users::UpdatePassword(
+                m_db,
+                user->id,
+                fresh_password.value());
+
+            BOOST_LOG_TRIVIAL(info) << "Updated password hash for user " << user->username;
+        }
     }
 
     const auto token = jwt::create()

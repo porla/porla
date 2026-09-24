@@ -174,6 +174,7 @@ add_library(
     src/utils/string.cpp
 
     src/auth/authenticator.cpp
+    src/auth/password.cpp
 
     src/data/migrate.cpp
     src/data/migrations/0001_initialsetup.cpp

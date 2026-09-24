@@ -132,7 +132,8 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    boost::asio::io_context io;
+    boost::asio::io_context  io;
+    boost::asio::thread_pool sodium_hash_pool(2);
 
     {
         uWS::Loop::get(&io);
@@ -153,14 +154,15 @@ int main(int argc, char* argv[])
             .cfg         = *cfg,
             .curl_multi  = curl_multi_instance,
             .db          = cfg->db,
+            .hash_pool   = sodium_hash_pool,
             .http_server = &http_server,
             .jsonrpc     = jsonrpc,
             .io          = io,
             .sessions    = sessions
         }};
 
-        jsonrpc->Register("auth.init",                 std::make_shared<porla::Rpc::Methods::Auth::AuthInit>(cfg->db));
-        jsonrpc->Register("auth.login",                std::make_shared<porla::Rpc::Methods::Auth::AuthLogin>(cfg->db, cfg->secret_key));
+        jsonrpc->Register("auth.init",                 std::make_shared<porla::Rpc::Methods::Auth::AuthInit>(io, sodium_hash_pool, cfg->db));
+        jsonrpc->Register("auth.login",                std::make_shared<porla::Rpc::Methods::Auth::AuthLogin>(io, sodium_hash_pool, cfg->db, cfg->secret_key));
         jsonrpc->Register("fs.space",                  std::make_shared<porla::Rpc::Methods::Fs::FsSpace>());
         jsonrpc->Register("kv.get",                    std::make_shared<porla::Rpc::Methods::Kv::KeyValueGet>(cfg->db));
         jsonrpc->Register("kv.set",                    std::make_shared<porla::Rpc::Methods::Kv::KeyValueSet>(io, cfg->db, kv_updated_signal));
