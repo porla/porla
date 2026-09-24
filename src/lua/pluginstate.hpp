@@ -62,6 +62,19 @@ namespace porla::Lua
             CancelEntry(m_cron_schedules, cron_schedule_id);
         }
 
+        void CancelScopedConnection(std::size_t connection_id)
+        {
+            const auto entry = m_signals.find(connection_id);
+            if (entry == m_signals.end()) { return; }
+
+            const auto connection = std::move(entry->second);
+
+            m_signals.erase(entry);
+
+            connection.disconnect();
+        }
+
+
         void CancelTimer(std::size_t timer_id)
         {
             CancelEntry(m_timers, timer_id);
