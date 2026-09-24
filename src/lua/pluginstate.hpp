@@ -34,8 +34,6 @@ namespace porla::Lua
 
         ~LuaState()
         {
-            sodium_hash_pool.join();
-
             for (auto& [ _, cron_schedule ] : m_cron_schedules)
             {
                 cron_schedule.handle->Cancel();
