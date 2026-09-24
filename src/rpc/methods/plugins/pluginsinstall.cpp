@@ -65,8 +65,23 @@ void PluginsInstall::Execute(const PluginsInstallReq& req, ResponseWriterHandle 
             return cb->Error(-3, "Failed to parse release body as JSON");
         }
 
-        std::string tag_name = release["tag_name"];
-        std::string download_url = release["assets"][0]["browser_download_url"];
+        if (!release.contains("tag_name") || !release["tag_name"].is_string())
+        {
+            return cb->Error(-4, "Release is missing tag name");
+        }
+
+        const auto assets = release.value("assets", nlohmann::json::array());
+
+        if (!assets.is_array()
+            || assets.empty()
+            || !assets[0].contains("browser_download_url")
+            || !assets[0]["browser_download_url"].is_string())
+        {
+            return cb->Error(-5, "Release has no downloadable asset");
+        }
+
+        const auto tag_name = release["tag_name"];
+        const auto download_url = assets[0]["browser_download_url"];
 
         BOOST_LOG_TRIVIAL(info) << "Found version " << tag_name << " of plugin - fetching from " << download_url;
 
