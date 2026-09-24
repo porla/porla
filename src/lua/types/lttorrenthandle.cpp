@@ -185,7 +185,7 @@ void LtTorrentHandle::Register(sol::state& lua)
         "status",                     [](const lt::torrent_handle& th) { return th.status(); },
         "torrent_file",               &lt::torrent_handle::torrent_file,
         "trackers",                   [](const lt::torrent_handle& th) { return sol::as_table(th.trackers()); },
-        // unset_flags
+        "unset_flags",                [](const lt::torrent_handle& th, const lt::torrent_flags_t& flags) { th.unset_flags(flags); },
         "upload_limit",               &lt::torrent_handle::upload_limit,
         "url_seeds",                  [](const lt::torrent_handle& th) { return sol::as_table(th.url_seeds()); },
         "userdata", [](const lt::torrent_handle& th)
