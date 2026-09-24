@@ -41,16 +41,16 @@ namespace porla::Lua::Types
         void WriteComplete(const boost::system::error_code& ec, std::size_t n);
         void WriteNext();
 
-        bool                                                  m_closed;
+        bool                                                  m_closed = false;
         std::optional<std::string>                            m_connect_host;
         std::vector<char>                                     m_read_buffer;
-        bool                                                  m_read_pending;
+        bool                                                  m_read_pending = false;
         boost::asio::ip::tcp::resolver                        m_resolver;
         boost::asio::ip::tcp::socket                          m_socket;
         std::weak_ptr<LuaState>                               m_state;
         std::shared_ptr<boost::asio::ssl::context>            m_tls_ctx;
         std::optional<boost::asio::ssl::stream<tcp::socket&>> m_tls;
         std::deque<WriteOp>                                   m_write_buffer;
-        bool                                                  m_write_pending;
+        bool                                                  m_write_pending = false;
     };
 }
