@@ -31,6 +31,11 @@ void PoTorrentData::Register(sol::state& lua)
 
             if (val != d.metadata.end())
             {
+                if (val->second.is_null())
+                {
+                    return sol::lua_nil;
+                }
+
                 return PoJson::ToLua(ts, val->second, 0);
             }
 
