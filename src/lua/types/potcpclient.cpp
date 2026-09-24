@@ -31,7 +31,14 @@ PoTcpClient::PoTcpClient(const std::shared_ptr<LuaState>& lua_state)
 
 PoTcpClient::~PoTcpClient()
 {
-    Close();
+    try
+    {
+        Close();
+    }
+    catch(const std::exception& e)
+    {
+        BOOST_LOG_TRIVIAL(warning) << "lua[PoTcpClient] Error when closing socket: " << e.what();
+    }
 }
 
 void PoTcpClient::Close()
@@ -43,9 +50,11 @@ void PoTcpClient::Close()
 
     m_closed = true;
 
+    boost::system::error_code ec;
+
     m_resolver.cancel();
-    m_socket.cancel();
-    m_socket.close();
+    m_socket.cancel(ec);
+    m_socket.close(ec);
 }
 
 void PoTcpClient::Connect(const std::string& host, int port, sol::main_protected_function callback)
@@ -188,6 +197,7 @@ void PoTcpClient::Tls(sol::main_protected_function callback)
     if (!m_connect_host.has_value())
     {
         BOOST_LOG_TRIVIAL(error) << "lua[PoTcpClient] Cannot do TLS upgrade due to missing connect host";
+        state->InvokeCallback(state->RegisterCallback(callback, true), "missing connect host");
         return;
     }
 
@@ -206,7 +216,21 @@ void PoTcpClient::Tls(sol::main_protected_function callback)
 
     m_tls_ctx->set_default_verify_paths(ec);
 
+    if (ec)
+    {
+        BOOST_LOG_TRIVIAL(warning) << "lua[PoTcpClient] set_default_verify_paths failed: " << ec.message();
+    }
+
     m_tls.emplace(m_socket, *m_tls_ctx);
+
+    m_tls->set_verify_mode(boost::asio::ssl::verify_peer, ec);
+
+    if (ec)
+    {
+        state->InvokeCallback(state->RegisterCallback(callback, true), ec.message());
+        return;
+    }
+
     m_tls->set_verify_callback(boost::asio::ssl::host_name_verification(m_connect_host.value()), ec);
 
     SSL_set_tlsext_host_name(m_tls->native_handle(), m_connect_host.value().c_str());
