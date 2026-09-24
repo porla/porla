@@ -13,7 +13,7 @@ namespace porla::Rpc::Methods::Auth
         explicit AuthLogin(sqlite3* db, const std::string& secret_key);
 
     protected:
-        bool CanInvoke(Token token) override
+        bool CanInvoke(const porla::Auth::Context& auth_ctx) override
         {
             return true;
         }

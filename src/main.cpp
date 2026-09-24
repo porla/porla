@@ -13,7 +13,8 @@
 #include "lua/pluginsource.hpp"
 #include "sessions.hpp"
 
-#include "data/models/keyvaluestore.hpp"
+#include "auth/authenticator.hpp"
+
 
 #include "rpc/jsonrpc.hpp"
 #include "rpc/methods/auth/authinit.hpp"
@@ -139,8 +140,9 @@ int main(int argc, char* argv[])
 
         boost::signals2::signal<void(const std::unordered_set<std::string>&)> kv_updated_signal;
 
+        auto authenticator       = std::make_shared<porla::Auth::Authenticator>(cfg->db, cfg->secret_key);
         auto curl_multi_instance = porla::CurlMulti::Create(io);
-        auto jsonrpc             = porla::Rpc::JsonRpc::Create(cfg->secret_key);
+        auto jsonrpc             = porla::Rpc::JsonRpc::Create(authenticator);
 
         porla::Sessions sessions(porla::SessionsOptions{
             .db = cfg->db,

@@ -15,7 +15,7 @@ namespace porla::Rpc::Methods::Sys
         explicit SysStatus(sqlite3* db);
 
     protected:
-        bool CanInvoke(Token token) override
+        bool CanInvoke(const porla::Auth::Context& auth_ctx) override
         {
             // This method can always be invoked.
             return true;

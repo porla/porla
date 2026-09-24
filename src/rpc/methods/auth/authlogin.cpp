@@ -1,8 +1,10 @@
 #include "authlogin.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <jwt-cpp/traits/nlohmann-json/defaults.h>
 #include <jwt-cpp/traits/nlohmann-json/traits.h>
 #include <jwt-cpp/jwt.h>
+
 #include <sodium.h>
 
 #include "../../../data/models/users.hpp"
