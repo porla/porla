@@ -7,6 +7,11 @@
 
 using porla::Rpc::JsonRpc;
 
+namespace
+{
+    static constexpr std::size_t kMaxBody = 8 * 1024 * 1024;
+}
+
 namespace porla
 {
     struct RpcReq
@@ -111,6 +116,13 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
 
         res->onData([aborted, buffer, res, weak, auth_context](std::string_view data, bool last)
         {
+            if (buffer->size() + data.size() > kMaxBody)
+            {
+                res->writeStatus("413 Payload  Too Large")->end({}, true);
+                *aborted = true;
+                return;
+            }
+
             buffer->append(data);
             if (!last) return;
 
