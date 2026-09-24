@@ -1,20 +1,17 @@
 #pragma once
 
-#include <jwt-cpp/traits/nlohmann-json/defaults.h>
-#include <jwt-cpp/jwt.h>
 #include <nlohmann/json.hpp>
 
+#include "../auth/context.hpp"
 #include "responsewriter.hpp"
 
 namespace porla::Rpc
 {
-    using Token = std::optional<jwt::decoded_jwt<jwt::traits::nlohmann_json>>;
-
     struct Method
     {
-        virtual bool CanInvoke(Token token)
+        virtual bool CanInvoke(const Auth::Context& auth_ctx)
         {
-            return token.has_value();
+            return auth_ctx.IsAuthenticated();
         }
 
         virtual void Invoke(

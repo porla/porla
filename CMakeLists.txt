@@ -173,6 +173,8 @@ add_library(
     src/utils/secretkey.cpp
     src/utils/string.cpp
 
+    src/auth/authenticator.cpp
+
     src/data/migrate.cpp
     src/data/migrations/0001_initialsetup.cpp
     src/data/migrations/0002_addsessionsettings.cpp

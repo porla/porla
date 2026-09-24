@@ -1,15 +1,11 @@
 #include "jsonrpc.hpp"
 
-#include <boost/algorithm/string.hpp>
 #include <boost/log/trivial.hpp>
 
+#include "../auth/authenticator.hpp"
 #include "../json/utils.hpp"
-#include "../utils/string.hpp"
 
 using porla::Rpc::JsonRpc;
-using porla::Utils::String;
-
-static const std::string AltAuthHeader = "x-porla-token";
 
 namespace porla
 {
@@ -28,57 +24,6 @@ namespace porla
         params,
         id)
 }
-
-const auto CookieFinder = [](const std::string_view& value) -> std::optional<std::string>
-{
-    if (value.empty())
-    {
-        return std::nullopt;
-    }
-
-    std::vector<std::string> values = String::Split(std::string(value), ";");
-
-    if (values.empty())
-    {
-        return std::nullopt;
-    }
-
-    for (const auto& item : values)
-    {
-        std::vector<std::string> pair = String::Split(item, "=");
-
-        if (pair.size() != 2)
-        {
-            continue;
-        }
-
-        if (boost::trim_copy(pair[0]) == "porla-auth-token")
-        {
-            return pair[1];
-        }
-    }
-
-    return std::nullopt;
-};
-
-const auto HeaderFinder = [](uWS::HttpRequest* req, const std::string& header_name)
-{
-    const auto& header = req->getHeader(header_name);
-
-    // No Authorization header
-    if (header.empty())
-    {
-        return std::optional<std::string>();
-    }
-
-    // Authorization header is too short to start with "Bearer " and also contain a token.
-    if (header.size() <= 7)
-    {
-        return std::optional<std::string>();
-    }
-
-    return std::optional<std::string>(header.substr(7));
-};
 
 class DefaultResponseWriter : public porla::Rpc::ResponseWriter
 {
@@ -133,14 +78,14 @@ private:
     bool                      m_responded;
 };
 
-JsonRpc::JsonRpc(const std::string& secret_key)
-    : m_secret_key(secret_key)
+JsonRpc::JsonRpc(std::shared_ptr<Auth::Authenticator> authenticator)
+    : m_authenticator(std::move(authenticator))
 {
 }
 
-std::shared_ptr<JsonRpc> JsonRpc::Create(const std::string& secret_key)
+std::shared_ptr<JsonRpc> JsonRpc::Create(std::shared_ptr<Auth::Authenticator> authenticator)
 {
-    return std::shared_ptr<JsonRpc>(new JsonRpc(secret_key));
+    return std::shared_ptr<JsonRpc>(new JsonRpc(std::move(authenticator)));
 }
 
 std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpHandler()
@@ -157,25 +102,14 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
             return;
         }
 
-        std::optional<std::string> bearer_token = HeaderFinder(req, AltAuthHeader);
-
-        // No alt header found, or the alt header didn't contain a value. Check the default Authorization header
-        if (!bearer_token.has_value())
-        {
-            bearer_token = HeaderFinder(req, "authorization");
-        }
-
-        if (!bearer_token.has_value())
-        {
-            bearer_token = CookieFinder(req->getHeader("cookie"));
-        }
+        const auto auth_context = jsonrpc->m_authenticator->Authenticate(req);
 
         auto aborted = std::make_shared<bool>(false);
         auto buffer = std::make_shared<std::string>();
 
         res->onAborted([aborted] { *aborted = true; });
 
-        res->onData([aborted, buffer, res, weak, bearer_token = std::move(bearer_token)](std::string_view data, bool last)
+        res->onData([aborted, buffer, res, weak, auth_context](std::string_view data, bool last)
         {
             buffer->append(data);
             if (!last) return;
@@ -190,63 +124,10 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
                 return;
             }
 
+            // From here on out we always respond with valid JSON.
+
             res->writeStatus("200 OK")
                 ->writeHeader("Content-Type", "application/json");
-
-            Token token;
-
-            if (bearer_token)
-            {
-                try
-                {
-                    const auto decoded_token = jwt::decode(bearer_token.value());
-
-                    const auto verifier = jwt::verify()
-                        .allow_algorithm(jwt::algorithm::hs256(jsonrpc->m_secret_key))
-                        .with_issuer("porla");
-
-                    verifier.verify(decoded_token);
-
-                    token = decoded_token;
-                }
-                catch (const jwt::error::signature_verification_exception& ex)
-                {
-                    BOOST_LOG_TRIVIAL(debug) << "Failed to verify JWT signature: " << ex.what();
-                    token = std::nullopt;
-                }
-                catch (const jwt::error::token_verification_exception& ex)
-                {
-                    BOOST_LOG_TRIVIAL(debug) << "Failed to verify JWT token: " << ex.what();
-
-                    res->end(json({
-                        {"error", {
-                            {"code", 1000},
-                            {"message", "JWT verification failed"},
-                            {"data", {
-                                {"what", ex.what()}
-                            }}
-                        }}
-                    }).dump());
-
-                    return;
-                }
-                catch (const std::exception& ex)
-                {
-                    BOOST_LOG_TRIVIAL(debug) << "Failed to decode token: " << ex.what();
-
-                    res->end(json({
-                        {"error", {
-                            {"code", 1000},
-                            {"message", "Failed to decode JWT"},
-                            {"data", {
-                                {"what", ex.what()}
-                            }}
-                        }}
-                    }).dump());
-
-                    return;
-                }
-            }
 
             RpcReq req;
 
@@ -308,7 +189,7 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
 
                 auto writer = std::make_shared<DefaultResponseWriter>(res, req.id.value_or(json()), aborted);
 
-                if (!method->second->CanInvoke(token))
+                if (!method->second->CanInvoke(auth_context))
                 {
                     writer->Error(1001, "Invocation not allowed");
                     return;
