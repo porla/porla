@@ -2,6 +2,8 @@
 
 #include <optional>
 #include <string>
+#include <tuple>
+
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/thread_pool.hpp>
 
@@ -14,7 +16,7 @@ namespace porla::Auth
             boost::asio::thread_pool& pool,
             std::string               password);
             
-        static boost::asio::awaitable<bool> Verify(
+        static boost::asio::awaitable<std::tuple<bool, bool>> Verify(
             boost::asio::thread_pool& pool,
             std::string               hashed,
             std::string               password);

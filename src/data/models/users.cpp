@@ -23,12 +23,13 @@ std::optional<Users::User> Users::GetByUsername(sqlite3* db, const std::string& 
 {
     std::optional<User> user;
 
-    Statement::Prepare(db, "SELECT username,password FROM users WHERE username = $username")
+    Statement::Prepare(db, "SELECT id,username,password FROM users WHERE username = $username")
         .Bind("$username", username)
         .Step(
             [&user](auto const& row)
             {
                 user = User{
+                    .id              = row.GetInt32("id"),
                     .username        = row.GetStdString("username"),
                     .password_hashed = row.GetStdString("password")
                 };
@@ -44,5 +45,13 @@ void Users::Insert(sqlite3* db, const porla::Data::Models::Users::User &user)
     Statement::Prepare(db, "INSERT INTO users (username, password) VALUES ($username, $password);")
         .Bind("$username", user.username)
         .Bind("$password", user.password_hashed)
+        .Execute();
+}
+
+void Users::UpdatePassword(sqlite3* db, int id, const std::string& password)
+{
+    Statement::Prepare(db, "UPDATE users SET password = $password WHERE id = $id")
+        .Bind("$id", id)
+        .Bind("$password", password)
         .Execute();
 }

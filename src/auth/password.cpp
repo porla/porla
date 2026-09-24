@@ -44,19 +44,31 @@ boost::asio::awaitable<std::optional<std::string>> Password::Hash(
         boost::asio::use_awaitable);
 }
 
-boost::asio::awaitable<bool> Password::Verify(
+boost::asio::awaitable<std::tuple<bool, bool>> Password::Verify(
     boost::asio::thread_pool& pool,
     std::string               hashed,
     std::string               password)
 {
     co_return co_await boost::asio::co_spawn(
         pool,
-        [hashed = std::move(hashed), password = Zero{std::move(password)}]() mutable -> boost::asio::awaitable<bool>
+        [hashed = std::move(hashed), password = Zero{std::move(password)}]() mutable -> boost::asio::awaitable<std::tuple<bool, bool>>
         {
-            co_return crypto_pwhash_str_verify(
+            const bool verified = crypto_pwhash_str_verify(
                 hashed.c_str(),
                 password.value.data(),
                 password.value.size()) == 0;
+
+            if (!verified)
+            {
+                co_return std::make_tuple(false, false);
+            }
+
+            const bool needs_rehash = crypto_pwhash_str_needs_rehash(
+                hashed.c_str(),
+                crypto_pwhash_OPSLIMIT_INTERACTIVE,
+                crypto_pwhash_MEMLIMIT_INTERACTIVE) == 1;
+
+            co_return std::make_tuple(verified, needs_rehash);
         },
         boost::asio::use_awaitable);
 }
