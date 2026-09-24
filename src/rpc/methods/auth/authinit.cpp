@@ -1,7 +1,6 @@
 #include "authinit.hpp"
 
 #include <boost/log/trivial.hpp>
-#include <sodium.h>
 
 #include "../../../auth/password.hpp"
 #include "../../../data/models/users.hpp"
@@ -13,8 +12,8 @@ using porla::Rpc::Methods::Auth::AuthInitRes;
 
 AuthInit::AuthInit(boost::asio::io_context& io, boost::asio::thread_pool& hash_pool, sqlite3* db)
     : TypedAsyncMethod(io.get_executor())
-    , m_db(db)
     , m_hash_pool(hash_pool)
+    , m_db(db)
 {
 }
 
@@ -30,6 +29,12 @@ boost::asio::awaitable<void> AuthInit::ExecuteAsync(AuthInitReq req, ResponseWri
     if (!hashed_password.has_value())
     {
         co_return out->Error(-2, "Failed to hash password");
+    }
+
+    if (porla::Data::Models::Users::Any(m_db))
+    {
+        BOOST_LOG_TRIVIAL(warning) << "An initial user was created while hashing password";
+        co_return out->Error(-1, "Already initialized");
     }
 
     porla::Data::Models::Users::Insert(

@@ -5,8 +5,6 @@
 #include <jwt-cpp/traits/nlohmann-json/traits.h>
 #include <jwt-cpp/jwt.h>
 
-#include <sodium.h>
-
 #include "../../../auth/password.hpp"
 #include "../../../data/models/users.hpp"
 
@@ -41,7 +39,7 @@ boost::asio::awaitable<void> AuthLogin::ExecuteAsync(AuthLoginReq req, ResponseW
 {
     const auto user = Users::GetByUsername(m_db, req.username);
 
-    const auto& stored = user.has_value()
+    const std::string stored = user.has_value()
         ? user->password_hashed
         : "$argon2id$v=19$m=65536,t=2,p=1$Po8JYTODUsewD1r3zg1XsQ$icZxLXBcZRDPKybU+9MkOIdrATTmhENNG7EfckW5zvg";
 

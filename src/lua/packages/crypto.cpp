@@ -168,6 +168,7 @@ sol::object Crypto::Load(sol::this_state ts)
                     [weak, callback_id, password_hashed]()
                     {
                         auto state = weak.lock();
+                        if (state == nullptr) { return; }
                         state->InvokeCallback(callback_id, sol::lua_nil, password_hashed);
                     });
 
@@ -203,6 +204,7 @@ sol::object Crypto::Load(sol::this_state ts)
                     [weak, callback_id, result]()
                     {
                         auto state = weak.lock();
+                        if (state == nullptr) { return; }
                         state->InvokeCallback(callback_id, sol::lua_nil, result == 0);
                     });
 
