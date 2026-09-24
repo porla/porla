@@ -53,34 +53,25 @@ FetchContent_Declare(
 
 FetchContent_Declare(
     uSockets
-    GIT_REPOSITORY https://github.com/uNetworking/uSockets.git
-    GIT_TAG        v0.8.8
-    GIT_SHALLOW    TRUE
+    URL https://github.com/uNetworking/uSockets/archive/refs/tags/v0.8.8.tar.gz
     EXCLUDE_FROM_ALL
 )
 
 FetchContent_Declare(
     uWebSockets
-    GIT_REPOSITORY https://github.com/uNetworking/uWebSockets.git
-    GIT_TAG        v20.79.0
-    GIT_SHALLOW    TRUE
+    URL https://github.com/uNetworking/uWebSockets/archive/refs/tags/v20.80.0.tar.gz
     EXCLUDE_FROM_ALL
 )
 
 FetchContent_Declare(
     LibtorrentRasterbar
-    GIT_REPOSITORY         https://github.com/arvidn/libtorrent.git
-    GIT_TAG                v2.1.1
-    GIT_SHALLOW            TRUE
-    GIT_SUBMODULES_RECURSE TRUE
+    URL https://github.com/arvidn/libtorrent/releases/download/v2.1.1/libtorrent-rasterbar-2.1.1.tar.gz
     EXCLUDE_FROM_ALL
 )
 
 FetchContent_Declare(
     Libzip
-    GIT_REPOSITORY https://github.com/nih-at/libzip.git
-    GIT_TAG        v1.11.4
-    GIT_SHALLOW    TRUE
+    URL https://github.com/nih-at/libzip/releases/download/v1.11.4/libzip-1.11.4.tar.xz
     EXCLUDE_FROM_ALL
 )
 
