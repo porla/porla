@@ -164,6 +164,12 @@ void LtTorrentHandle::Register(sol::state& lua)
         // replace_trackers
         // reset_piece_deadline
         "resume",                     &lt::torrent_handle::resume,
+        "save_resume_data",           [](const lt::torrent_handle& th)
+        {
+            th.save_resume_data(
+                lt::torrent_handle::flush_disk_cache
+                | lt::torrent_handle::save_info_dict);
+        },
         // save_resume_data
         // scrape_tracker
         "set_download_limit",         &lt::torrent_handle::set_download_limit,
