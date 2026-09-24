@@ -1,17 +1,32 @@
 #include "ratio.hpp"
 
-double porla::Utils::Ratio(const libtorrent::torrent_status &ts, bool real)
+#include <algorithm>
+
+namespace
 {
-    if (ts.all_time_download > 0)
+    double Divide(std::int64_t uploaded, std::int64_t downloaded)
     {
-        if (real)
+        if (downloaded <= 0)
         {
-            return (double)ts.all_time_upload / (double)ts.all_time_download;
+            return uploaded > 0 ? porla::Utils::MAX_RATIO : 0;
         }
 
-        const auto total_size = ts.total + ts.total_done;
-        return total_size / ts.all_time_download;
+        return std::min(
+            static_cast<double>(uploaded) / static_cast<double>(downloaded),
+            porla::Utils::MAX_RATIO);
     }
+}
 
-    return 0;
+double porla::Utils::Ratio(const libtorrent::torrent_status& ts)
+{
+    const auto downloaded = ts.all_time_download < ts.total_done / 100
+        ? ts.total_done
+        : ts.all_time_download;
+
+    return Divide(ts.all_time_upload, downloaded);
+}
+
+double porla::Utils::RealRatio(const libtorrent::torrent_status& ts)
+{
+    return Divide(ts.all_time_upload, ts.all_time_download);
 }
