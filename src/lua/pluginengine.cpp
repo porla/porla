@@ -88,6 +88,7 @@ void PluginEngine::Load(int id)
         .curl_multi  = m_options.curl_multi,
         .db          = m_options.db,
         .http_server = m_options.http_server,
+        .jsonrpc     = m_options.jsonrpc,
         .io          = m_options.io,
         .plugin_id   = id,
         .sessions    = m_options.sessions
