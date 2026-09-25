@@ -51,5 +51,7 @@ void TorrentsTrackersAdd::Execute(const TorrentsTrackersAddReq& req, ResponseWri
         ae.tier = req.tier.value();
     }
 
+    it->second.handle.add_tracker(ae);
+
     cb->Ok(TorrentsTrackersAddRes{});
 }
