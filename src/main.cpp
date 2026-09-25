@@ -169,12 +169,12 @@ int main(int argc, char* argv[])
         jsonrpc->Register("mmdb.lookup",               std::make_shared<porla::Rpc::Methods::Mmdb::MmdbLookup>(cfg->db, kv_updated_signal));
         jsonrpc->Register("plugins.add",               std::make_shared<porla::Rpc::Methods::Plugins::PluginsAdd>(cfg->db, plugin_engine));
         jsonrpc->Register("plugins.get",               std::make_shared<porla::Rpc::Methods::Plugins::PluginsGet>(cfg->db, plugin_engine));
-        jsonrpc->Register("plugins.install",           std::make_shared<porla::Rpc::Methods::Plugins::PluginsInstall>(cfg->db, curl_multi_instance, plugin_engine, cfg->state_dir));
+        jsonrpc->Register("plugins.install",           std::make_shared<porla::Rpc::Methods::Plugins::PluginsInstall>(io, cfg->db, curl_multi_instance, plugin_engine, cfg->state_dir));
         jsonrpc->Register("plugins.list",              std::make_shared<porla::Rpc::Methods::Plugins::PluginsList>(cfg->db, plugin_engine));
         jsonrpc->Register("plugins.reload",            std::make_shared<porla::Rpc::Methods::Plugins::PluginsReload>(plugin_engine));
         jsonrpc->Register("plugins.remove",            std::make_shared<porla::Rpc::Methods::Plugins::PluginsRemove>(cfg->db, plugin_engine));
         jsonrpc->Register("plugins.update",            std::make_shared<porla::Rpc::Methods::Plugins::PluginsUpdate>(cfg->db, plugin_engine));
-        jsonrpc->Register("plugins.upgrade",           std::make_shared<porla::Rpc::Methods::Plugins::PluginsUpgrade>(cfg->db, curl_multi_instance, plugin_engine, cfg->state_dir));
+        jsonrpc->Register("plugins.upgrade",           std::make_shared<porla::Rpc::Methods::Plugins::PluginsUpgrade>(io, cfg->db, curl_multi_instance, plugin_engine, cfg->state_dir));
         jsonrpc->Register("presets.add",               std::make_shared<porla::Rpc::Methods::Presets::PresetsAdd>(cfg->db));
         jsonrpc->Register("presets.get",               std::make_shared<porla::Rpc::Methods::Presets::PresetsGet>(cfg->db));
         jsonrpc->Register("presets.list",              std::make_shared<porla::Rpc::Methods::Presets::PresetsList>(cfg->db));

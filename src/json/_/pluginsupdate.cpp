@@ -9,7 +9,6 @@ namespace porla::Rpc::Methods::Plugins
         PluginsUpdateReq,
         id,
         config,
-        metadata,
         path)
 
     void to_json(nlohmann::json& json, const PluginsUpdateRes& res)

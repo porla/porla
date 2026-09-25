@@ -5,7 +5,7 @@
 
 #include <sqlite3.h>
 
-#include "../../typedmethod.hpp"
+#include "../../typedasyncmethod.hpp"
 
 #include "pluginsupgrade_reqres.hpp"
 
@@ -21,17 +21,18 @@ namespace porla::Lua
 
 namespace porla::Rpc::Methods::Plugins
 {
-    class PluginsUpgrade : public TypedMethod<PluginsUpgradeReq, PluginsUpgradeRes>, public std::enable_shared_from_this<PluginsUpgrade>
+    class PluginsUpgrade : public TypedAsyncMethod<PluginsUpgradeReq, PluginsUpgradeRes>
     {
     public:
         explicit PluginsUpgrade(
+            boost::asio::io_context& io,
             sqlite3* db,
             std::weak_ptr<CurlMulti> cm,
             porla::Lua::PluginEngine& plugin_engine,
             const std::filesystem::path& state_dir);
 
     protected:
-        void Execute(const PluginsUpgradeReq& req, ResponseWriterHandle cb) override;
+        boost::asio::awaitable<void> ExecuteAsync(PluginsUpgradeReq req, ResponseWriterHandle cb) override;
 
     private:
         sqlite3* m_db;

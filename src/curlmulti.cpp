@@ -11,12 +11,43 @@
 
 #include "buildinfo.hpp"
 
+namespace
+{
+    static constexpr std::size_t kMaxResponseBytes = 8 * 1024 * 1024;
+
+    template<typename Executor>
+    void CompleteHttp(
+        boost::asio::io_context&       io,
+        const Executor&                ex,
+        porla::CurlMulti::HttpCallback callback,
+        int                            status,
+        std::string                    body)
+    {
+        boost::asio::post(
+            io,
+            boost::asio::bind_executor(
+                ex,
+                [callback = std::move(callback), status, body = std::move(body)]() mutable
+                {
+                    std::move(callback)(status, std::move(body));
+                }));
+    }
+}
+
 using porla::CurlMulti;
 
 static size_t HttpWriteCallback(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
-    const size_t total = size * nmemb;
-    static_cast<std::stringstream*>(userdata)->write(ptr, total);
+    const size_t total  = size * nmemb;
+    auto*        stream = static_cast<std::stringstream*>(userdata);
+
+    if (static_cast<std::size_t>(stream->tellp()) + total > kMaxResponseBytes)
+    {
+        return 0;
+    }
+
+    stream->write(ptr, total);
+
     return total;
 }
 
@@ -90,7 +121,7 @@ void CurlMulti::Shutdown()
     for (auto& [ easy, callback ] : transfers)
     {
         curl_multi_remove_handle(m_multi, easy);
-        SafeInvoke(callback, easy, CURLE_ABORTED_BY_CALLBACK);
+        SafeInvoke(std::move(callback), easy, CURLE_ABORTED_BY_CALLBACK);
         curl_easy_cleanup(easy);
     }
 
@@ -119,6 +150,10 @@ void CurlMulti::AddTransfer(CURL* easy, TransferComplete callback)
 
 void CurlMulti::HttpGet(const std::string& url, HttpCallback callback)
 {
+    auto ex = boost::asio::get_associated_executor(
+        callback,
+        m_io.get_executor());
+
     CURL* easy = curl_easy_init();
 
     if (easy == nullptr)
@@ -127,8 +162,17 @@ void CurlMulti::HttpGet(const std::string& url, HttpCallback callback)
         // wait forever, so report the failure here.
         BOOST_LOG_TRIVIAL(error) << "CurlMulti: curl_easy_init failed";
 
-        boost::asio::post(m_io, [callback]() { callback(0, {}); });
+        CompleteHttp(m_io, ex, std::move(callback), 0, std::string{});
+
         return;
+    }
+
+    if (auto slot = boost::asio::get_associated_cancellation_slot(callback); slot.is_connected())
+    {
+        slot.assign([self = shared_from_this(), easy](boost::asio::cancellation_type)
+        {
+            self->CancelTransfer(easy);
+        });
     }
 
     static const std::string user_agent =
@@ -136,30 +180,35 @@ void CurlMulti::HttpGet(const std::string& url, HttpCallback callback)
 
     auto body = std::make_shared<std::stringstream>();
 
-    curl_easy_setopt(easy, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(easy, CURLOPT_MAXREDIRS,      10L);
-    curl_easy_setopt(easy, CURLOPT_NOSIGNAL,       1L);
-    curl_easy_setopt(easy, CURLOPT_CONNECTTIMEOUT, 15L);
-    curl_easy_setopt(easy, CURLOPT_TIMEOUT,        300L);
-    curl_easy_setopt(easy, CURLOPT_WRITEDATA,      body.get());
-    curl_easy_setopt(easy, CURLOPT_WRITEFUNCTION,  HttpWriteCallback);
-    curl_easy_setopt(easy, CURLOPT_URL,            url.c_str());
-    curl_easy_setopt(easy, CURLOPT_USERAGENT,      user_agent.c_str());
+    curl_easy_setopt(easy, CURLOPT_FOLLOWLOCATION,      1L);
+    curl_easy_setopt(easy, CURLOPT_MAXREDIRS,           10L);
+    curl_easy_setopt(easy, CURLOPT_NOSIGNAL,            1L);
+    curl_easy_setopt(easy, CURLOPT_CONNECTTIMEOUT,      15L);
+    curl_easy_setopt(easy, CURLOPT_TIMEOUT,             300L);
+    curl_easy_setopt(easy, CURLOPT_PROTOCOLS_STR,       "http,https");
+    curl_easy_setopt(easy, CURLOPT_REDIR_PROTOCOLS_STR, "http,https");
+    curl_easy_setopt(easy, CURLOPT_MAXFILESIZE_LARGE,   static_cast<curl_off_t>(kMaxResponseBytes));
+    curl_easy_setopt(easy, CURLOPT_WRITEDATA,           body.get());
+    curl_easy_setopt(easy, CURLOPT_WRITEFUNCTION,       HttpWriteCallback);
+    curl_easy_setopt(easy, CURLOPT_URL,                 url.c_str());
+    curl_easy_setopt(easy, CURLOPT_USERAGENT,           user_agent.c_str());
 
     BOOST_LOG_TRIVIAL(trace) << "CurlMulti::HttpGet: " << url;
 
     // Capture m_io by reference, not a weak_ptr to self: during Shutdown() from
     // ~CurlMulti the use count is already zero, lock() would fail, and every
     // caller would hang - the exact thing Shutdown() invokes callbacks to avoid.
-    AddTransfer(easy, [&io = m_io, body, callback](CURL* e, CURLcode)
+    AddTransfer(easy, [&io = m_io, ex, body, callback = std::move(callback)](CURL* e, CURLcode) mutable
     {
+        if (auto slot = boost::asio::get_associated_cancellation_slot(callback); slot.is_connected())
+        {
+            slot.clear();
+        }
+
         long response_code = 0;
         curl_easy_getinfo(e, CURLINFO_RESPONSE_CODE, &response_code);
 
-        boost::asio::post(io, [callback, body, response_code]()
-        {
-            callback(response_code, body->str());
-        });
+        CompleteHttp(io, ex, std::move(callback), static_cast<int>(response_code), body->str());
     });
 }
 
@@ -167,7 +216,7 @@ void CurlMulti::DoAddTransfer(CURL* easy, TransferComplete callback)
 {
     if (m_shutdown)
     {
-        SafeInvoke(callback, easy, CURLE_ABORTED_BY_CALLBACK);
+        SafeInvoke(std::move(callback), easy, CURLE_ABORTED_BY_CALLBACK);
         curl_easy_cleanup(easy);
         return;
     }
@@ -181,7 +230,7 @@ void CurlMulti::DoAddTransfer(CURL* easy, TransferComplete callback)
             << "CurlMulti: easy handle " << easy << " added twice - ignoring";
 
         // No cleanup - the first registration owns this handle.
-        SafeInvoke(callback, easy, CURLE_FAILED_INIT);
+        SafeInvoke(std::move(callback), easy, CURLE_FAILED_INIT);
         return;
     }
 
@@ -199,7 +248,7 @@ void CurlMulti::DoAddTransfer(CURL* easy, TransferComplete callback)
         auto failed = std::move(it->second);
         m_transfers.erase(it);
 
-        SafeInvoke(failed, easy, CURLE_FAILED_INIT);
+        SafeInvoke(std::move(failed), easy, CURLE_FAILED_INIT);
         curl_easy_cleanup(easy);
         return;
     }
@@ -527,12 +576,12 @@ void CurlMulti::FinishTransfer(CURL* easy, CURLcode result)
         m_transfers.erase(it);
     }
 
-    SafeInvoke(callback, easy, result);
+    SafeInvoke(std::move(callback), easy, result);
 
     curl_easy_cleanup(easy);
 }
 
-void CurlMulti::SafeInvoke(const TransferComplete& callback, CURL* easy, CURLcode result)
+void CurlMulti::SafeInvoke(TransferComplete&& callback, CURL* easy, CURLcode result)
 {
     if (!callback)
     {
@@ -541,7 +590,7 @@ void CurlMulti::SafeInvoke(const TransferComplete& callback, CURL* easy, CURLcod
 
     try
     {
-        callback(easy, result);
+        std::move(callback)(easy, result);
     }
     catch (const std::exception& e)
     {

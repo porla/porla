@@ -7,32 +7,35 @@
 
 #include "../../../curlmulti.hpp"
 #include "../../../data/models/plugins.hpp"
+#include "../../../json/github.hpp"
 #include "../../../lua/plugin.hpp"
 #include "../../../lua/pluginengine.hpp"
 
 namespace fs = std::filesystem;
 
 using porla::Data::Models::Plugins;
+using porla::Json::GitHubRelease;
 using porla::Lua::PluginEngine;
 using porla::Rpc::Methods::Plugins::PluginsInstall;
 using porla::Rpc::Methods::Plugins::PluginsInstallReq;
 using porla::Rpc::Methods::Plugins::PluginsInstallRes;
 
-PluginsInstall::PluginsInstall(sqlite3* db, std::weak_ptr<CurlMulti> cm, PluginEngine& plugin_engine, const std::filesystem::path& state_dir)
-    : m_db(db)
+PluginsInstall::PluginsInstall(boost::asio::io_context& io, sqlite3* db, std::weak_ptr<CurlMulti> cm, PluginEngine& plugin_engine, const std::filesystem::path& state_dir)
+    : TypedAsyncMethod(io.get_executor())
+    , m_db(db)
     , m_cm(cm)
     , m_plugin_engine(plugin_engine)
     , m_state_dir(state_dir)
 {
 }
 
-void PluginsInstall::Execute(const PluginsInstallReq& req, ResponseWriterHandle cb)
+boost::asio::awaitable<void> PluginsInstall::ExecuteAsync(PluginsInstallReq req, ResponseWriterHandle cb)
 {
     auto curl = m_cm.lock();
 
     if (curl == nullptr)
     {
-        return cb->Error(-1, "Failed to lock CurlMulti");
+        co_return cb->Error(-99, "Failed to lock state");
     }
 
     std::stringstream url;
@@ -40,113 +43,90 @@ void PluginsInstall::Execute(const PluginsInstallReq& req, ResponseWriterHandle 
 
     BOOST_LOG_TRIVIAL(trace) << "Begin installation of plugin from " << url.str();
 
-    curl->HttpGet(url.str(), [w = weak_from_this(), cb, req](int status, std::string body)
+    const auto [
+        release_status,
+        release_body ] = co_await curl->AsyncHttpGet(url.str(), boost::asio::use_awaitable);
+
+    if (release_status != 200)
     {
-        if (status != 200)
+        co_return cb->Error(-2, "Release not found - HTTP status: " + std::to_string(release_status));
+    }
+
+    GitHubRelease release;
+
+    try
+    {
+        release = nlohmann::json::parse(release_body).get<GitHubRelease>();
+    }
+    catch (const std::exception& e)
+    {
+        co_return cb->Error(-3, "Failed to parse release body as JSON", {{"what", e.what()}});
+    }
+
+    if (release.assets.size() == 0)
+    {
+        co_return cb->Error(-4, "Release has no downloadable asset");
+    }
+
+    BOOST_LOG_TRIVIAL(info)
+        << "Found version "
+        << release.tag_name
+        << " of plugin - fetching from " << release.assets[0].browser_download_url;
+
+    const auto [
+        asset_status,
+        asset_body ] = co_await curl->AsyncHttpGet(release.assets[0].browser_download_url, boost::asio::use_awaitable);
+
+    if (asset_status != 200)
+    {
+        co_return cb->Error(-5, "Failed to fetch release asset");
+    }
+
+    std::stringstream zip_file_name;
+    zip_file_name << req.owner << "_" << req.repository << "_" << release.tag_name << ".zip";
+
+    const auto plugins_dir = fs::absolute(m_state_dir / "plugins").lexically_normal();
+    const auto plugin_zip  = plugins_dir / zip_file_name.str();
+
+    if (!fs::exists(plugins_dir))
+    {
+        fs::create_directories(plugins_dir);
+    }
+
+    {
+        std::ofstream out(plugin_zip, std::ios::binary);
+
+        out.write(
+            asset_body.data(),
+            asset_body.size());
+
+        if (!out)
         {
-            return cb->Error(-2, "Release not found - HTTP status: " + std::to_string(status));
+            co_return cb->Error(-6, "Failed to write plugin archive to " + plugin_zip.string());
         }
 
-        auto self = w.lock();
+        BOOST_LOG_TRIVIAL(debug) << "Wrote plugin to " << plugin_zip;
+    }
 
-        if (self == nullptr)
-        {
-            return cb->Error(-1, "Failed to lock this");
-        }
-
-        nlohmann::json release;
-
-        try
-        {
-            release = nlohmann::json::parse(body);
-        }
-        catch (const std::exception& e)
-        {
-            return cb->Error(-3, "Failed to parse release body as JSON");
-        }
-
-        if (!release.contains("tag_name") || !release["tag_name"].is_string())
-        {
-            return cb->Error(-4, "Release is missing tag name");
-        }
-
-        const auto assets = release.value("assets", nlohmann::json::array());
-
-        if (!assets.is_array()
-            || assets.empty()
-            || !assets[0].contains("browser_download_url")
-            || !assets[0]["browser_download_url"].is_string())
-        {
-            return cb->Error(-5, "Release has no downloadable asset");
-        }
-
-        const auto tag_name = release["tag_name"];
-        const auto download_url = assets[0]["browser_download_url"];
-
-        BOOST_LOG_TRIVIAL(info) << "Found version " << tag_name << " of plugin - fetching from " << download_url;
-
-        auto curl = self->m_cm.lock();
-
-        if (curl == nullptr)
-        {
-            cb->Error(-1, "Failed to lock CurlMulti");
-            return;
-        }
-
-        curl->HttpGet(download_url, [cb, w, req, tag_name](int status, std::string body)
-        {
-            if (status != 200)
-            {
-                return cb->Error(4, "Failed to fetch release asset");
+    const auto plugin_id = Data::Models::Plugins::Insert(
+        m_db,
+        Data::Models::Plugins::Plugin{
+            .id       = -1,
+            .path     = plugin_zip,
+            .config   = req.config,
+            .metadata = {
+                {"source", "github"},
+                {"owner", req.owner},
+                {"repository", req.repository},
+                {"version", release.tag_name}
             }
-
-            auto self = w.lock();
-
-            if (self == nullptr)
-            {
-                return cb->Error(-1, "Failed to lock self");
-            }
-
-            BOOST_LOG_TRIVIAL(info) << "Plugin archive fetched. Installing.";
-
-            std::stringstream zip_file_name;
-            zip_file_name << req.owner << "_" << req.repository << "_" << tag_name << ".zip";
-
-            const auto plugins_dir = self->m_state_dir / "plugins";
-            const auto plugin_zip  = plugins_dir / zip_file_name.str();
-
-            if (!fs::exists(plugins_dir))
-            {
-                fs::create_directories(plugins_dir);
-            }
-
-            {
-                std::ofstream out(plugin_zip, std::ios::binary);
-                out << body;
-                BOOST_LOG_TRIVIAL(debug) << "Wrote plugin to " << plugin_zip;
-            }
-
-            const auto plugin_id = Data::Models::Plugins::Insert(
-                self->m_db,
-                Data::Models::Plugins::Plugin{
-                    .id       = -1,
-                    .path     = plugin_zip,
-                    .config   = req.config,
-                    .metadata = {
-                        {"source", "github"},
-                        {"owner", req.owner},
-                        {"repository", req.repository},
-                        {"version", tag_name}
-                    }
-                });
-
-            BOOST_LOG_TRIVIAL(info) << "Plugin " << plugin_id << " installed with path " << plugin_zip;
-
-            self->m_plugin_engine.Load(plugin_id);
-
-            cb->Ok(PluginsInstallRes{
-                .id = plugin_id
-            });
         });
+
+    BOOST_LOG_TRIVIAL(info) << "Plugin " << plugin_id << " installed with path " << plugin_zip;
+
+    m_plugin_engine.Load(plugin_id);
+
+    cb->Ok(PluginsInstallRes{
+        .id = plugin_id
     });
 }

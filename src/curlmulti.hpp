@@ -1,11 +1,13 @@
 #pragma once
 
 #include <cstdint>
-#include <functional>
 #include <memory>
 #include <unordered_map>
 
 #include <boost/asio.hpp>
+#include <boost/asio/any_completion_handler.hpp>
+#include <boost/asio/associated_executor.hpp>
+#include <boost/asio/async_result.hpp>
 #include <curl/curl.h>
 
 namespace porla
@@ -13,8 +15,8 @@ namespace porla
     class CurlMulti : public std::enable_shared_from_this<CurlMulti>
     {
     public:
-        using HttpCallback     = std::function<void(int, std::string)>;
-        using TransferComplete = std::function<void(CURL* easy, CURLcode result)>;
+        using HttpCallback     = boost::asio::any_completion_handler<void(int, std::string)>;
+        using TransferComplete = boost::asio::any_completion_handler<void(CURL* easy, CURLcode result)>;
 
         static std::shared_ptr<CurlMulti> Create(boost::asio::io_context& io);
 
@@ -31,6 +33,19 @@ namespace porla
 
         void HttpGet(const std::string& url, HttpCallback callback);
 
+        template<boost::asio::completion_token_for<void(int, std::string)> CompletionToken>
+        auto AsyncHttpGet(std::string url, CompletionToken&& token)
+        {
+            return boost::asio::async_initiate<CompletionToken, void(int, std::string)>(
+                [](auto handler, std::shared_ptr<CurlMulti> self, std::string url)
+                {
+                    self->HttpGet(url, std::move(handler));
+                },
+                token,
+                shared_from_this(),
+                std::move(url));
+        }
+
         void CancelTransfer(CURL* easy);
 
         void Shutdown();
@@ -40,6 +55,7 @@ namespace porla
 
         explicit CurlMulti(boost::asio::io_context& io);
 
+        static void SafeInvoke(TransferComplete&& callback, CURL* easy, CURLcode result);
         static int SocketCallback(CURL* easy, curl_socket_t sock, int what, void* userp, void* socketp);
         static int TimerCallback(CURLM* multi, long timeout_ms, void* userp);
 
@@ -52,7 +68,6 @@ namespace porla
         void SocketAction(curl_socket_t sock, int event_bitmask);
         void CheckCompleted();
         void FinishTransfer(CURL* easy, CURLcode result);
-        void SafeInvoke(const TransferComplete& callback, CURL* easy, CURLcode result);
         bool StillReadable(curl_socket_t sock); 
 
         boost::asio::io_context&                                    m_io;

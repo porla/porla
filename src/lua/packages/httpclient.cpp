@@ -15,6 +15,8 @@ using porla::Lua::Packages::HttpClient;
 
 namespace
 {
+    static constexpr std::size_t kMaxResponseBytes = 8 * 1024 * 1024;
+
     struct CurlTransferState
     {
         ~CurlTransferState()
@@ -49,12 +51,33 @@ namespace
 
     size_t CurlWriteCallback(char* ptr, size_t size, size_t nmemb, void* userdata)
     {
-        auto*        state = static_cast<CurlTransferState*>(userdata);
         const size_t total = size * nmemb;
+        auto*        state = static_cast<CurlTransferState*>(userdata);
+
+        if (state->response_body.size() + total > kMaxResponseBytes)
+        {
+            return 0;
+        }
 
         state->response_body.append(ptr, total);
 
         return total;
+    }
+
+    std::string TransferError(const CurlTransferState& state)
+    {
+        if (state.result == CURLE_WRITE_ERROR || state.result == CURLE_FILESIZE_EXCEEDED)
+        {
+            return "response exceeds the maximum size of "
+                + std::to_string(kMaxResponseBytes) + " bytes";
+        }
+
+        if (state.error[0] != '\0')
+        {
+            return state.error;
+        }
+
+        return curl_easy_strerror(state.result);
     }
 
     template<typename T>
@@ -123,15 +146,18 @@ sol::object HttpClient::Load(sol::this_state ts)
             throw std::runtime_error("curl_easy_init failed");
         }
 
-        curl_easy_setopt(easy.get(), CURLOPT_URL,            url.c_str());
-        curl_easy_setopt(easy.get(), CURLOPT_WRITEFUNCTION,  &CurlWriteCallback);
-        curl_easy_setopt(easy.get(), CURLOPT_WRITEDATA,      transfer_state.get());
-        curl_easy_setopt(easy.get(), CURLOPT_ERRORBUFFER,    transfer_state->error);
-        curl_easy_setopt(easy.get(), CURLOPT_TIMEOUT,        static_cast<long>(timeout));
-        curl_easy_setopt(easy.get(), CURLOPT_CONNECTTIMEOUT, static_cast<long>(connect_timeout));
-        curl_easy_setopt(easy.get(), CURLOPT_FOLLOWLOCATION, follow_redirects ? 1L : 0L);
-        curl_easy_setopt(easy.get(), CURLOPT_MAXREDIRS,      static_cast<long>(max_redirects));
-        curl_easy_setopt(easy.get(), CURLOPT_NOSIGNAL, 1L);
+        curl_easy_setopt(easy.get(), CURLOPT_URL,                 url.c_str());
+        curl_easy_setopt(easy.get(), CURLOPT_WRITEFUNCTION,       &CurlWriteCallback);
+        curl_easy_setopt(easy.get(), CURLOPT_WRITEDATA,           transfer_state.get());
+        curl_easy_setopt(easy.get(), CURLOPT_ERRORBUFFER,         transfer_state->error);
+        curl_easy_setopt(easy.get(), CURLOPT_TIMEOUT,             static_cast<long>(timeout));
+        curl_easy_setopt(easy.get(), CURLOPT_CONNECTTIMEOUT,      static_cast<long>(connect_timeout));
+        curl_easy_setopt(easy.get(), CURLOPT_FOLLOWLOCATION,      follow_redirects ? 1L : 0L);
+        curl_easy_setopt(easy.get(), CURLOPT_MAXREDIRS,           static_cast<long>(max_redirects));
+        curl_easy_setopt(easy.get(), CURLOPT_NOSIGNAL,            1L);
+        curl_easy_setopt(easy.get(), CURLOPT_PROTOCOLS_STR,       "http,https");
+        curl_easy_setopt(easy.get(), CURLOPT_REDIR_PROTOCOLS_STR, "http,https");
+        curl_easy_setopt(easy.get(), CURLOPT_MAXFILESIZE_LARGE,   static_cast<curl_off_t>(kMaxResponseBytes));
 
         if (method == "POST")
         {
@@ -177,11 +203,21 @@ sol::object HttpClient::Load(sol::this_state ts)
                     state->io,
                     [state, transfer_state, callback_id]()
                     {
+                        if (transfer_state->result != CURLE_OK)
+                        {
+                            state->InvokeCallback(
+                                callback_id,
+                                TransferError(*transfer_state),
+                                sol::lua_nil);
+
+                            return;
+                        }
+
                         sol::table tbl = state->lua.create_table();
                         tbl["body"]   = transfer_state->response_body;
                         tbl["status"] = transfer_state->response_status;
 
-                        state->InvokeCallback(callback_id, tbl);
+                        state->InvokeCallback(callback_id, sol::lua_nil, tbl);
                     });
             });
     });

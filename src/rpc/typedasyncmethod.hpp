@@ -2,6 +2,7 @@
 
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
+#include <boost/log/trivial.hpp>
 
 #include "method.hpp"
 
@@ -23,7 +24,25 @@ namespace porla::Rpc
                 ExecuteAsync(body.get<TReq>(), writer),
                 [writer](std::exception_ptr e)
                 {
-                    if (e) { writer->Error(-32603, "Internal error"); }
+                    if (!e)
+                    {
+                        return;
+                    }
+
+                    try
+                    {
+                        std::rethrow_exception(e);
+                    }
+                    catch (const std::exception& ex)
+                    {
+                        BOOST_LOG_TRIVIAL(error) << "Unhandled exception in async RPC method: " << ex.what();
+                    }
+                    catch (...)
+                    {
+                        BOOST_LOG_TRIVIAL(error) << "Unhandled unknown exception in async RPC method";
+                    }
+
+                    writer->Error(-32603, "Internal error");
                 });
         }
 
