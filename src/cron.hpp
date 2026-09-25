@@ -49,6 +49,13 @@ namespace porla
             const std::time_t now  = std::time(nullptr);
             const std::time_t next = cron::cron_next(m_expr, now);
 
+            if (next == static_cast<std::time_t>(-1) || next <= now)
+            {
+                BOOST_LOG_TRIVIAL(error) << "Cron expression has no future execution - stopping";
+                m_cancelled = true;
+                return;
+            }
+
             m_timer.expires_after(std::chrono::seconds(next - now));
             m_timer.async_wait(
                 [self = shared_from_this()](const boost::system::error_code& ec)
