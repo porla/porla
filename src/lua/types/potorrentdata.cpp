@@ -5,31 +5,35 @@
 #include "../../torrentclientdata.hpp"
 
 using porla::Lua::Types::PoTorrentData;
+using porla::TorrentClientData;
 
 void PoTorrentData::Register(sol::state& lua)
 {
-    lua.new_usertype<TorrentClientData>(
+    lua.new_usertype<PoTorrentData>(
         "PoTorrentData",
         sol::no_constructor,
-        "add_tag", [](TorrentClientData& d, const std::string& tag)
+        "add_tag", [](const PoTorrentData& d, const std::string& tag)
         {
-            d.tags.insert(tag);
+            d.ClientData().tags.insert(tag);
         },
-        "category", &TorrentClientData::category,
-        "has_tag", [](const TorrentClientData& d, const std::string& tag)
+        "category", sol::property(
+            [](const PoTorrentData& d) { return d.ClientData().category; },
+            [](const PoTorrentData& d, std::optional<std::string> v) { d.ClientData().category = std::move(v); }),
+        "has_tag", [](const PoTorrentData& d, const std::string& tag)
         {
-            return d.tags.contains(tag);
+            return d.ClientData().tags.contains(tag);
         },
-        "remove_tag", [](TorrentClientData& d, const std::string& tag)
+        "remove_tag", [](const PoTorrentData& d, const std::string& tag)
         {
-            d.tags.erase(tag);
+            d.ClientData().tags.erase(tag);
         },
-        "session", sol::property([](const TorrentClientData& tcd) { return std::make_shared<PoSessionHandle>(tcd.state); }),
-        "get_metadata", [](const TorrentClientData& d, const std::string& key, sol::this_state ts) -> std::optional<sol::object>
+        "session", sol::property([](const PoTorrentData& ptd) { return std::make_shared<PoSessionHandle>(ptd.ClientData().state); }),
+        "get_metadata", [](const PoTorrentData& d, const std::string& key, sol::this_state ts) -> std::optional<sol::object>
         {
-            const auto val = d.metadata.find(key);
+            const auto& cd  = d.ClientData();
+            const auto  val = cd.metadata.find(key);
 
-            if (val != d.metadata.end())
+            if (val != cd.metadata.end())
             {
                 if (val->second.is_null())
                 {
@@ -41,10 +45,27 @@ void PoTorrentData::Register(sol::state& lua)
 
             return std::nullopt;
         },
-        "set_metadata", [](TorrentClientData& d, const std::string& key, sol::object value, sol::this_state ts)
+        "set_metadata", [](const PoTorrentData& d, const std::string& key, sol::object value, sol::this_state ts)
         {
-            d.metadata[key] = PoJson::ToJson(ts, value, 0);
+            d.ClientData().metadata[key] = PoJson::ToJson(ts, value, 0);
         },
-        "tags", [](const TorrentClientData& d) { return sol::as_table(d.tags); }
+        "tags", [](const PoTorrentData& d) { return sol::as_table(d.ClientData().tags); }
     );
+}
+
+PoTorrentData::PoTorrentData(lt::torrent_handle th)
+    : m_th(th)
+{
+}
+
+TorrentClientData& PoTorrentData::ClientData() const
+{
+    auto* data = m_th.userdata().get<TorrentClientData>();
+
+    if (data == nullptr)
+    {
+        throw sol::error("Torrent is no longer in the session");
+    }
+
+    return *data;
 }

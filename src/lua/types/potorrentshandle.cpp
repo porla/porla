@@ -75,7 +75,7 @@ std::shared_ptr<PoTorrentsIterator> PoTorrentsHandle::List()
     auto state = m_state.lock();
     if (state == nullptr) { return nullptr; }
 
-    return std::make_shared<PoTorrentsIterator>(state->torrents, std::nullopt);
+    return std::make_shared<PoTorrentsIterator>(state, std::nullopt);
 }
 
 std::shared_ptr<PoTorrentsIterator> PoTorrentsHandle::List(const PoQuery& query)
@@ -83,7 +83,7 @@ std::shared_ptr<PoTorrentsIterator> PoTorrentsHandle::List(const PoQuery& query)
     auto state = m_state.lock();
     if (state == nullptr) { return nullptr; }
 
-    return std::make_shared<PoTorrentsIterator>(state->torrents, query);
+    return std::make_shared<PoTorrentsIterator>(state, query);
 }
 
 void PoTorrentsHandle::Remove(const lt::info_hash_t& ih, std::optional<sol::table> opts)
