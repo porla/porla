@@ -81,8 +81,17 @@ end
 
 ---@param callback function
 local function handle_asset_request(callback, owner, repository, tag_name)
-    ---@param res PoHttpClientResponse
-    return function(res)
+    ---@param err string?
+    ---@param res PoHttpClientResponse?
+    return function(err, res)
+        if err then
+            return callback(err)
+        end
+
+        if not res then
+            return callback("no response returned")
+        end
+
         if res.status ~= 200 then
             return callback("invalid http status")
         end
@@ -117,8 +126,17 @@ local function handle_asset_request(callback, owner, repository, tag_name)
 end
 
 local function handle_release_request(callback, owner, repository)
-    ---@param res PoHttpClientResponse
-    return function(res)
+    ---@param err string?
+    ---@param res PoHttpClientResponse?
+    return function(err, res)
+        if err then
+            return callback(err)
+        end
+
+        if not res then
+            return callback("no response returned")
+        end
+
         if res.status ~= 200 then
             return callback("invalid http status")
         end

@@ -29,12 +29,12 @@ void PluginsAdd::Execute(const PluginsAddReq& req, ResponseWriterHandle cb)
 
     if (!plugin_path.is_absolute())
     {
-        return cb->Error(-101, "Plugin path must be absolute");
+        return cb->Error(-2, "Plugin path must be absolute");
     }
 
     if (!fs::exists(plugin_path))
     {
-        return cb->Error(-102, "Plugin path does not exist");
+        return cb->Error(-3, "Plugin path does not exist");
     }
 
     const auto plugin_id = Data::Models::Plugins::Insert(
@@ -43,7 +43,7 @@ void PluginsAdd::Execute(const PluginsAddReq& req, ResponseWriterHandle cb)
             .id       = -1,
             .path     = plugin_path,
             .config   = req.config,
-            .metadata = req.metadata.value_or(std::map<std::string, nlohmann::json>())
+            .metadata = {}
         });
 
     BOOST_LOG_TRIVIAL(info) << "Plugin " << plugin_id << " installed with path " << plugin_path;
