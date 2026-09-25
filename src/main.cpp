@@ -257,7 +257,18 @@ int main(int argc, char* argv[])
                 BOOST_LOG_TRIVIAL(info) << "HTTP server listening";
             });
 
-        io.run();
+        for (;;)
+        {
+            try
+            {
+                io.run();
+                break;
+            }
+            catch(const std::exception& e)
+            {
+                BOOST_LOG_TRIVIAL(error) << "Unhandled exception in event loop: " << e.what();
+            }
+        }
     }
 
     curl_global_cleanup();
