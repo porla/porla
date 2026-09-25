@@ -57,12 +57,12 @@ void LtTorrentStatus::Register(sol::state& lua)
             {
                 return PoError::Construct(ts, status.errc);
             }),
-        "flags",                  sol::readonly(&lt::torrent_status::flags),
+        "flags",                  sol::property([](const lt::torrent_status& ts) { return ts.flags; }),
         "finished_duration",      sol::property([](const lt::torrent_status& ts) { return ts.finished_duration.count(); }),
-        "handle",                 sol::readonly(&lt::torrent_status::handle),
+        "handle",                 sol::property([](const lt::torrent_status& ts) { return ts.handle; }),
         "has_incoming",           sol::readonly(&lt::torrent_status::has_incoming),
         "has_metadata",           sol::readonly(&lt::torrent_status::has_metadata),
-        "info_hash",              sol::readonly(&lt::torrent_status::info_hashes),
+        "info_hash",              sol::property([](const lt::torrent_status& ts) { return ts.info_hashes; }),
         "is_finished",            sol::readonly(&lt::torrent_status::is_finished),
         "is_seeding",             sol::readonly(&lt::torrent_status::is_seeding),
         "last_download",          sol::property([](const lt::torrent_status& ts) { return ToUnixTime(ts.last_download); }),
@@ -86,7 +86,7 @@ void LtTorrentStatus::Register(sol::state& lua)
         "queue_position",         sol::readonly(&lt::torrent_status::queue_position),
         "ratio",                  sol::property([](const lt::torrent_status& ts) { return Utils::Ratio(ts); }),
         "ratio_real",             sol::property([](const lt::torrent_status& ts) { return Utils::RealRatio(ts); }),
-        "renamed_files",          sol::readonly(&lt::torrent_status::renamed_files),
+        "renamed_files",          sol::property([](const lt::torrent_status& ts) { return ts.renamed_files; }),
         "save_path",              sol::readonly(&lt::torrent_status::save_path),
         "seed_rank",              sol::readonly(&lt::torrent_status::seed_rank),
         "seeding_duration",       sol::property([](const lt::torrent_status& ts) { return ts.seeding_duration.count(); }),
@@ -106,7 +106,7 @@ void LtTorrentStatus::Register(sol::state& lua)
             {
                 return ts.storage_mode == lt::storage_mode_allocate ? "allocate" : "sparse";
             }),
-        "torrent_file",           sol::readonly(&lt::torrent_status::torrent_file),
+        "torrent_file",           sol::property([](const lt::torrent_status& ts) { return ts.torrent_file; }),
         "total",                  sol::readonly(&lt::torrent_status::total),
         "total_done",             sol::readonly(&lt::torrent_status::total_done),
         "total_download",         sol::readonly(&lt::torrent_status::total_download),

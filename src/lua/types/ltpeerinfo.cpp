@@ -26,7 +26,7 @@ void LtPeerInfo::Register(sol::state& lua)
         // last_request
         // local_endpoint
         "num_hashfails",            sol::readonly(&lt::peer_info::num_hashfails),
-        "num_pieces",               sol::readonly(&lt::peer_info::num_hashfails),
+        "num_pieces",               sol::readonly(&lt::peer_info::num_pieces),
         "payload_down_speed",       sol::readonly(&lt::peer_info::payload_down_speed),
         "payload_up_speed",         sol::readonly(&lt::peer_info::payload_up_speed),
         "pending_disk_bytes",       sol::readonly(&lt::peer_info::pending_disk_bytes),
