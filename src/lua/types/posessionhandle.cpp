@@ -15,29 +15,41 @@ void PoSessionHandle::Register(sol::state& lua)
         "name", sol::property(&PoSessionHandle::Name),
         "add_dht_node", [](const PoSessionHandle& session, const std::string& host, int port)
         {
-            session.m_state.lock()->session->add_dht_node(std::make_pair(host, port));
+            session.Lock()->session->add_dht_node(std::make_pair(host, port));
         },
         "apply_settings", [](const PoSessionHandle& session, lt::settings_pack& sp)
         {
             Utils::LibtorrentSettingsPack::UpdateStatic(sp);
-            session.m_state.lock()->session->apply_settings(sp);
+            session.Lock()->session->apply_settings(sp);
         },
         "get_settings", [](const PoSessionHandle& session)
         {
-            return session.m_state.lock()->session->get_settings();
+            return session.Lock()->session->get_settings();
         },
-        "is_paused", [](const PoSessionHandle& session) { return session.m_state.lock()->session->is_paused(); },
-        "pause", [](const PoSessionHandle& session) { session.m_state.lock()->session->pause(); },
-        "resume", [](const PoSessionHandle& session) { session.m_state.lock()->session->resume(); },
+        "is_paused", [](const PoSessionHandle& session) { return session.Lock()->session->is_paused(); },
+        "pause", [](const PoSessionHandle& session) { session.Lock()->session->pause(); },
+        "resume", [](const PoSessionHandle& session) { session.Lock()->session->resume(); },
         "torrents", &PoSessionHandle::Torrents);
 }
 
 std::string PoSessionHandle::Name()
 {
-    return m_state.lock()->name;
+    return Lock()->name;
 }
 
 std::shared_ptr<PoTorrentsHandle> PoSessionHandle::Torrents()
 {
     return std::make_shared<PoTorrentsHandle>(m_state);
+}
+
+std::shared_ptr<porla::Sessions::SessionState> PoSessionHandle::Lock() const
+{
+    auto state = m_state.lock();
+
+    if (state == nullptr)
+    {
+        throw sol::error("Failed to lock session state");
+    }
+
+    return state;
 }

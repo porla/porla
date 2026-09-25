@@ -22,6 +22,8 @@ namespace porla::Lua::Types
         std::shared_ptr<PoTorrentsHandle> Torrents();
 
     private:
+        std::shared_ptr<porla::Sessions::SessionState> Lock() const;
+
         std::weak_ptr<porla::Sessions::SessionState> m_state;
     };
 }
