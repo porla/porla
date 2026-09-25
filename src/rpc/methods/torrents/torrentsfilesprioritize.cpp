@@ -31,16 +31,14 @@ void TorrentsFilesPrioritize::Execute(const TorrentsFilesPrioritizeReq& req, Res
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto& handle = session_state->torrents.find(req.info_hash);
+    const auto it = session_state->torrents.find(req.info_hash);
 
-    if (handle == session_state->torrents.end())
+    if (it == session_state->torrents.end())
     {
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    const auto& [ th, _ ] = handle->second;
-
-    std::vector<lt::download_priority_t> file_prios = th.get_file_priorities();
+    std::vector<lt::download_priority_t> file_prios = it->second.handle.get_file_priorities();
 
     for (const auto& fp : req.priorities)
     {
@@ -54,7 +52,7 @@ void TorrentsFilesPrioritize::Execute(const TorrentsFilesPrioritizeReq& req, Res
         file_prios[index] = fp.priority;
     }
 
-    th.prioritize_files(file_prios);
+    it->second.handle.prioritize_files(file_prios);
 
     cb->Ok({});
 }

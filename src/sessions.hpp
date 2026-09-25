@@ -35,17 +35,17 @@ namespace porla
         {
             friend class Sessions;
 
-            int                                                                           id;
-            std::string                                                                   name;
-            std::unique_ptr<lt::session>                                                  session;
-            std::map<lt::info_hash_t, std::tuple<lt::torrent_handle, lt::torrent_status>> torrents;
+            int                                           id;
+            std::string                                   name;
+            std::unique_ptr<lt::session>                  session;
+            std::map<lt::info_hash_t, lt::torrent_status> torrents;
 
             void Recheck(const lt::info_hash_t& hash);
 
         private:
             std::vector<Timer> m_timers;
             std::unordered_set<lt::info_hash_t> m_adding;
-            std::map<std::pair<int, lt::info_hash_t>, std::vector<std::function<void()>>> m_oneshot_torrent_callbacks;
+            std::map<std::pair<int, lt::info_hash_t>, std::vector<std::function<void(const std::shared_ptr<SessionState>&)>>> m_oneshot_torrent_callbacks;
         };
 
         using SessionStatePtr = std::shared_ptr<SessionState>;
@@ -117,6 +117,7 @@ namespace porla
         void PostTorrentUpdates(const SessionStatePtr& state);
 
         void ReadAlerts(const SessionStatePtr& state);
+        void ProcessAlert(const SessionStatePtr& state, const lt::alert* alert);
 
         void OnAddTorrentAlert(const SessionStatePtr& state, const lt::add_torrent_alert* alert);
         void OnFileErrorAlert(const SessionStatePtr& state, const lt::file_error_alert* alert);

@@ -69,7 +69,7 @@ void AddTorrentParams::ForEach(sqlite3 *db, const int session_id, const std::fun
                 catch (const std::exception& e)
                 {
                     BOOST_LOG_TRIVIAL(error) << "Failed to parse client data JSON: " << e.what();
-                    return SQLITE_OK;
+                    client_data_json = json::object();
                 }
 
                 if (client_data_json.contains("category") && client_data_json.at("category").is_string())
@@ -105,12 +105,12 @@ void AddTorrentParams::ForEach(sqlite3 *db, const int session_id, const std::fun
         });
 }
 
-void AddTorrentParams::Insert(sqlite3 *db, const int session_id, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const TorrentClientData* client_data, const int queue_pos)
+void AddTorrentParams::Insert(sqlite3 *db, const int session_id, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const TorrentClientData& client_data, const int queue_pos)
 {
     const std::map<std::string, json> userdata = {
-        {"category", client_data->category ? json(client_data->category.value()) : json()},
-        {"metadata", client_data->metadata},
-        {"tags",     client_data->tags}
+        {"category", client_data.category ? json(client_data.category.value()) : json()},
+        {"metadata", client_data.metadata},
+        {"tags",     client_data.tags}
     };
 
     const std::vector<char> buf = lt::write_resume_data_buf(params);
@@ -165,16 +165,9 @@ void AddTorrentParams::Remove(sqlite3 *db, const int session_id, const lt::info_
         .Execute();
 }
 
-void AddTorrentParams::Update(sqlite3 *db, const int session_id, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const TorrentClientData* client_data, const int queue_pos)
+void AddTorrentParams::Update(sqlite3 *db, const int session_id, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const int queue_pos)
 {
-    const std::map<std::string, json> userdata = {
-        {"category", client_data->category.has_value() ? json(client_data->category.value()) : json()},
-        {"metadata", client_data->metadata},
-        {"tags",     client_data->tags}
-    };
-
     const std::vector<char> buf = lt::write_resume_data_buf(params);
-    const std::string userdata_str = json(userdata).dump();
 
     auto stmt = Statement::Prepare(
         db,
@@ -182,8 +175,7 @@ void AddTorrentParams::Update(sqlite3 *db, const int session_id, const lt::info_
         UPDATE addtorrentparams
         SET
             queue_position = $queue_position,
-            params         = $params,
-            userdata       = $userdata
+            params         = $params
         WHERE
             (
                 (info_hash_v1 = $info_hash_v1 AND info_hash_v2 IS NULL)
@@ -196,6 +188,38 @@ void AddTorrentParams::Update(sqlite3 *db, const int session_id, const lt::info_
     stmt
         .Bind("$queue_position", queue_pos)
         .Bind("$params",         buf)
+        .Bind("$info_hash_v1",   hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
+        .Bind("$info_hash_v2",   hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
+        .Bind("$session_id",     session_id)
+        .Execute();
+}
+
+void AddTorrentParams::UpdateClientData(sqlite3 *db, const int session_id, const lt::info_hash_t& hash, const TorrentClientData& client_data)
+{
+    const std::map<std::string, json> userdata = {
+        {"category", client_data.category.has_value() ? json(client_data.category.value()) : json()},
+        {"metadata", client_data.metadata},
+        {"tags",     client_data.tags}
+    };
+
+    const std::string userdata_str = json(userdata).dump();
+
+    auto stmt = Statement::Prepare(
+        db,
+        R"sql(
+        UPDATE addtorrentparams
+        SET
+            userdata       = $userdata
+        WHERE
+            (
+                (info_hash_v1 = $info_hash_v1 AND info_hash_v2 IS NULL)
+                OR (info_hash_v1 IS NULL AND info_hash_v2 = $info_hash_v2)
+                OR (info_hash_v1 = $info_hash_v1 AND info_hash_v2 = $info_hash_v2)
+            )
+            AND session_id = $session_id;
+        )sql");
+
+    stmt
         .Bind("$userdata",       userdata_str)
         .Bind("$info_hash_v1",   hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
         .Bind("$info_hash_v2",   hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)

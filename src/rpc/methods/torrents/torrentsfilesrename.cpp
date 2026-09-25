@@ -31,16 +31,14 @@ void TorrentsFilesRename::Execute(const TorrentsFilesRenameReq& req, ResponseWri
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto& handle = session_state->torrents.find(req.info_hash);
+    const auto& it = session_state->torrents.find(req.info_hash);
 
-    if (handle == session_state->torrents.end())
+    if (it == session_state->torrents.end())
     {
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    const auto& [ th, _ ] = handle->second;
-
-    th.rename_file(
+    it->second.handle.rename_file(
         lt::file_index_t{req.file_index},
         req.file_path);
 
