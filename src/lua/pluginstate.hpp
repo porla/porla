@@ -147,6 +147,11 @@ namespace porla::Lua
 
         std::size_t RegisterTimer(int interval, sol::main_protected_function func, bool one_shot)
         {
+            if (interval < 10)
+            {
+                throw sol::error("timer interval must be more than 10ms");
+            }
+
             const auto timer_id    = NextId();
             const auto callback_id = RegisterCallback(std::move(func), one_shot);
 
