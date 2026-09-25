@@ -21,6 +21,7 @@
 #include "migrations/0012_alterplugins.hpp"
 #include "migrations/0013_addkeyvaluestore.hpp"
 #include "migrations/0014_morepresets.hpp"
+#include "migrations/0015_addtorrentparamsindex.hpp"
 
 #include "statement.hpp"
 
@@ -61,7 +62,8 @@ bool porla::Data::Migrate(sqlite3* db, const std::unique_ptr<porla::Config>& cfg
         [&cfg](sqlite3* db) { return porla::Data::Migrations::Presets::Migrate(db, cfg); },
         &porla::Data::Migrations::AlterPlugins::Migrate,
         &porla::Data::Migrations::AddKeyValueStore::Migrate,
-        &porla::Data::Migrations::MorePresets::Migrate
+        &porla::Data::Migrations::MorePresets::Migrate,
+        &porla::Data::Migrations::AddTorrentParamsIndex::Migrate
     };
 
     int user_version = GetUserVersion(db);
