@@ -67,7 +67,7 @@ std::optional<std::tuple<lt::torrent_handle, lt::torrent_status>> PoTorrentsHand
         return std::nullopt;
     }
 
-    return found->second;
+    return std::make_tuple(found->second.handle, found->second);
 }
 
 std::shared_ptr<PoTorrentsIterator> PoTorrentsHandle::List()
@@ -98,8 +98,6 @@ void PoTorrentsHandle::Remove(const lt::info_hash_t& ih, std::optional<sol::tabl
         return;
     }
 
-    const auto [ th, _ ] = found->second;
-
     lt::remove_flags_t flags = {};
 
     if (opts.has_value())
@@ -120,7 +118,9 @@ void PoTorrentsHandle::Remove(const lt::info_hash_t& ih, std::optional<sol::tabl
         }
     }
 
-    state->session->remove_torrent(th, flags);
+    state->session->remove_torrent(
+        found->second.handle,
+        flags);
 }
 
 void PoTorrentsHandle::Remove(const lt::torrent_handle& th, std::optional<sol::table> opts)

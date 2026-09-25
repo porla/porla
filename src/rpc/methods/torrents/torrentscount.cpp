@@ -24,10 +24,11 @@ void TorrentsCount::Execute(const TorrentsCountReq& req, ResponseWriterHandle cb
     TorrentsCountRes res{};
     res.total = session_state->torrents.size();
 
-    for (const auto& [ _, pair ] : session_state->torrents)
+    for (const auto& [ _, ts ] : session_state->torrents)
     {
-        const auto& [ th, ts ] = pair;
-        const auto  userdata   = th.userdata().get<TorrentClientData>();
+        const auto client_data = ts.handle.is_valid()
+            ? ts.handle.userdata().get<TorrentClientData>()
+            : nullptr;
 
         if ((ts.state == lt::torrent_status::state_t::downloading
             || ts.state == lt::torrent_status::state_t::downloading_metadata)
@@ -80,18 +81,20 @@ void TorrentsCount::Execute(const TorrentsCountReq& req, ResponseWriterHandle cb
             res.seeding_queued++;
         }
 
-        if (userdata->category.has_value())
-        {
-            if (userdata->category.value().empty()) continue;
-            res.categories[userdata->category.value()]++;
-        }
-
         res.trackers[ts.current_tracker]++;
 
-        for (const auto& tag : userdata->tags)
+        if (client_data != nullptr)
         {
-            if (tag.empty()) continue;
-            res.tags[tag]++;
+            if (client_data->category.has_value() && !client_data->category->empty())
+            {
+                res.categories[client_data->category.value()]++;
+            }
+
+            for (const auto& tag : client_data->tags)
+            {
+                if (tag.empty()) continue;
+                res.tags[tag]++;
+            }
         }
     }
 

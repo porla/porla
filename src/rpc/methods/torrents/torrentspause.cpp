@@ -31,22 +31,20 @@ void TorrentsPause::Execute(const TorrentsPauseReq& req, ResponseWriterHandle cb
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto& handle = session_state->torrents.find(req.info_hash);
+    const auto& it = session_state->torrents.find(req.info_hash);
 
-    if (handle == session_state->torrents.end())
+    if (it == session_state->torrents.end())
     {
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    const auto& [ th, _ ] = handle->second;
-
-    if (!th.is_valid())
+    if (!it->second.handle.is_valid())
     {
         return cb->Error(-4, "Torrent not valid");
     }
 
-    th.unset_flags(lt::torrent_flags::auto_managed);
-    th.pause();
+    it->second.handle.unset_flags(lt::torrent_flags::auto_managed);
+    it->second.handle.pause();
 
     cb->Ok(TorrentsPauseRes{});
 }

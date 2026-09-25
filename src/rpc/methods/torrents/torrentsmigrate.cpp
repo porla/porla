@@ -44,20 +44,25 @@ void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandl
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto& handle = session_state->torrents.find(req.info_hash);
+    const auto it = session_state->torrents.find(req.info_hash);
 
-    if (handle == session_state->torrents.end())
+    if (it == session_state->torrents.end())
     {
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    auto [ th, _ ] = handle->second;
+    const auto prev_client_data = it->second.handle.userdata().get<TorrentClientData>();
+          auto client_data      = new TorrentClientData();
 
-    lt::add_torrent_params params = th.get_resume_data();
-    params.userdata = lt::client_data_t(new TorrentClientData());
-    params.userdata.get<TorrentClientData>()->category = th.userdata().get<TorrentClientData>()->category;
-    params.userdata.get<TorrentClientData>()->metadata = th.userdata().get<TorrentClientData>()->metadata;
-    params.userdata.get<TorrentClientData>()->tags     = th.userdata().get<TorrentClientData>()->tags;
+    if (prev_client_data)
+    {
+        client_data->category = prev_client_data->category;
+        client_data->metadata = prev_client_data->metadata;
+        client_data->tags     = prev_client_data->tags;
+    }
+
+    lt::add_torrent_params params = it->second.handle.get_resume_data();
+    params.userdata = lt::client_data_t(client_data);
 
     RemoveState state{
         .connection        = std::make_shared<boost::signals2::connection>(),
@@ -102,5 +107,5 @@ void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandl
         }
     });
 
-    session_state->session->remove_torrent(th);
+    session_state->session->remove_torrent(it->second.handle);
 }

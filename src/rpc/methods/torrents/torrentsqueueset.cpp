@@ -34,21 +34,19 @@ void TorrentsQueueSet::Execute(const TorrentsQueueSetReq &req, ResponseWriterHan
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto& handle = session_state->torrents.find(req.info_hash);
+    const auto it = session_state->torrents.find(req.info_hash);
 
-    if (handle == session_state->torrents.end())
+    if (it == session_state->torrents.end())
     {
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    const auto& [ th, _ ] = handle->second;
-
-    if (!th.is_valid())
+    if (!it->second.handle.is_valid())
     {
         return cb->Error(-4, "Torrent not valid");
     }
 
-    th.queue_position_set(req.queue_position);
+    it->second.handle.queue_position_set(req.queue_position);
 
     return cb->Ok(TorrentsQueueSetRes{});
 }

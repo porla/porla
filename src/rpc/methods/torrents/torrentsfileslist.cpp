@@ -33,20 +33,18 @@ void TorrentsFilesList::Execute(const TorrentsFilesListReq& req, ResponseWriterH
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto& handle = session_state->torrents.find(req.info_hash);
+    const auto& status = session_state->torrents.find(req.info_hash);
 
-    if (handle == session_state->torrents.end())
+    if (status == session_state->torrents.end())
     {
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    const auto& [ th, status ] = handle->second;
-
-    if (auto tf = status.torrent_file.lock())
+    if (auto tf = status->second.torrent_file.lock())
     {
         return cb->Ok(TorrentsFilesListRes{
             .file_storage  = tf->layout(),
-            .renamed_files = th.get_renamed_files()
+            .renamed_files = status->second.handle.get_renamed_files()
         });
     }
 

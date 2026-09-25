@@ -148,9 +148,9 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
     std::vector<lt::torrent_status> torrents;
     torrents.reserve(session_state->torrents.size());
 
-    for (const auto& [_, pair] : session_state->torrents)
+    for (const auto& [_, ts] : session_state->torrents)
     {
-        const auto& [ handle, ts ] = pair;
+        const auto& handle = ts.handle;
 
         if (!handle.is_valid())
         {
@@ -171,7 +171,7 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
             continue;
         }
 
-        if (req.filters->category.has_value() && req.filters->category.value() != client_data->category)
+        if (client_data && req.filters->category.has_value() && req.filters->category.value() != client_data->category)
         {
             continue;
         }
@@ -272,7 +272,7 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
             }
         }
 
-        if (req.filters->tags.has_value())
+        if (client_data && req.filters->tags.has_value())
         {
             const auto has_all_tags = std::all_of(
                 req.filters->tags->begin(),

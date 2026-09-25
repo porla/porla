@@ -31,25 +31,23 @@ void TorrentsPropertiesGet::Execute(const TorrentsPropertiesGetReq& req, Respons
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto& handle = session_state->torrents.find(req.info_hash);
+    const auto it = session_state->torrents.find(req.info_hash);
 
-    if (handle == session_state->torrents.end())
+    if (it == session_state->torrents.end())
     {
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    const auto& [ th, _ ] = handle->second;
-
-    if (!th.is_valid())
+    if (!it->second.handle.is_valid())
     {
         return cb->Error(-4, "Torrent not valid");
     }
 
     cb->Ok(TorrentsPropertiesGetRes{
-        .download_limit  = th.download_limit(),
-        .flags           = th.flags(),
-        .max_connections = th.max_connections(),
-        .max_uploads     = th.max_uploads(),
-        .upload_limit    = th.upload_limit()
+        .download_limit  = it->second.handle.download_limit(),
+        .flags           = it->second.handle.flags(),
+        .max_connections = it->second.handle.max_connections(),
+        .max_uploads     = it->second.handle.max_uploads(),
+        .upload_limit    = it->second.handle.upload_limit()
     });
 }

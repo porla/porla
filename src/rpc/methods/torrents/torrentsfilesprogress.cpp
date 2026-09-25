@@ -31,17 +31,15 @@ void TorrentsFilesProgress::Execute(const TorrentsFilesProgressReq& req, Respons
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto& handle = session_state->torrents.find(req.info_hash);
+    const auto it = session_state->torrents.find(req.info_hash);
 
-    if (handle == session_state->torrents.end())
+    if (it == session_state->torrents.end())
     {
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    const auto& [ th, _ ] = handle->second;
-
     TorrentsFilesProgressRes res;
-    th.file_progress(res.progress);
+    it->second.handle.file_progress(res.progress);
 
     cb->Ok(res);
 }
