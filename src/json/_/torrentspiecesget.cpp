@@ -1,7 +1,8 @@
 #include "../all.hpp"
 
+#include <sodium.h>
+
 #include "../../rpc/methods/torrents/torrentspiecesget_reqres.hpp"
-#include "../../utils/base64.hpp"
 #include "../utils.hpp"
 
 namespace libtorrent
@@ -19,7 +20,21 @@ namespace libtorrent
             bytes.assign(pieces.data(), static_cast<std::size_t>(pieces.num_bytes()));
         }
 
-        j = { pieces.size(), porla::Utils::Base64::Encode(bytes) };
+        const auto len = sodium_base64_ENCODED_LEN(bytes.size(), sodium_base64_VARIANT_ORIGINAL);
+
+        std::string output;
+        output.resize(len);
+
+        sodium_bin2base64(
+            output.data(),
+            output.size(),
+            reinterpret_cast<const unsigned char*>(bytes.c_str()),
+            bytes.size(),
+            sodium_base64_VARIANT_ORIGINAL);
+
+        output.resize(len - 1);
+
+        j = { pieces.size(), output };
     }
 }
 

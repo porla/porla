@@ -3,7 +3,6 @@
 #include <libtorrent/torrent_status.hpp>
 
 #include "../../torrentclientdata.hpp"
-#include "../../utils/base64.hpp"
 #include "../../utils/ratio.hpp"
 
 namespace libtorrent
