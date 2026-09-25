@@ -4,12 +4,12 @@
 #include <libtorrent/add_torrent_params.hpp>
 #include <libtorrent/load_torrent.hpp>
 #include <libtorrent/magnet_uri.hpp>
+#include <sodium.h>
 
 #include "../../../data/models/presets.hpp"
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions.hpp"
 #include "../../../torrentclientdata.hpp"
-#include "../../../utils/base64.hpp"
 
 namespace lt = libtorrent;
 
@@ -115,21 +115,59 @@ void TorrentsAdd::Execute(const TorrentsAddReq& req, ResponseWriterHandle cb)
     }
 
     lt::error_code ec;
+    lt::add_torrent_params p;
+    
+    if (req.ti.has_value())
+    {
+        const auto data = req.ti.value();
 
-    std::optional<lt::add_torrent_params> p = req.ti.has_value()
-        ? lt::load_torrent_buffer(Utils::Base64::Decode(req.ti.value()), ec, {})
-        : req.magnet_uri.has_value()
-            ? lt::parse_magnet_uri(req.magnet_uri.value(), ec)
-            : std::optional<lt::add_torrent_params>();
+        std::string output;
+        output.resize(data.size() / 4 * 3 + 3);
 
-    if (!p.has_value())
+        std::size_t bin_len = 0;
+
+        const int result = sodium_base642bin(
+            reinterpret_cast<unsigned char*>(output.data()),
+            output.size(),
+            data.data(),
+            data.size(),
+            nullptr,
+            &bin_len,
+            nullptr,
+            sodium_base64_VARIANT_ORIGINAL);
+
+        if (result != 0)
+        {
+            return cb->Error(-2, "Failed to parse 'ti'");
+        }
+
+        output.resize(bin_len);
+
+        p = lt::load_torrent_buffer(output, ec, {});
+
+        if (ec)
+        {
+            return cb->Error(-2, "Failed to parse 'ti'");
+        }
+    }
+    else if (req.magnet_uri.has_value())
+    {
+        lt::error_code ec;
+        p = lt::parse_magnet_uri(req.magnet_uri.value(), ec);
+
+        if (ec)
+        {
+            return cb->Error(-2, "Failed to parse 'magnet_uri'");
+        }
+    }
+    else
     {
         return cb->Error(-3, "Either 'ti' or 'magnet_uri' must be set");
     }
 
-    const auto info_hash = p->ti
-        ? p->ti->info_hashes()
-        : p->info_hashes;
+    const auto info_hash = p.ti
+        ? p.ti->info_hashes()
+        : p.info_hashes;
 
     if (info_hash == lt::info_hash_t())
     {
@@ -141,13 +179,13 @@ void TorrentsAdd::Execute(const TorrentsAddReq& req, ResponseWriterHandle cb)
         return cb->Error(-5, "Torrent already in session");
     }
 
-    p->userdata = lt::client_data_t(new TorrentClientData());
-    p->userdata.get<TorrentClientData>()->state = session_state;
+    p.userdata = lt::client_data_t(new TorrentClientData());
+    p.userdata.get<TorrentClientData>()->state = session_state;
 
     if (default_preset.has_value())
     {
         BOOST_LOG_TRIVIAL(info) << "Applying default preset";
-        ApplyPreset(*p, default_preset.value());
+        ApplyPreset(p, default_preset.value());
     }
 
     // Apply the user-specified preset unless it is also the default preset, which has
@@ -155,38 +193,38 @@ void TorrentsAdd::Execute(const TorrentsAddReq& req, ResponseWriterHandle cb)
     if (preset.has_value() && (!default_preset.has_value() || preset->id != default_preset->id))
     {
         BOOST_LOG_TRIVIAL(info) << "Applying preset " << preset->name;
-        ApplyPreset(*p, preset.value());
+        ApplyPreset(p, preset.value());
     }
 
-    if (req.download_limit.has_value())  p->download_limit  = req.download_limit.value();
-    if (req.flags.has_value())           p->flags           = req.flags.value();
-    if (req.max_connections.has_value()) p->max_connections = req.max_connections.value();
-    if (req.max_uploads.has_value())     p->max_uploads     = req.max_uploads.value();
-    if (req.name.has_value())            p->name            = req.name.value();
+    if (req.download_limit.has_value())  p.download_limit  = req.download_limit.value();
+    if (req.flags.has_value())           p.flags           = req.flags.value();
+    if (req.max_connections.has_value()) p.max_connections = req.max_connections.value();
+    if (req.max_uploads.has_value())     p.max_uploads     = req.max_uploads.value();
+    if (req.name.has_value())            p.name            = req.name.value();
     if (req.save_path.has_value()
-        && req.save_path->length() > 0)  p->save_path       = req.save_path.value();
-    if (req.trackers.has_value())        p->trackers        = req.trackers.value();
-    if (req.upload_limit.has_value())    p->upload_limit    = req.upload_limit.value();
-    if (req.url_seeds.has_value())       p->url_seeds       = req.url_seeds.value();
+        && req.save_path->length() > 0)  p.save_path       = req.save_path.value();
+    if (req.trackers.has_value())        p.trackers        = req.trackers.value();
+    if (req.upload_limit.has_value())    p.upload_limit    = req.upload_limit.value();
+    if (req.url_seeds.has_value())       p.url_seeds       = req.url_seeds.value();
 
     // userdata values
-    if (req.category.has_value())        p->userdata.get<TorrentClientData>()->category = req.category.value();
-    if (req.metadata.has_value())        p->userdata.get<TorrentClientData>()->metadata = req.metadata.value();
-    if (req.tags.has_value())            p->userdata.get<TorrentClientData>()->tags     = req.tags.value();
+    if (req.category.has_value())        p.userdata.get<TorrentClientData>()->category = req.category.value();
+    if (req.metadata.has_value())        p.userdata.get<TorrentClientData>()->metadata = req.metadata.value();
+    if (req.tags.has_value())            p.userdata.get<TorrentClientData>()->tags     = req.tags.value();
 
     // Before passing our params to the session. Validate that we have at least
     // an info hash, or
     // a torrent info object, and
     // a save path
 
-    if (p->save_path.empty())
+    if (p.save_path.empty())
     {
         return cb->Error(-6, "'save_path' missing");
     }
 
     try
     {
-        session_state->session->async_add_torrent(*p);
+        session_state->session->async_add_torrent(p);
     }
     catch (const std::exception& ex)
     {
