@@ -16,6 +16,12 @@
 using porla::Query::PQL;
 using porla::Query::QueryError;
 
+namespace
+{
+    constexpr std::size_t kMaxQueryLength = 4096;
+    constexpr int         kMaxQueryDepth  = 64;
+}
+
 typedef std::function<bool(const libtorrent::torrent_status&)> TorrentStatusFilter;
 typedef std::variant<std::int64_t, float, std::string>         ValueVariant;
 
@@ -527,6 +533,35 @@ public:
 
 TorrentStatusFilter PQL::Parse(const std::string_view &input)
 {
+    // Sanity check query length
+    if (input.size() > kMaxQueryLength)
+    {
+        throw QueryError(
+            "Query too long (max " + std::to_string(kMaxQueryLength) + " characters)",
+            kMaxQueryLength);
+    }
+
+    // Sanity check nesting
+    int  depth     = 0;
+    bool in_string = false;
+
+    for (std::size_t i = 0; i < input.size(); i++)
+    {
+        const char c = input[i];
+
+        if (c == '"')  { in_string = !in_string; continue; }
+        if (in_string) { continue; }
+
+        if (c == '(' && ++depth > kMaxQueryDepth)
+        {
+            throw QueryError(
+                "Query nested too deeply (max " + std::to_string(kMaxQueryDepth) + ")",
+                i);
+        }
+
+        if (c == ')') { depth--; }
+    }
+
     ExceptionErrorListener errorListener;
 
     antlr4::ANTLRInputStream inputStream(input);
