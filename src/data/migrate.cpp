@@ -79,7 +79,7 @@ bool porla::Data::Migrate(sqlite3* db, const std::unique_ptr<porla::Config>& cfg
         return true;
     }
 
-    BOOST_LOG_TRIVIAL(info) << "Migrating database from version " << user_version + 1 << " to " << Migrations.size();
+    BOOST_LOG_TRIVIAL(info) << "Migrating database from version " << user_version << " to " << Migrations.size();
 
     sqlite3_exec(db, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr);
 
