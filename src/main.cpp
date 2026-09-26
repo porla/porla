@@ -136,6 +136,15 @@ int main(int argc, char* argv[])
     boost::asio::thread_pool sodium_hash_pool(2);
 
     {
+        boost::asio::signal_set signals(io, SIGINT, SIGTERM);
+
+        signals.async_wait(
+            [&io](boost::system::error_code const& ec, int signal)
+            {
+                BOOST_LOG_TRIVIAL(info) << "Interrupt received (" << signal << ") - stopping...";
+                io.stop();
+            });
+
         uWS::Loop::get(&io);
         uWS::App http_server;
 
@@ -229,32 +238,32 @@ int main(int argc, char* argv[])
             plugin_engine.SetCore(embedded_core);
         }
 
-        sessions.LoadAll();
-
-        plugin_engine.LoadAll();
-
-        boost::asio::signal_set signals(io, SIGINT, SIGTERM);
-
-        signals.async_wait(
-            [&io](boost::system::error_code const& ec, int signal)
+        sessions.Load(
+            [&cfg, &http_server, &jsonrpc, &plugin_engine]()
             {
-                BOOST_LOG_TRIVIAL(info) << "Interrupt received (" << signal << ") - stopping...";
-                io.stop();
-            });
+                try
+                {
+                    plugin_engine.LoadAll();
+                }
+                catch (const std::exception& e)
+                {
+                    BOOST_LOG_TRIVIAL(error) << "Failed to load plugins: " << e.what();
+                }
 
-        std::string http_base_path = cfg->http_base_path.value_or("/");
-        if (http_base_path.empty())        http_base_path = "/";
-        if (http_base_path[0] != '/')      http_base_path = "/" + http_base_path;
-        if (http_base_path.ends_with("/")) http_base_path = http_base_path.substr(0, http_base_path.size() - 1);
+                std::string http_base_path = cfg->http_base_path.value_or("/");
+                if (http_base_path.empty())        http_base_path = "/";
+                if (http_base_path[0] != '/')      http_base_path = "/" + http_base_path;
+                if (http_base_path.ends_with("/")) http_base_path = http_base_path.substr(0, http_base_path.size() - 1);
 
-        http_server.post(http_base_path + "/api/v1/jsonrpc", jsonrpc->HttpHandler());
+                http_server.post(http_base_path + "/api/v1/jsonrpc", jsonrpc->HttpHandler());
 
-        http_server.listen(
-            cfg->http_host.value_or("127.0.0.1"),
-            cfg->http_port.value_or(1337),
-            [](const auto* t)
-            {
-                BOOST_LOG_TRIVIAL(info) << "HTTP server listening";
+                http_server.listen(
+                    cfg->http_host.value_or("127.0.0.1"),
+                    cfg->http_port.value_or(1337),
+                    [](const auto* t)
+                    {
+                        BOOST_LOG_TRIVIAL(info) << "HTTP server listening";
+                    });
             });
 
         for (;;)
