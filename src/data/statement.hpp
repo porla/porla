@@ -32,6 +32,7 @@ namespace porla::Data
         static Statement Prepare(sqlite3* db, const std::string_view& sql);
 
         Statement& Bind(const std::string& param, int value);
+        Statement& Bind(const std::string& param, std::int64_t value);
         Statement& Bind(const std::string& param, const std::optional<int>& value);
         Statement& Bind(const std::string& param, const std::optional<std::uint64_t>& value);
         Statement& Bind(const std::string& param, const std::string& value);

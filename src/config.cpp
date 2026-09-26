@@ -340,6 +340,12 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         throw std::runtime_error("Failed to enable WAL journal mode");
     }
 
+    if (sqlite3_busy_timeout(cfg->db, 10000) != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(warning)
+            << "Failed to set SQLite busy timeout: " << sqlite3_errmsg(cfg->db);
+    }
+
     if (!porla::Data::Migrate(cfg->db, cfg))
     {
         BOOST_LOG_TRIVIAL(error) << "Failed to run migrations";

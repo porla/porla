@@ -163,6 +163,26 @@ Statement& Statement::Bind(const std::string& portal, int value)
     return *this;
 }
 
+Statement& Statement::Bind(const std::string& portal, std::int64_t value)
+{
+    const int index = sqlite3_bind_parameter_index(m_stmt, portal.c_str());
+
+    if (index == 0)
+    {
+        throw std::runtime_error("No parameter named " + portal);
+    }
+
+    int res = sqlite3_bind_int64(m_stmt, index, value);
+
+    if (res != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to bind SQLite value: " << sqlite3_errstr(res);
+        throw std::runtime_error("Failed to bind SQLite value");
+    }
+
+    return *this;
+}
+
 Statement& Statement::Bind(const std::string& portal, const std::optional<int>& value)
 {
     const int index = sqlite3_bind_parameter_index(m_stmt, portal.c_str());

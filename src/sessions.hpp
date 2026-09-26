@@ -43,7 +43,10 @@ namespace porla
             void Recheck(const lt::info_hash_t& hash);
 
         private:
-            std::vector<Timer> m_timers;
+            struct LoadState;
+
+            std::unique_ptr<LoadState>          m_load_state;
+            std::vector<Timer>                  m_timers;
             std::unordered_set<lt::info_hash_t> m_adding;
             std::map<std::pair<int, lt::info_hash_t>, std::vector<std::function<void(const std::shared_ptr<SessionState>&)>>> m_oneshot_torrent_callbacks;
         };
@@ -62,8 +65,9 @@ namespace porla
         std::map<int, SessionStatePtr> All() { return m_sessions; }
         SessionStatePtr Get(const int id);
 
-        void LoadAll();
-        void LoadById(int id);
+        void Load(const std::function<void()>& callback = {});
+        void LoadById(int id, const std::function<void()>& callback = {});
+
         void UnloadById(int id);
 
         boost::signals2::connection OnSessionStats(const SessionStatsSignal::slot_type& subscriber)
@@ -112,6 +116,9 @@ namespace porla
         }
 
     private:
+        void LoadTorrentsChunk(const SessionStatePtr& state);
+        void FinishLoad(const SessionStatePtr& state);
+
         void PostDhtStats(const SessionStatePtr& state);
         void PostSessionStats(const SessionStatePtr& state);
         void PostTorrentUpdates(const SessionStatePtr& state);
@@ -133,9 +140,9 @@ namespace porla
         {
             boost::asio::post(
                 m_options.io,
-                [&signal, state = std::move(state), args...]()
+                [&signal, weak = std::weak_ptr(state), args...]()
                 {
-                    signal(state, args...);
+                    if (auto state = weak.lock()) { signal(state, args...); }
                 });
         }
 

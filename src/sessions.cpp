@@ -13,11 +13,30 @@
 #include "data/models/sessions.hpp"
 #include "torrentclientdata.hpp"
 
+namespace
+{
+    static constexpr int kLoadChunkSize      = 100;
+    static constexpr int  kLoadMaxChunkErrors = 8;
+    static constexpr auto kLoadRetryBaseDelay = std::chrono::milliseconds(100);
+    static constexpr auto kLoadRetryMaxDelay  = std::chrono::milliseconds(5000);
+}
+
 namespace fs = std::filesystem;
 
 using porla::Data::Models::AddTorrentParams;
 using porla::Sessions;
 using porla::SessionsOptions;
+
+struct Sessions::SessionState::LoadState
+{
+    AddTorrentParams::Cursor cursor;
+    int                      count;
+    int                      loaded;
+    int                      chunks;
+    int                      errors;
+    bool                     failed;
+    std::function<void()>    callback;
+};
 
 void Sessions::SessionState::Recheck(const lt::info_hash_t& hash)
 {
@@ -92,8 +111,14 @@ Sessions::~Sessions()
 {
     BOOST_LOG_TRIVIAL(info) << "Shutting down sessions";
 
-    for (const auto& [ _, state ] : m_sessions)
+    std::vector<SessionStatePtr> pending;
+    pending.reserve(m_sessions.size());
+
+    while (!m_sessions.empty())
     {
+        auto node  = m_sessions.extract(m_sessions.begin());
+        auto state = std::move(node.mapped());
+
         try
         {
             UnloadSession(state);
@@ -102,9 +127,30 @@ Sessions::~Sessions()
         {
             BOOST_LOG_TRIVIAL(error) << "session[" << state->name << "] Failed to unload: " << e.what();
         }
+
+        pending.push_back(std::move(state));
     }
 
     BOOST_LOG_TRIVIAL(info) << "All state saved";
+
+    for (auto& state : pending)
+    {
+        const auto name = state->name;
+
+        BOOST_LOG_TRIVIAL(info)
+            << "session[" << name << "] Destroying session - this is safe to interrupt";
+
+        std::weak_ptr<SessionState> observer = state;
+
+        state.reset();
+
+        if (!observer.expired())
+        {
+            BOOST_LOG_TRIVIAL(warning)
+                << "session[" << name << "] Still referenced after unload - "
+                << "destruction deferred past shutdown";
+        }
+    }
 }
 
 std::shared_ptr<Sessions::SessionState> Sessions::Get(const int id)
@@ -116,25 +162,55 @@ std::shared_ptr<Sessions::SessionState> Sessions::Get(const int id)
         : it->second;
 }
 
-void Sessions::LoadAll()
+void Sessions::Load(const std::function<void()>& callback)
 {
-    const auto& sessions = Data::Models::Sessions::List(m_options.db);
+    const auto sessions = Data::Models::Sessions::List(m_options.db);
 
     BOOST_LOG_TRIVIAL(info) << "Loading " << sessions.size() << " session(s)";
 
+    if (sessions.empty())
+    {
+        if (callback)
+        {
+            boost::asio::post(m_options.io, callback);
+        }
+
+        return;
+    }
+
+    // All sessions are loaded concurrently. After each one has loaded, this
+    // counter is decreased by one. When it hits zero, the callback is invoked.
+    auto outstanding_sessions = std::make_shared<std::size_t>(sessions.size());
+
+    auto single_session_loaded = [this, outstanding_sessions, callback]()
+    {
+        --(*outstanding_sessions);
+
+        if (*outstanding_sessions > 0)
+        {
+            return;
+        }
+
+        if (callback)
+        {
+            boost::asio::post(m_options.io, callback);
+        }
+    };
+
     for (const auto& session : sessions)
     {
-        LoadById(session.id);
+        LoadById(session.id, single_session_loaded);
     }
 }
 
-void Sessions::LoadById(int id)
+void Sessions::LoadById(int id, const std::function<void()>& callback)
 {
     auto s = Data::Models::Sessions::GetById(m_options.db, id);
 
     if (!s)
     {
         BOOST_LOG_TRIVIAL(warning) << "No session with id " << id;
+        if (callback) { callback(); }
         return;
     }
 
@@ -143,6 +219,7 @@ void Sessions::LoadById(int id)
     if (m_sessions.contains(session.id))
     {
         BOOST_LOG_TRIVIAL(warning) << "session[" << session.name << "] Already loaded - skipping";
+        if (callback) { callback(); }
         return;
     }
 
@@ -156,9 +233,11 @@ void Sessions::LoadById(int id)
     state->torrents = {};
 
     state->session->set_alert_notify(
-        [this, state]()
+        [this, weak = std::weak_ptr(state)]()
         {
-            boost::asio::post(m_options.io, [this, state] { ReadAlerts(state); });
+            boost::asio::post(
+                m_options.io,
+                [this, weak] { if (auto state = weak.lock()) { ReadAlerts(state); } });
         });
 
     state->m_timers.emplace_back(m_options.io, session.timer_dht_stats, [this, state] { PostDhtStats(state); });
@@ -166,35 +245,204 @@ void Sessions::LoadById(int id)
     state->m_timers.emplace_back(m_options.io, session.timer_session_stats, [this, state] { PostSessionStats(state); });
     state->m_timers.emplace_back(m_options.io, session.timer_torrent_updates, [this, state] { PostTorrentUpdates(state); });
 
-    int count = AddTorrentParams::Count(m_options.db, session.id);
-    int current = 0;
-
-    BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Loading " << count << " torrent(s) from storage";
-
-    AddTorrentParams::ForEach(
-        m_options.db,
-        state->id,
-        [&count, &current, state](lt::add_torrent_params& params)
-        {
-            current++;
-
-            params.userdata.get<TorrentClientData>()->state = state;
-
-            state->m_adding.insert(params.info_hashes);
-            state->session->async_add_torrent(params);
-
-            if (current % 1000 == 0 && current != count)
-            {
-                BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] " << current << " torrents (of " << count << ") added";
-            }
+    state->m_load_state = std::make_unique<SessionState::LoadState>(
+        SessionState::LoadState{
+            .cursor   = {},
+            .count    = AddTorrentParams::Count(m_options.db, session.id),
+            .loaded   = 0,
+            .chunks   = 0,
+            .errors   = 0,
+            .failed   = false,
+            .callback = callback
         });
 
-    if (count > 0)
-    {
-        BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Added " << current << " (of " << count << ") torrent(s) to session";
-    }
+    BOOST_LOG_TRIVIAL(info)
+        << "session[" << state->name << "] Loading " << state->m_load_state->count
+        << " torrent(s) from storage";
 
     m_sessions.insert({ state->id, state });
+
+    boost::asio::post(m_options.io, [this, weak = std::weak_ptr(state)]()
+    {
+        if (const auto state = weak.lock()) { LoadTorrentsChunk(state); }
+    });
+}
+
+void Sessions::LoadTorrentsChunk(const SessionStatePtr& state)
+{
+    if (state->m_load_state == nullptr)
+    {
+        return;
+    }
+
+    try
+    {   
+        ReadAlerts(state);
+    }
+    catch(const std::exception& e)
+    {
+        BOOST_LOG_TRIVIAL(error)
+            << "session[" << state->name << "] Failed to read alerts during load: " << e.what();
+    }
+
+    if (state->m_load_state == nullptr)
+    {
+        return;
+    }
+
+    auto& load = *state->m_load_state;
+    bool  more = false;
+
+    try
+    {
+        more = AddTorrentParams::Next(
+            m_options.db,
+            state->id,
+            load.cursor,
+            kLoadChunkSize,
+            [&state, &load](lt::add_torrent_params& params)
+            {
+                if (state->m_adding.contains(params.info_hashes)
+                    || state->torrents.contains(params.info_hashes))
+                {
+                    return;
+                }
+
+                params.userdata.get<TorrentClientData>()->state = state;
+
+                state->m_adding.insert(params.info_hashes);
+                state->session->async_add_torrent(params);
+
+                load.loaded++;
+            });
+
+        load.errors = 0;
+    }
+    catch(const std::exception& e)
+    {
+        load.errors++;
+
+        if (load.errors <= kLoadMaxChunkErrors)
+        {
+            const auto delay = std::min(
+                kLoadRetryMaxDelay,
+                kLoadRetryBaseDelay * (1 << (load.errors - 1)));
+
+            BOOST_LOG_TRIVIAL(warning)
+                << "session[" << state->name << "] Chunk failed at " << load.loaded
+                << " of " << load.count << " (attempt " << load.errors << " of "
+                << kLoadMaxChunkErrors << ", retrying in " << delay.count()
+                << "ms): " << e.what();
+
+            auto retry = std::make_shared<boost::asio::steady_timer>(m_options.io, delay);
+
+            retry->async_wait(
+                [this, retry, weak = std::weak_ptr(state)](const boost::system::error_code& ec)
+                {
+                    if (ec) { return; }
+                    if (const auto state = weak.lock()) { LoadTorrentsChunk(state); }
+                });
+            return;
+        }
+
+        BOOST_LOG_TRIVIAL(error)
+            << "session[" << state->name << "] Failed to load torrents after "
+            << load.loaded << " of " << load.count << ": " << e.what();
+
+        load.failed = true;
+        more        = false;
+    }
+
+    if (!more)
+    {
+        if (load.loaded > 0)
+        {
+            try
+            {
+                const auto& all_statuses = state->session->get_torrent_status(
+                    [](const auto& ts) { return true; });
+
+                for (const auto& ts : all_statuses)
+                {
+                    state->torrents.insert_or_assign(ts.info_hashes, ts);
+                }
+            }
+            catch(const std::exception& e)
+            {
+                BOOST_LOG_TRIVIAL(error)
+                    << "session[" << state->name << "] Failed to read torrent status after load: "
+                    << e.what();
+            }
+        }
+
+        if (load.count > 0)
+        {
+            if (load.failed)
+            {
+                const auto remaining = load.count - load.loaded;
+
+                BOOST_LOG_TRIVIAL(error)
+                    << "session[" << state->name << "] Incomplete load - "
+                    << load.loaded << " of " << load.count
+                    << " torrent(s) were added. The remaining "
+                    << remaining << " are still in the database but not in the session. "
+                    << "Do not re-add them; restart Porla once the database is healthy.";
+            }
+            else
+            {
+                BOOST_LOG_TRIVIAL(info)
+                    << "session[" << state->name << "] Added " << load.loaded
+                    << " (of " << load.count << ") torrent(s) to the session";
+            }
+        }
+
+        FinishLoad(state);
+
+        return;
+    }
+
+    load.chunks++;
+
+    if (load.chunks % 10 == 0)
+    {
+        BOOST_LOG_TRIVIAL(info)
+            << "session[" << state->name << "] " << load.loaded << " torrents (of "
+            << load.count << ") added";
+    }
+
+    boost::asio::post(m_options.io, [this, weak = std::weak_ptr(state)]()
+    {
+        if (const auto state = weak.lock()) { LoadTorrentsChunk(state); }
+    });
+}
+
+void Sessions::FinishLoad(const SessionStatePtr& state)
+{
+    if (state->m_load_state == nullptr)
+    {
+        return;
+    }
+
+    auto callback = std::move(state->m_load_state->callback);
+
+    state->m_load_state.reset();
+
+    if (!callback)
+    {
+        return;
+    }
+
+    try
+    {
+        callback();
+    }
+    catch(const std::exception& e)
+    {
+        BOOST_LOG_TRIVIAL(error)
+            << "session[" << state->name << "] Load completion callback failed: "
+            << e.what();
+    }
+    
 }
 
 void Sessions::UnloadById(int id)
@@ -283,7 +531,10 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
             auto ssa = lt::alert_cast<lt::session_stats_alert>(alert);
             auto const& counters = ssa->counters();
 
-            boost::asio::post(m_options.io, [this, counters, state](){ m_session_stats(state, counters); });
+            boost::asio::post(m_options.io, [this, counters, weak = std::weak_ptr(state)]()
+            {
+                if (auto state = weak.lock()) { m_session_stats(state, counters); }
+            });
 
             break;
         }
@@ -305,7 +556,10 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
                 it->second = status;
             }
 
-            boost::asio::post(m_options.io, [this, state, status = sua->status](){ m_state_update(state, status); });
+            boost::asio::post(m_options.io, [this, weak = std::weak_ptr(state), status = sua->status]()
+            {
+                if (auto state = weak.lock()) { m_state_update(state, status); }
+            });
 
             break;
         }
@@ -336,7 +590,10 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
 
             sma->handle.post_status();
 
-            boost::asio::post(m_options.io, [this, state, th = sma->handle](){ m_storage_moved(state, th); });
+            boost::asio::post(m_options.io, [this, weak = std::weak_ptr(state), th = sma->handle]()
+            {
+                if (auto state = weak.lock()) { m_storage_moved(state, th); }
+            });
 
             break;
         }
@@ -402,9 +659,9 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
 
                     boost::asio::post(
                         m_options.io,
-                        [this, state, handle = tfa->handle]()
+                        [this, weak = std::weak_ptr(state), handle = tfa->handle]()
                         {
-                            m_torrent_finished(state, handle);
+                            if (auto state = weak.lock()) { m_torrent_finished(state, handle); }
                         });
                 }
             }
@@ -426,7 +683,10 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
             BOOST_LOG_TRIVIAL(debug)
                 << "session[" << state->name << "][" << tpa->handle.info_hashes() << "] paused";
 
-            boost::asio::post(m_options.io, [this, state, th = tpa->handle](){ m_torrent_paused(state, th); });
+            boost::asio::post(m_options.io, [this, weak = std::weak_ptr(state), th = tpa->handle]()
+            {
+                if (auto state = weak.lock()) { m_torrent_paused(state, th); }
+            });
 
             break;
         }
@@ -474,6 +734,8 @@ void Sessions::SaveState(const std::shared_ptr<SessionState>& state)
 
 void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
 {
+    FinishLoad(state);
+
     state->m_timers.clear();
     state->session->set_alert_notify({});
 
@@ -634,18 +896,23 @@ void Sessions::OnAddTorrentAlert(const SessionStatePtr& state, const lt::add_tor
         return;
     }
 
+    if (state->m_adding.erase(alert->handle.info_hashes()) > 0)
+    {
+        lt::torrent_status status;
+        status.handle      = alert->handle;
+        status.info_hashes = alert->handle.info_hashes();
+
+        state->torrents.try_emplace(alert->handle.info_hashes(), status);
+
+        return;
+    }
+
     const auto data   = alert->handle.userdata().get<TorrentClientData>();
     const auto status = alert->handle.status();
 
     const auto [ _, inserted ] = state->torrents.insert_or_assign(
         alert->handle.info_hashes(),
         status);
-
-    if (state->m_adding.contains(alert->handle.info_hashes()))
-    {
-        state->m_adding.erase(alert->handle.info_hashes());
-        return;
-    }
 
     if (!inserted)
     {

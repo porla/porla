@@ -191,6 +191,7 @@ add_library(
     src/data/migrations/0012_alterplugins.cpp
     src/data/migrations/0013_addkeyvaluestore.cpp
     src/data/migrations/0014_morepresets.cpp
+    src/data/migrations/0015_addtorrentparamsindex.cpp
     src/data/models/addtorrentparams.cpp
     src/data/models/keyvaluestore.cpp
     src/data/models/plugins.cpp
