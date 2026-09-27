@@ -145,7 +145,7 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
         return cb->Error(-2, "Session not loaded");
     }
 
-    std::vector<lt::torrent_status> torrents;
+    std::vector<const lt::torrent_status*> torrents;
     torrents.reserve(session_state->torrents.size());
 
     for (const auto& [_, ts] : session_state->torrents)
@@ -160,7 +160,7 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
         // If we have no filters, just add
         if (!req.filters.has_value())
         {
-            torrents.emplace_back(ts);
+            torrents.push_back(&ts);
             continue;
         }
 
@@ -285,7 +285,7 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
             }
         }
 
-        torrents.emplace_back(ts);
+        torrents.push_back(&ts);
     }
 
     const auto total    = static_cast<std::int64_t>(torrents.size());
@@ -293,21 +293,38 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
         static_cast<std::int64_t>(page) * page_size, total);
     const auto page_end = std::min<std::int64_t>(page_beg + page_size, total);
 
-    std::partial_sort(
-        torrents.begin(),
-        torrents.begin() + page_end,
-        torrents.end(),
-        [&sorter](auto const& lhs, auto const& rhs)
-        {
-            return sorter->second(lhs, rhs);
-        });
+    const auto cmp = [&sorter](const lt::torrent_status* lhs, const lt::torrent_status* rhs)
+    {
+        return sorter->second(*lhs, *rhs);
+    };
+
+    if (page_end >= total / 2)
+    {
+        std::sort(torrents.begin(), torrents.end(), cmp);
+    }
+    else
+    {
+        std::partial_sort(
+            torrents.begin(),
+            torrents.begin() + page_end,
+            torrents.end(),
+            cmp);
+    }
+
+    std::vector<lt::torrent_status> page_items;
+    page_items.reserve(static_cast<std::size_t>(page_end - page_beg));
+
+    for (auto i = page_beg; i < page_end; i++)
+    {
+        page_items.push_back(*torrents[i]);
+    }
 
     cb->Ok(TorrentsListRes{
         .order_by                  = req.order_by.value_or("queue_position"),
         .order_by_dir              = req.order_by_dir.value_or("asc"),
         .page                      = req.page.value_or(0),
         .page_size                 = req.page_size.value_or(50),
-        .torrents                  = std::vector(torrents.begin() + page_beg, torrents.begin() + page_end),
+        .torrents                  = std::move(page_items),
         .torrents_total            = static_cast<int>(torrents.size()),
         .torrents_total_unfiltered = static_cast<int>(session_state->torrents.size())
     });
