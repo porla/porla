@@ -34,7 +34,8 @@ void LibtorrentSettingsPack::Update(lt::settings_pack& settings, const std::map<
 void LibtorrentSettingsPack::UpdateStatic(lt::settings_pack& settings)
 {
     lt::alert_category_t alerts =
-        lt::alert::status_notification
+        lt::alert::error_notification
+        | lt::alert::status_notification
         | lt::alert::storage_notification
         | lt::alert::tracker_notification;
 

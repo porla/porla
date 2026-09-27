@@ -490,6 +490,14 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
         case lt::torrent_removed_alert::alert_type:  OnTorrentRemovedAlert(state, lt::alert_cast<lt::torrent_removed_alert>(alert));  break;
         case lt::torrent_resumed_alert::alert_type:  OnTorrentResumedAlert(state, lt::alert_cast<lt::torrent_resumed_alert>(alert));  break;
 
+        case lt::alerts_dropped_alert::alert_type:
+        {
+            const auto ada = lt::alert_cast<lt::alerts_dropped_alert>(alert);
+            BOOST_LOG_TRIVIAL(warning)
+                << "session[" << state->name << "] " << ada->message();
+            break;
+        }
+
         case lt::listen_failed_alert::alert_type:
         {
             const auto lfa = lt::alert_cast<lt::listen_failed_alert>(alert);
