@@ -442,7 +442,20 @@ void Sessions::FinishLoad(const SessionStatePtr& state)
             << "session[" << state->name << "] Load completion callback failed: "
             << e.what();
     }
-    
+}
+
+void Sessions::SaveSessionParams(const SessionStatePtr& state)
+{
+    auto session = Data::Models::Sessions::GetById(m_options.db, state->id);
+
+    if (!session)
+    {
+        return;
+    }
+
+    session->params = state->session->session_state();
+
+    Data::Models::Sessions::Update(m_options.db, *session);
 }
 
 void Sessions::UnloadById(int id)
@@ -718,6 +731,8 @@ void Sessions::PostTorrentUpdates(const std::shared_ptr<SessionState>& state)
 
 void Sessions::SaveState(const std::shared_ptr<SessionState>& state)
 {
+    SaveSessionParams(state);
+
     std::vector<lt::torrent_status> torrents = state->session->get_torrent_status(
         [](lt::torrent_status const& ts)
         {
@@ -747,11 +762,7 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
     state->m_timers.clear();
     state->session->set_alert_notify({});
 
-    if (auto session = Data::Models::Sessions::GetById(m_options.db, state->id))
-    {
-        session->params = state->session->session_state();
-        Data::Models::Sessions::Update(m_options.db, *session);
-    }
+    SaveSessionParams(state);
 
     state->session->pause();
 

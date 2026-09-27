@@ -67,7 +67,7 @@ namespace porla
 
         void Load(const std::function<void()>& callback = {});
         void LoadById(int id, const std::function<void()>& callback = {});
-
+        void SaveSessionParams(const SessionStatePtr& state);
         void UnloadById(int id);
 
         boost::signals2::connection OnSessionStats(const SessionStatsSignal::slot_type& subscriber)
