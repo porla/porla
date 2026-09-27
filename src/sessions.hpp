@@ -12,10 +12,11 @@
 #include <nlohmann/json.hpp>
 #include <sqlite3.h>
 
-#include "timer.hpp"
 
 namespace porla
 {
+    class Timer;
+
     struct SessionsOptions
     {
         sqlite3*                 db;
@@ -46,7 +47,7 @@ namespace porla
             struct LoadState;
 
             std::unique_ptr<LoadState>          m_load_state;
-            std::vector<Timer>                  m_timers;
+            std::vector<std::shared_ptr<Timer>> m_timers;
             std::unordered_set<lt::info_hash_t> m_adding;
             std::map<std::pair<int, lt::info_hash_t>, std::vector<std::function<void(const std::shared_ptr<SessionState>&)>>> m_oneshot_torrent_callbacks;
         };

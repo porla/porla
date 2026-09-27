@@ -155,7 +155,7 @@ namespace porla::Lua
             const auto timer_id    = NextId();
             const auto callback_id = RegisterCallback(std::move(func), one_shot);
 
-            auto timer = std::make_shared<Timer>(
+            auto timer = Timer::Create(
                 io,
                 interval,
                 [w = weak_from_this(), timer_id]()
