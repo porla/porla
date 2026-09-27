@@ -19,25 +19,27 @@ SessionsSettingsSet::SessionsSettingsSet(sqlite3* db, porla::Sessions& sessions)
 
 void SessionsSettingsSet::Execute(const SessionsSettingsSetReq &req, ResponseWriterHandle cb)
 {
-    auto session = Data::Models::Sessions::GetById(m_db, req.id);
+    const auto session = Data::Models::Sessions::GetById(m_db, req.id);
 
     if (!session)
     {
         return cb->Error(-1, "Session not found");
     }
 
-    session->params.settings = req.settings;
+    const auto& state = m_sessions.Get(session->id);
 
-    LibtorrentSettingsPack::UpdateStatic(session->params.settings);
-
-    Data::Models::Sessions::Update(
-        m_db,
-        *session);
-
-    if (const auto& state = m_sessions.Get(session->id))
+    if (state == nullptr)
     {
-        state->session->apply_settings(session->params.settings);
+        return cb->Error(-2, "Session not loaded");
     }
+
+    lt::settings_pack settings = req.settings;
+
+    LibtorrentSettingsPack::UpdateStatic(settings);
+
+    state->session->apply_settings(settings);
+
+    m_sessions.SaveSessionParams(state);
 
     BOOST_LOG_TRIVIAL(info) << "Session settings for " << session->name << " updated";
 
