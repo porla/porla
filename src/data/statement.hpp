@@ -29,21 +29,33 @@ namespace porla::Data
         ~Statement();
         Statement(const Statement&) = delete;
 
-        static Statement Prepare(sqlite3* db, const std::string_view& sql);
+        static Statement Prepare(sqlite3* db, std::string_view sql);
 
+        Statement& Bind(const std::string& param, bool value);
         Statement& Bind(const std::string& param, int value);
         Statement& Bind(const std::string& param, std::int64_t value);
-        Statement& Bind(const std::string& param, const std::optional<int>& value);
-        Statement& Bind(const std::string& param, const std::optional<std::uint64_t>& value);
-        Statement& Bind(const std::string& param, const std::string& value);
-        Statement& Bind(const std::string& param, const std::optional<std::string>& value);
+        Statement& Bind(const std::string& param, std::uint64_t value);
+        Statement& Bind(const std::string& param, std::string_view value);
+        Statement& Bind(const std::string& param, const char* value);
         Statement& Bind(const std::string& param, const std::vector<char>& buffer);
+        Statement& Bind(const std::string& param, std::nullopt_t);
+
+        template <typename T>
+        Statement& Bind(const std::string& param, const std::optional<T>& value)
+        {
+            return value.has_value()
+                ? Bind(param, *value)
+                : Bind(param, std::nullopt);
+        }
 
         void Execute();
         void Step(const std::function<int(const IRow&)>& cb);
 
     private:
         explicit Statement(sqlite3_stmt* stmt);
+
+        Statement& Check(int res, const std::string& param);
+        int Index(const std::string& param) const;
 
         sqlite3_stmt* m_stmt;
     };

@@ -7,25 +7,34 @@
 using json = nlohmann::json;
 using porla::Data::Models::Presets;
 
-const std::string PresetSelectPrefix = R"sql(
-    SELECT
-        id,
-        name,
-        is_default,
-        category,
-        download_limit,
-        flags,
-        flags_mask,
-        max_connections,
-        max_uploads,
-        metadata,
-        session_id,
-        save_path,
-        storage_mode,
-        tags,
-        upload_limit
-    FROM presets
-)sql";
+namespace
+{
+    const std::string PresetSelectPrefix = R"sql(
+        SELECT
+            id,
+            name,
+            is_default,
+            category,
+            download_limit,
+            flags,
+            flags_mask,
+            max_connections,
+            max_uploads,
+            metadata,
+            session_id,
+            save_path,
+            storage_mode,
+            tags,
+            upload_limit
+        FROM presets
+    )sql";
+
+    static std::optional<std::uint64_t> FlagBits(const std::optional<lt::torrent_flags_t>& flags)
+    {
+        if (!flags.has_value()) { return std::nullopt; }
+        return static_cast<std::uint64_t>(*flags);
+    }
+}
 
 static Presets::Preset LoadFromRow(const porla::Data::Statement::IRow &row)
 {
@@ -182,11 +191,11 @@ void Presets::Update(sqlite3 *db, const Presets::Preset &preset)
 
     stmt.Bind("$id",              preset.id);
     stmt.Bind("$name",            preset.name);
-    stmt.Bind("$is_default",      preset.is_default ? 1 : 0);
+    stmt.Bind("$is_default",      preset.is_default);
     stmt.Bind("$category",        preset.category);
     stmt.Bind("$download_limit",  preset.download_limit);
-    stmt.Bind("$flags",           preset.flags.has_value() ? static_cast<std::uint64_t>(preset.flags.value()) : std::optional<std::uint64_t>());
-    stmt.Bind("$flags_mask",      preset.flags_mask.has_value() ? static_cast<std::uint64_t>(preset.flags_mask.value()) : std::optional<std::uint64_t>());
+    stmt.Bind("$flags",           FlagBits(preset.flags));
+    stmt.Bind("$flags_mask",      FlagBits(preset.flags_mask));
     stmt.Bind("$max_connections", preset.max_connections);
     stmt.Bind("$max_uploads",     preset.max_uploads);
     stmt.Bind("$metadata",        metadata);
