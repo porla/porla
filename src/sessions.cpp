@@ -11,6 +11,7 @@
 
 #include "data/models/addtorrentparams.hpp"
 #include "data/models/sessions.hpp"
+#include "timer.hpp"
 #include "torrentclientdata.hpp"
 
 namespace
@@ -240,10 +241,10 @@ void Sessions::LoadById(int id, const std::function<void()>& callback)
                 [this, weak] { if (auto state = weak.lock()) { ReadAlerts(state); } });
         });
 
-    state->m_timers.emplace_back(m_options.io, session.timer_dht_stats, [this, state] { PostDhtStats(state); });
-    state->m_timers.emplace_back(m_options.io, session.timer_save_state, [this, state] { SaveState(state); });
-    state->m_timers.emplace_back(m_options.io, session.timer_session_stats, [this, state] { PostSessionStats(state); });
-    state->m_timers.emplace_back(m_options.io, session.timer_torrent_updates, [this, state] { PostTorrentUpdates(state); });
+    state->m_timers.emplace_back(Timer::Create(m_options.io, session.timer_dht_stats, [this, w = std::weak_ptr(state)] { if (auto state = w.lock()) { PostDhtStats(state); } }));
+    state->m_timers.emplace_back(Timer::Create(m_options.io, session.timer_save_state, [this, w = std::weak_ptr(state)] { if (auto state = w.lock()) { SaveState(state); } }));
+    state->m_timers.emplace_back(Timer::Create(m_options.io, session.timer_session_stats, [this, w = std::weak_ptr(state)] { if (auto state = w.lock()) { PostSessionStats(state); } }));
+    state->m_timers.emplace_back(Timer::Create(m_options.io, session.timer_torrent_updates, [this, w = std::weak_ptr(state)] { if (auto state = w.lock()) { PostTorrentUpdates(state); } }));
 
     state->m_load_state = std::make_unique<SessionState::LoadState>(
         SessionState::LoadState{

@@ -4,38 +4,46 @@
 
 using porla::Timer;
 
+std::shared_ptr<Timer> Timer::Create(boost::asio::io_context& io, int interval, std::function<void()> cb)
+{
+    auto t = std::shared_ptr<Timer>(new Timer(io, interval, std::move(cb)));
+    t->Arm();
+    return t;
+}
+
 Timer::Timer(boost::asio::io_context& io, int interval, std::function<void()> cb)
-    : m_timer(io)
+    : m_cancelled(false)
+    , m_timer(io)
     , m_interval(interval)
     , m_callback(std::move(cb))
 {
-    m_timer.expires_after(std::chrono::milliseconds(m_interval));
-    m_timer.async_wait([this](auto &&PH1) { OnExpired(std::forward<decltype(PH1)>(PH1)); });
-}
-
-Timer::Timer(Timer&& t) noexcept
-    : m_timer(std::move(t.m_timer))
-    , m_interval(std::exchange(t.m_interval, 0))
-    , m_callback(std::move(t.m_callback))
-{
-    m_timer.cancel();
-    m_timer.expires_after(std::chrono::milliseconds(m_interval));
-    m_timer.async_wait([this](auto &&PH1) { OnExpired(std::forward<decltype(PH1)>(PH1)); });
 }
 
 Timer::~Timer()
 {
+    m_cancelled = true;
     m_timer.cancel();
 }
 
 void Timer::Cancel()
 {
+    m_cancelled = true;
     m_timer.cancel();
+}
+
+void Timer::Arm()
+{
+    m_timer.expires_after(std::chrono::milliseconds(m_interval));
+    m_timer.async_wait(
+        [weak = weak_from_this()](boost::system::error_code ec)
+        {
+            if (auto self = weak.lock()) { self->OnExpired(ec); }
+        });
 }
 
 void Timer::OnExpired(boost::system::error_code ec)
 {
-    if (ec == boost::system::errc::operation_canceled)
+    if (m_cancelled || ec == boost::asio::error::operation_aborted)
     {
         return;
     }
@@ -45,8 +53,7 @@ void Timer::OnExpired(boost::system::error_code ec)
         return;
     }
 
-    m_timer.expires_after(std::chrono::milliseconds(m_interval));
-    m_timer.async_wait([this](auto &&PH1) { OnExpired(std::forward<decltype(PH1)>(PH1)); });
+    Arm();
 
     try
     {
