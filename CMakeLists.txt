@@ -65,7 +65,7 @@ FetchContent_Declare(
 
 FetchContent_Declare(
     LibtorrentRasterbar
-    URL https://github.com/arvidn/libtorrent/releases/download/v2.1.1/libtorrent-rasterbar-2.1.1.tar.gz
+    URL https://github.com/arvidn/libtorrent/releases/download/v2.1.2/libtorrent-rasterbar-2.1.2.tar.gz
     EXCLUDE_FROM_ALL
 )
 
