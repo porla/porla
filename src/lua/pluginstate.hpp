@@ -79,14 +79,14 @@ namespace porla::Lua
         }
 
         template <typename... Args>
-        void InvokeCallback(std::size_t callback_id, Args&&... args)
+        bool InvokeCallback(std::size_t callback_id, Args&&... args)
         {
             const auto entry = m_callbacks.find(callback_id);
 
             if (entry == m_callbacks.end())
             {
                 BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] No callback with id " << callback_id;
-                return;
+                return false;
             }
 
             CallbackRef ref = entry->second;
@@ -102,7 +102,10 @@ namespace porla::Lua
             {
                 sol::error err = result;
                 BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Error when invoking callback: " << err.what();
+                return false;
             }
+
+            return true;
         }
 
         boost::asio::any_io_executor IoExecutor() const { return io.get_executor(); }
