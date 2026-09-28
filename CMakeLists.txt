@@ -53,7 +53,7 @@ FetchContent_Declare(
 
 FetchContent_Declare(
     uSockets
-    URL https://github.com/uNetworking/uSockets/archive/refs/tags/v0.8.8.tar.gz
+    URL https://github.com/uNetworking/uSockets/archive/7a7c820db4740c2a2a4faf0d918c4eec2ac1fac3.tar.gz
     EXCLUDE_FROM_ALL
 )
 
