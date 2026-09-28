@@ -192,6 +192,8 @@ PoHttpServerResponse::PoHttpServerResponse(std::shared_ptr<LuaState> lua_state, 
     : m_body(std::make_shared<std::string>())
     , m_callback_id(callback_id)
     , m_is_aborted(false)
+    , m_is_finished(false)
+    , m_is_started(false)
     , m_response(response)
     , m_state(lua_state)
     , m_request(lua_state->lua.create_table())
@@ -210,6 +212,14 @@ PoHttpServerResponse::PoHttpServerResponse(std::shared_ptr<LuaState> lua_state, 
     m_request["headers"] = headers;
 
     m_content_type = std::string{req->getHeader("content-type")};
+}
+
+PoHttpServerResponse::~PoHttpServerResponse()
+{
+    if (m_state.expired())
+    {
+        m_request.abandon();
+    }
 }
 
 void PoHttpServerResponse::Setup()
@@ -335,16 +345,35 @@ bool PoHttpServerResponse::ParseMultipart(LuaState& state, sol::table& fields, s
     return true;
 }
 
+void PoHttpServerResponse::Fail()
+{
+    if (m_is_aborted || m_is_finished)
+    {
+        return;
+    }
+
+    m_is_finished = true;
+
+    if (m_is_started)
+    {
+        m_response->close();
+        return;
+    }
+
+    m_response->writeStatus("500 Internal Server Error")->end("Internal Server Error");
+}
 
 void PoHttpServerResponse::Finish()
 {
-    if (m_is_aborted) { return; }
+    if (m_is_aborted || m_is_finished) { return; }
+    m_is_finished = true;
     m_response->end();
 }
 
 void PoHttpServerResponse::Finish(const std::string& data)
 {
-    if (m_is_aborted) { return; }
+    if (m_is_aborted || m_is_finished) { return; }
+    m_is_finished = true;
     m_response->end(data);
 }
 
@@ -375,26 +404,45 @@ void PoHttpServerResponse::OnData(std::string_view data, std::uint64_t len)
             if (self->m_is_aborted) { return; }
 
             auto state = self->m_state.lock();
-            if (state == nullptr) { return; }
-            state->InvokeCallback(self->m_callback_id, self->m_request, self);
+
+            if (state == nullptr)
+            {
+                self->Fail();
+                return;
+            }
+
+            const bool ok = state->InvokeCallback(self->m_callback_id, self->m_request, self);
+
+            self->m_request = sol::lua_nil;
+
+            if (!ok)
+            {
+                self->Fail();
+            }
         });
     }
 }
 
 void PoHttpServerResponse::Write(const std::string& data)
 {
-    if (m_is_aborted) { return; }
+    if (m_is_aborted || m_is_finished) { return; }
+    m_is_started = true;
+
     m_response->write(data);
 }
 
 void PoHttpServerResponse::WriteHeader(const std::string& key, const std::string& value)
 {
-    if (m_is_aborted) { return; }
+    if (m_is_aborted || m_is_finished) { return; }
+    m_is_started = true;
+
     m_response->writeHeader(key, value);
 }
 
 void PoHttpServerResponse::WriteStatus(const std::string& status)
 {
-    if (m_is_aborted) { return; }
+    if (m_is_aborted || m_is_finished) { return; }
+    m_is_started = true;
+
     m_response->writeStatus(status);
 }

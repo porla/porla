@@ -12,9 +12,9 @@
 #include "lua/pluginengine.hpp"
 #include "lua/pluginsource.hpp"
 #include "sessions.hpp"
+#include "timer.hpp"
 
 #include "auth/authenticator.hpp"
-
 
 #include "rpc/jsonrpc.hpp"
 #include "rpc/methods/auth/authinit.hpp"
@@ -73,6 +73,12 @@
 #include "rpc/methods/torrents/torrentstrackerslist.hpp"
 
 CMRC_DECLARE(porla_lua);
+
+extern "C"
+{
+    // normally called by us_loop_run which we don't use since we run the asio loop ourselves
+    void us_internal_free_closed_sockets(struct us_loop_t* loop);
+}
 
 static void Traverse(
     const cmrc::embedded_filesystem& fs,
@@ -145,7 +151,7 @@ int main(int argc, char* argv[])
                 io.stop();
             });
 
-        uWS::Loop::get(&io);
+        auto* http_loop = reinterpret_cast<us_loop_t*>(uWS::Loop::get(&io));
         uWS::App http_server;
 
         boost::signals2::signal<void(const std::unordered_set<std::string>&)> kv_updated_signal;
@@ -265,6 +271,8 @@ int main(int argc, char* argv[])
                         BOOST_LOG_TRIVIAL(info) << "HTTP server listening";
                     });
             });
+
+        const auto sweep_timer = porla::Timer::Create(io, 1000, [http_loop]() { us_internal_free_closed_sockets(http_loop); });
 
         for (;;)
         {

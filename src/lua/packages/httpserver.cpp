@@ -26,17 +26,19 @@ sol::object HttpServer::Load(sol::this_state ts)
         {
             auto state = weak.lock();
 
-            if (state == nullptr) { return; }
+            if (state == nullptr)
+            {
+                res->writeStatus("503 Service Unavailable")->end();
+                return;
+            }
 
             auto response = std::make_shared<Types::PoHttpServerResponse>(state, req, res, callback_id);
             response->Setup();
         });
 
-        state->destructors.emplace_back([weak, path]()
+        state->destructors.emplace_back([app = state->app, path]()
         {
-            auto state = weak.lock();
-            if (!state) { return; }
-            state->app->get(path, nullptr);
+            app->get(path, nullptr);
         });
     });
 
@@ -55,17 +57,19 @@ sol::object HttpServer::Load(sol::this_state ts)
         {
             auto state = weak.lock();
 
-            if (state == nullptr) { return; }
+            if (state == nullptr)
+            {
+                res->writeStatus("503 Service Unavailable")->end();
+                return;
+            }
 
             auto response = std::make_shared<Types::PoHttpServerResponse>(state, req, res, callback_id);
             response->Setup();
         });
 
-        state->destructors.emplace_back([weak, path]()
+        state->destructors.emplace_back([app = state->app, path]()
         {
-            auto state = weak.lock();
-            if (!state) { return; }
-            state->app->post(path, nullptr);
+            app->post(path, nullptr);
         });
     });
 
