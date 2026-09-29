@@ -13,6 +13,13 @@
 #include "data/models/sessions.hpp"
 #include "timer.hpp"
 #include "torrentclientdata.hpp"
+#include "utils/hex.hpp"
+
+namespace fs = std::filesystem;
+
+using porla::Data::Models::AddTorrentParams;
+using porla::Sessions;
+using porla::SessionsOptions;
 
 namespace
 {
@@ -20,13 +27,26 @@ namespace
     static constexpr int  kLoadMaxChunkErrors = 8;
     static constexpr auto kLoadRetryBaseDelay = std::chrono::milliseconds(100);
     static constexpr auto kLoadRetryMaxDelay  = std::chrono::milliseconds(5000);
+
+    std::string Sub(const lt::info_hash_t& ih)
+    {
+        return ih.has_v1()
+            ? porla::Utils::ToHex({ ih.v1.data(), static_cast<std::size_t>(ih.v1.size()) })
+            : porla::Utils::ToHex({ ih.v2.data(), static_cast<std::size_t>(ih.v2.size()) });
+    }
+
+    std::string Sub(const Sessions::SessionStatePtr& state, const lt::info_hash_t& ih)
+    {
+        const auto& h = Sub(ih);
+
+        return "session[" + state->name + "][" + h.substr(0, 8) + "] ";
+    }
+
+    std::string Sub(const Sessions::SessionStatePtr& state)
+    {
+        return "session[" + state->name + "] ";
+    }
 }
-
-namespace fs = std::filesystem;
-
-using porla::Data::Models::AddTorrentParams;
-using porla::Sessions;
-using porla::SessionsOptions;
 
 struct Sessions::SessionState::LoadState
 {
@@ -46,7 +66,7 @@ void Sessions::SessionState::Recheck(const lt::info_hash_t& hash)
     if (it == torrents.end())
     {
         BOOST_LOG_TRIVIAL(warning)
-            << "session[" << name << "][" << hash << "] Failed to find torrent for rechecking";
+            << "session[" << name << "][" << Sub(hash).substr(0, 8) << "] Failed to find torrent for rechecking";
         return;
     }
 
@@ -110,10 +130,10 @@ Sessions::Sessions(const SessionsOptions &options)
 
 Sessions::~Sessions()
 {
-    BOOST_LOG_TRIVIAL(info) << "Shutting down sessions";
-
     std::vector<SessionStatePtr> pending;
     pending.reserve(m_sessions.size());
+
+    BOOST_LOG_TRIVIAL(info) << "Shutting down " << pending.size() << " session(s)";
 
     while (!m_sessions.empty())
     {
@@ -126,7 +146,7 @@ Sessions::~Sessions()
         }
         catch(const std::exception& e)
         {
-            BOOST_LOG_TRIVIAL(error) << "session[" << state->name << "] Failed to unload: " << e.what();
+            BOOST_LOG_TRIVIAL(error) << "session[" << state->name << "] Failed to unload session: " << e.what();
         }
 
         pending.push_back(std::move(state));
@@ -206,16 +226,16 @@ void Sessions::Load(const std::function<void()>& callback)
 
 void Sessions::LoadById(int id, const std::function<void()>& callback)
 {
-    auto s = Data::Models::Sessions::GetById(m_options.db, id);
+    const auto s = Data::Models::Sessions::GetById(m_options.db, id);
 
     if (!s)
     {
-        BOOST_LOG_TRIVIAL(warning) << "No session with id " << id;
+        BOOST_LOG_TRIVIAL(warning) << "No session with ID " << id;
         if (callback) { callback(); }
         return;
     }
 
-    auto session = s.value();
+    const auto session = s.value();
 
     if (m_sessions.contains(session.id))
     {
@@ -258,7 +278,7 @@ void Sessions::LoadById(int id, const std::function<void()>& callback)
         });
 
     BOOST_LOG_TRIVIAL(info)
-        << "session[" << state->name << "] Loading " << state->m_load_state->count
+        << Sub(state) << "Loading " << state->m_load_state->count
         << " torrent(s) from storage";
 
     m_sessions.insert({ state->id, state });
@@ -282,8 +302,7 @@ void Sessions::LoadTorrentsChunk(const SessionStatePtr& state)
     }
     catch(const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error)
-            << "session[" << state->name << "] Failed to read alerts during load: " << e.what();
+        BOOST_LOG_TRIVIAL(error) << Sub(state) << "Failed to read alerts during load: " << e.what();
     }
 
     if (state->m_load_state == nullptr)
@@ -330,7 +349,7 @@ void Sessions::LoadTorrentsChunk(const SessionStatePtr& state)
                 kLoadRetryBaseDelay * (1 << (load.errors - 1)));
 
             BOOST_LOG_TRIVIAL(warning)
-                << "session[" << state->name << "] Chunk failed at " << load.loaded
+                << Sub(state) << "Chunk failed at " << load.loaded
                 << " of " << load.count << " (attempt " << load.errors << " of "
                 << kLoadMaxChunkErrors << ", retrying in " << delay.count()
                 << "ms): " << e.what();
@@ -347,7 +366,7 @@ void Sessions::LoadTorrentsChunk(const SessionStatePtr& state)
         }
 
         BOOST_LOG_TRIVIAL(error)
-            << "session[" << state->name << "] Failed to load torrents after "
+            << Sub(state) << "Failed to load torrents after "
             << load.loaded << " of " << load.count << ": " << e.what();
 
         load.failed = true;
@@ -371,8 +390,7 @@ void Sessions::LoadTorrentsChunk(const SessionStatePtr& state)
             catch(const std::exception& e)
             {
                 BOOST_LOG_TRIVIAL(error)
-                    << "session[" << state->name << "] Failed to read torrent status after load: "
-                    << e.what();
+                    << Sub(state) << "Failed to read torrent status after load: " << e.what();
             }
         }
 
@@ -383,7 +401,7 @@ void Sessions::LoadTorrentsChunk(const SessionStatePtr& state)
                 const auto remaining = load.count - load.loaded;
 
                 BOOST_LOG_TRIVIAL(error)
-                    << "session[" << state->name << "] Incomplete load - "
+                    << Sub(state) << "Incomplete load - "
                     << load.loaded << " of " << load.count
                     << " torrent(s) were added. The remaining "
                     << remaining << " are still in the database but not in the session. "
@@ -392,7 +410,7 @@ void Sessions::LoadTorrentsChunk(const SessionStatePtr& state)
             else
             {
                 BOOST_LOG_TRIVIAL(info)
-                    << "session[" << state->name << "] Added " << load.loaded
+                    << Sub(state) << "Added " << load.loaded
                     << " (of " << load.count << ") torrent(s) to the session";
             }
         }
@@ -407,7 +425,7 @@ void Sessions::LoadTorrentsChunk(const SessionStatePtr& state)
     if (load.chunks % 10 == 0)
     {
         BOOST_LOG_TRIVIAL(info)
-            << "session[" << state->name << "] " << load.loaded << " torrents (of "
+            << Sub(state) << load.loaded << " torrents (of "
             << load.count << ") added";
     }
 
@@ -440,8 +458,7 @@ void Sessions::FinishLoad(const SessionStatePtr& state)
     catch(const std::exception& e)
     {
         BOOST_LOG_TRIVIAL(error)
-            << "session[" << state->name << "] Load completion callback failed: "
-            << e.what();
+            << Sub(state) << "Load completion callback failed: " << e.what();
     }
 }
 
@@ -487,14 +504,14 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
         catch(const std::exception& e)
         {
             BOOST_LOG_TRIVIAL(error)
-                << "session[" << state->name << "] Failed to process " << alert->what() << ": " << e.what();
+                << Sub(state) << "Failed to process alert " << alert->what() << ": " << e.what();
         }
     }
 }
 
 void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert)
 {
-    BOOST_LOG_TRIVIAL(trace) << "session[" << state->name << "] " << alert->what() << ": " << alert->message();
+    BOOST_LOG_TRIVIAL(trace) << Sub(state) << alert->what() << ": " << alert->message();
 
     switch (alert->type())
     {
@@ -507,21 +524,20 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
         case lt::alerts_dropped_alert::alert_type:
         {
             const auto ada = lt::alert_cast<lt::alerts_dropped_alert>(alert);
-            BOOST_LOG_TRIVIAL(warning)
-                << "session[" << state->name << "] " << ada->message();
+            BOOST_LOG_TRIVIAL(warning) << Sub(state) << ada->message();
             break;
         }
 
         case lt::listen_failed_alert::alert_type:
         {
             const auto lfa = lt::alert_cast<lt::listen_failed_alert>(alert);
-            BOOST_LOG_TRIVIAL(warning) << "session[" << state->name << "] " << lfa->message();
+            BOOST_LOG_TRIVIAL(warning) << Sub(state) << lfa->message();
             break;
         }
         case lt::listen_succeeded_alert::alert_type:
         {
             const auto lsa = lt::alert_cast<lt::listen_succeeded_alert>(alert);
-            BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] " << lsa->message();
+            BOOST_LOG_TRIVIAL(info) << Sub(state) << lsa->message();
             break;
         }
         case lt::metadata_received_alert::alert_type:
@@ -533,13 +549,7 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
                 break;
             }
 
-            const auto it = state->torrents.find(mra->handle.info_hashes());
-
-            if (it != state->torrents.end())
-            {
-                BOOST_LOG_TRIVIAL(info)
-                    << "session[" << state->name << "] Metadata received for torrent " << it->second.name;
-            }
+            BOOST_LOG_TRIVIAL(info) << Sub(state, mra->handle.info_hashes()) << "Metadata received";
 
             mra->handle.save_resume_data(
                 lt::torrent_handle::flush_disk_cache
@@ -571,7 +581,7 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
                 if (it == state->torrents.end())
                 {
                     BOOST_LOG_TRIVIAL(debug)
-                        << "session[" << state->name << "][" << status.info_hashes << "] State updated for missing torrent";
+                        << Sub(state, status.info_hashes) << "Received state update for non-tracked torrent";
                     continue;
                 }
 
@@ -594,13 +604,8 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
                 break;
             }
 
-            const auto it = state->torrents.find(sma->handle.info_hashes());
-
-            if (it != state->torrents.end())
-            {
-                BOOST_LOG_TRIVIAL(info)
-                    << "session[" << state->name << "] Torrent " << it->second.name << " moved to " << sma->storage_path();
-            }
+            BOOST_LOG_TRIVIAL(info)
+                << Sub(state, sma->handle.info_hashes()) << "Storage moved to " << sma->storage_path();
 
             if (sma->handle.need_save_resume_data())
             {
@@ -628,20 +633,8 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
                 break;
             }
 
-            const auto it  = state->torrents.find(tca->handle.info_hashes());
-
-            if (it != state->torrents.end())
-            {
-                BOOST_LOG_TRIVIAL(info)
-                    << "session[" << state->name << "] Torrent "
-                    << it->second.name << " finished checking";
-            }
-            else
-            {
-                BOOST_LOG_TRIVIAL(warning)
-                    << "session[" << state->name << "] Checked alert for untracked torrent "
-                    << tca->handle.info_hashes();
-            }
+            BOOST_LOG_TRIVIAL(info) << Sub(state, tca->handle.info_hashes())
+                << "Torrent finished checking";
 
             if (auto node = state->m_oneshot_torrent_callbacks.extract({ alert->type(), tca->handle.info_hashes() }))
             {
@@ -652,7 +645,7 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
         }
         case lt::torrent_finished_alert::alert_type:
         {
-            const auto tfa          = lt::alert_cast<lt::torrent_finished_alert>(alert);
+            const auto tfa = lt::alert_cast<lt::torrent_finished_alert>(alert);
 
             if (!tfa->handle.is_valid())
             {
@@ -660,7 +653,7 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
             }
 
             const auto& status      = tfa->handle.status();
-                    auto  client_data = tfa->handle.userdata().get<TorrentClientData>();
+                  auto  client_data = tfa->handle.userdata().get<TorrentClientData>();
 
             if (client_data != nullptr)
             {
@@ -677,7 +670,7 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
                     client_data->metadata.insert({ "signal:finished", true });
 
                     // Only emit this event if we have downloaded any data this session
-                    BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Torrent " << status.name << " finished";
+                    BOOST_LOG_TRIVIAL(info) << Sub(state, status.info_hashes) << "Torrent finished";
 
                     boost::asio::post(
                         m_options.io,
@@ -703,7 +696,7 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
             const auto tpa = lt::alert_cast<lt::torrent_paused_alert>(alert);
 
             BOOST_LOG_TRIVIAL(debug)
-                << "session[" << state->name << "][" << tpa->handle.info_hashes() << "] paused";
+                << Sub(state, tpa->handle.info_hashes()) << "Torrent paused";
 
             boost::asio::post(m_options.io, [this, weak = std::weak_ptr(state), th = tpa->handle]()
             {
@@ -745,7 +738,7 @@ void Sessions::SaveState(const std::shared_ptr<SessionState>& state)
         return;
     }
 
-    BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Saving state for " << torrents.size() << " torrent(s) in session " << state->name;
+    BOOST_LOG_TRIVIAL(info) << Sub(state) << "Saving state for " << torrents.size() << " torrent(s) in session " << state->name;
 
     for (const auto& ts : torrents)
     {
@@ -776,7 +769,7 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
     int chunk_size = 1000;
     int chunks     = static_cast<int>(torrents.size() / chunk_size) + 1;
 
-    BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] "
+    BOOST_LOG_TRIVIAL(info) << Sub(state)
                             << "Saving resume data in " << chunks << " chunk(s) - total torrents: "
                             << torrents.size();
 
@@ -810,14 +803,13 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
             catch(const std::exception& e)
             {
                 BOOST_LOG_TRIVIAL(warning)
-                    << "session[" << state->name << "] Failed to post save resume data: "
-                    << e.what();
+                    << Sub(state) << "Failed to post save resume data: " << e.what();
             }
 
             std::advance(current, 1);
         }
 
-        BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] " 
+        BOOST_LOG_TRIVIAL(info) << Sub(state)
                                 << "Chunk " << i + 1 << " - Saving state for " << outstanding
                                 << " torrent(s) (out of " << chunk_items << ")";
 
@@ -840,10 +832,8 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
                     outstanding--;
 
                     BOOST_LOG_TRIVIAL(error)
-                        << "session[" << state->name << "] " 
-                        << "Failed to save resume data for "
-                        << fail->handle.info_hashes()
-                        << ": " << fail->message();
+                        << Sub(state, fail->handle.info_hashes())
+                        << "Failed to save resume data: " << fail->message();
 
                     continue;
                 }
@@ -887,8 +877,8 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
                 }
                 catch(const std::exception& e)
                 {
-                    BOOST_LOG_TRIVIAL(error) << "session[" << state->name << "] "
-                        << "Failed to save resume data for " << rd->params.info_hashes << ": " << e.what();
+                    BOOST_LOG_TRIVIAL(error) << Sub(state, rd->params.info_hashes)
+                        << "Failed to save resume data: " << e.what();
                 }
             }
         }
@@ -908,8 +898,8 @@ void Sessions::OnAddTorrentAlert(const SessionStatePtr& state, const lt::add_tor
             : alert->params.info_hashes;
 
         BOOST_LOG_TRIVIAL(error)
-            << "session[" << state->name << "][" << info_hash << "] "
-            << "Failed to add torrent " << name << ": " << alert->error.what();
+            << Sub(state, info_hash)
+            << "Failed to add torrent: " << alert->error.what();
 
         state->m_adding.erase(info_hash);
 
@@ -937,8 +927,8 @@ void Sessions::OnAddTorrentAlert(const SessionStatePtr& state, const lt::add_tor
     if (!inserted)
     {
         BOOST_LOG_TRIVIAL(debug)
-            << "session[" << state->name << "] Torrent " << status.name
-            << " already in session - ignoring duplicate add";
+            << Sub(state, status.info_hashes)
+            << "Torrent already in session - ignoring duplicate add";
 
         return;
     }
@@ -946,7 +936,7 @@ void Sessions::OnAddTorrentAlert(const SessionStatePtr& state, const lt::add_tor
     if (data == nullptr)
     {
         BOOST_LOG_TRIVIAL(error)
-            << "session[" << state->name << "] Torrent " << status.name << " has missing user data";
+            << Sub(state, status.info_hashes) << "Missing userdata for torrent";
     }
 
     const TorrentClientData fallback;
@@ -964,8 +954,7 @@ void Sessions::OnAddTorrentAlert(const SessionStatePtr& state, const lt::add_tor
     catch(const std::exception& e)
     {
         BOOST_LOG_TRIVIAL(error)
-            << "session[" << state->name << "] Failed to insert torrent "
-            << status.name << ": " << e.what();
+            << Sub(state, status.info_hashes) << "Failed to insert: " << e.what();
     }
 
     alert->handle.save_resume_data(
@@ -991,8 +980,7 @@ void Sessions::OnSaveResumeDataAlert(const SessionStatePtr& state, const lt::sav
     if (!alert->handle.is_valid())
     {
         BOOST_LOG_TRIVIAL(debug)
-            << "session[" << state->name << "][" << alert->params.info_hashes
-            << "] Resume data for invalid torrent - discarding";
+            << Sub(state, alert->params.info_hashes) << "Received resume data for invalid torrent";
 
         return;
     }
@@ -1016,24 +1004,15 @@ void Sessions::OnSaveResumeDataAlert(const SessionStatePtr& state, const lt::sav
             *data);
     }
 
-    BOOST_LOG_TRIVIAL(debug) << "session[" << state->name << "] Resume data saved for " << status.name;
+    BOOST_LOG_TRIVIAL(debug) << Sub(state, status.info_hashes) << "Resume data saved";
 }
 
 void Sessions::OnTorrentRemovedAlert(const SessionStatePtr& state, const lt::torrent_removed_alert* alert)
 {
-    const auto it = state->torrents.find(alert->info_hashes);
+    BOOST_LOG_TRIVIAL(info)
+        << Sub(state, alert->info_hashes) << "Torrent removed";
 
-    if (it == state->torrents.end())
-    {
-        BOOST_LOG_TRIVIAL(warning)
-            << "session[" << state->name << "] Removed alert for untracked torrent " << alert->info_hashes;
-    }
-    else
-    {
-        const auto name = it->second.name;
-        state->torrents.erase(it);
-        BOOST_LOG_TRIVIAL(info) << "session[" << state->name << "] Torrent " << name << " removed";
-    }
+    state->torrents.erase(alert->info_hashes);
 
     std::erase_if(
         state->m_oneshot_torrent_callbacks,
@@ -1051,8 +1030,8 @@ void Sessions::OnTorrentRemovedAlert(const SessionStatePtr& state, const lt::tor
     catch(const std::exception& e)
     {
         BOOST_LOG_TRIVIAL(error)
-            << "session[" << state->name << "] Failed to remove torrent "
-            << alert->info_hashes << " from database: " << e.what();
+            << Sub(state, alert->info_hashes) << "Failed to remove torrent from database: "
+            << e.what();
     }
 
     delete alert->userdata.get<TorrentClientData>();
@@ -1060,17 +1039,9 @@ void Sessions::OnTorrentRemovedAlert(const SessionStatePtr& state, const lt::tor
 
 void Sessions::OnTorrentResumedAlert(const SessionStatePtr& state, const lt::torrent_resumed_alert* alert)
 {
-    const auto it = state->torrents.find(alert->handle.info_hashes());
-
-    if (it == state->torrents.end())
-    {
-        BOOST_LOG_TRIVIAL(debug)
-            << "session[" << state->name << "][" << alert->handle.info_hashes() << "] Unknown torrent resumed";
-    }
-    else
-    {
-        BOOST_LOG_TRIVIAL(debug) << "session[" << state->name << "] Torrent " << it->second.name << " resumed";
-    }
+    BOOST_LOG_TRIVIAL(debug)
+        << Sub(state, alert->handle.info_hashes())
+        << "Torrent resumed";
 
     Emit(m_torrent_resumed, state, alert->handle);
 }
