@@ -1,5 +1,5 @@
 
-// Generated from PorlaQueryLang.g4 by ANTLR 4.13.2
+// Generated from src/query/PqlLexer.g4 by ANTLR 4.13.2
 
 #pragma once
 
@@ -9,17 +9,21 @@
 
 
 
-class  PorlaQueryLangLexer : public antlr4::Lexer {
+class  PqlLexer : public antlr4::Lexer {
 public:
   enum {
-    T__0 = 1, T__1 = 2, OR = 3, AND = 4, NOT = 5, OPER_EQ = 6, OPER_GTE = 7, 
-    OPER_GT = 8, OPER_LTE = 9, OPER_LT = 10, WHITESPACE = 11, FLOAT = 12, 
-    INT = 13, STRING = 14, QUALIFIER = 15, ID = 16
+    OR = 1, AND = 2, NOT = 3, LPAREN = 4, RPAREN = 5, FIELD = 6, STRING = 7, 
+    WORD = 8, WS = 9, V_GTE = 10, V_LTE = 11, V_GT = 12, V_LT = 13, V_EQ = 14, 
+    V_STRING = 15, V_WORD = 16, V_WS = 17
   };
 
-  explicit PorlaQueryLangLexer(antlr4::CharStream *input);
+  enum {
+    VALUE = 1
+  };
 
-  ~PorlaQueryLangLexer() override;
+  explicit PqlLexer(antlr4::CharStream *input);
+
+  ~PqlLexer() override;
 
 
   std::string getGrammarFileName() const override;

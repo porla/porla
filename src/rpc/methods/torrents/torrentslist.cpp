@@ -112,7 +112,7 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
         return cb->Error(-2, "Invalid field in 'order_by'", {{"field", order_by }});
     }
 
-    std::optional<std::function<bool(const lt::torrent_status&)>> filter_query;
+    std::optional<Query::Filter> filter_query;
 
     if (req.filters.has_value()
         && req.filters->query.has_value())
@@ -123,7 +123,7 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
         }
         catch (const Query::QueryError& qe)
         {
-            return cb->Error(-1000, qe.what(), {{"pos", qe.pos()}});
+            return cb->Error(-1000, qe.what(), {{"start", qe.start()}, {"end", qe.end()}});
         }
     }
 
@@ -148,6 +148,8 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
     std::vector<const lt::torrent_status*> torrents;
     torrents.reserve(session_state->torrents.size());
 
+    const auto now = std::time(nullptr);
+
     for (const auto& [_, ts] : session_state->torrents)
     {
         const auto& handle = ts.handle;
@@ -166,9 +168,18 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
 
         const auto client_data = handle.userdata().get<porla::TorrentClientData>();
 
-        if (filter_query.has_value() && !filter_query.value()(ts))
+        if (filter_query.has_value())
         {
-            continue;
+            const Query::QueryContext ctx{
+                .status      = ts,
+                .client_data = client_data,
+                .now         = now
+            };
+
+            if (!filter_query.value()(ctx))
+            {
+                continue;
+            }
         }
 
         if (client_data && req.filters->category.has_value() && req.filters->category.value() != client_data->category)

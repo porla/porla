@@ -5,6 +5,8 @@
 #include <libtorrent/torrent_status.hpp>
 #include <sol/sol.hpp>
 
+#include "../../query/pql.hpp"
+
 namespace porla::Lua::Types
 {
     class PoQuery
@@ -12,10 +14,10 @@ namespace porla::Lua::Types
     public:
         static void Register(sol::state& lua);
 
-        explicit PoQuery(const std::function<bool(const lt::torrent_status&)>& filter);
+        explicit PoQuery(const Query::Filter& filter);
         bool Includes(const lt::torrent_status& ts);
 
     private:
-        std::function<bool(const lt::torrent_status&)> m_filter;
+        Query::Filter m_filter;
     };
 }
