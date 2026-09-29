@@ -10,18 +10,34 @@ void PoQuery::Register(sol::state& lua)
         "PoQuery",
         sol::no_constructor,
         "includes", &PoQuery::Includes,
-        "parse", [](const std::string& pql)
+        "parse", [](const std::string& pql) -> std::tuple<std::shared_ptr<PoQuery>, std::optional<std::string>>
         {
-            return std::make_shared<PoQuery>(Query::PQL::Parse(pql));
+            try
+            {
+                auto query = Query::PQL::Parse(pql);
+                return std::make_tuple(
+                    std::make_shared<PoQuery>(query),
+                    std::nullopt);
+            }
+            catch(const std::exception& e)
+            {
+                return std::make_tuple(nullptr, e.what());
+            }
         });
 }
 
-PoQuery::PoQuery(const std::function<bool(const lt::torrent_status&)>& filter)
+PoQuery::PoQuery(const Query::Filter& filter)
     : m_filter(filter)
 {
 }
 
 bool PoQuery::Includes(const lt::torrent_status& ts)
 {
-    return m_filter(ts);
+    const Query::QueryContext ctx{
+        .status      = ts,
+        .client_data = ts.handle.userdata().get<TorrentClientData>(),
+        .now         = std::time(nullptr)
+    };
+
+    return m_filter(ctx);
 }

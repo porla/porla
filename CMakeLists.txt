@@ -22,7 +22,6 @@ include(FetchContent)
 set(CMAKE_CXX_STANDARD              20)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-
 if(NOT PORLA_CORE_TYPE)
     if(BUILD_SHARED_LIBS)
         set(PORLA_CORE_TYPE SHARED)
@@ -369,10 +368,8 @@ add_library(
     src/rpc/methods/torrents/torrentstrackersadd.cpp
     src/rpc/methods/torrents/torrentstrackerslist.cpp
 
-    src/query/_aux/PorlaQueryLangBaseVisitor.cpp
-    src/query/_aux/PorlaQueryLangLexer.cpp
-    src/query/_aux/PorlaQueryLangParser.cpp
-    src/query/_aux/PorlaQueryLangVisitor.cpp
+    src/query/_aux/PqlLexer.cpp
+    src/query/_aux/PqlParser.cpp
     src/query/pql.cpp
 
     src/utils/ratio.cpp
@@ -429,3 +426,10 @@ target_link_libraries(
     ${PROJECT_NAME}_core
     porla_lua
 )
+
+option(PORLA_BUILD_TESTS "Build porla unit tests" OFF)
+
+if(PORLA_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

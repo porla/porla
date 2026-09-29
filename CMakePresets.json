@@ -22,6 +22,12 @@
       }
     },
     {
+      "name": "debug-tests",
+      "displayName": "Debug + tests",
+      "inherits": "debug",
+      "cacheVariables": { "PORLA_BUILD_TESTS": "ON" }
+    },
+    {
       "name": "release",
       "displayName": "Release",
       "inherits": "base",
@@ -52,7 +58,20 @@
   ],
   "buildPresets": [
     { "name": "debug",         "configurePreset": "debug" },
+    { "name": "debug-tests",   "configurePreset": "debug-tests" },
     { "name": "release",       "configurePreset": "release" },
     { "name": "alpine-static", "configurePreset": "alpine-static" }
+  ],
+  "testPresets": [
+    {
+      "name": "unit",
+      "configurePreset": "debug-tests",
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": { "label": "unit" }
+      }
+    }
   ]
 }
