@@ -11,7 +11,15 @@ void LtTorrentInfo::Register(sol::state& lua)
         "LtTorrentInfo",
         sol::no_constructor,
         "info_hash",   &lt::torrent_info::info_hashes,
-        "layout",      &lt::torrent_info::layout,
+        "layout", [](const std::shared_ptr<const lt::torrent_info>& ti)
+        {
+            if (!ti->is_valid())
+            {
+                throw sol::error("torrent has no metadata");
+            }
+
+            return std::shared_ptr<const lt::file_storage>(ti, &ti->layout());
+        },
         "name",        &lt::torrent_info::name,
         "num_files",   &lt::torrent_info::num_files,
         "num_pieces",  &lt::torrent_info::num_pieces,
