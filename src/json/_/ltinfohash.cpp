@@ -112,7 +112,7 @@ namespace libtorrent
 
                 lt::sha256_hash v2;
 
-                if (!porla::Utils::FromHex(h2, v2.data(), v1.size()))
+                if (!porla::Utils::FromHex(h2, v2.data(), v2.size()))
                 {
                     throw std::invalid_argument(
                         "info hash " + h2 + " contains invalid hex characters");
