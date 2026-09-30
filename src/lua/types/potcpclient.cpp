@@ -59,7 +59,9 @@ void PoTcpClient::Close()
 
 void PoTcpClient::Connect(const std::string& host, int port, sol::main_protected_function callback)
 {
-    auto state       = m_state.lock();
+    auto state = m_state.lock();
+    if (state == nullptr) { return; }
+
     auto callback_id = state->RegisterCallback(callback, true);
 
     m_connect_host = host;
@@ -103,10 +105,17 @@ void PoTcpClient::Read(sol::main_protected_function callback)
     auto state = m_state.lock();
     if (state == nullptr) { return; }
 
+    if (m_read_pending)
+    {
+        throw sol::error("a read operation is already in progress");
+    }
+
     if (m_read_buffer.size() < 8192)
     {
         m_read_buffer.resize(8192);
     }
+
+    m_read_pending = true;
 
     const auto callback_id = state->RegisterCallback(callback, true);
     const auto handler     = std::bind_front(&PoTcpClient::ReadComplete, shared_from_this(), callback_id);
@@ -124,6 +133,8 @@ void PoTcpClient::Read(sol::main_protected_function callback)
 
 void PoTcpClient::ReadComplete(std::size_t callback_id, const boost::system::error_code& ec, std::size_t n)
 {
+    m_read_pending = false;
+
     auto state = m_state.lock();
     if (state == nullptr) { return; }
 
@@ -142,6 +153,11 @@ void PoTcpClient::ReadExactly(std::size_t n, sol::main_protected_function callba
 {
     auto state = m_state.lock();
     if (state == nullptr) { return; }
+
+    if (m_read_pending)
+    {
+        throw sol::error("a read operation is already in progress");
+    }
 
     m_read_buffer.resize(n);
     m_read_pending = true;
