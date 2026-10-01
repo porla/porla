@@ -58,13 +58,25 @@ namespace porla::Rpc::Methods
     {
         struct AuthInitReq;
         struct AuthInitRes;
+        struct AuthKeysCreateReq;
+        struct AuthKeysCreateRes;
+        struct AuthKeysListReq;
+        struct AuthKeysListRes;
+        struct AuthKeysRemoveReq;
+        struct AuthKeysRemoveRes;
         struct AuthLoginReq;
         struct AuthLoginRes;
 
         void from_json(const nlohmann::json& json, AuthInitReq& req);
+        void from_json(const nlohmann::json& json, AuthKeysCreateReq& req);
+        void from_json(const nlohmann::json& json, AuthKeysListReq& req);
+        void from_json(const nlohmann::json& json, AuthKeysRemoveReq& req);
         void from_json(const nlohmann::json& json, AuthLoginReq& req);
 
         void to_json(nlohmann::json& json, const AuthInitRes& res);
+        void to_json(nlohmann::json& json, const AuthKeysCreateRes& res);
+        void to_json(nlohmann::json& json, const AuthKeysListRes& res);
+        void to_json(nlohmann::json& json, const AuthKeysRemoveRes& res);
         void to_json(nlohmann::json& json, const AuthLoginRes& res);
     }
 

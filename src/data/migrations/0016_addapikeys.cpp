@@ -16,7 +16,7 @@ int AddApiKeys::Migrate(sqlite3* db)
             name        TEXT NOT NULL,
             secret_hash BLOB NOT NULL,
             created_at  INTEGER NOT NULL,
-            expired_at  INTEGER
+            expires_at  INTEGER
         );
         )sql",
         nullptr,
