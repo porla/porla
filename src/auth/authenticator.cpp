@@ -1,6 +1,7 @@
 #include "authenticator.hpp"
 
 #include <boost/algorithm/string.hpp>
+#include <boost/log/trivial.hpp>
 #include <jwt-cpp/traits/nlohmann-json/defaults.h>
 #include <jwt-cpp/jwt.h>
 #include <nlohmann/json.hpp>
@@ -104,7 +105,14 @@ Context Authenticator::Authenticate(uWS::HttpRequest* req) const
 
     if (bearer_token->starts_with("porla_"))
     {
-        return DecodeApiKey(bearer_token.value());
+        try
+        {
+            return DecodeApiKey(bearer_token.value());
+        }
+        catch(const std::exception& e)
+        {
+            BOOST_LOG_TRIVIAL(error) << "Failed to decode API key: " << e.what();
+        }
     }
 
     return {};
