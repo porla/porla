@@ -46,11 +46,25 @@ void AuthKeysCreate::Execute(const AuthKeysCreateReq& req, ResponseWriterHandle 
 
     secret_encoded.resize(secret_encoded_len - 1);
 
+    unsigned char secret_hashed[crypto_generichash_BYTES];
+
+    crypto_generichash(
+        secret_hashed,
+        sizeof(secret_hashed),
+        key_secret,
+        sizeof(key_secret),
+        nullptr,
+        0);
+
+    sodium_memzero(key_secret, sizeof(key_secret));
+
     ApiKeys::Insert(
         m_db,
         key_id,
         req.name,
-        secret_encoded,
+        std::vector<char>(
+            reinterpret_cast<char*>(secret_hashed),
+            reinterpret_cast<char*>(secret_hashed) + sizeof(secret_hashed)),
         req.expires_at);
 
     BOOST_LOG_TRIVIAL(info) << "New API key created";

@@ -23,7 +23,7 @@ namespace porla::Data::Models
             sqlite3* db,
             std::string_view id,
             std::string_view name,
-            std::string_view secret_hash,
+            std::vector<char> secret_hash,
             std::optional<std::int64_t> expires_at);
 
         static std::vector<ApiKey> List(sqlite3* db);

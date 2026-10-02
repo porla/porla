@@ -20,6 +20,7 @@
 #include "rpc/methods/auth/authinit.hpp"
 #include "rpc/methods/auth/authkeyscreate.hpp"
 #include "rpc/methods/auth/authkeyslist.hpp"
+#include "rpc/methods/auth/authkeysremove.hpp"
 #include "rpc/methods/auth/authlogin.hpp"
 #include "rpc/methods/fs/fsspace.hpp"
 #include "rpc/methods/kv/keyvalueget.hpp"
@@ -181,6 +182,7 @@ int main(int argc, char* argv[])
         jsonrpc->Register("auth.init",                 std::make_shared<porla::Rpc::Methods::Auth::AuthInit>(io, sodium_hash_pool, cfg->db));
         jsonrpc->Register("auth.keys.create",          std::make_shared<porla::Rpc::Methods::Auth::AuthKeysCreate>(cfg->db));
         jsonrpc->Register("auth.keys.list",            std::make_shared<porla::Rpc::Methods::Auth::AuthKeysList>(cfg->db));
+        jsonrpc->Register("auth.keys.remove",          std::make_shared<porla::Rpc::Methods::Auth::AuthKeysRemove>(cfg->db));
         jsonrpc->Register("auth.login",                std::make_shared<porla::Rpc::Methods::Auth::AuthLogin>(io, sodium_hash_pool, cfg->db, cfg->secret_key));
         jsonrpc->Register("fs.space",                  std::make_shared<porla::Rpc::Methods::Fs::FsSpace>());
         jsonrpc->Register("kv.get",                    std::make_shared<porla::Rpc::Methods::Kv::KeyValueGet>(cfg->db));

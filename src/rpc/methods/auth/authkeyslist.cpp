@@ -14,13 +14,15 @@ AuthKeysList::AuthKeysList(sqlite3* db)
 
 void AuthKeysList::Execute(const AuthKeysListReq& req, ResponseWriterHandle cb)
 {
-    std::vector<AuthKeysListRes::Key> output_keys;
-
     const auto keys = ApiKeys::List(m_db);
+
+    std::vector<AuthKeysListRes::Key> output_keys;
+    output_keys.reserve(keys.size());
+
     std::transform(
         keys.begin(),
         keys.end(),
-        output_keys.begin(),
+        std::back_inserter(output_keys),
         [](const ApiKeys::ApiKey& model)
         {
             return AuthKeysListRes::Key{
