@@ -173,7 +173,7 @@ function webui.install(version, callback)
 
     local url = string.format("https://api.github.com/repos/%s/%s/releases/%s", owner, repository, version)
 
-    print("Installing Web UI from {}", url)
+    print("Installing Web UI from", url)
 
     http_client.request(url, handle_release_request(callback, owner, repository), http_client_opts)
 end
@@ -183,7 +183,7 @@ function webui.load_archive(path)
     local archive = io.open(path, "rb")
 
     if not archive then
-        print("Failed to open archive file: {}", path)
+        print("Failed to open archive file", path)
         return false
     end
 
@@ -194,7 +194,7 @@ function webui.load_archive(path)
     local files, err = zip.read(buffer)
 
     if err then
-        print("Failed to read archive: {}", err)
+        print("Failed to read archive", err)
         return false
     end
 
@@ -214,7 +214,7 @@ function webui.load()
     if type(current_webui) ~= "string" or not fs.exists(current_webui) then
         webui.install("latest", function(err, file)
             if err then
-                return print("Failed to install web UI: {}", err)
+                return print("Failed to install web UI", err)
             end
 
             if not webui.load_archive(file) then
