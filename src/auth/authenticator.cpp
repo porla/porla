@@ -154,11 +154,12 @@ Context Authenticator::DecodeApiKey(const std::string& key) const
 
     sodium_memzero(secret, sizeof(secret));
 
-    const auto candidate = ApiKeys::GetSecretHashById(m_db, key_id);
+    const auto candidate = ApiKeys::GetById(m_db, key_id);
 
     if (!candidate.has_value()
-        || candidate->size() != sizeof(hashed_secret)
-        || sodium_memcmp(candidate->data(), hashed_secret, sizeof(hashed_secret)) != 0)
+        || (candidate->expires_at.has_value() && candidate->expires_at.value() < std::time(nullptr))
+        || candidate->secret_hash.size() != sizeof(hashed_secret)
+        || sodium_memcmp(candidate->secret_hash.data(), hashed_secret, sizeof(hashed_secret)) != 0)
     {
         return {};
     }

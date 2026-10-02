@@ -10,23 +10,24 @@ namespace
     ApiKeys::ApiKey LoadFromRow(const Statement::IRow& row)
     {
         return ApiKeys::ApiKey{
-            .id         = row.GetStdString("id"),
-            .name       = row.GetStdString("name"),
-            .created_at = row.GetInt64("created_at"),
-            .expires_at = row.GetOptionalInt64("expires_at")
+            .id          = row.GetStdString("id"),
+            .name        = row.GetStdString("name"),
+            .secret_hash = row.GetBuffer("secret_hash"),
+            .created_at  = row.GetInt64("created_at"),
+            .expires_at  = row.GetOptionalInt64("expires_at")
         };
     }
 }
 
-std::optional<std::vector<char>> ApiKeys::GetSecretHashById(sqlite3* db, std::string_view id)
+std::optional<ApiKeys::ApiKey> ApiKeys::GetById(sqlite3* db, std::string_view id)
 {
-    std::optional<std::vector<char>> result;
+    std::optional<ApiKey> result;
 
-    Statement::Prepare(db, "SELECT secret_hash FROM apikeys WHERE id = $id")
+    Statement::Prepare(db, "SELECT id,name,secret_hash,created_at,expires_at FROM apikeys WHERE id = $id")
         .Bind("$id", id)
         .Step([&result](const Statement::IRow& row)
         {
-            result = row.GetBuffer("secret_hash");
+            result = LoadFromRow(row);
             return SQLITE_OK;
         });
 
@@ -73,7 +74,7 @@ std::vector<ApiKeys::ApiKey> ApiKeys::List(sqlite3* db)
     auto stmt = Statement::Prepare(
         db,
         R"sql(
-        SELECT id,name,created_at,expires_at FROM apikeys ORDER BY name ASC
+        SELECT id,name,secret_hash,created_at,expires_at FROM apikeys ORDER BY name ASC
         )sql");
 
     stmt.Step([&result](const auto& row)
