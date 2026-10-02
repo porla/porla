@@ -32,6 +32,11 @@ namespace porla::Rpc::Methods::Plugins
             const std::filesystem::path& state_dir);
 
     protected:
+        bool CanInvoke(const porla::Auth::Context& auth_ctx) override
+        {
+            return auth_ctx.IsAuthenticated() && auth_ctx.kind == porla::Auth::Context::Kind::User;
+        }
+
         boost::asio::awaitable<void> ExecuteAsync(PluginsInstallReq req, ResponseWriterHandle cb) override;
 
     private:
