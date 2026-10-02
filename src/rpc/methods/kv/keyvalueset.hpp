@@ -21,6 +21,11 @@ namespace porla::Rpc::Methods::Kv
             boost::signals2::signal<void(const std::unordered_set<std::string>&)>& kv_updated);
 
     protected:
+        bool CanInvoke(const porla::Auth::Context& auth_ctx) override
+        {
+            return auth_ctx.IsAuthenticated() && auth_ctx.kind == porla::Auth::Context::Kind::User;
+        }
+
         void Execute(const KeyValueSetReq& req, ResponseWriterHandle cb) override;
 
     private:

@@ -19,6 +19,11 @@ namespace porla::Rpc::Methods::Plugins
         explicit PluginsList(sqlite3* db, porla::Lua::PluginEngine& plugin_engine);
 
     protected:
+        bool CanInvoke(const porla::Auth::Context& auth_ctx) override
+        {
+            return auth_ctx.IsAuthenticated() && auth_ctx.kind == porla::Auth::Context::Kind::User;
+        }
+
         void Execute(const PluginsListReq& req, ResponseWriterHandle cb) override;
 
     private:

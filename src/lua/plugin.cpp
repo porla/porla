@@ -33,6 +33,7 @@
 #include "types/ltaddtorrentparams.hpp"
 #include "types/ltfilenames.hpp"
 #include "types/ltrenamedfiles.hpp"
+#include "types/poauthcontext.hpp"
 #include "types/pocancellable.hpp"
 #include "types/pohttpformfile.hpp"
 #include "types/pohttpserverresponse.hpp"
@@ -115,6 +116,7 @@ struct Plugin::State
         Types::LtTorrentStatus::Register(lua);
 
         // Porla wrapper types
+        Types::PoAuthContext::Register(lua);
         Types::PoCancellable::Register(lua);
         Types::PoHttpFormFile::Register(lua);
         Types::PoHttpServerResponse::Register(lua);

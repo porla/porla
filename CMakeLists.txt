@@ -191,7 +191,9 @@ add_library(
     src/data/migrations/0013_addkeyvaluestore.cpp
     src/data/migrations/0014_morepresets.cpp
     src/data/migrations/0015_addtorrentparamsindex.cpp
+    src/data/migrations/0016_addapikeys.cpp
     src/data/models/addtorrentparams.cpp
+    src/data/models/apikeys.cpp
     src/data/models/keyvaluestore.cpp
     src/data/models/plugins.cpp
     src/data/models/presets.cpp
@@ -200,6 +202,9 @@ add_library(
     src/data/statement.cpp
 
     src/json/_/authinit.cpp
+    src/json/_/authkeyscreate.cpp
+    src/json/_/authkeyslist.cpp
+    src/json/_/authkeysremove.cpp
     src/json/_/authlogin.cpp
     src/json/_/errorcode.cpp
     src/json/_/fsspace.cpp
@@ -291,6 +296,7 @@ add_library(
     src/lua/types/lttorrentinfo.cpp
     src/lua/types/lttorrenthandle.cpp
     src/lua/types/lttorrentstatus.cpp
+    src/lua/types/poauthcontext.cpp
     src/lua/types/pocancellable.cpp
     src/lua/types/poerror.cpp
     src/lua/types/pojson.cpp
@@ -314,6 +320,9 @@ add_library(
 
     src/rpc/jsonrpc.cpp
     src/rpc/methods/auth/authinit.cpp
+    src/rpc/methods/auth/authkeyscreate.cpp
+    src/rpc/methods/auth/authkeyslist.cpp
+    src/rpc/methods/auth/authkeysremove.cpp
     src/rpc/methods/auth/authlogin.cpp
     src/rpc/methods/fs/fsspace.cpp
     src/rpc/methods/kv/keyvalueget.cpp

@@ -1,9 +1,16 @@
 local jsonrpc = require("porla_jsonrpc")
 local webui   = require("webui")
 
+local function is_valid_version(version)
+    return type(version) == "string"
+        and #version <= 64
+        and version:match("^[a-zA-Z0-9][a-zA-Z0-9.%-]*$") ~= nil
+        and version:find("..", 1, true) == nil
+end
+
 return function()
     jsonrpc.register("webui.install", function(params, res)
-        if type(params.version) ~= "string" then
+        if not is_valid_version(params.version) then
             return res:error(-1, "Missing or invalid version")
         end
 
