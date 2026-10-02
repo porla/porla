@@ -8,10 +8,30 @@ using porla::Lua::Packages::JsonRpc;
 
 struct LuaMethod : public porla::Rpc::Method
 {
-    explicit LuaMethod(std::size_t callback_id, std::weak_ptr<LuaState> state)
+    explicit LuaMethod(std::size_t callback_id, std::weak_ptr<LuaState> state, std::optional<sol::main_protected_function> can_invoke)
         : m_callback_id(callback_id)
         , m_state(state)
+        , m_can_invoke(can_invoke)
     {
+    }
+
+    bool CanInvoke(const porla::Auth::Context& ctx) override
+    {
+        if (!m_can_invoke.has_value())
+        {
+            return ctx.IsAuthenticated() && ctx.kind == porla::Auth::Context::Kind::User;
+        }
+
+        sol::protected_function_result result = m_can_invoke.value()(ctx);
+
+        if (!result.valid())
+        {
+            sol::error err = result;
+            BOOST_LOG_TRIVIAL(error) << "Failed to run CanInvoke callback for JSONRPC method: " << err.what();
+            return false;
+        }
+
+        return result.get<bool>();
     }
 
     void Invoke(const nlohmann::json& body, porla::Rpc::ResponseWriterHandle writer) override
@@ -31,8 +51,9 @@ struct LuaMethod : public porla::Rpc::Method
     }
 
 private:
-    std::size_t             m_callback_id;
-    std::weak_ptr<LuaState> m_state;
+    std::size_t                                 m_callback_id;
+    std::weak_ptr<LuaState>                     m_state;
+    std::optional<sol::main_protected_function> m_can_invoke;
 };
 
 sol::object JsonRpc::Load(sol::this_state ts)
@@ -41,7 +62,7 @@ sol::object JsonRpc::Load(sol::this_state ts)
 
     sol::table tbl = lua.create_table();
 
-    tbl.set_function("register", [](sol::this_state ts, const std::string& method, sol::main_protected_function callback)
+    tbl.set_function("register", [](sol::this_state ts, const std::string& method, sol::main_protected_function callback,  std::optional<sol::main_protected_function> can_invoke)
     {
         sol::state_view lua(ts);
 
@@ -55,7 +76,7 @@ sol::object JsonRpc::Load(sol::this_state ts)
 
         const auto callback_id = state->RegisterCallback(callback, false);
 
-        if (!jsonrpc->Register(method, std::make_shared<LuaMethod>(callback_id, state)))
+        if (!jsonrpc->Register(method, std::make_shared<LuaMethod>(callback_id, state, can_invoke)))
         {
             state->RemoveCallback(callback_id);
             throw sol::error("jsonrpc method '" + method + "' is already registered");

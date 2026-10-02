@@ -296,6 +296,7 @@ add_library(
     src/lua/types/lttorrentinfo.cpp
     src/lua/types/lttorrenthandle.cpp
     src/lua/types/lttorrentstatus.cpp
+    src/lua/types/poauthcontext.cpp
     src/lua/types/pocancellable.cpp
     src/lua/types/poerror.cpp
     src/lua/types/pojson.cpp
