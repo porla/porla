@@ -13,5 +13,5 @@ namespace porla::Rpc::Methods::Auth
     NLOHMANN_JSONIFY_ALL_THINGS(
         AuthKeysCreateRes,
         id,
-        secret)
+        key)
 }

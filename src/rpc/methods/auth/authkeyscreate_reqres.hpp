@@ -14,6 +14,6 @@ namespace porla::Rpc::Methods::Auth
     struct AuthKeysCreateRes
     {
         std::string id;
-        std::string secret;
+        std::string key;
     };
 }

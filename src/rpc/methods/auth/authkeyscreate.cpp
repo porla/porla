@@ -80,7 +80,7 @@ void AuthKeysCreate::Execute(const AuthKeysCreateReq& req, ResponseWriterHandle 
     BOOST_LOG_TRIVIAL(info) << "API key " << req.name << " created with ID " << key_id;
 
     cb->Ok(AuthKeysCreateRes{
-        .id     = key_id,
-        .secret = secret_encoded
+        .id  = key_id,
+        .key = "porla_" + std::string(key_id) + "_" + secret_encoded
     });
 }
