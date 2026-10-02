@@ -17,6 +17,11 @@ struct LuaMethod : public porla::Rpc::Method
 
     bool CanInvoke(const porla::Auth::Context& ctx) override
     {
+        if (m_state.expired())
+        {
+            return false;
+        }
+
         if (!m_can_invoke.has_value())
         {
             return ctx.IsAuthenticated() && ctx.kind == porla::Auth::Context::Kind::User;
@@ -31,7 +36,15 @@ struct LuaMethod : public porla::Rpc::Method
             return false;
         }
 
-        return result.get<bool>();
+        const auto allowed = result.get<sol::optional<bool>>();
+
+        if (!allowed.has_value())
+        {
+            BOOST_LOG_TRIVIAL(error) << "CanInvoke callback for JSONRPC method did not return a boolean";
+            return false;
+        }
+
+        return allowed.value();
     }
 
     void Invoke(const nlohmann::json& body, porla::Rpc::ResponseWriterHandle writer) override
@@ -82,12 +95,9 @@ sol::object JsonRpc::Load(sol::this_state ts)
             throw sol::error("jsonrpc method '" + method + "' is already registered");
         }
 
-        state->destructors.emplace_back([weak, method]()
+        state->destructors.emplace_back([jsonrpc_weak = state->jsonrpc, method]()
         {
-            auto state = weak.lock();
-            if (!state) { return; }
-
-            auto jsonrpc = state->jsonrpc.lock();
+            auto jsonrpc = jsonrpc_weak.lock();
             if (!jsonrpc) { return; }
 
             jsonrpc->Unregister(method);
