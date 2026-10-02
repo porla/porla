@@ -72,7 +72,7 @@ void AuthKeysCreate::Execute(const AuthKeysCreateReq& req, ResponseWriterHandle 
             reinterpret_cast<char*>(secret_hashed) + sizeof(secret_hashed)),
         req.expires_at);
 
-    BOOST_LOG_TRIVIAL(info) << "New API key created";
+    BOOST_LOG_TRIVIAL(info) << "API key " << req.name << " created with ID " << key_id;
 
     cb->Ok(AuthKeysCreateRes{
         .id     = key_id,

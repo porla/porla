@@ -20,5 +20,5 @@ void AuthKeysRemove::Execute(const AuthKeysRemoveReq& req, ResponseWriterHandle 
 
     BOOST_LOG_TRIVIAL(info) << "API key " << req.id << " removed";
 
-    cb->Ok({});
+    cb->Ok(AuthKeysRemoveRes{});
 }
