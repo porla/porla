@@ -17,6 +17,11 @@ AuthKeysCreate::AuthKeysCreate(sqlite3* db)
 
 void AuthKeysCreate::Execute(const AuthKeysCreateReq& req, ResponseWriterHandle cb)
 {
+    if (req.name.empty() || req.name.size() > 1024)
+    {
+        return cb->Error(-1, "Invalid name - length must be between 1-1024");
+    }
+
     unsigned char key_id_bin[8];
     char          key_id[sizeof(key_id_bin) * 2 + 1];
     unsigned char key_secret[32];
