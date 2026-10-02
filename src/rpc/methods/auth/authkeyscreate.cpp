@@ -3,6 +3,9 @@
 #include <boost/log/trivial.hpp>
 #include <sodium.h>
 
+#include "../../../data/models/apikeys.hpp"
+
+using porla::Data::Models::ApiKeys;
 using porla::Rpc::Methods::Auth::AuthKeysCreate;
 using porla::Rpc::Methods::Auth::AuthKeysCreateReq;
 using porla::Rpc::Methods::Auth::AuthKeysCreateRes;
@@ -42,6 +45,13 @@ void AuthKeysCreate::Execute(const AuthKeysCreateReq& req, ResponseWriterHandle 
         sodium_base64_VARIANT_URLSAFE_NO_PADDING);
 
     secret_encoded.resize(secret_encoded_len - 1);
+
+    ApiKeys::Insert(
+        m_db,
+        key_id,
+        req.name,
+        secret_encoded,
+        req.expires_at);
 
     BOOST_LOG_TRIVIAL(info) << "New API key created";
 
