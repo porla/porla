@@ -105,8 +105,6 @@ FetchContent_MakeAvailable(
     uSockets
     uWebSockets)
 
-add_subdirectory(vendor/fmt)
-
 find_package(Boost               CONFIG COMPONENTS log program_options system)
 find_package(OpenSSL             REQUIRED)
 find_package(SQLite3             REQUIRED)
@@ -411,7 +409,6 @@ target_link_libraries(
     torrent-rasterbar
 
     Boost::boost Boost::log Boost::program_options
-    fmt::fmt
     OpenSSL::SSL
     OpenSSL::Crypto
     SQLite::SQLite3
