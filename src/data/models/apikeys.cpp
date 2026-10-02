@@ -5,6 +5,19 @@
 using porla::Data::Models::ApiKeys;
 using porla::Data::Statement;
 
+namespace
+{
+    ApiKeys::ApiKey LoadFromRow(const Statement::IRow& row)
+    {
+        return ApiKeys::ApiKey{
+            .id         = row.GetStdString("id"),
+            .name       = row.GetStdString("name"),
+            .created_at = row.GetInt64("created_at"),
+            .expires_at = row.GetOptionalInt64("expires_at")
+        };
+    }
+}
+
 void ApiKeys::Insert(
     sqlite3* db,
     std::string_view id,
@@ -36,4 +49,34 @@ void ApiKeys::Insert(
     stmt.Bind("$secret_hash", secret_hash);
     stmt.Bind("$expires_at", expires_at);
     stmt.Execute();
+}
+
+std::vector<ApiKeys::ApiKey> ApiKeys::List(sqlite3* db)
+{
+    std::vector<ApiKey> result;
+
+    auto stmt = Statement::Prepare(
+        db,
+        R"sql(
+        SELECT id,name,created_at,expires_at FROM apikeys ORDER BY name ASC
+        )sql");
+
+    stmt.Step([&result](const auto& row)
+    {
+        result.emplace_back(LoadFromRow(row));
+        return SQLITE_OK;
+    });
+
+    return result;
+}
+
+void ApiKeys::Remove(sqlite3* db, std::string_view id)
+{
+    Statement::Prepare(
+        db,
+        R"sql(
+        DELETE FROM apikeys WHERE id = $id;
+        )sql")
+        .Bind("$id", id)
+        .Execute();
 }

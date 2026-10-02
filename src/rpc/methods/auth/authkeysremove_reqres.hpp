@@ -4,7 +4,7 @@ namespace porla::Rpc::Methods::Auth
 {
     struct AuthKeysRemoveReq
     {
-        int id;
+        std::string id;
     };
 
     struct AuthKeysRemoveRes

@@ -15,4 +15,8 @@ namespace porla::Rpc::Methods::Auth
         name,
         created_at,
         expires_at)
+
+    NLOHMANN_JSONIFY_ALL_THINGS(
+        AuthKeysListRes,
+        keys)
 }
