@@ -4,11 +4,14 @@
 #include <jwt-cpp/traits/nlohmann-json/defaults.h>
 #include <jwt-cpp/jwt.h>
 #include <nlohmann/json.hpp>
+#include <sodium.h>
 
+#include "../data/models/apikeys.hpp"
 #include "../utils/string.hpp"
 
 using porla::Auth::Authenticator;
 using porla::Auth::Context;
+using porla::Data::Models::ApiKeys;
 using porla::Utils::String;
 
 namespace
@@ -99,7 +102,71 @@ Context Authenticator::Authenticate(uWS::HttpRequest* req) const
         return DecodeJwt(bearer_token.value());
     }
 
+    if (bearer_token->starts_with("porla_"))
+    {
+        return DecodeApiKey(bearer_token.value());
+    }
+
     return {};
+}
+
+Context Authenticator::DecodeApiKey(const std::string& key) const
+{
+    // porla_<16 hex>_<43 base64url
+    constexpr size_t kIdLen = 16, kSecretLen = 43;
+
+    if (key.size() != 6 + kIdLen + 1 + kSecretLen
+        || key[6 + kIdLen] != '_')
+    {
+        return {};
+    }
+
+    const auto key_id         = key.substr(6, kIdLen);
+    const auto key_secret_b64 = key.substr(6 + kIdLen + 1);
+
+    unsigned char secret[32];
+    size_t        secret_len = 0;
+
+    const auto decode_result = sodium_base642bin(
+        secret,
+        sizeof(secret),
+        key_secret_b64.c_str(),
+        key_secret_b64.size(),
+        nullptr,
+        &secret_len,
+        nullptr,
+        sodium_base64_VARIANT_URLSAFE_NO_PADDING);
+
+    if (decode_result != 0 || secret_len != sizeof(secret))
+    {
+        return {};
+    }
+
+    unsigned char hashed_secret[crypto_generichash_BYTES];
+
+    crypto_generichash(
+        hashed_secret,
+        sizeof(hashed_secret),
+        secret,
+        sizeof(secret),
+        nullptr,
+        0);
+
+    sodium_memzero(secret, sizeof(secret));
+
+    const auto candidate = ApiKeys::GetSecretHashById(m_db, key_id);
+
+    if (!candidate.has_value()
+        || candidate->size() != sizeof(hashed_secret)
+        || sodium_memcmp(candidate->data(), hashed_secret, sizeof(hashed_secret)) != 0)
+    {
+        return {};
+    }
+
+    return Context{
+        .kind    = Context::Kind::Machine,
+        .subject = key_id
+    };
 }
 
 Context Authenticator::DecodeJwt(const std::string& encoded_token) const

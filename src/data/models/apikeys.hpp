@@ -17,6 +17,8 @@ namespace porla::Data::Models
             std::optional<std::int64_t> expires_at;
         };
 
+        static std::optional<std::vector<char>> GetSecretHashById(sqlite3* db, std::string_view id);
+
         static void Insert(
             sqlite3* db,
             std::string_view id,

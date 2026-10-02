@@ -18,6 +18,21 @@ namespace
     }
 }
 
+std::optional<std::vector<char>> ApiKeys::GetSecretHashById(sqlite3* db, std::string_view id)
+{
+    std::optional<std::vector<char>> result;
+
+    Statement::Prepare(db, "SELECT secret_hash FROM apikeys WHERE id = $id")
+        .Bind("$id", id)
+        .Step([&result](const Statement::IRow& row)
+        {
+            result = row.GetBuffer("secret_hash");
+            return SQLITE_OK;
+        });
+
+    return result;
+}
+
 void ApiKeys::Insert(
     sqlite3* db,
     std::string_view id,

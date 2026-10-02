@@ -17,6 +17,7 @@ namespace porla::Auth
         Context Authenticate(uWS::HttpRequest* req) const;
 
     private:
+        Context DecodeApiKey(const std::string& key) const;
         Context DecodeJwt(const std::string& encoded_token) const;
 
         sqlite3*    m_db;
