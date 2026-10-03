@@ -375,11 +375,9 @@ Config::~Config()
 {
     if (db != nullptr)
     {
-        BOOST_LOG_TRIVIAL(debug) << "Vacuuming database";
-
-        if (sqlite3_exec(db, "VACUUM;", nullptr, nullptr, nullptr) != SQLITE_OK)
+        if (sqlite3_exec(db, "PRAGMA wal_checkpoint(TRUNCATE);", nullptr, nullptr, nullptr) != SQLITE_OK)
         {
-            BOOST_LOG_TRIVIAL(error) << "Failed to vacuum database: " << sqlite3_errmsg(db);
+            BOOST_LOG_TRIVIAL(warning) << "Failed to checkpoint WAL: " << sqlite3_errmsg(db);
         }
 
         if (sqlite3_close(db) != SQLITE_OK)
