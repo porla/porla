@@ -208,10 +208,12 @@ void AddTorrentParams::Remove(sqlite3 *db, const int session_id, const lt::info_
         db,
         R"sql(
         DELETE FROM addtorrentparams
-        WHERE ((info_hash_v1 = $info_hash_v1 AND info_hash_v2 IS NULL)
-           OR (info_hash_v1 IS NULL AND info_hash_v2 = $info_hash_v2)
-           OR (info_hash_v1 = $info_hash_v1 AND info_hash_v2 = $info_hash_v2))
-        AND session_id = $session_id;
+        WHERE
+            (session_id = $session_id AND info_hash_v1 = $info_hash_v1
+                AND (info_hash_v2 IS NULL OR info_hash_v2 = $info_hash_v2))
+            OR
+            (session_id = $session_id AND info_hash_v2 = $info_hash_v2
+                AND (info_hash_v1 IS NULL OR info_hash_v1 = $info_hash_v1))
         )sql");
 
     stmt
@@ -233,12 +235,11 @@ void AddTorrentParams::Update(sqlite3 *db, const int session_id, const lt::info_
             queue_position = $queue_position,
             params         = $params
         WHERE
-            (
-                (info_hash_v1 = $info_hash_v1 AND info_hash_v2 IS NULL)
-                OR (info_hash_v1 IS NULL AND info_hash_v2 = $info_hash_v2)
-                OR (info_hash_v1 = $info_hash_v1 AND info_hash_v2 = $info_hash_v2)
-            )
-            AND session_id = $session_id;
+            (session_id = $session_id AND info_hash_v1 = $info_hash_v1
+                AND (info_hash_v2 IS NULL OR info_hash_v2 = $info_hash_v2))
+            OR
+            (session_id = $session_id AND info_hash_v2 = $info_hash_v2
+                AND (info_hash_v1 IS NULL OR info_hash_v1 = $info_hash_v1))
         )sql");
 
     stmt
@@ -267,12 +268,11 @@ void AddTorrentParams::UpdateClientData(sqlite3 *db, const int session_id, const
         SET
             userdata       = $userdata
         WHERE
-            (
-                (info_hash_v1 = $info_hash_v1 AND info_hash_v2 IS NULL)
-                OR (info_hash_v1 IS NULL AND info_hash_v2 = $info_hash_v2)
-                OR (info_hash_v1 = $info_hash_v1 AND info_hash_v2 = $info_hash_v2)
-            )
-            AND session_id = $session_id;
+            (session_id = $session_id AND info_hash_v1 = $info_hash_v1
+                AND (info_hash_v2 IS NULL OR info_hash_v2 = $info_hash_v2))
+            OR
+            (session_id = $session_id AND info_hash_v2 = $info_hash_v2
+                AND (info_hash_v1 IS NULL OR info_hash_v1 = $info_hash_v1))
         )sql");
 
     stmt

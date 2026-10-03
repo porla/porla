@@ -198,6 +198,7 @@ add_library(
     src/data/models/sessions.cpp
     src/data/models/users.cpp
     src/data/statement.cpp
+    src/data/transaction.cpp
 
     src/json/_/authinit.cpp
     src/json/_/authkeyscreate.cpp

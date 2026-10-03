@@ -11,6 +11,7 @@
 
 #include "data/models/addtorrentparams.hpp"
 #include "data/models/sessions.hpp"
+#include "data/transaction.hpp"
 #include "timer.hpp"
 #include "torrentclientdata.hpp"
 #include "utils/hex.hpp"
@@ -18,6 +19,7 @@
 namespace fs = std::filesystem;
 
 using porla::Data::Models::AddTorrentParams;
+using porla::Data::Transaction;
 using porla::Sessions;
 using porla::SessionsOptions;
 
@@ -495,6 +497,13 @@ void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
     std::vector<lt::alert*> alerts;
     state->session->pop_alerts(&alerts);
 
+    if (alerts.empty())
+    {
+        return;
+    }
+
+    const Transaction tx(m_options.db);
+
     for (const auto alert : alerts)
     {
         try
@@ -820,6 +829,8 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
             std::vector<lt::alert *> alerts;
             state->session->pop_alerts(&alerts);
 
+            const Transaction tx(m_options.db);
+
             for (lt::alert *a: alerts)
             {
                 if (lt::alert_cast<lt::torrent_paused_alert>(a))
@@ -864,7 +875,7 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
                         state->id,
                         info_hash,
                         rd->params,
-                        static_cast<int>(rd->handle.status().queue_position));
+                        static_cast<int>(rd->handle.queue_position()));
 
                     if (data != nullptr)
                     {
@@ -985,26 +996,26 @@ void Sessions::OnSaveResumeDataAlert(const SessionStatePtr& state, const lt::sav
         return;
     }
 
-    const auto& status = alert->handle.status();
-    const auto  data   = alert->handle.userdata().get<TorrentClientData>();
+    const auto data        = alert->handle.userdata().get<TorrentClientData>();
+    const auto info_hashes = alert->handle.info_hashes();
 
     AddTorrentParams::Update(
         m_options.db,
         state->id,
-        status.info_hashes,
+        info_hashes,
         alert->params,
-        static_cast<int>(status.queue_position));
+        static_cast<int>(alert->handle.queue_position()));
 
     if (data != nullptr)
     {
         AddTorrentParams::UpdateClientData(
             m_options.db,
             state->id,
-            status.info_hashes,
+            info_hashes,
             *data);
     }
 
-    BOOST_LOG_TRIVIAL(debug) << Sub(state, status.info_hashes) << "Resume data saved";
+    BOOST_LOG_TRIVIAL(debug) << Sub(state, info_hashes) << "Resume data saved";
 }
 
 void Sessions::OnTorrentRemovedAlert(const SessionStatePtr& state, const lt::torrent_removed_alert* alert)
