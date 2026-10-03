@@ -340,6 +340,11 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         throw std::runtime_error("Failed to enable WAL journal mode");
     }
 
+    if (sqlite3_exec(cfg->db, "PRAGMA synchronous=NORMAL;", nullptr, nullptr, nullptr) != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(warning) << "Failed to set synchronous mode: " << sqlite3_errmsg(cfg->db);
+    }
+
     if (sqlite3_busy_timeout(cfg->db, 10000) != SQLITE_OK)
     {
         BOOST_LOG_TRIVIAL(warning)
