@@ -1,6 +1,8 @@
 #include "jsonrpc.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/log/trivial.hpp>
+#include <zlib.h>
 
 #include "../auth/authenticator.hpp"
 #include "../json/utils.hpp"
@@ -10,6 +12,38 @@ using porla::Rpc::JsonRpc;
 namespace
 {
     static constexpr std::size_t kMaxBody = 8 * 1024 * 1024;
+    static constexpr std::size_t kMinGzipSize = 1024; // don't compress small responses
+
+    std::optional<std::string> Gzip(std::string_view input)
+    {
+        z_stream zs{};
+
+        if (deflateInit2(&zs, 6, Z_DEFLATED, 15 + 16, 8, Z_DEFAULT_STRATEGY) != Z_OK)
+        {
+            return std::nullopt;
+        }
+
+        const auto size = deflateBound(&zs, input.size());
+
+        std::string output(size, '\0');
+
+        zs.next_in = reinterpret_cast<Bytef*>(const_cast<char*>(input.data()));
+        zs.avail_in = static_cast<uInt>(input.size());
+        zs.next_out = reinterpret_cast<Bytef*>(output.data());
+        zs.avail_out = static_cast<uInt>(output.size());
+
+        const int res = deflate(&zs, Z_FINISH);
+        deflateEnd(&zs);
+
+        if (res != Z_STREAM_END)
+        {
+            return std::nullopt;
+        }
+
+        output.resize(zs.total_out);
+
+        return output;
+    }
 }
 
 namespace porla
@@ -33,11 +67,12 @@ namespace porla
 class DefaultResponseWriter : public porla::Rpc::ResponseWriter
 {
 public:
-    explicit DefaultResponseWriter(uWS::HttpResponse<false>* res, const nlohmann::json& id, std::shared_ptr<bool> aborted)
+    explicit DefaultResponseWriter(uWS::HttpResponse<false>* res, const nlohmann::json& id, std::shared_ptr<bool> aborted, bool gzip)
         : m_id(id)
         , m_res(res)
         , m_aborted(aborted)
         , m_responded(false)
+        , m_gzip(gzip)
     {
     }
 
@@ -69,11 +104,24 @@ public:
         if (*m_aborted || m_responded) { return; }
         m_responded = true;
 
-        m_res->end(json({
+        const std::string body = json({
             {"jsonrpc", "2.0"},
             {"id", m_id},
             {"result", result}
-        }).dump());
+        }).dump();
+
+        if (m_gzip && body.size() >= kMinGzipSize)
+        {
+            if (const auto gzipped = Gzip(body))
+            {
+                m_res->writeHeader("Content-Encoding", "gzip");
+                m_res->writeHeader("Vary", "Accept-Encoding");
+                m_res->end(gzipped.value());
+                return;
+            }
+        }
+
+        m_res->end(body);
     }
 
 private:
@@ -81,6 +129,7 @@ private:
     uWS::HttpResponse<false>* m_res;
     std::shared_ptr<bool>     m_aborted;
     bool                      m_responded;
+    bool                      m_gzip;
 };
 
 JsonRpc::JsonRpc(std::shared_ptr<Auth::Authenticator> authenticator)
@@ -109,12 +158,14 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
 
         const auto auth_context = jsonrpc->m_authenticator->Authenticate(req);
 
+        const bool accepts_gzip = boost::algorithm::icontains(req->getHeader("accept-encoding"), "gzip");
+
         auto aborted = std::make_shared<bool>(false);
         auto buffer = std::make_shared<std::string>();
 
         res->onAborted([aborted] { *aborted = true; });
 
-        res->onData([aborted, buffer, res, weak, auth_context](std::string_view data, bool last)
+        res->onData([aborted, buffer, res, weak, auth_context, accepts_gzip](std::string_view data, bool last)
         {
             if (buffer->size() + data.size() > kMaxBody)
             {
@@ -199,7 +250,11 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
             {
                 BOOST_LOG_TRIVIAL(debug) << "Executing JSONRPC method '" << req.method << "'";
 
-                auto writer = std::make_shared<DefaultResponseWriter>(res, req.id.value_or(json()), aborted);
+                // auth responses carry tokens so compressing secrets next to request input
+                // over TLS invites BREACH-style attacks
+                const bool gzip = accepts_gzip && !req.method.starts_with("auth.");
+
+                auto writer = std::make_shared<DefaultResponseWriter>(res, req.id.value_or(json()), aborted, gzip);
 
                 if (!method->second->CanInvoke(auth_context))
                 {
