@@ -77,11 +77,11 @@ namespace libtorrent
         j["info_hash"] = ts.info_hashes;
         j["is_finished"] = ts.is_finished;
         j["is_seeding"] = ts.is_seeding;
-        j["last_download"] = ts.last_download.time_since_epoch().count() > 0
+        j["last_download"] = ts.last_download.time_since_epoch().count() != 0
             ? lt::total_seconds(lt::clock_type::now() - ts.last_download)
             : -1;
         j["last_seen_complete"] = ts.last_seen_complete;
-        j["last_upload"] = ts.last_upload.time_since_epoch().count() > 0
+        j["last_upload"] = ts.last_upload.time_since_epoch().count() != 0
             ? lt::total_seconds(lt::clock_type::now() - ts.last_upload)
             : -1;
         j["list_peers"] = ts.list_peers;

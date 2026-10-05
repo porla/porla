@@ -1,5 +1,5 @@
 
-// Generated from src/query/PqlLexer.g4 by ANTLR 4.13.2
+// Generated from PqlLexer.g4 by ANTLR 4.13.2
 
 #pragma once
 

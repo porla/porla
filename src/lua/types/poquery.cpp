@@ -1,5 +1,6 @@
 #include "poquery.hpp"
 
+#include "../../fields.hpp"
 #include "../../query/pql.hpp"
 
 using porla::Lua::Types::PoQuery;
@@ -33,7 +34,7 @@ PoQuery::PoQuery(const Query::Filter& filter)
 
 bool PoQuery::Includes(const lt::torrent_status& ts)
 {
-    const Query::QueryContext ctx{
+    const Fields::Context ctx{
         .status      = ts,
         .client_data = ts.handle.userdata().get<TorrentClientData>(),
         .now         = std::time(nullptr)
