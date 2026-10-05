@@ -21,9 +21,10 @@ namespace porla::Data::Models
 
         static int Count(sqlite3* db, const int session);
         static void Insert(sqlite3* db, const int session, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const TorrentClientData& client_data, const int queue_pos);
+        static void InsertTorrentInfo(sqlite3* db, const int session_id, const lt::info_hash_t& hash, const lt::torrent_info& ti);
         static bool Next(sqlite3* db, const int session, Cursor& cursor, const int max, const std::function<void(lt::add_torrent_params&)>& cb);
         static void Remove(sqlite3* db, const int session, const lt::info_hash_t& hash);
-        static void Update(sqlite3* db, const int session, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const int queue_pos);
+        static void Update(sqlite3* db, const int session, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const TorrentClientData* client_data, const int queue_pos);
         static void UpdateClientData(sqlite3* db, const int session, const lt::info_hash_t& hash, const TorrentClientData& client_data);
     };
 }
