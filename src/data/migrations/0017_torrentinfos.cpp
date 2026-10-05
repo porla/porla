@@ -112,7 +112,7 @@ int TorrentInfos::Migrate(sqlite3* db)
 
             for (const auto& row : rows)
             {
-                MigrateInfoSection(row);
+                MigrateInfoSection(db, row);
                 last_id = row.id;
             }
         }

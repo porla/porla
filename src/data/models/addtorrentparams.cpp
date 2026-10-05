@@ -16,6 +16,44 @@ using porla::TorrentClientData;
 
 namespace
 {
+    std::shared_ptr<lt::torrent_info> ReadInfo(const std::vector<char>& buffer, const lt::info_hash_t& expected)
+    {
+        const lt::load_torrent_limits cfg{};
+
+        lt::error_code ec;
+        const lt::bdecode_node node = lt::bdecode(
+            buffer,
+            ec,
+            nullptr,
+            cfg.max_decode_depth,
+            cfg.max_decode_tokens);
+
+        if (ec)
+        {
+            BOOST_LOG_TRIVIAL(error) << "Failed to decode info dict: " << ec;
+            return nullptr;
+        }
+
+        auto ti = std::make_shared<lt::torrent_info>(node, ec, cfg, lt::from_info_section);
+
+        if (ec)
+        {
+            BOOST_LOG_TRIVIAL(error) << "Failed to read info dict: " << ec;
+            return nullptr;
+        }
+
+        const auto& actual = ti->info_hashes();
+
+        if ((expected.has_v1() && actual.v1 != expected.v1)
+            || (expected.has_v2() && actual.v2 != expected.v2))
+        {
+            BOOST_LOG_TRIVIAL(error) << "Info dict does not match info hash " << expected;
+            return nullptr;
+        }
+
+        return ti;
+    }
+
     static std::optional<lt::add_torrent_params> ReadParams(const Statement::IRow& row)
     {
         auto client_data = std::make_unique<TorrentClientData>();
@@ -62,6 +100,16 @@ namespace
             return std::nullopt;
         }
 
+        if (!params.ti)
+        {
+            const auto info_buffer = row.GetBuffer("info");
+
+            if (!info_buffer.empty())
+            {
+                params.ti = ReadInfo(info_buffer, params.info_hashes);
+            }
+        }
+
         params.userdata = lt::client_data_t(client_data.release());
 
         return params;
@@ -84,6 +132,17 @@ namespace
         };
 
         return json(userdata).dump();
+    }
+
+    std::vector<char> WriteCleanResumeData(const lt::add_torrent_params& params)
+    {
+        lt::entry rd = lt::write_resume_data(params);
+        rd.dict().erase("info");
+
+        std::vector<char> buf;
+        lt::bencode(std::back_inserter(buf), rd);
+
+        return buf;
     }
 }
 
@@ -111,7 +170,7 @@ void AddTorrentParams::Insert(sqlite3 *db, const int session_id, const lt::info_
         {"tags",     client_data.tags}
     };
 
-    const std::vector<char> buf = lt::write_resume_data_buf(params);
+    const std::vector<char> buf = WriteCleanResumeData(params);
     const std::string userdata_str = json(userdata).dump();
 
     auto stmt = Statement::Prepare(
@@ -144,6 +203,33 @@ void AddTorrentParams::Insert(sqlite3 *db, const int session_id, const lt::info_
         .Execute();
 }
 
+void AddTorrentParams::InsertTorrentInfo(sqlite3* db, const int session_id, const lt::info_hash_t& hash, const lt::torrent_info& ti)
+{
+    const auto              info_section = ti.info_section();
+    const std::vector<char> info(info_section.begin(), info_section.end());
+
+    auto stmt = Statement::Prepare(
+        db,
+        R"sql(
+        INSERT OR IGNORE INTO torrentinfos (id, info)
+        SELECT id, $info
+        FROM addtorrentparams
+        WHERE
+            (session_id = $session_id AND info_hash_v1 = $info_hash_v1
+                AND (info_hash_v2 IS NULL OR info_hash_v2 = $info_hash_v2))
+            OR
+            (session_id = $session_id AND info_hash_v2 = $info_hash_v2
+                AND (info_hash_v1 IS NULL OR info_hash_v1 = $info_hash_v1))
+        )sql");
+
+    stmt
+        .Bind("$info",         info)
+        .Bind("$info_hash_v1", hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
+        .Bind("$info_hash_v2", hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
+        .Bind("$session_id",   session_id)
+        .Execute();
+}
+
 bool AddTorrentParams::Next(
     sqlite3* db,
     const int session_id,
@@ -153,19 +239,22 @@ bool AddTorrentParams::Next(
 {
     const auto Select = R"sql(
     SELECT
-        id,
-        queue_position,
-        params,
-        userdata
+        atp.id             AS id,
+        atp.queue_position AS queue_position,
+        atp.params         AS params,
+        atp.userdata       AS userdata,
+        ti.info            AS info
     FROM
-        addtorrentparams
+        addtorrentparams atp
+    LEFT JOIN
+        torrentinfos ti ON ti.id = atp.id
     WHERE
-        session_id = $session_id
-        AND queue_position <= $max_position
-        AND queue_position >= $position
-        AND (queue_position > $position OR id > $id)
+        atp.session_id = $session_id
+        AND atp.queue_position <= $max_position
+        AND atp.queue_position >= $position
+        AND (atp.queue_position > $position OR atp.id > $id)
     ORDER BY
-        queue_position ASC, id ASC
+        atp.queue_position ASC, atp.id ASC
     LIMIT
         $max
     )sql";
@@ -215,6 +304,27 @@ bool AddTorrentParams::Next(
 
 void AddTorrentParams::Remove(sqlite3 *db, const int session_id, const lt::info_hash_t& hash)
 {
+    auto info_stmt = Statement::Prepare(
+        db,
+        R"sql(
+        DELETE FROM torrentinfos
+        WHERE id IN (
+            SELECT id FROM addtorrentparams
+            WHERE
+                (session_id = $session_id AND info_hash_v1 = $info_hash_v1
+                    AND (info_hash_v2 IS NULL OR info_hash_v2 = $info_hash_v2))
+                OR
+                (session_id = $session_id AND info_hash_v2 = $info_hash_v2
+                    AND (info_hash_v1 IS NULL OR info_hash_v1 = $info_hash_v1))
+        )
+        )sql");
+
+    info_stmt
+        .Bind("$info_hash_v1", hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
+        .Bind("$info_hash_v2", hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
+        .Bind("$session_id",   session_id)
+        .Execute();
+
     auto stmt = Statement::Prepare(
         db,
         R"sql(
@@ -240,7 +350,7 @@ void AddTorrentParams::Update(sqlite3 *db, const int session_id, const lt::info_
         ? std::optional(SerializeClientData(*client_data))
         : std::nullopt;
 
-    const std::vector<char> buf = lt::write_resume_data_buf(params);
+    const std::vector<char> buf = WriteCleanResumeData(params);
 
     auto stmt = Statement::Prepare(
         db,

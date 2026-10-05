@@ -561,9 +561,7 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
             BOOST_LOG_TRIVIAL(info) << Sub(state, mra->handle.info_hashes()) << "Metadata received";
 
             mra->handle.save_resume_data(
-                lt::torrent_handle::flush_disk_cache
-                | lt::torrent_handle::save_info_dict
-                | lt::torrent_handle::only_if_modified);
+                lt::torrent_handle::save_info_dict);
 
             break;
         }
@@ -616,13 +614,8 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
             BOOST_LOG_TRIVIAL(info)
                 << Sub(state, sma->handle.info_hashes()) << "Storage moved to " << sma->storage_path();
 
-            if (sma->handle.need_save_resume_data())
-            {
-                sma->handle.save_resume_data(
-                    lt::torrent_handle::flush_disk_cache
-                    | lt::torrent_handle::save_info_dict
-                    | lt::torrent_handle::only_if_modified);
-            }
+            sma->handle.save_resume_data(
+                lt::torrent_handle::only_if_modified);
 
             sma->handle.post_status();
 
@@ -690,13 +683,8 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
                 }
             }
 
-            if (bool(status.need_save_resume_data))
-            {
-                status.handle.save_resume_data(
-                    lt::torrent_handle::flush_disk_cache
-                    | lt::torrent_handle::save_info_dict
-                    | lt::torrent_handle::only_if_modified);
-            }
+            status.handle.save_resume_data(
+                lt::torrent_handle::only_if_modified);
 
             break;
         }
@@ -739,7 +727,7 @@ void Sessions::SaveState(const std::shared_ptr<SessionState>& state)
     std::vector<lt::torrent_status> torrents = state->session->get_torrent_status(
         [](lt::torrent_status const& ts)
         {
-            return bool(ts.need_save_resume_data);
+            return bool(ts.need_save_resume_data & lt::torrent_handle::only_if_modified);
         });
 
     if (torrents.empty())
@@ -752,9 +740,7 @@ void Sessions::SaveState(const std::shared_ptr<SessionState>& state)
     for (const auto& ts : torrents)
     {
         ts.handle.save_resume_data(
-            lt::torrent_handle::flush_disk_cache
-            | lt::torrent_handle::save_info_dict
-            | lt::torrent_handle::only_if_modified);
+            lt::torrent_handle::only_if_modified);
     }
 }
 
@@ -804,7 +790,6 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
             {
                 current->handle.save_resume_data(
                     lt::torrent_handle::flush_disk_cache
-                    | lt::torrent_handle::save_info_dict
                     | lt::torrent_handle::only_if_modified);
 
                 outstanding++;
@@ -877,6 +862,15 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
                         rd->params,
                         data,
                         static_cast<int>(rd->handle.queue_position()));
+
+                    if (rd->params.ti)
+                    {
+                        AddTorrentParams::InsertTorrentInfo(
+                            m_options.db,
+                            state->id,
+                            info_hash,
+                            *rd->params.ti);
+                    }
                 }
                 catch(const std::exception& e)
                 {
@@ -953,6 +947,15 @@ void Sessions::OnAddTorrentAlert(const SessionStatePtr& state, const lt::add_tor
             alert->params,
             data == nullptr ? fallback : *data,
             static_cast<int>(status.queue_position));
+
+        if (alert->params.ti)
+        {
+            AddTorrentParams::InsertTorrentInfo(
+                m_options.db,
+                state->id,
+                alert->handle.info_hashes(),
+                *alert->params.ti);
+        }
     }
     catch(const std::exception& e)
     {
@@ -961,9 +964,7 @@ void Sessions::OnAddTorrentAlert(const SessionStatePtr& state, const lt::add_tor
     }
 
     alert->handle.save_resume_data(
-        lt::torrent_handle::flush_disk_cache
-        | lt::torrent_handle::save_info_dict
-        | lt::torrent_handle::only_if_modified);
+        lt::torrent_handle::only_if_modified);
 
     Emit(m_torrent_added, state, alert->handle);
 }
@@ -998,6 +999,15 @@ void Sessions::OnSaveResumeDataAlert(const SessionStatePtr& state, const lt::sav
         alert->params,
         data,
         static_cast<int>(alert->handle.queue_position()));
+
+    if (alert->params.ti)
+    {
+        AddTorrentParams::InsertTorrentInfo(
+            m_options.db,
+            state->id,
+            info_hashes,
+            *alert->params.ti);
+    }
 
     BOOST_LOG_TRIVIAL(debug) << Sub(state, info_hashes) << "Resume data saved";
 }
