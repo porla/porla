@@ -340,25 +340,33 @@ namespace
         static const std::vector<FieldDef> fields =
         {
             { "name",          Kind::Text,     nullptr, [](const QueryContext& c) -> std::optional<std::string_view> { return c.status.name; } },
-            { "path",          Kind::Text,     nullptr, [](const QueryContext& c) -> std::optional<std::string_view> { return c.status.save_path; } },
-            { "tracker",       Kind::Text,     nullptr, [](const QueryContext& c) -> std::optional<std::string_view> { return c.status.current_tracker; } },
+            { "save_path",          Kind::Text,     nullptr, [](const QueryContext& c) -> std::optional<std::string_view> { return c.status.save_path; } },
+            { "current_tracker",       Kind::Text,     nullptr, [](const QueryContext& c) -> std::optional<std::string_view> { return c.status.current_tracker; } },
             { "category",      Kind::Text,     nullptr, [](const QueryContext& c) -> std::optional<std::string_view>
                 {
                     if (c.client_data == nullptr || !c.client_data->category.has_value()) { return std::nullopt; }
                     return *c.client_data->category;
                 } },
             { "tag",           Kind::Tag },
-            { "hash",          Kind::Hash },
+            { "info_hash",          Kind::Hash },
 
-            { "size",          Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.total_wanted; } },
-            { "downloaded",    Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.total_done; } },
-            { "uploaded",      Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.all_time_upload; } },
-            { "remaining",     Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.total_wanted - c.status.total_wanted_done; } },
+            { "total",    Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.total; } },
+            { "total_done",    Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.total_done; } },
+            { "total_download",    Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.total_download; } },
+            { "total_payload_download",    Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.total_payload_download; } },
+            { "total_payload_upload",    Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.total_payload_upload; } },
+            { "total_upload",    Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.total_upload; } },
+            { "total_failed_bytes",    Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.total_failed_bytes; } },
+            { "total_redundant_bytes",    Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.total_redundant_bytes; } },
+            { "total_wanted",          Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.total_wanted; } },
+            { "total_wanted_done",          Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.total_wanted_done; } },
+            { "total_wanted_remaining",     Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.total_wanted - c.status.total_wanted_done; } },
+            { "all_time_upload",      Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.all_time_upload; } },
 
-            { "dl",            Kind::Rate,     [](const QueryContext& c) -> std::optional<double> { return c.status.download_payload_rate; } },
-            { "download_rate", Kind::Rate,     [](const QueryContext& c) -> std::optional<double> { return c.status.download_payload_rate; } },
-            { "ul",            Kind::Rate,     [](const QueryContext& c) -> std::optional<double> { return c.status.upload_payload_rate; } },
-            { "upload_rate",   Kind::Rate,     [](const QueryContext& c) -> std::optional<double> { return c.status.upload_payload_rate; } },
+            { "download_rate", Kind::Rate,     [](const QueryContext& c) -> std::optional<double> { return c.status.download_rate; } },
+            { "download_payload_rate", Kind::Rate,     [](const QueryContext& c) -> std::optional<double> { return c.status.download_payload_rate; } },
+            { "upload_rate",   Kind::Rate,     [](const QueryContext& c) -> std::optional<double> { return c.status.upload_rate; } },
+            { "upload_payload_rate",   Kind::Rate,     [](const QueryContext& c) -> std::optional<double> { return c.status.upload_payload_rate; } },
 
             { "age",           Kind::Duration, [](const QueryContext& c) -> std::optional<double> { return static_cast<double>(c.now - c.status.added_time); } },
             { "eta",           Kind::Duration, [](const QueryContext& c) -> std::optional<double>
@@ -367,19 +375,37 @@ namespace
                     if (eta.count() < 0) { return std::nullopt; }
                     return static_cast<double>(eta.count());
                 } },
-            { "active_time",   Kind::Duration, [](const QueryContext& c) { return Seconds(c.status.active_duration); } },
-            { "seed_time",     Kind::Duration, [](const QueryContext& c) { return Seconds(c.status.seeding_duration); } },
-            { "finished_time", Kind::Duration, [](const QueryContext& c) { return Seconds(c.status.finished_duration); } },
+            { "active_duration",   Kind::Duration, [](const QueryContext& c) { return Seconds(c.status.active_duration); } },
+            { "seeding_duration",     Kind::Duration, [](const QueryContext& c) { return Seconds(c.status.seeding_duration); } },
+            { "finished_duration", Kind::Duration, [](const QueryContext& c) { return Seconds(c.status.finished_duration); } },
+            // { "next_announce", Kind::Duration, [](const QueryContext& c) { return Seconds(c.status.next_announce.count()); } },
 
             { "progress",      Kind::Percent,  [](const QueryContext& c) -> std::optional<double> { return c.status.progress_ppm; } },
 
             { "ratio",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return porla::Utils::Ratio(c.status); } },
-            { "seeds",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.num_seeds; } },
-            { "peers",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.num_peers; } },
-            { "queue",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return static_cast<int>(c.status.queue_position); } },
+            { "list_peers",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.list_peers; } },
+            { "list_seeds",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.list_seeds; } },
+            { "connect_candidates",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.connect_candidates; } },
+            { "num_pieces",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.num_pieces; } },
+            { "block_size",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.block_size; } },
+            { "num_uploads",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.num_uploads; } },
+            { "num_connections",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.num_connections; } },
+            { "uploads_limit",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.uploads_limit; } },
+            { "connections_limit",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.connections_limit; } },
+            { "upload_limit",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.upload_limit; } },
+            { "download_limit",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.download_limit; } },
+            { "up_bandwidth_queue",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.up_bandwidth_queue; } },
+            { "down_bandwidth_queue",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.down_bandwidth_queue; } },
+            { "seed_rank",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.seed_rank; } },
+            { "num_complete",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.num_complete; } },
+            { "num_incomplete",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.num_incomplete; } },
+            { "num_seeds",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.num_seeds; } },
+            { "num_peers",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.num_peers; } },
+            { "queue_position",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return static_cast<int>(c.status.queue_position); } },
 
-            { "added",         Kind::Date,     [](const QueryContext& c) { return Timestamp(c.status.added_time); } },
-            { "completed",     Kind::Date,     [](const QueryContext& c) { return Timestamp(c.status.completed_time); } },
+            { "added_time",         Kind::Date,     [](const QueryContext& c) { return Timestamp(c.status.added_time); } },
+            { "completed_time",     Kind::Date,     [](const QueryContext& c) { return Timestamp(c.status.completed_time); } },
+            { "last_seen_complete",     Kind::Date,     [](const QueryContext& c) { return Timestamp(c.status.last_seen_complete); } },
         };
 
         return fields;
