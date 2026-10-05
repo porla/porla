@@ -875,16 +875,8 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
                         state->id,
                         info_hash,
                         rd->params,
+                        data,
                         static_cast<int>(rd->handle.queue_position()));
-
-                    if (data != nullptr)
-                    {
-                        AddTorrentParams::UpdateClientData(
-                            m_options.db,
-                            state->id,
-                            info_hash,
-                            *data);
-                    }
                 }
                 catch(const std::exception& e)
                 {
@@ -1004,16 +996,8 @@ void Sessions::OnSaveResumeDataAlert(const SessionStatePtr& state, const lt::sav
         state->id,
         info_hashes,
         alert->params,
+        data,
         static_cast<int>(alert->handle.queue_position()));
-
-    if (data != nullptr)
-    {
-        AddTorrentParams::UpdateClientData(
-            m_options.db,
-            state->id,
-            info_hashes,
-            *data);
-    }
 
     BOOST_LOG_TRIVIAL(debug) << Sub(state, info_hashes) << "Resume data saved";
 }

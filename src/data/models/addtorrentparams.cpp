@@ -74,6 +74,17 @@ namespace
         ss << hash;
         return ss.str();
     }
+
+    std::string SerializeClientData(const TorrentClientData& client_data)
+    {
+        const std::map<std::string, json> userdata = {
+            {"category", client_data.category.has_value() ? json(client_data.category.value()) : json()},
+            {"metadata", client_data.metadata},
+            {"tags",     client_data.tags}
+        };
+
+        return json(userdata).dump();
+    }
 }
 
 int AddTorrentParams::Count(sqlite3 *db, const int session_id)
@@ -223,8 +234,12 @@ void AddTorrentParams::Remove(sqlite3 *db, const int session_id, const lt::info_
         .Execute();
 }
 
-void AddTorrentParams::Update(sqlite3 *db, const int session_id, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const int queue_pos)
+void AddTorrentParams::Update(sqlite3 *db, const int session_id, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const TorrentClientData* client_data, const int queue_pos)
 {
+    const std::optional<std::string> userdata = client_data != nullptr
+        ? std::optional(SerializeClientData(*client_data))
+        : std::nullopt;
+
     const std::vector<char> buf = lt::write_resume_data_buf(params);
 
     auto stmt = Statement::Prepare(
@@ -233,7 +248,8 @@ void AddTorrentParams::Update(sqlite3 *db, const int session_id, const lt::info_
         UPDATE addtorrentparams
         SET
             queue_position = $queue_position,
-            params         = $params
+            params         = $params,
+            userdata       = COALESCE($userdata, userdata)
         WHERE
             (session_id = $session_id AND info_hash_v1 = $info_hash_v1
                 AND (info_hash_v2 IS NULL OR info_hash_v2 = $info_hash_v2))
@@ -248,18 +264,13 @@ void AddTorrentParams::Update(sqlite3 *db, const int session_id, const lt::info_
         .Bind("$info_hash_v1",   hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
         .Bind("$info_hash_v2",   hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
         .Bind("$session_id",     session_id)
+        .Bind("$userdata",       userdata)
         .Execute();
 }
 
 void AddTorrentParams::UpdateClientData(sqlite3 *db, const int session_id, const lt::info_hash_t& hash, const TorrentClientData& client_data)
 {
-    const std::map<std::string, json> userdata = {
-        {"category", client_data.category.has_value() ? json(client_data.category.value()) : json()},
-        {"metadata", client_data.metadata},
-        {"tags",     client_data.tags}
-    };
-
-    const std::string userdata_str = json(userdata).dump();
+    const std::string userdata_str = SerializeClientData(client_data);
 
     auto stmt = Statement::Prepare(
         db,
