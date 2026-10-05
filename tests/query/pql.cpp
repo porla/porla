@@ -10,12 +10,13 @@
 #include <libtorrent/torrent_info.hpp>
 #include <libtorrent/torrent_status.hpp>
 
+#include "../../src/fields.hpp"
 #include "../../src/query/pql.hpp"
 #include "../../src/torrentclientdata.hpp"
 #include "../../src/utils/hex.hpp"
 
+using porla::Fields;
 using porla::Query::PQL;
-using porla::Query::QueryContext;
 using porla::Query::QueryError;
 
 namespace
@@ -71,7 +72,7 @@ namespace
         std::time_t                             now              = kNow;
         std::shared_ptr<const lt::torrent_info> ti;
 
-        [[nodiscard]] QueryContext Context() const
+        [[nodiscard]] porla::Fields::Context Context() const
         {
             return { status, with_client_data ? &client_data : nullptr, now };
         }
@@ -169,28 +170,28 @@ INSTANTIATE_TEST_SUITE_P(Text, PqlMatch, ::testing::ValuesIn(With(
         t.client_data.tags       = { "iso", "lts" };
     },
     {
-        { "name_contains",               "name:desktop",                           true  },
-        { "name_contains_case",          "name:DESKTOP",                           true  },
-        { "name_miss",                   "name:debian",                            false },
-        { "name_eq",                     "name:=UBUNTU-24.04-desktop-amd64.iso",   true  },
-        { "name_eq_partial",             "name:=ubuntu",                           false },
-        { "name_glob",                   "name:ubuntu*.iso",                       true  },
-        { "name_glob_anchored",          "name:*desktop",                          false },
-        { "name_list",                   "name:debian,desktop",                    true  },
-        { "name_quoted_no_split",        "name:\"debian,desktop\"",                false },
-        { "path",                        "path:/downloads/",                       true  },
-        { "category_contains",           "category:lin",                           true  },
-        { "category_eq",                 "category:=linux",                        true  },
-        { "category_no_client_data",     "category:linux",                         false, [](Torrent& t) { t.with_client_data = false; } },
-        { "category_unset",              "category:linux",                         false, [](Torrent& t) { t.client_data.category.reset(); } },
-        { "tag_exact",                   "tag:iso",                                true  },
-        { "tag_case",                    "tag:ISO",                                true  },
-        { "tag_no_substring",            "tag:is",                                 false },
-        { "tag_glob",                    "tag:l*",                                 true  },
-        { "tag_any",                     "tag:foo,lts",                            true  },
-        { "tag_all",                     "tag:iso tag:foo",                        false },
-        { "tag_no_client_data",          "tag:iso",                                false, [](Torrent& t) { t.with_client_data = false; } },
-        { "tracker",                     "tracker:example.org",                    true  }
+        { "name_contains",               "name:desktop",                          true  },
+        { "name_contains_case",          "name:DESKTOP",                          true  },
+        { "name_miss",                   "name:debian",                           false },
+        { "name_eq",                     "name:=UBUNTU-24.04-desktop-amd64.iso",  true  },
+        { "name_eq_partial",             "name:=ubuntu",                          false },
+        { "name_glob",                   "name:ubuntu*.iso",                      true  },
+        { "name_glob_anchored",          "name:*desktop",                         false },
+        { "name_list",                   "name:debian,desktop",                   true  },
+        { "name_quoted_no_split",        "name:\"debian,desktop\"",               false },
+        { "save_path",                   "save_path:/downloads/",                 true  },
+        { "category_contains",           "$userdata.category:lin",                true  },
+        { "category_eq",                 "$userdata.category:=linux",             true  },
+        { "category_no_client_data",     "$userdata.category:linux",              false, [](Torrent& t) { t.with_client_data = false; } },
+        { "category_unset",              "$userdata.category:linux",              false, [](Torrent& t) { t.client_data.category.reset(); } },
+        { "tags_exact",                  "$userdata.tags:iso",                    true  },
+        { "tags_case",                   "$userdata.tags:ISO",                    true  },
+        { "tags_no_substring",           "$userdata.tags:is",                     false },
+        { "tags_glob",                   "$userdata.tags:l*",                     true  },
+        { "tags_any",                    "$userdata.tags:foo,lts",                true  },
+        { "tags_all",                    "$userdata.tags:iso $userdata.tags:foo", false },
+        { "tags_no_client_data",         "$userdata.tags:iso",                    false, [](Torrent& t) { t.with_client_data = false; } },
+        { "current_tracker",             "current_tracker:example.org",           true  }
     })), CaseName);
 
 // --- hashes ------------------------------------------------------------------
@@ -203,14 +204,14 @@ INSTANTIATE_TEST_SUITE_P(Hash, PqlMatch, ::testing::ValuesIn(With(
         t.status.info_hashes.v2 = FromHex<lt::sha256_hash>(kV2);
     },
     {
-        { "v1_prefix",               "hash:3f9a",                     true  },
-        { "v2_prefix",               "hash:a1b2",                     true  },
-        { "v1_full",                 "hash:" + std::string(kV1),      true  },
-        { "v2_full",                 "hash:" + std::string(kV2),      true  },
-        { "uppercase",               "hash:3F9AAC15",                 true  },
-        { "miss",                    "hash:0000",                     false },
-        { "list",                    "hash:0000,3f9a",                true  },
-        { "v2_absent",               "hash:a1b2",                     false, [](Torrent& t) { t.status.info_hashes.v2.clear(); } },
+        { "v1_prefix",               "info_hash:3f9a",                true  },
+        { "v2_prefix",               "info_hash:a1b2",                true  },
+        { "v1_full",                 "info_hash:" + std::string(kV1), true  },
+        { "v2_full",                 "info_hash:" + std::string(kV2), true  },
+        { "uppercase",               "info_hash:3F9AAC15",            true  },
+        { "miss",                    "info_hash:0000",                false },
+        { "list",                    "info_hash:0000,3f9a",           true  },
+        { "v2_absent",               "info_hash:a1b2",                false, [](Torrent& t) { t.status.info_hashes.v2.clear(); } },
         { "free_text_digit_first",   "3f9aac15",                      true  },
         { "free_text_letter_first",  "a1b2c3d4",                      true  },
         { "free_text_too_short",     "3f9a",                          false },
@@ -228,21 +229,21 @@ INSTANTIATE_TEST_SUITE_P(Size, PqlMatch, ::testing::ValuesIn(With(
         t.status.all_time_upload   = 2 * MiB;
     },
     {
-        { "gt",             "size:>1gb",        true  },
-        { "lt",             "size:<1gb",        false },
-        { "float_gte",      "size:>=1.5gb",     true  },
-        { "float_gt",       "size:>1.5gib",     false },
-        { "gib",            "size:>1gib",       true  },
-        { "uppercase_unit", "size:>1GB",        true  },
-        { "bytes_eq",       "size:1610612736",  true  },
-        { "b_suffix",       "size:>10b",        true  },
-        { "range",          "size:1gb..2gb",    true  },
-        { "range_miss",     "size:2gb..3gb",    false },
-        { "downloaded",     "downloaded:>=1gb", true  },
-        { "uploaded",       "uploaded:>1mb",    true  },
-        { "remaining",      "remaining:512mib", true  },
-        { "gb_is_decimal",  "size:>1.6gb",      true },
-        { "gib_is_binary",  "size:>1.6gib",     false }
+        { "gt",             "total_wanted:>1gb",             true  },
+        { "lt",             "total_wanted:<1gb",             false },
+        { "float_gte",      "total_wanted:>=1.5gb",          true  },
+        { "float_gt",       "total_wanted:>1.5gib",          false },
+        { "gib",            "total_wanted:>1gib",            true  },
+        { "uppercase_unit", "total_wanted:>1GB",             true  },
+        { "bytes_eq",       "total_wanted:1610612736",       true  },
+        { "b_suffix",       "total_wanted:>10b",             true  },
+        { "range",          "total_wanted:1gb..2gb",         true  },
+        { "range_miss",     "total_wanted:2gb..3gb",         false },
+        { "downloaded",     "total_wanted_done:>=1gb",       true  },
+        { "uploaded",       "all_time_upload:>1mb",          true  },
+        { "remaining",      "total_wanted_remaining:512mib", true  },
+        { "gb_is_decimal",  "total_wanted:>1.6gb",           true },
+        { "gib_is_binary",  "total_wanted:>1.6gib",          false }
     })), CaseName);
 
 INSTANTIATE_TEST_SUITE_P(Rate, PqlMatch, ::testing::ValuesIn(With(
@@ -252,12 +253,10 @@ INSTANTIATE_TEST_SUITE_P(Rate, PqlMatch, ::testing::ValuesIn(With(
         t.status.upload_payload_rate   = 0;
     },
     {
-        { "dl_gt",               "dl:>500kb",            true  },
-        { "dl_per_second",       "dl:>1mb/s",            true  },
-        { "dl_alias",            "download_rate:>1mb",   true  },
-        { "dl_lt",               "dl:<1mb",              false },
-        { "ul_zero",             "ul:0",                 true  },
-        { "ul_alias",            "upload_rate:0",        true  },
+        { "dl_gt",               "download_payload_rate:>500kb", true  },
+        { "dl_per_second",       "download_payload_rate:>1mb/s", true  },
+        { "dl_lt",               "download_payload_rate:<1mb",   false },
+        { "ul_zero",             "upload_payload_rate:0",        true  },
     })), CaseName);
 
 // --- durations ---------------------------------------------------------------
@@ -271,20 +270,30 @@ INSTANTIATE_TEST_SUITE_P(Duration, PqlMatch, ::testing::ValuesIn(With(
         t.status.finished_duration = std::chrono::seconds(0);
     },
     {
-        { "age_gt",                  "age:>1h",              true  },
-        { "age_lt",                  "age:<1h",              false },
-        { "age_bare_seconds",        "age:>3600",            true  },
-        { "age_minutes",             "age:>59m",             true  },
-        { "age_days",                "age:<5d",              true  },
-        { "age_months",              "age:<1mo",             true  },
-        { "age_years",               "age:<1y",              true  },
-        { "age_range",               "age:1h..2h",           true  },
-        { "active_time",             "active_time:>=1d",     true  },
-        { "seed_time",               "seed_time:>1w",        true  },
-        { "finished_time",           "finished_time:0",      true  },
-        { "eta",                     "eta:<1h",              true,  [](Torrent& t) { t.status.total_wanted = 101 * MiB; t.status.total_wanted_done = 1 * MiB; t.status.download_payload_rate = 1 * MiB; } },
-        { "eta_unknown_never_match", "eta:>0",               false, [](Torrent& t) { t.status.total_wanted = 101 * MiB; t.status.download_payload_rate = 0; } },
-        { "eta_unknown_negated",     "-eta:<1h",             true,  [](Torrent& t) { t.status.total_wanted = 101 * MiB; t.status.download_payload_rate = 0; } },
+        { "added_relative_lt",           "added_time:<-1h",            true  },
+        { "added_relative_gt",           "added_time:>-1h",            false },
+        { "added_relative_bare_seconds", "added_time:<-3600",          true  },
+        { "added_relative_minutes",      "added_time:<-59m",           true  },
+        { "added_relative_days",         "added_time:>-5d",            true  },
+        { "added_relative_months",       "added_time:>-1mo",           true  },
+        { "added_relative_years",        "added_time:>-1y",            true  },
+        { "added_relative_range",        "added_time:-2h..-1h",        true  },
+        { "added_relative_bare_within",  "added_time:-2h",             true  },   // no operator = ">=": within the last 2h
+        { "added_relative_bare_outside", "added_time:-1h",             false },   // 3601s ago is not within the last hour
+        { "added_relative_mixed_range",  "added_time:2026-01-01..-1h", true },
+        { "added_relative_boundary",     "added_time:<-1h",            false, [](Torrent& t) { t.now = kNow - 1; } },
+        { "active_duration",             "active_duration:>=1d",       true  },
+        { "seeding_duration",            "seeding_duration:>1w",       true  },
+        { "finished_duration",           "finished_duration:0",        true  },
+        { "eta",                         "eta:<1h",                    true,  [](Torrent& t) { t.status.total_wanted = 101 * MiB; t.status.total_wanted_done = 1 * MiB; t.status.download_payload_rate = 1 * MiB; } },
+        { "eta_unknown_never_match",     "eta:>0",                     false, [](Torrent& t) { t.status.total_wanted = 101 * MiB; t.status.download_payload_rate = 0; } },
+        { "eta_unknown_negated",         "-eta:<1h",                   true,  [](Torrent& t) { t.status.total_wanted = 101 * MiB; t.status.download_payload_rate = 0; } },
+        { "next_announce_soon",          "next_announce:<1m",          true,  [](Torrent& t) { t.status.next_announce = lt::seconds(30); } },
+        { "next_announce_later",         "next_announce:<1m",          false, [](Torrent& t) { t.status.next_announce = lt::minutes(5); } },
+        { "next_announce_paused",        "next_announce:<1m",          false },
+        { "last_upload_recent",          "last_upload:<5m",            true,  [](Torrent& t) { t.status.last_upload = lt::clock_type::now() - lt::minutes(1); } },
+        { "last_upload_stale",           "last_upload:>5m",            true,  [](Torrent& t) { t.status.last_upload = lt::clock_type::now() - lt::minutes(10); } },
+        { "last_upload_never",           "last_upload:>5m",            false },
     })), CaseName);
 
 // --- percent and numbers -----------------------------------------------------
@@ -311,12 +320,12 @@ INSTANTIATE_TEST_SUITE_P(Number, PqlMatch, ::testing::ValuesIn(With(
         t.status.queue_position    = lt::queue_position_t{ 3 };
     },
     {
-        { "ratio_gte",           "ratio:>=2",            true  },
-        { "ratio_float",         "ratio:<2.5",           true  },
-        { "ratio_lt",            "ratio:<1",             false },
-        { "seeds",               "seeds:>=10",           true  },
-        { "peers",               "peers:0",              true  },
-        { "queue",               "queue:3",              true  },
+        { "ratio_gte",   "ratio:>=2",        true  },
+        { "ratio_float", "ratio:<2.5",       true  },
+        { "ratio_lt",    "ratio:<1",         false },
+        { "seeds",       "num_seeds:>=10",   true  },
+        { "peers",       "num_peers:0",      true  },
+        { "queue",       "queue_position:3", true  },
     })), CaseName);
 
 // --- dates (server local time; run under a non-UTC TZ) -----------------------
@@ -328,51 +337,67 @@ INSTANTIATE_TEST_SUITE_P(Date, PqlMatch, ::testing::ValuesIn(With(
         t.status.completed_time = 0;
     },
     {
-        { "day",                 "added:2026-01-01",                 true  },
-        { "other_day",           "added:2025-12-31",                 false },
-        { "gt_excludes_day",     "added:>2026-01-01",                false },
-        { "gte_includes_day",    "added:>=2026-01-01",               true  },
-        { "lt_next_day",         "added:<2026-01-02",                true  },
-        { "lte_includes_day",    "added:<=2026-01-01",               true  },
-        { "range_inclusive",     "added:2025-12-01..2026-01-01",     true  },
-        { "minute",              "added:2026-01-01T12:00",           true  },
-        { "gt_minute",           "added:>2026-01-01T12:00",          false },
-        { "day_end_boundary",    "added:2026-01-01",                 true,  [](Torrent& t) { t.status.added_time = Local(2026, 1, 1, 23, 59, 59); } },
-        { "next_day_boundary",   "added:2026-01-01",                 false, [](Torrent& t) { t.status.added_time = Local(2026, 1, 2, 0, 0, 0); } },
-        { "never_completed",     "completed:>2000-01-01",            false },
-        { "completed",           "completed:2026-01-01",             true,  [](Torrent& t) { t.status.completed_time = Local(2026, 1, 1, 18, 0); } },
+        { "day",               "added_time:2026-01-01",             true  },
+        { "other_day",         "added_time:2025-12-31",             false },
+        { "gt_excludes_day",   "added_time:>2026-01-01",            false },
+        { "gte_includes_day",  "added_time:>=2026-01-01",           true  },
+        { "lt_next_day",       "added_time:<2026-01-02",            true  },
+        { "lte_includes_day",  "added_time:<=2026-01-01",           true  },
+        { "range_inclusive",   "added_time:2025-12-01..2026-01-01", true  },
+        { "minute",            "added_time:2026-01-01T12:00",       true  },
+        { "gt_minute",         "added_time:>2026-01-01T12:00",      false },
+        { "day_end_boundary",  "added_time:2026-01-01",             true,  [](Torrent& t) { t.status.added_time = Local(2026, 1, 1, 23, 59, 59); } },
+        { "next_day_boundary", "added_time:2026-01-01",             false, [](Torrent& t) { t.status.added_time = Local(2026, 1, 2, 0, 0, 0); } },
+        { "never_completed",   "completed_time:>2000-01-01",        false },
+        { "completed",         "completed_time:2026-01-01",         true,  [](Torrent& t) { t.status.completed_time = Local(2026, 1, 1, 18, 0); } },
     })), CaseName);
 
-// --- is: and has: ------------------------------------------------------------
+// --- has: ------------------------------------------------------------
 
-INSTANTIATE_TEST_SUITE_P(Flags, PqlMatch, ::testing::Values(
-    Case{ "downloading",             "is:downloading",   true,  [](Torrent& t) { t.status.state = lt::torrent_status::downloading; } },
-    Case{ "seeding",                 "is:seeding",       true,  [](Torrent& t) { t.status.state = lt::torrent_status::seeding; } },
-    Case{ "finished",                "is:finished",      true,  [](Torrent& t) { t.status.state = lt::torrent_status::finished; } },
-    Case{ "paused",                  "is:paused",        true,  [](Torrent& t) { t.status.flags = lt::torrent_flags::paused; } },
-    Case{ "queued",                  "is:queued",        true,  [](Torrent& t) { t.status.flags = lt::torrent_flags::paused | lt::torrent_flags::auto_managed; } },
-    Case{ "queued_not_manual_pause", "is:queued",        false, [](Torrent& t) { t.status.flags = lt::torrent_flags::paused; } },
-    Case{ "checking_files",          "is:checking",      true,  [](Torrent& t) { t.status.state = lt::torrent_status::checking_files; } },
-    Case{ "checking_resume",         "is:checking",      true,  [](Torrent& t) { t.status.state = lt::torrent_status::checking_resume_data; } },
-    Case{ "moving",                  "is:moving",        true,  [](Torrent& t) { t.status.moving_storage = true; } },
-    Case{ "error",                   "is:error",         true,  [](Torrent& t) { t.status.errc = boost::system::errc::make_error_code(boost::system::errc::io_error); } },
-    Case{ "no_error",                "is:error",         false },
-    Case{ "private",                 "is:private",       true,  [](Torrent& t) { t.ti = MakeTorrentInfo(true);  t.status.torrent_file = t.ti; } },
-    Case{ "public",                  "is:private",       false, [](Torrent& t) { t.ti = MakeTorrentInfo(false); t.status.torrent_file = t.ti; } },
-    Case{ "private_no_metadata",     "is:private",       false },
-    Case{ "stalled",                 "is:stalled",       true,  [](Torrent& t) { t.status.state = lt::torrent_status::downloading; t.status.download_payload_rate = 0; } },
-    Case{ "not_stalled",             "is:stalled",       false, [](Torrent& t) { t.status.state = lt::torrent_status::downloading; t.status.download_payload_rate = 1; } },
-    Case{ "active_upload",           "is:active",        true,  [](Torrent& t) { t.status.upload_payload_rate = 1; } },
-    Case{ "inactive",                "is:active",        false },
-    Case{ "is_list",                 "is:paused,seeding", true, [](Torrent& t) { t.status.state = lt::torrent_status::seeding; } },
-    Case{ "has_category",            "has:category",     true,  [](Torrent& t) { t.client_data.category = "tv"; } },
-    Case{ "has_category_unset",      "has:category",     false },
-    Case{ "has_category_no_data",    "has:category",     false, [](Torrent& t) { t.with_client_data = false; } },
-    Case{ "has_tags",                "has:tags",         true,  [](Torrent& t) { t.client_data.tags = { "a" }; } },
-    Case{ "not_has_tags",            "-has:tags",        true  },
-    Case{ "has_metadata",            "has:metadata",     true,  [](Torrent& t) { t.status.has_metadata = true; } },
-    Case{ "has_error",               "has:error",        true,  [](Torrent& t) { t.status.errc = boost::system::errc::make_error_code(boost::system::errc::io_error); } }
+INSTANTIATE_TEST_SUITE_P(Has, PqlMatch, ::testing::Values(
+    Case{ "has_category",           "has:$userdata.category",                true,  [](Torrent& t) { t.client_data.category = "tv"; } },
+    Case{ "has_category_unset",     "has:$userdata.category",                false },
+    Case{ "has_category_no_data",   "has:$userdata.category",                false, [](Torrent& t) { t.with_client_data = false; } },
+    Case{ "has_tags",               "has:$userdata.tags",                    true,  [](Torrent& t) { t.client_data.tags = { "a" }; } },
+    Case{ "not_has_tags",           "-has:$userdata.tags",                   true  },
+    Case{ "has_category_empty",     "has:$userdata.category",                false, [](Torrent& t) { t.client_data.category = ""; } },
+    Case{ "has_any_of",             "has:$userdata.tags,$userdata.category", true,  [](Torrent& t) { t.client_data.category = "tv"; } },
+    Case{ "has_completed",          "has:completed_time",                    true,  [](Torrent& t) { t.status.completed_time = kNow; } },
+    Case{ "has_never_completed",    "has:completed_time",                    false },
+    Case{ "has_eta_unknown",        "has:eta",                               false },
+    Case{ "has_next_announce",      "has:next_announce",                     true,  [](Torrent& t) { t.status.next_announce = lt::seconds(30); } },
+    Case{ "has_next_announce_none", "has:next_announce",                     false },
+    Case{ "has_last_upload",        "has:last_upload",                       true,  [](Torrent& t) { t.status.last_upload = lt::clock_type::now() - lt::minutes(1); } },
+    Case{ "has_last_upload_none",   "has:last_upload",                       false }
 ), CaseName);
+
+INSTANTIATE_TEST_SUITE_P(Flags, PqlMatch, ::testing::ValuesIn(With(
+    [](Torrent& t) { t.status.flags = lt::torrent_flags::paused | lt::torrent_flags::auto_managed; },
+    {
+        { "flags_single",       "flags:paused",                          true  },
+        { "flags_case",         "flags:PAUSED",                          true  },
+        { "flags_all_of",       "flags:paused,auto_managed",             true  },
+        { "flags_all_of_miss",  "flags:paused,sequential_download",      false },
+        { "flags_not_set",      "flags:~sequential_download",            true  },
+        { "flags_negated_set",  "flags:auto_managed,~paused",            false },
+        { "flags_running",      "flags:auto_managed,~paused",            true,  [](Torrent& t) { t.status.flags = lt::torrent_flags::auto_managed; } },
+        { "flags_term_not",     "-flags:paused",                         false },
+        { "flags_any_via_or",   "flags:seed_mode OR flags:paused",       true  },
+        { "flags_none_set",     "flags:paused",                          false, [](Torrent& t) { t.status.flags = {}; } },
+    })), CaseName);
+
+TEST(PqlRelative, ResolvesAgainstEvaluationTime)
+{
+    const auto filter = PQL::Parse("added_time:>-1h");
+
+    Torrent t;
+    t.status.added_time = kNow - 1800;
+
+    EXPECT_TRUE(filter(t.Context()));
+
+    t.now = kNow + 3600;
+    EXPECT_FALSE(filter(t.Context()));
+}
 
 // --- rejected queries --------------------------------------------------------
 
@@ -404,31 +429,26 @@ TEST_P(PqlRejects, Throws)
 }
 
 INSTANTIATE_TEST_SUITE_P(Pql, PqlRejects, ::testing::Values(
-    Reject{ "unknown_field",           "szie:1",                    "did you mean 'size'" },
-    Reject{ "old_save_path",           "save_path:/x",              "did you mean 'path'" },
-    Reject{ "old_tags",                "tags:foo",                  "did you mean 'tag'" },
-    Reject{ "old_active_duration",     "active_duration:1h",        "did you mean 'active_time'" },
-    Reject{ "unknown_is",              "is:bogus" },
+    Reject{ "unknown_field",           "totl:1",                    "did you mean 'total'" },
     Reject{ "unknown_has",             "has:bogus" },
-    Reject{ "unknown_size_unit",       "size:>1zb",                 "zb" },
-    Reject{ "bits_unit_dropped",       "dl:>1mbps",                 "mbps" },
-    Reject{ "duration_unit_on_size",   "size:>1h" },
-    Reject{ "size_unit_on_duration",   "age:>1gb" },
+    Reject{ "unknown_size_unit",       "total:>1zb",                 "zb" },
+    Reject{ "bits_unit_dropped",       "download_payload_rate:>1mbps",                 "mbps" },
+    Reject{ "duration_unit_on_total",  "total:>1h" },
+    Reject{ "size_unit_on_duration",   "eta:>1gb" },
     Reject{ "op_on_text",              "name:>abc" },
-    Reject{ "op_on_tag",               "tag:>a" },
-    Reject{ "op_on_flag",              "is:>paused" },
-    Reject{ "text_for_size",           "size:abc" },
-    Reject{ "list_on_size",            "size:1gb,2gb" },
-    Reject{ "glob_on_size",            "size:1*" },
-    Reject{ "range_reversed",          "size:2gb..1gb" },
+    Reject{ "op_on_tag",               "$userdata.tags:>a" },
+    Reject{ "text_for_total",          "total:abc" },
+    Reject{ "list_on_total",           "total:1gb,2gb" },
+    Reject{ "glob_on_total",           "total:1*" },
+    Reject{ "range_reversed",          "total:2gb..1gb" },
     Reject{ "progress_over_100",       "progress:>101" },
     Reject{ "negative_number",         "progress:>-1" },
-    Reject{ "bad_month",               "added:2026-13-01" },
-    Reject{ "bad_day",                 "added:2026-02-30" },
-    Reject{ "bad_date_format",         "added:01/01/2026" },
-    Reject{ "hash_too_short",          "hash:3f9" },
-    Reject{ "hash_not_hex",            "hash:xyz1" },
-    Reject{ "hash_too_long",           "hash:" + std::string(65, 'a') },
+    Reject{ "bad_month",               "added_time:2026-13-01" },
+    Reject{ "bad_day",                 "added_time:2026-02-30" },
+    Reject{ "bad_date_format",         "added_time:01/01/2026" },
+    Reject{ "hash_too_short",          "info_hash:3f9" },
+    Reject{ "hash_not_hex",            "info_hash:xyz1" },
+    Reject{ "hash_too_long",           "info_hash:" + std::string(65, 'a') },
     Reject{ "empty_value",             "name:" },
     Reject{ "unterminated_string",     "\"abc" },
     Reject{ "unbalanced_open",         "(((" },
@@ -437,7 +457,22 @@ INSTANTIATE_TEST_SUITE_P(Pql, PqlRejects, ::testing::Values(
     Reject{ "dangling_not",            "-" },
     Reject{ "too_long",                std::string(5000, 'a') },
     Reject{ "too_deep_parens",         std::string(100, '(') + "a" + std::string(100, ')') },
-    Reject{ "too_deep_not",            std::string(1000, '!') + "a" }
+    Reject{ "too_deep_not",            std::string(1000, '!') + "a" },
+    Reject{ "relative_needs_minus",    "added_time:>1h",         "did you mean '-1h'" },
+    Reject{ "relative_eq",             "added_time:=-1h",        "relative" },
+    Reject{ "relative_range_reversed", "added_time:-1h..-2h",    "reversed" },
+    Reject{ "relative_bad_unit",       "added_time:>-1gb",       "gb" },
+    Reject{ "flags_unknown",           "flags:bogus",            "Unknown flag" },
+    Reject{ "flags_typo",              "flags:pasued",           "did you mean 'paused'" },
+    Reject{ "flags_contradiction",     "flags:paused,~paused",   "more than once" },
+    Reject{ "flags_operator",          "flags:>paused",          "not valid" },
+    Reject{ "flags_eq",                "flags:=paused",          "not valid" },
+    Reject{ "flags_lone_tilde",        "flags:~",                "Unknown flag" },
+    Reject{ "relative_hint_unit",       "added_time:>1h",        "did you mean '-1h'" },
+    Reject{ "relative_hint_fraction",   "added_time:1.5d",       "did you mean '-1.5d'" },
+    Reject{ "no_hint_compact_date",     "added_time:20260101",   "Expected a date (YYYY-MM-DD" },
+    Reject{ "no_hint_slash_date",       "added_time:01/01/2026", "Expected a date (YYYY-MM-DD" },
+    Reject{ "no_hint_size_unit",        "added_time:1gb",        "Expected a date (YYYY-MM-DD" }
 ), CaseName);
 
 // --- error positions (code point offsets, end exclusive) ---------------------
@@ -471,8 +506,136 @@ TEST_P(PqlErrorAt, ReportsSpan)
 }
 
 INSTANTIATE_TEST_SUITE_P(Pql, PqlErrorAt, ::testing::Values(
-    ErrorAt{ "unknown_field",      "ubuntu szie:>1gb",   7, 12 },
-    ErrorAt{ "unknown_unit",       "size:>1zb",          6,  9 },
-    ErrorAt{ "invalid_operator",   "name:>abc",          5,  6 },
-    ErrorAt{ "utf8_offsets",       "åäö szie:1",         4,  9 }
+    ErrorAt{ "unknown_field",    "ubuntu totl:>1gb", 7, 12 },
+    ErrorAt{ "unknown_unit",     "total:>1zb",       7, 10 },
+    ErrorAt{ "invalid_operator", "name:>abc",        5, 6 },
+    ErrorAt{ "utf8_offsets",     "åäö totl:1",       4, 9 },
+    ErrorAt{ "bool_bad_value",  "is_seeding:maybe", 11, 16 },
+    ErrorAt{ "bool_operator",   "is_seeding:>true", 11, 12 }
+), CaseName);
+
+INSTANTIATE_TEST_SUITE_P(State, PqlMatch, ::testing::ValuesIn(With(
+    [](Torrent& t) { t.status.state = lt::torrent_status::seeding; },
+    {
+        { "state_match",            "state:seeding",                                 true  },
+        { "state_miss",             "state:downloading",                             false },
+        { "state_case",             "state:SEEDING",                                 true  },
+        { "state_eq",               "state:=seeding",                                true  },
+        { "state_quoted",           "state:\"seeding\"",                             true  },
+        { "state_any_of",           "state:downloading,seeding",                     true  },
+        { "state_negated",          "-state:seeding",                                false },
+        { "state_checking_files",   "state:checking_files,checking_resume_data",     true,  [](Torrent& t) { t.status.state = lt::torrent_status::checking_files; } },
+        { "state_checking_resume",  "state:checking_files,checking_resume_data",     true,  [](Torrent& t) { t.status.state = lt::torrent_status::checking_resume_data; } },
+        { "state_metadata",         "state:downloading_metadata",                    true,  [](Torrent& t) { t.status.state = lt::torrent_status::downloading_metadata; } },
+        { "state_finished",         "state:finished",                                true,  [](Torrent& t) { t.status.state = lt::torrent_status::finished; } },
+    })), CaseName);
+
+// --- bool --------------------------------------------------------------------
+
+INSTANTIATE_TEST_SUITE_P(Bool, PqlMatch, ::testing::ValuesIn(With(
+    [](Torrent& t)
+    {
+        t.status.is_seeding     = true;
+        t.status.has_metadata   = true;
+        t.status.moving_storage = false;
+    },
+    {
+        { "bool_true",              "is_seeding:true",        true  },
+        { "bool_false_miss",        "is_seeding:false",       false },
+        { "bool_false",             "moving_storage:false",   true  },
+        { "bool_eq",                "is_seeding:=true",       true  },
+        { "bool_yes",               "has_metadata:yes",       true  },
+        { "bool_no",                "moving_storage:no",      true  },
+        { "bool_one",               "is_seeding:1",           true  },
+        { "bool_zero",              "moving_storage:0",       true  },
+        { "bool_case",              "is_seeding:TRUE",        true  },
+        { "bool_quoted",            "is_seeding:\"true\"",    true  },
+        { "bool_negated",           "-is_seeding:true",       false },
+        { "errc_unset",             "errc:false",             true  },
+        { "errc_set",               "errc:true",              true,  [](Torrent& t) { t.status.errc = lt::errors::make_error_code(lt::errors::file_too_short); } },
+    })), CaseName);
+
+// --- rate limits -------------------------------------------------------------
+
+INSTANTIATE_TEST_SUITE_P(Limits, PqlMatch, ::testing::Values(
+    // -1 means unlimited and must never match a range
+    Case{ "upload_limit_unlimited",       "upload_limit:<1mb/s",       false },
+    Case{ "download_limit_unlimited",     "download_limit:<1mb/s",     false },
+    Case{ "upload_limit_capped",          "upload_limit:<1mb/s",       true,  [](Torrent& t) { t.status.upload_limit = 500000; } },
+    Case{ "upload_limit_above",           "upload_limit:<1mb/s",       false, [](Torrent& t) { t.status.upload_limit = 2000000; } },
+    Case{ "download_limit_capped",        "download_limit:500kb..1mb", true,  [](Torrent& t) { t.status.download_limit = 750000; } },
+    Case{ "has_upload_limit",             "has:upload_limit",          true,  [](Torrent& t) { t.status.upload_limit = 1; } },
+    Case{ "has_upload_limit_unlimited",   "has:upload_limit",          false },
+    Case{ "unlimited_via_not_has",        "-has:download_limit",       true  }
+), CaseName);
+
+// --- values that mean "not set" ----------------------------------------------
+
+INSTANTIATE_TEST_SUITE_P(Unset, PqlMatch, ::testing::Values(
+    Case{ "queue_position_unqueued",      "queue_position:<5",               false, [](Torrent& t) { t.status.queue_position = lt::queue_position_t{ -1 }; } },
+    Case{ "has_queue_position_unqueued",  "has:queue_position",              false, [](Torrent& t) { t.status.queue_position = lt::queue_position_t{ -1 }; } },
+    Case{ "has_queue_position",           "has:queue_position",              true,  [](Torrent& t) { t.status.queue_position = lt::queue_position_t{ 0 }; } },
+    Case{ "last_seen_complete_unset",     "last_seen_complete:<2020-01-01",  false },
+    Case{ "has_last_seen_complete_unset", "has:last_seen_complete",          false },
+    Case{ "has_last_seen_complete",       "has:last_seen_complete",          true,  [](Torrent& t) { t.status.last_seen_complete = kNow; } }
+), CaseName);
+
+// --- last_upload / last_download ---------------------------------------------
+
+INSTANTIATE_TEST_SUITE_P(LastActivity, PqlMatch, ::testing::Values(
+    // libtorrent restores pre-boot activity from resume data as a negative steady-clock time point;
+    // only exactly the epoch means "never"
+    Case{ "last_upload_before_boot",      "last_upload:>5m",    true,  [](Torrent& t) { t.status.last_upload = lt::time_point(-lt::hours(24 * 365)); } },
+    Case{ "has_last_upload_before_boot",  "has:last_upload",    true,  [](Torrent& t) { t.status.last_upload = lt::time_point(-lt::hours(24 * 365)); } },
+    Case{ "last_upload_epoch_is_unset",   "has:last_upload",    false, [](Torrent& t) { t.status.last_upload = lt::time_point{}; } },
+    Case{ "last_download_recent",         "last_download:<5m",  true,  [](Torrent& t) { t.status.last_download = lt::clock_type::now() - lt::minutes(1); } },
+    Case{ "last_download_stale",          "last_download:>5m",  true,  [](Torrent& t) { t.status.last_download = lt::clock_type::now() - lt::minutes(10); } },
+    Case{ "last_download_never",          "last_download:>5m",  false },
+    Case{ "last_download_never_or_stale", "last_download:>5m OR -has:last_download", true },
+    Case{ "has_last_download",            "has:last_download",  true,  [](Torrent& t) { t.status.last_download = lt::clock_type::now() - lt::minutes(1); } }
+), CaseName);
+
+// --- ratio_real --------------------------------------------------------------
+
+INSTANTIATE_TEST_SUITE_P(RatioReal, PqlMatch, ::testing::ValuesIn(With(
+    [](Torrent& t)
+    {
+        t.status.all_time_upload   = 2 * GiB;
+        t.status.all_time_download = 1 * GiB;
+    },
+    {
+        { "ratio_real",               "ratio_real:2",       true  },
+        { "ratio_real_never_dl",      "ratio_real:>=9999",  true,  [](Torrent& t) { t.status.all_time_download = 0; } },
+        { "ratio_real_nothing",       "ratio_real:0",       true,  [](Torrent& t) { t.status.all_time_upload = 0; t.status.all_time_download = 0; } },
+    })), CaseName);
+
+// --- more rejects ------------------------------------------------------------
+
+INSTANTIATE_TEST_SUITE_P(Fields, PqlRejects, ::testing::Values(
+    Reject{ "state_unknown",          "state:bogus",                         "Unknown torrent state 'bogus'" },
+    Reject{ "state_glob",             "state:seed*",                         "Unknown torrent state" },
+    Reject{ "state_operator",         "state:>seeding",                      "not valid" },
+    Reject{ "state_quoted_list",      "state:\"seeding,downloading\"",       "Unknown torrent state" },
+    Reject{ "bool_bad_value",         "is_seeding:maybe",                    "Unexpected value for boolean" },
+    Reject{ "bool_list",              "is_seeding:true,false",               "Unexpected value for boolean" },
+    Reject{ "bool_operator",          "is_seeding:>true",                    "not valid" },
+    Reject{ "has_bool",               "has:moving_storage",                  "use 'moving_storage:true'" },
+    Reject{ "has_state",              "has:state",                           "always has a value" },
+    Reject{ "has_flags",              "has:flags",                           "always has a value" },
+    Reject{ "has_hash",               "has:info_hash",                       "always has a value" },
+    Reject{ "has_operator",           "has:>completed_time",                 "does not take an operator" },
+    Reject{ "has_unknown_in_list",    "has:$userdata.tags,bogus",            "Unknown field 'bogus'" },
+    Reject{ "has_typo_hint",          "has:$userdata.tag",                   "did you mean '$userdata.tags'" },
+    Reject{ "number_too_large",       "total:1" + std::string(400, '0'),     "out of range" },
+    Reject{ "number_underflow",       "total:0." + std::string(400, '0') + "1", "out of range" },
+    Reject{ "relative_too_large",     "added_time:>-1" + std::string(400, '0') + "h", "out of range" },
+    Reject{ "limit_number_unit",      "upload_limit:<1h",                    "Unknown rate unit 'h'" },
+    Reject{ "userdata_typo_hint",     "$userdata.categroy:x",                "did you mean '$userdata.category'" }
+), CaseName);
+
+INSTANTIATE_TEST_SUITE_P(Fields, PqlErrorAt, ::testing::Values(
+    ErrorAt{ "state_unknown",   "state:bogus",       6, 11 },
+    ErrorAt{ "has_unknown",     "has:bogus",         4, 9  },
+    ErrorAt{ "flags_unknown",   "flags:bogus",       6, 11 },
+    ErrorAt{ "number_too_large", "total:1" + std::string(400, '0'), 6, 407 }
 ), CaseName);

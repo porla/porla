@@ -11,7 +11,7 @@ namespace
 {
     std::optional<std::int64_t> ToUnixTime(lt::time_point tp)
     {
-        if (tp.time_since_epoch() <= lt::time_duration::zero())
+        if (tp.time_since_epoch() == lt::time_duration::zero())
         {
             return std::nullopt;
         }

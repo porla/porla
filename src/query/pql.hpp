@@ -8,6 +8,8 @@
 #include <libtorrent/torrent_status.hpp>
 #include <utility>
 
+#include "../fields.hpp"
+
 namespace porla
 {
     struct TorrentClientData;
@@ -15,14 +17,7 @@ namespace porla
 
 namespace porla::Query
 {
-    struct QueryContext
-    {
-        const lt::torrent_status&       status;
-        const porla::TorrentClientData* client_data;
-        std::time_t                     now;
-    };
-
-    using Filter = std::function<bool(const QueryContext&)>;
+    using Filter = std::function<bool(const Fields::Context&)>;
 
     class QueryError : public std::runtime_error
     {

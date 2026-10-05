@@ -18,15 +18,16 @@
 #include "_aux/PqlLexer.h"
 #include "_aux/PqlParser.h"
 
+#include "../fields.hpp"
 #include "../torrentclientdata.hpp"
-#include "../utils/eta.hpp"
 #include "../utils/hex.hpp"
-#include "../utils/ratio.hpp"
+#include "../utils/string.hpp"
 
+using porla::Fields;
 using porla::Query::Filter;
 using porla::Query::PQL;
-using porla::Query::QueryContext;
 using porla::Query::QueryError;
+using porla::Utils::String;
 
 using P = PqlParser;
 
@@ -112,7 +113,7 @@ namespace
     {
         if (filters.size() == 1) { return std::move(filters.front()); }
 
-        return [filters = std::move(filters)](const QueryContext& ctx)
+        return [filters = std::move(filters)](const Fields::Context& ctx)
         {
             return std::all_of(filters.begin(), filters.end(), [&](const auto& f) { return f(ctx); });
         };
@@ -122,7 +123,7 @@ namespace
     {
         if (filters.size() == 1) { return std::move(filters.front()); }
 
-        return [filters = std::move(filters)](const QueryContext& ctx)
+        return [filters = std::move(filters)](const Fields::Context& ctx)
         {
             return std::any_of(filters.begin(), filters.end(), [&](const auto& f) { return f(ctx); });
         };
@@ -130,7 +131,7 @@ namespace
 
     Filter Not(Filter inner)
     {
-        return [inner = std::move(inner)](const QueryContext& ctx) { return !inner(ctx); };
+        return [inner = std::move(inner)](const Fields::Context& ctx) { return !inner(ctx); };
     }
 
     enum class Oper { None, Eq, Gt, Gte, Lt, Lte };
@@ -177,13 +178,6 @@ namespace
     }
 
     // --- text helpers ----------------------------------------------------------
-
-    std::string ToLower(std::string_view s)
-    {
-        std::string out(s);
-        std::transform(out.begin(), out.end(), out.begin(), [](unsigned char c) { return std::tolower(c); });
-        return out;
-    }
 
     bool IsHex(std::string_view s)
     {
@@ -252,27 +246,7 @@ namespace
     std::vector<std::string> ListOf(const Value& value)
     {
         if (value.quoted) { return { value.text }; }
-
-        std::vector<std::string> items;
-        size_t start = 0;
-
-        while (true)
-        {
-            const size_t comma = value.text.find(',', start);
-            auto item = value.text.substr(start, comma == std::string::npos ? std::string::npos : comma - start);
-
-            if (item.empty())
-            {
-                Fail("Empty item in list", value.span);
-            }
-
-            items.push_back(std::move(item));
-
-            if (comma == std::string::npos) { break; }
-            start = comma + 1;
-        }
-
-        return items;
+        return String::Split(value.text, ",");
     }
 
     struct TextMatcher
@@ -306,7 +280,7 @@ namespace
                 ? TextMatcher::Mode::Glob
                 : default_mode;
 
-            matchers.push_back({ mode, ToLower(item) });
+            matchers.push_back({ mode, String::ToLower(item) });
         }
 
         return matchers;
@@ -314,130 +288,14 @@ namespace
 
     // --- registry --------------------------------------------------------------
 
-    enum class Kind { Text, Tag, Hash, Size, Rate, Duration, Number, Percent, Date };
-
-    using NumberGetter = std::optional<double> (*)(const QueryContext&);
-    using TextGetter   = std::optional<std::string_view> (*)(const QueryContext&);
-
-    struct FieldDef
-    {
-        std::string_view name;
-        Kind             kind;
-        NumberGetter     number = nullptr;
-        TextGetter       text   = nullptr;
-    };
-
-    std::optional<double> Seconds(std::chrono::seconds s) { return static_cast<double>(s.count()); }
-
-    std::optional<double> Timestamp(std::time_t t)
-    {
-        if (t <= 0) { return std::nullopt; }
-        return static_cast<double>(t);
-    }
-
-    const std::vector<FieldDef>& Fields()
-    {
-        static const std::vector<FieldDef> fields =
-        {
-            { "name",          Kind::Text,     nullptr, [](const QueryContext& c) -> std::optional<std::string_view> { return c.status.name; } },
-            { "path",          Kind::Text,     nullptr, [](const QueryContext& c) -> std::optional<std::string_view> { return c.status.save_path; } },
-            { "tracker",       Kind::Text,     nullptr, [](const QueryContext& c) -> std::optional<std::string_view> { return c.status.current_tracker; } },
-            { "category",      Kind::Text,     nullptr, [](const QueryContext& c) -> std::optional<std::string_view>
-                {
-                    if (c.client_data == nullptr || !c.client_data->category.has_value()) { return std::nullopt; }
-                    return *c.client_data->category;
-                } },
-            { "tag",           Kind::Tag },
-            { "hash",          Kind::Hash },
-
-            { "size",          Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.total_wanted; } },
-            { "downloaded",    Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.total_done; } },
-            { "uploaded",      Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.all_time_upload; } },
-            { "remaining",     Kind::Size,     [](const QueryContext& c) -> std::optional<double> { return c.status.total_wanted - c.status.total_wanted_done; } },
-
-            { "dl",            Kind::Rate,     [](const QueryContext& c) -> std::optional<double> { return c.status.download_payload_rate; } },
-            { "download_rate", Kind::Rate,     [](const QueryContext& c) -> std::optional<double> { return c.status.download_payload_rate; } },
-            { "ul",            Kind::Rate,     [](const QueryContext& c) -> std::optional<double> { return c.status.upload_payload_rate; } },
-            { "upload_rate",   Kind::Rate,     [](const QueryContext& c) -> std::optional<double> { return c.status.upload_payload_rate; } },
-
-            { "age",           Kind::Duration, [](const QueryContext& c) -> std::optional<double> { return static_cast<double>(c.now - c.status.added_time); } },
-            { "eta",           Kind::Duration, [](const QueryContext& c) -> std::optional<double>
-                {
-                    const auto eta = porla::Utils::ETA(c.status);
-                    if (eta.count() < 0) { return std::nullopt; }
-                    return static_cast<double>(eta.count());
-                } },
-            { "active_time",   Kind::Duration, [](const QueryContext& c) { return Seconds(c.status.active_duration); } },
-            { "seed_time",     Kind::Duration, [](const QueryContext& c) { return Seconds(c.status.seeding_duration); } },
-            { "finished_time", Kind::Duration, [](const QueryContext& c) { return Seconds(c.status.finished_duration); } },
-
-            { "progress",      Kind::Percent,  [](const QueryContext& c) -> std::optional<double> { return c.status.progress_ppm; } },
-
-            { "ratio",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return porla::Utils::Ratio(c.status); } },
-            { "seeds",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.num_seeds; } },
-            { "peers",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return c.status.num_peers; } },
-            { "queue",         Kind::Number,   [](const QueryContext& c) -> std::optional<double> { return static_cast<int>(c.status.queue_position); } },
-
-            { "added",         Kind::Date,     [](const QueryContext& c) { return Timestamp(c.status.added_time); } },
-            { "completed",     Kind::Date,     [](const QueryContext& c) { return Timestamp(c.status.completed_time); } },
-        };
-
-        return fields;
-    }
-
-    const FieldDef* FindField(std::string_view name)
-    {
-        for (const auto& field : Fields())
-        {
-            if (field.name == name) { return &field; }
-        }
-
-        return nullptr;
-    }
-
-    size_t Levenshtein(std::string_view a, std::string_view b)
-    {
-        std::vector<size_t> row(b.size() + 1);
-        for (size_t j = 0; j <= b.size(); j++) { row[j] = j; }
-
-        for (size_t i = 1; i <= a.size(); i++)
-        {
-            size_t diag = row[0];
-            row[0] = i;
-
-            for (size_t j = 1; j <= b.size(); j++)
-            {
-                const size_t up = row[j];
-                row[j] = std::min({ row[j] + 1, row[j - 1] + 1, diag + (a[i - 1] == b[j - 1] ? 0 : 1) });
-                diag = up;
-            }
-        }
-
-        return row[b.size()];
-    }
-
     std::string Suggest(std::string_view name)
     {
-        static const std::map<std::string_view, std::string_view> renamed =
-        {
-            { "active_duration",   "active_time" },
-            { "finished_duration", "finished_time" },
-            { "save_path",         "path" },
-            { "seeding_duration",  "seed_time" },
-            { "tags",              "tag" },
-        };
-
-        if (const auto it = renamed.find(name); it != renamed.end())
-        {
-            return " - did you mean '" + std::string(it->second) + "'?";
-        }
-
         std::string_view best;
         size_t best_distance = 3;
 
-        for (const auto& field : Fields())
+        for (const auto& field : Fields::All())
         {
-            if (const auto d = Levenshtein(name, field.name); d < best_distance)
+            if (const auto d = String::Levenshtein(name, field.name); d < best_distance)
             {
                 best          = field.name;
                 best_distance = d;
@@ -447,59 +305,65 @@ namespace
         return best.empty() ? "" : " - did you mean '" + std::string(best) + "'?";
     }
 
-    // --- is: / has: ------------------------------------------------------------
+    // --- has: ------------------------------------------------------------
 
-    using Predicate = bool (*)(const QueryContext&);
-
-    Filter BuildFlag(std::string_view field, const Value& value)
+    Filter PresenceOf(const Fields::Field& def, Span span)
     {
-        static const std::map<std::string_view, Predicate> is_flags =
+        const auto name = std::string(def.name);
+
+        switch (def.kind)
         {
-            { "active",      [](const QueryContext& c) { return c.status.download_payload_rate > 0 || c.status.upload_payload_rate > 0; } },
-            { "checking",    [](const QueryContext& c) { return c.status.state == lt::torrent_status::checking_files || c.status.state == lt::torrent_status::checking_resume_data; } },
-            { "downloading", [](const QueryContext& c) { return c.status.state == lt::torrent_status::downloading; } },
-            { "error",       [](const QueryContext& c) { return static_cast<bool>(c.status.errc); } },
-            { "finished",    [](const QueryContext& c) { return c.status.state == lt::torrent_status::finished; } },
-            { "moving",      [](const QueryContext& c) { return c.status.moving_storage; } },
-            { "paused",      [](const QueryContext& c) { return (c.status.flags & lt::torrent_flags::paused) == lt::torrent_flags::paused; } },
-            { "private",     [](const QueryContext& c) { const auto ti = c.status.torrent_file.lock(); return ti != nullptr && ti->priv(); } },
-            { "queued",      [](const QueryContext& c)
-                {
-                    const auto queued = lt::torrent_flags::paused | lt::torrent_flags::auto_managed;
-                    return (c.status.flags & queued) == queued;
-                } },
-            { "seeding",     [](const QueryContext& c) { return c.status.state == lt::torrent_status::seeding; } },
-            { "stalled",     [](const QueryContext& c) { return c.status.state == lt::torrent_status::downloading && c.status.download_payload_rate == 0; } },
-        };
+        case Fields::Kind::Tag:
+            return [](const Fields::Context& ctx)
+            {
+                return ctx.client_data != nullptr
+                    && !ctx.client_data->tags.empty();
+            };
 
-        static const std::map<std::string_view, Predicate> has_flags =
+        case Fields::Kind::Text:
+            return [get = def.text](const Fields::Context& ctx)
+            {
+                const auto text = get(ctx);
+                return text.has_value() && !text->empty();
+            };
+
+        case Fields::Kind::Bool:
+            Fail("'" + name + "' always has a value - use '" + name + ":true'", span);
+
+        case Fields::Kind::Flags:
+        case Fields::Kind::Hash:
+        case Fields::Kind::State:
+            Fail("'" + name + "' always has a value; 'has:' can't be used with it", span);
+
+        default:
+            return [get = def.number](const Fields::Context& ctx) { return get(ctx).has_value(); };
+        }
+    }
+
+    Filter BuildHas(Oper oper, Span oper_span, const Value& value)
+    {
+        if (oper != Oper::None)
         {
-            { "category",    [](const QueryContext& c) { return c.client_data != nullptr && c.client_data->category.has_value(); } },
-            { "error",       [](const QueryContext& c) { return static_cast<bool>(c.status.errc); } },
-            { "metadata",    [](const QueryContext& c) { return c.status.has_metadata; } },
-            { "tags",        [](const QueryContext& c) { return c.client_data != nullptr && !c.client_data->tags.empty(); } },
-        };
+            Fail("'has:' does not take an operator", oper_span);
+        }
 
-        const auto& flags = field == "is" ? is_flags : has_flags;
-
-        std::vector<Predicate> predicates;
+        std::vector<Filter> checks;
 
         for (const auto& item : ListOf(value))
         {
-            const auto it = flags.find(ToLower(item));
+            const auto name = String::ToLower(item);
 
-            if (it == flags.end())
+            const auto* def = Fields::Find(name);
+
+            if (def == nullptr)
             {
-                Fail("Unknown flag '" + item + "' for '" + std::string(field) + ":'", value.span);
+                Fail("Unknown field '" + name + "' for 'has:'" + Suggest(name), value.span);
             }
 
-            predicates.push_back(it->second);
+            checks.push_back(PresenceOf(*def, value.span));
         }
 
-        return [predicates](const QueryContext& ctx)
-        {
-            return std::any_of(predicates.begin(), predicates.end(), [&](auto p) { return p(ctx); });
-        };
+        return Any(std::move(checks));
     }
 
     // --- text, tag, hash -------------------------------------------------------
@@ -512,13 +376,13 @@ namespace
         }
     }
 
-    Filter BuildText(const FieldDef& def, Oper oper, Span oper_span, const Value& value)
+    Filter BuildText(const Fields::Field& def, Oper oper, Span oper_span, const Value& value)
     {
         RequireEqOrNone(oper, oper_span, "text field '" + std::string(def.name) + "'");
 
         auto matchers = MatchersOf(value, oper == Oper::Eq ? TextMatcher::Mode::Equals : TextMatcher::Mode::Contains);
 
-        return [get = def.text, matchers = std::move(matchers)](const QueryContext& ctx)
+        return [get = def.text, matchers = std::move(matchers)](const Fields::Context& ctx)
         {
             const auto text = get(ctx);
             if (!text.has_value()) { return false; }
@@ -529,11 +393,11 @@ namespace
 
     Filter BuildTag(Oper oper, Span oper_span, const Value& value)
     {
-        RequireEqOrNone(oper, oper_span, "field 'tag'");
+        RequireEqOrNone(oper, oper_span, "field '$userdata.tags'");
 
         auto matchers = MatchersOf(value, TextMatcher::Mode::Equals);
 
-        return [matchers = std::move(matchers)](const QueryContext& ctx)
+        return [matchers = std::move(matchers)](const Fields::Context& ctx)
         {
             if (ctx.client_data == nullptr) { return false; }
 
@@ -571,7 +435,7 @@ namespace
 
     Filter BuildHash(Oper oper, Span oper_span, const Value& value)
     {
-        RequireEqOrNone(oper, oper_span, "field 'hash'");
+        RequireEqOrNone(oper, oper_span, "field 'info_hash'");
 
         std::vector<std::string> prefixes;
 
@@ -579,24 +443,166 @@ namespace
         {
             if (item.size() < 4 || item.size() > 64 || !IsHex(item))
             {
-                Fail("Expected 4-64 hex characters for 'hash:'", value.span);
+                Fail("Expected 4-64 hex characters for 'info_hash:'", value.span);
             }
 
-            prefixes.push_back(ToLower(item));
+            prefixes.push_back(String::ToLower(item));
         }
 
-        return [prefixes = std::move(prefixes)](const QueryContext& ctx)
+        return [prefixes = std::move(prefixes)](const Fields::Context& ctx)
         {
             return HashHasPrefix(ctx.status.info_hashes, prefixes);
         };
     }
 
+    Filter BuildState(Oper oper, Span oper_span, const Value& value)
+    {
+        RequireEqOrNone(oper, oper_span, "field 'state'");
+
+        auto unparsed_states = ListOf(value);
+
+        std::vector<lt::torrent_status::state_t> states;
+
+        std::transform(
+            unparsed_states.begin(),
+            unparsed_states.end(),
+            std::back_inserter(states),
+            [&](const std::string& s)
+            {
+                const auto lower = String::ToLower(s);
+                if (lower == "checking_files")       return lt::torrent_status::checking_files;
+                if (lower == "downloading_metadata") return lt::torrent_status::downloading_metadata;
+                if (lower == "downloading")          return lt::torrent_status::downloading;
+                if (lower == "finished")             return lt::torrent_status::finished;
+                if (lower == "seeding")              return lt::torrent_status::seeding;
+                if (lower == "checking_resume_data") return lt::torrent_status::checking_resume_data;
+                Fail("Unknown torrent state '" + s + "'", value.span);
+            });
+
+        return [states = std::move(states)](const Fields::Context& ctx)
+        {
+            return std::any_of(
+                states.begin(),
+                states.end(),
+                [&](const auto& s)
+                {
+                    return ctx.status.state == s;
+                });
+        };
+    }
+
+    Filter BuildBool(const Fields::Field& field, Oper oper, Span oper_span, const Value& value)
+    {
+        RequireEqOrNone(oper, oper_span, "bool field '" + std::string(field.name) + "'");
+
+        static const std::map<std::string, bool> bools =
+        {
+            {"true", true},
+            {"1", true},
+            {"yes", true},
+            {"false", false},
+            {"0", false},
+            {"no", false}
+        };
+
+        const auto val = String::ToLower(value.text);
+        const auto it  = bools.find(val);
+
+        if (it == bools.end())
+        {
+            Fail("Unexpected value for boolean", value.span);
+        }
+
+        return [get = field.boolean, v = it->second](const Fields::Context& ctx)
+        {
+            return get(ctx) == v;
+        };
+    }
+
+    Filter BuildFlags(Oper oper, Span oper_span, const Value& value)
+    {
+        if (oper != Oper::None)
+        {
+            Fail("'" + OperText(oper) + "' is not valid for field 'flags'", oper_span);
+        }
+
+        static const std::map<std::string_view, lt::torrent_flags_t> names =
+        {
+            { "apply_ip_filter",       lt::torrent_flags::apply_ip_filter },
+            { "auto_managed",          lt::torrent_flags::auto_managed },
+            { "default_dont_download", lt::torrent_flags::default_dont_download },
+            { "disable_dht",           lt::torrent_flags::disable_dht },
+            { "disable_lsd",           lt::torrent_flags::disable_lsd },
+            { "disable_pex",           lt::torrent_flags::disable_pex },
+            { "disable_v1_hashes",     lt::torrent_flags::disable_v1_hashes },
+            { "duplicate_is_error",    lt::torrent_flags::duplicate_is_error },
+            { "i2p_torrent",           lt::torrent_flags::i2p_torrent },
+            { "need_save_resume",      lt::torrent_flags::need_save_resume },
+            { "no_verify_files",       lt::torrent_flags::no_verify_files },
+            { "paused",                lt::torrent_flags::paused },
+            { "seed_mode",             lt::torrent_flags::seed_mode },
+            { "sequential_download",   lt::torrent_flags::sequential_download },
+            { "share_mode",            lt::torrent_flags::share_mode },
+            { "stop_when_ready",       lt::torrent_flags::stop_when_ready },
+            { "super_seeding",         lt::torrent_flags::super_seeding },
+            { "update_subscribe",      lt::torrent_flags::update_subscribe },
+            { "upload_mode",           lt::torrent_flags::upload_mode },
+        };
+
+        lt::torrent_flags_t mask{};
+        lt::torrent_flags_t want{};
+
+        for (const auto& item : ListOf(value))
+        {
+            const bool negate = item.starts_with('~');
+            const auto name   = String::ToLower(std::string_view(item).substr(negate ? 1 : 0));
+            const auto it     = names.find(name);
+
+            if (it == names.end())
+            {
+                std::string_view best;
+                size_t best_distance = 3;
+
+                for (const auto& [candidate, _] : names)
+                {
+                    if (const auto d = String::Levenshtein(name, candidate); d < best_distance)
+                    {
+                        best          = candidate;
+                        best_distance = d;
+                    }
+                }
+
+                Fail(
+                    "Unknown flag '" + name + "' for 'flags:'"
+                        + (best.empty() ? "" : " - did you mean '" + std::string(best) + "'?"),
+                    value.span);
+            }
+
+            if (mask & it->second)
+            {
+                Fail("Flag '" + name + "' is given more than once for 'flags:'", value.span);
+            }
+
+            mask |= it->second;
+
+            if (!negate)
+            {
+                want |= it->second;
+            }
+        }
+
+        return [mask, want](const Fields::Context& ctx)
+        {
+            return (ctx.status.flags & mask) == want;
+        };
+    }
+
     Filter BuildFreeText(const Value& value)
     {
-        const auto lower   = ToLower(value.text);
+        const auto lower   = String::ToLower(value.text);
         const bool as_hash = !value.quoted && LooksLikeHash(lower);
 
-        return [lower, as_hash, prefixes = std::vector<std::string>{ lower }](const QueryContext& ctx)
+        return [lower, as_hash, prefixes = std::vector<std::string>{ lower }](const Fields::Context& ctx)
         {
             const std::string_view name = ctx.status.name;
             if (std::search(name.begin(), name.end(), lower.begin(), lower.end(), EqualsIgnoreCase) != name.end()) { return true; }
@@ -611,26 +617,47 @@ namespace
     {
         double lo;
         double hi;
+        bool   lo_relative = false;
+        bool   hi_relative = false;
+        bool   lo_open     = false;
+        bool   hi_open     = false;
 
-        [[nodiscard]] bool Contains(double v) const { return v >= lo && v <= hi; }
+        [[nodiscard]] double Lo(std::time_t now) const
+        {
+            return lo_relative ? static_cast<double>(now) + lo : lo;
+        }
+
+        [[nodiscard]] double Hi(std::time_t now) const
+        {
+            return hi_relative ? static_cast<double>(now) + hi : hi;
+        }
+
+        [[nodiscard]] bool Contains(double v, std::time_t now) const
+        {
+            const double l = Lo(now);
+            const double h = Hi(now);
+
+            return (lo_open ? v > l : v >= l)
+                && (hi_open ? v < h : v <= h);
+        }
     };
 
     constexpr double kInf = std::numeric_limits<double>::infinity();
 
-    std::string_view KindName(Kind kind)
+    std::string_view KindName(Fields::Kind kind)
     {
         switch (kind)
         {
-        case Kind::Size:     return "size";
-        case Kind::Rate:     return "rate";
-        case Kind::Duration: return "duration";
-        case Kind::Percent:  return "percent";
-        case Kind::Date:     return "date";
-        default:             return "number";
+        case Fields::Kind::Size:     return "size";
+        case Fields::Kind::Rate:     return "rate";
+        case Fields::Kind::Duration: return "duration";
+        case Fields::Kind::Percent:  return "percent";
+        case Fields::Kind::Date:     return "date";
+        default:                     return "number";
         }
     }
 
-    std::optional<double> UnitMultiplier(Kind kind, std::string_view unit)
+    std::optional<double> UnitMultiplier(Fields::Kind kind, std::string_view unit)
     {
         static const std::map<std::string_view, double> sizes =
         {
@@ -672,11 +699,11 @@ namespace
 
         switch (kind)
         {
-        case Kind::Size:     return find(sizes, unit);
-        case Kind::Rate:     return find(sizes, unit.ends_with("/s") ? unit.substr(0, unit.size() - 2) : unit);
-        case Kind::Duration: return find(durations, unit);
-        case Kind::Percent:  return unit.empty() || unit == "%" ? std::optional(10000.) : std::nullopt;   // percent -> ppm
-        default:             return unit.empty() ? std::optional(1.) : std::nullopt;
+        case Fields::Kind::Size:     return find(sizes, unit);
+        case Fields::Kind::Rate:     return find(sizes, unit.ends_with("/s") ? unit.substr(0, unit.size() - 2) : unit);
+        case Fields::Kind::Duration: return find(durations, unit);
+        case Fields::Kind::Percent:  return unit.empty() || unit == "%" ? std::optional(10000.) : std::nullopt;   // percent -> ppm
+        default:                     return unit.empty() ? std::optional(1.) : std::nullopt;
         }
     }
 
@@ -734,30 +761,71 @@ namespace
         return Interval{ static_cast<double>(lo), static_cast<double>(std::mktime(&next) - 1) };
     }
 
-    Interval ParseScalar(Kind kind, std::string_view text, Span span)
+    // Length of the leading "123" or "1.5" in text, or 0 if it doesn't start with a number.
+    size_t NumberPrefix(std::string_view text)
     {
-        if (kind == Kind::Date)
-        {
-            if (auto date = ParseDate(text)) { return *date; }
-            Fail("Expected a date (YYYY-MM-DD or YYYY-MM-DDTHH:MM)", span);
-        }
-
         size_t i = 0;
         while (i < text.size() && std::isdigit(static_cast<unsigned char>(text[i]))) { i++; }
+
+        if (i > 0 && i + 1 < text.size() && text[i] == '.' && std::isdigit(static_cast<unsigned char>(text[i + 1])))
+        {
+            i++;
+            while (i < text.size() && std::isdigit(static_cast<unsigned char>(text[i]))) { i++; }
+        }
+
+        return i;
+    }
+
+    // "1h", "2w", "1.5d" - a number with an explicit duration unit
+    bool IsDurationWithUnit(std::string_view text)
+    {
+        const auto n = NumberPrefix(text);
+        if (n == 0 || n == text.size()) { return false; }
+
+        return UnitMultiplier(Fields::Kind::Duration, String::ToLower(text.substr(n))).has_value();
+    }
+
+    Interval ParseScalar(Fields::Kind kind, std::string_view text, Span span)
+    {
+        if (kind == Fields::Kind::Date)
+        {
+            if (text.starts_with("-"))
+            {
+                const auto ago = ParseScalar(Fields::Kind::Duration, text.substr(1), span);
+
+                return {
+                    .lo          = -ago.lo,
+                    .hi          = -ago.hi,
+                    .lo_relative = true,
+                    .hi_relative = true
+                };
+            }
+
+            if (auto date = ParseDate(text))
+            {
+                return *date;
+            }
+
+            if (IsDurationWithUnit(text))
+            {
+                Fail("Expected a date or a relative time - did you mean '-" + std::string(text) + "'?", span);
+            }
+
+            Fail("Expected a date (YYYY-MM-DD or YYYY-MM-DDTHH:MM) or a relative time (-1w)", span);
+        }
+
+        const size_t i = NumberPrefix(text);
 
         if (i == 0)
         {
             Fail("Expected a " + std::string(KindName(kind)) + " value", span);
         }
 
-        if (i + 1 < text.size() && text[i] == '.' && std::isdigit(static_cast<unsigned char>(text[i + 1])))
-        {
-            i++;
-            while (i < text.size() && std::isdigit(static_cast<unsigned char>(text[i]))) { i++; }
-        }
+        double number = 0;
+        try { number = std::stod(std::string(text.substr(0, i))); }
+        catch (const std::out_of_range&) { Fail("Number is out of range", span); }
 
-        const double number = std::stod(std::string(text.substr(0, i)));
-        const auto   unit   = ToLower(text.substr(i));
+        const auto   unit   = String::ToLower(text.substr(i));
         const auto   mult   = UnitMultiplier(kind, unit);
 
         if (!mult.has_value())
@@ -765,7 +833,7 @@ namespace
             Fail("Unknown " + std::string(KindName(kind)) + " unit '" + unit + "'", span);
         }
 
-        if (kind == Kind::Percent && number > 100)
+        if (kind == Fields::Kind::Percent && number > 100)
         {
             Fail("Expected a percentage (0-100)", span);
         }
@@ -774,7 +842,7 @@ namespace
         return { v, v };
     }
 
-    Filter BuildNumeric(const FieldDef& def, Oper oper, const Value& value)
+    Filter BuildNumeric(const Fields::Field& def, Oper oper, Span oper_span, const Value& value)
     {
         const auto& text = value.text;
 
@@ -800,32 +868,48 @@ namespace
             const auto a = ParseScalar(def.kind, std::string_view(text).substr(0, dots), value.span);
             const auto b = ParseScalar(def.kind, std::string_view(text).substr(dots + 2), value.span);
 
-            if (a.lo > b.hi)
+            const auto check_now = std::time(nullptr);
+
+            if (a.Lo(check_now) > b.Hi(check_now))
             {
                 Fail("Range is reversed", value.span);
             }
 
-            iv = { a.lo, b.hi };
+            iv = {
+                .lo          = a.lo,
+                .hi          = b.hi,
+                .lo_relative = a.lo_relative,
+                .hi_relative = b.hi_relative
+            };
         }
         else
         {
             const auto s = ParseScalar(def.kind, text, value.span);
 
+            const bool rel = s.lo_relative;
+
+            if (rel && oper == Oper::Eq)
+            {
+                Fail("'=' is not valid with a relative time; use '>' or '<'", oper_span);
+            }
+
             switch (oper)
             {
             case Oper::None:
-            case Oper::Eq:  iv = { s.lo, s.hi }; break;
-            case Oper::Gt:  iv = { std::nextafter(s.hi, kInf), kInf }; break;
-            case Oper::Gte: iv = { s.lo, kInf }; break;
-            case Oper::Lt:  iv = { -kInf, std::nextafter(s.lo, -kInf) }; break;
-            case Oper::Lte: iv = { -kInf, s.hi }; break;
-            }
+                // a bare relative time means "within the last ...", i.e. >=
+                iv = rel ? Interval{ .lo = s.lo, .hi = kInf, .lo_relative = true } : s;
+                break;
+            case Oper::Eq:  iv = s; break;
+            case Oper::Gt:  iv = { .lo = s.hi, .hi = kInf, .lo_relative = rel, .lo_open = true }; break;
+            case Oper::Gte: iv = { .lo = s.lo, .hi = kInf, .lo_relative = rel }; break;
+            case Oper::Lt:  iv = { .lo = -kInf, .hi = s.lo, .hi_relative = rel, .hi_open = true }; break;
+            case Oper::Lte: iv = { .lo = -kInf, .hi = s.hi, .hi_relative = rel }; break;            }
         }
 
-        return [get = def.number, iv](const QueryContext& ctx)
+        return [get = def.number, iv](const Fields::Context& ctx)
         {
             const auto v = get(ctx);
-            return v.has_value() && iv.Contains(*v);
+            return v.has_value() && iv.Contains(*v, ctx.now);
         };
     }
 
@@ -847,13 +931,12 @@ namespace
               auto* fv        = ctx->fieldValue();
         const auto  value     = ValueOf(fv->V_WORD(), fv->V_STRING());
 
-        if (field == "is" || field == "has")
+        if (field == "has")
         {
-            if (oper != Oper::None) { Fail("'" + field + ":' does not take an operator", oper_span); }
-            return BuildFlag(field, value);
+            return BuildHas(oper, oper_span, value);
         }
 
-        const auto* def = FindField(field);
+        const auto* def = Fields::Find(field);
 
         if (def == nullptr)
         {
@@ -862,10 +945,13 @@ namespace
 
         switch (def->kind)
         {
-        case Kind::Text: return BuildText(*def, oper, oper_span, value);
-        case Kind::Tag:  return BuildTag(oper, oper_span, value);
-        case Kind::Hash: return BuildHash(oper, oper_span, value);
-        default:         return BuildNumeric(*def, oper, value);
+        case Fields::Kind::Text:  return BuildText(*def, oper, oper_span, value);
+        case Fields::Kind::Tag:   return BuildTag(oper, oper_span, value);
+        case Fields::Kind::Hash:  return BuildHash(oper, oper_span, value);
+        case Fields::Kind::State: return BuildState(oper, oper_span, value);
+        case Fields::Kind::Bool:  return BuildBool(*def, oper, oper_span, value);
+        case Fields::Kind::Flags: return BuildFlags(oper, oper_span, value);
+        default:                  return BuildNumeric(*def, oper, oper_span, value);
         }
     }
 
@@ -941,7 +1027,7 @@ Filter PQL::Parse(std::string_view input)
 
     if (query->orExpr() == nullptr)
     {
-        return [](const QueryContext&) { return true; };
+        return [](const Fields::Context&) { return true; };
     }
 
     return Build(query->orExpr());

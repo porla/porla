@@ -12,8 +12,6 @@ endif()
 
 project(porla)
 
-set(FETCHCONTENT_BASE_DIR "${CMAKE_SOURCE_DIR}/.deps" CACHE PATH "")
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(CMakeRC)
@@ -161,6 +159,7 @@ add_library(
     src/cmdargs.cpp
     src/config.cpp
     src/curlmulti.cpp
+    src/fields.cpp
     src/logger.cpp
     src/mmdb.cpp
     src/sessions.cpp

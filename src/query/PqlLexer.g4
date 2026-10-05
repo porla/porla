@@ -6,7 +6,7 @@ NOT     : 'NOT' | '!' | '-' ;
 LPAREN  : '(' ;
 RPAREN  : ')' ;
 
-FIELD   : [a-zA-Z_]+ ':' -> pushMode(VALUE) ;
+FIELD   : '$'? [a-zA-Z_] [a-zA-Z0-9_.\-]* ':' -> pushMode(VALUE) ;
 STRING  : '"' ( '\\' . | ~["\\] )* '"' ;
 WORD    : ~[ \t\r\n()"<>=!:&|\-] ~[ \t\r\n()"<>=!:]* ;
 WS      : [ \t\r\n]+ -> skip ;

@@ -3,6 +3,7 @@
 #include <boost/log/trivial.hpp>
 
 #include "../../../data/models/sessions.hpp"
+#include "../../../fields.hpp"
 #include "../../../query/pql.hpp"
 #include "../../../sessions.hpp"
 #include "../../../torrentclientdata.hpp"
@@ -170,7 +171,7 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
 
         if (filter_query.has_value())
         {
-            const Query::QueryContext ctx{
+            const Fields::Context ctx{
                 .status      = ts,
                 .client_data = client_data,
                 .now         = now
