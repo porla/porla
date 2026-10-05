@@ -1,5 +1,7 @@
 #include "string.hpp"
 
+#include <algorithm>
+
 using porla::Utils::String;
 
 std::size_t String::Levenshtein(std::string_view a, std::string_view b)
