@@ -306,7 +306,9 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
 
     const auto cmp = [&sorter](const lt::torrent_status* lhs, const lt::torrent_status* rhs)
     {
-        return sorter->second(*lhs, *rhs);
+        if (sorter->second(*lhs, *rhs)) return true;
+        if (sorter->second(*rhs, *lhs)) return false;
+        return lhs->info_hashes < rhs->info_hashes;
     };
 
     if (page_end >= total / 2)
