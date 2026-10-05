@@ -558,7 +558,45 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
                 break;
             }
 
-            BOOST_LOG_TRIVIAL(info) << Sub(state, mra->handle.info_hashes()) << "Metadata received";
+            const auto info_hashes = mra->handle.info_hashes();
+
+            BOOST_LOG_TRIVIAL(info) << Sub(state, info_hashes) << "Metadata received";
+
+            // A magnet link only carries the hash(es) it was added with. A hybrid
+            // torrent gains its other hash with the metadata, and every later alert
+            // uses the full hashes, so move the torrent to its new key.
+            if (!state->torrents.contains(info_hashes))
+            {
+                const auto it = std::find_if(
+                    state->torrents.begin(),
+                    state->torrents.end(),
+                    [&](const auto& kv) { return kv.second.handle == mra->handle; });
+
+                if (it != state->torrents.end())
+                {
+                    const auto previous = it->first;
+
+                    auto node = state->torrents.extract(it);
+                    node.key() = info_hashes;
+                    node.mapped().info_hashes = info_hashes;
+
+                    state->torrents.insert(std::move(node));
+
+                    for (auto cb = state->m_oneshot_torrent_callbacks.begin(); cb != state->m_oneshot_torrent_callbacks.end();)
+                    {
+                        if (cb->first.second != previous)
+                        {
+                            ++cb;
+                            continue;
+                        }
+
+                        auto& callbacks = state->m_oneshot_torrent_callbacks[{ cb->first.first, info_hashes }];
+                        std::move(cb->second.begin(), cb->second.end(), std::back_inserter(callbacks));
+
+                        cb = state->m_oneshot_torrent_callbacks.erase(cb);
+                    }
+                }
+            }
 
             mra->handle.save_resume_data(
                 lt::torrent_handle::save_info_dict);
