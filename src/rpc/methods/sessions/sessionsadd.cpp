@@ -1,7 +1,5 @@
 #include "sessionsadd.hpp"
 
-#include <boost/log/trivial.hpp>
-
 #include "../../../sessions.hpp"
 #include "../../../data/models/sessions.hpp"
 #include "../../../utils/ltsettings.hpp"
@@ -42,15 +40,7 @@ void SessionsAdd::Execute(const SessionsAddReq& req, ResponseWriterHandle cb)
         .timer_torrent_updates = req.timer_torrent_updates.value_or(1000)
     };
 
-    int session_id = porla::Data::Models::Sessions::Insert(
-        m_db,
-        session);
-
-    BOOST_LOG_TRIVIAL(info) << "Session " << req.name << " added - loading...";
-
-    m_sessions.LoadById(session_id);
-
     cb->Ok(SessionsAddRes{
-        .id = session_id
+        .id = m_sessions.Add(session)
     });
 }

@@ -12,6 +12,7 @@ void PoSessionHandle::Register(sol::state& lua)
     lua.new_usertype<PoSessionHandle>(
         "PoSessionHandle",
         sol::no_constructor,
+        "id", sol::property(&PoSessionHandle::Id),
         "name", sol::property(&PoSessionHandle::Name),
         "add_dht_node", [](const PoSessionHandle& session, const std::string& host, int port)
         {
@@ -30,6 +31,11 @@ void PoSessionHandle::Register(sol::state& lua)
         "pause", [](const PoSessionHandle& session) { session.Lock()->session->pause(); },
         "resume", [](const PoSessionHandle& session) { session.Lock()->session->resume(); },
         "torrents", &PoSessionHandle::Torrents);
+}
+
+int PoSessionHandle::Id()
+{
+    return Lock()->id;
 }
 
 std::string PoSessionHandle::Name()

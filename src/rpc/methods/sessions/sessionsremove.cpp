@@ -1,7 +1,5 @@
 #include "sessionsremove.hpp"
 
-#include <boost/log/trivial.hpp>
-
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions.hpp"
 
@@ -36,11 +34,7 @@ void SessionsRemove::Execute(const SessionsRemoveReq& req, ResponseWriterHandle 
         return cb->Error(-3, "Cannot remove session with torrents");
     }
 
-    m_sessions.UnloadById(session->id);
-
-    porla::Data::Models::Sessions::Remove(m_db, session->id);
-
-    BOOST_LOG_TRIVIAL(info) << "Session " << session->name << " removed";
+    m_sessions.Remove(session->id);
 
     cb->Ok(SessionsRemoveRes{});
 }
