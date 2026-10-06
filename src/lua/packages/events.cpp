@@ -1,17 +1,50 @@
 #include "events.hpp"
 
+#include <set>
+
 #include <boost/signals2.hpp>
 #include <libtorrent/session_stats.hpp>
 
 #include "../pluginstate.hpp"
 #include "../types/pocancellable.hpp"
+#include "../types/pojson.hpp"
 #include "../types/posessionhandle.hpp"
 
 using porla::Lua::LuaState;
+using porla::Sessions;
 
 namespace
 {
     static const auto lt_session_metrics = lt::session_stats_metrics();
+
+    const std::set<std::string, std::less<>> kSessionEvents =
+    {
+        "session.added",
+        "session.loaded",
+        "session.removed",
+        "session.unloaded",
+        "session.updated"
+    };
+
+    sol::table ToLua(LuaState& state, const Sessions::SessionStatePtr& session, const Sessions::Event& event)
+    {
+        sol::table tbl = state.lua.create_table();
+
+        for (const auto& [ k, v ] : event.data)
+        {
+            tbl[k] = porla::Lua::Types::PoJson::ToLua(state.lua.lua_state(), v, 0);
+        }
+
+        tbl["name"]       = event.name;
+        tbl["session_id"] = event.session_id;
+
+        if (session != nullptr)
+        {
+            tbl["session"] = std::make_shared<porla::Lua::Types::PoSessionHandle>(session);
+        }
+
+        return tbl;
+    }
 }
 
 struct PoCancellableConnection : public porla::Lua::Types::PoCancellable
@@ -64,7 +97,20 @@ sol::object porla::Lua::Packages::Events::Load(sol::this_state ts)
         std::size_t                        callback_id = state->RegisterCallback(callback, false);
         boost::signals2::scoped_connection connection;
 
-        if (event == "session.stats")
+        if (kSessionEvents.contains(event))
+        {
+            connection = state->sessions.OnEvent(
+                [weak, callback_id, event](const Sessions::SessionStatePtr& session, const Sessions::Event& evt)
+                {
+                    if (evt.name != event) { return; }
+
+                    auto state = weak.lock();
+                    if (state == nullptr) { return; }
+
+                    state->InvokeCallback(callback_id, ToLua(*state, session, evt));
+                });
+        }
+        else if (event == "session.stats")
         {
             connection = state->sessions.OnSessionStats(
                 [weak, callback_id](const auto session, const auto& stats)

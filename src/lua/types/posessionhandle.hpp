@@ -18,6 +18,7 @@ namespace porla::Lua::Types
         explicit PoSessionHandle(std::weak_ptr<porla::Sessions::SessionState> state)
             : m_state(state) {}
 
+        int Id();
         std::string Name();
         std::shared_ptr<PoTorrentsHandle> Torrents();
 
