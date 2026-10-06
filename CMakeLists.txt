@@ -190,6 +190,7 @@ add_library(
     src/data/migrations/0015_addtorrentparamsindex.cpp
     src/data/migrations/0016_addapikeys.cpp
     src/data/migrations/0017_torrentinfos.cpp
+    src/data/migrations/0018_addcompletedat.cpp
     src/data/models/addtorrentparams.cpp
     src/data/models/apikeys.cpp
     src/data/models/keyvaluestore.cpp
