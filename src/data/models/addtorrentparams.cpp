@@ -80,6 +80,11 @@ namespace
                 client_data->category = client_data_json["category"];
             }
 
+            if (client_data_json.contains("completed_at") && client_data_json.at("completed_at").is_number_integer())
+            {
+                client_data->completed_at = client_data_json["completed_at"].get<std::int64_t>();
+            }
+
             if (client_data_json.contains("metadata") && client_data_json.at("metadata").is_object())
             {
                 client_data->metadata = client_data_json["metadata"];
@@ -126,9 +131,10 @@ namespace
     std::string SerializeClientData(const TorrentClientData& client_data)
     {
         const std::map<std::string, json> userdata = {
-            {"category", client_data.category.has_value() ? json(client_data.category.value()) : json()},
-            {"metadata", client_data.metadata},
-            {"tags",     client_data.tags}
+            {"category",     client_data.category.has_value()     ? json(client_data.category.value())     : json()},
+            {"completed_at", client_data.completed_at.has_value() ? json(client_data.completed_at.value()) : json()},
+            {"metadata",     client_data.metadata},
+            {"tags",         client_data.tags}
         };
 
         return json(userdata).dump();

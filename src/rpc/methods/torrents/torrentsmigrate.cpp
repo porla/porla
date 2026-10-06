@@ -56,9 +56,10 @@ void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandl
 
     if (prev_client_data)
     {
-        client_data->category = prev_client_data->category;
-        client_data->metadata = prev_client_data->metadata;
-        client_data->tags     = prev_client_data->tags;
+        client_data->category     = prev_client_data->category;
+        client_data->completed_at = prev_client_data->completed_at;
+        client_data->metadata     = prev_client_data->metadata;
+        client_data->tags         = prev_client_data->tags;
     }
 
     lt::add_torrent_params params = it->second.handle.get_resume_data();

@@ -696,21 +696,21 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
             const auto& status      = tfa->handle.status();
                   auto  client_data = tfa->handle.userdata().get<TorrentClientData>();
 
-            if (client_data != nullptr)
+            // libtorrent posts this on every transition into finished (startup checks, rechecks)
+            // mark the first one, and only emit if we downloaded payload.
+
+            if (client_data != nullptr && !client_data->completed_at.has_value())
             {
-                const auto contains_signaled_finished = client_data->metadata.contains("signal:finished");
+                client_data->completed_at = std::time(nullptr);
 
-                const auto has_signaled_finished = contains_signaled_finished
-                    && client_data->metadata["signal:finished"] == true;
+                AddTorrentParams::UpdateClientData(
+                    m_options.db,
+                    state->id,
+                    status.info_hashes,
+                    *client_data);
 
-                // A torrent finished signal should only be emitted once per
-                // torrent. If we emit this signal, store it in the torrent metadata.
-
-                if (status.total_download > 0 && !has_signaled_finished)
+                if (status.total_payload_download > 0)
                 {
-                    client_data->metadata.insert({ "signal:finished", true });
-
-                    // Only emit this event if we have downloaded any data this session
                     BOOST_LOG_TRIVIAL(info) << Sub(state, status.info_hashes) << "Torrent finished";
 
                     boost::asio::post(
