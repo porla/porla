@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <map>
 #include <memory>
+#include <string_view>
 #include <string>
 
 #include <boost/asio.hpp>
@@ -27,19 +28,14 @@ namespace porla
     class Sessions
     {
     public:
-        struct TorrentFileErrorEvent
-        {
-            std::string        file;
-            lt::torrent_handle torrent;
-        };
-
         struct Event
         {
-            std::string                           name;
-            std::map<std::string, nlohmann::json> data              = std::map<std::string, nlohmann::json>();
-            int                                   session_id        = -1;
-            lt::torrent_handle                    torrent           = {};
-            lt::info_hash_t                       torrent_info_hash;
+            std::string        name;
+            nlohmann::json     data              = nlohmann::json::object();
+            int                session_id        = -1;
+            lt::torrent_handle torrent           = {};
+            lt::info_hash_t    torrent_info_hash;
+            std::uint64_t      id                = 0;
         };
 
         struct SessionState
@@ -68,9 +64,6 @@ namespace porla
         typedef boost::signals2::signal<void(SessionStatePtr, const Event&)> EventSignal;
 
         typedef boost::signals2::signal<void(SessionStatePtr, const lt::info_hash_t&)> InfoHashSignal;
-        typedef boost::signals2::signal<void(SessionStatePtr, const lt::span<const int64_t>&)> SessionStatsSignal;
-        typedef boost::signals2::signal<void(SessionStatePtr, const TorrentFileErrorEvent&)> TorrentFileErrorSignal;
-        typedef boost::signals2::signal<void(SessionStatePtr, const lt::torrent_handle&)> TorrentHandleSignal;
         typedef boost::signals2::signal<void(SessionStatePtr, const std::vector<lt::torrent_status>&)> TorrentStatusListSignal;
 
         explicit Sessions(const SessionsOptions& options);
@@ -88,14 +81,16 @@ namespace porla
         void SaveSessionParams(const SessionStatePtr& state);
         void UnloadById(int id);
 
-        boost::signals2::connection OnEvent(const EventSignal::slot_type& subscriber)
+        boost::signals2::connection OnEvent(std::string_view name, const EventSignal::slot_type& subscriber)
         {
-            return m_event.connect(subscriber);
-        }
+            auto it = m_events.find(name);
 
-        boost::signals2::connection OnSessionStats(const SessionStatsSignal::slot_type& subscriber)
-        {
-            return m_session_stats.connect(subscriber);
+            if (it == m_events.end())
+            {
+                it = m_events.emplace(std::string(name), std::make_unique<EventSignal>()).first;
+            }
+
+            return it->second->connect(subscriber);
         }
 
         boost::signals2::connection OnStateUpdate(const TorrentStatusListSignal::slot_type& subscriber)
@@ -103,68 +98,55 @@ namespace porla
             return m_state_update.connect(subscriber);
         }
 
-        boost::signals2::connection OnStorageMoved(const TorrentHandleSignal::slot_type& subscriber)
-        {
-            return m_storage_moved.connect(subscriber);
-        }
-
-        boost::signals2::connection OnTorrentAdded(const TorrentHandleSignal::slot_type& subscriber)
-        {
-            return m_torrent_added.connect(subscriber);
-        }
-
-        boost::signals2::connection OnTorrentFileError(const TorrentFileErrorSignal::slot_type& subscriber)
-        {
-            return m_torrent_file_error.connect(subscriber);
-        }
-
-        boost::signals2::connection OnTorrentFinished(const TorrentHandleSignal::slot_type& subscriber)
-        {
-            return m_torrent_finished.connect(subscriber);
-        }
-
-        boost::signals2::connection OnTorrentPaused(const TorrentHandleSignal::slot_type& subscriber)
-        {
-            return m_torrent_paused.connect(subscriber);
-        }
-
         boost::signals2::connection OnTorrentRemoved(const InfoHashSignal::slot_type& subscriber)
         {
             return m_torrent_removed.connect(subscriber);
         }
 
-        boost::signals2::connection OnTorrentResumed(const TorrentHandleSignal::slot_type& subscriber)
+    private:
+        bool HasSubscribers(std::string_view name) const
         {
-            return m_torrent_resumed.connect(subscriber);
+            const auto it = m_events.find(name);
+            return it != m_events.end() && !it->second->empty();
         }
 
-    private:
         void Publish(const SessionStatePtr& state, Event event)
         {
-            if (m_event.empty()) { return; }
+            if (!HasSubscribers(event.name)) { return; }
 
             event.session_id = state->id;
+            event.id         = ++m_last_event_id;
 
             boost::asio::post(
                 m_options.io,
                 [this, weak = std::weak_ptr(state), event = std::move(event)]()
                 {
-                    if (auto state = weak.lock()) { m_event(state, event); }
+                    if (auto state = weak.lock()) { Deliver(state, event); }
                 });
         }
 
         void PublishDetached(int session_id, Event event)
         {
-            if (m_event.empty()) { return; }
+            if (!HasSubscribers(event.name)) { return; }
 
             event.session_id = session_id;
+            event.id         = ++m_last_event_id;
 
             boost::asio::post(
                 m_options.io,
                 [this, event = std::move(event)]()
                 {
-                    m_event(nullptr, event);
+                    Deliver(nullptr, event);
                 });
+        }
+
+        void Deliver(const SessionStatePtr& state, const Event& event)
+        {
+            // looked up again - subscribers may have come or gone since the event was queued
+            if (const auto it = m_events.find(event.name); it != m_events.end())
+            {
+                (*it->second)(state, event);
+            }
         }
 
         void LoadTorrentsChunk(const SessionStatePtr& state);
@@ -186,29 +168,16 @@ namespace porla
         void SaveState(const SessionStatePtr& state);
         void UnloadSession(const SessionStatePtr& state);
 
-        template <typename Signal, typename... Args>
-        void Emit(Signal& signal, std::shared_ptr<SessionState> state, Args... args)
-        {
-            boost::asio::post(
-                m_options.io,
-                [&signal, weak = std::weak_ptr(state), args...]()
-                {
-                    if (auto state = weak.lock()) { signal(state, args...); }
-                });
-        }
+        template<typename Alert>
+        void EmitTorrentEvent(const SessionStatePtr& state, std::string name, const Alert& alert, nlohmann::json extra = {});
 
         SessionsOptions m_options;
         std::map<int, SessionStatePtr> m_sessions;
 
-        EventSignal m_event;
-        SessionStatsSignal m_session_stats;
+        std::map<std::string, std::unique_ptr<EventSignal>, std::less<>> m_events;
+        std::uint64_t m_last_event_id = 0;
+
         TorrentStatusListSignal m_state_update;
-        TorrentHandleSignal m_storage_moved;
-        TorrentHandleSignal m_torrent_added;
-        TorrentFileErrorSignal m_torrent_file_error;
-        TorrentHandleSignal m_torrent_finished;
-        TorrentHandleSignal m_torrent_paused;
         InfoHashSignal m_torrent_removed;
-        TorrentHandleSignal m_torrent_resumed;
     };
 }

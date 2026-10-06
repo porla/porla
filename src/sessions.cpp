@@ -8,10 +8,12 @@
 #include <libtorrent/extensions/ut_metadata.hpp>
 #include <libtorrent/extensions/ut_pex.hpp>
 #include <libtorrent/extensions/smart_ban.hpp>
+#include <libtorrent/session_stats.hpp>
 
 #include "data/models/addtorrentparams.hpp"
 #include "data/models/sessions.hpp"
 #include "data/transaction.hpp"
+#include "json/all.hpp"
 #include "timer.hpp"
 #include "torrentclientdata.hpp"
 #include "utils/hex.hpp"
@@ -25,6 +27,8 @@ using porla::SessionsOptions;
 
 namespace
 {
+    const std::vector<lt::stats_metric> kSessionMetrics = lt::session_stats_metrics();
+
     static constexpr int kLoadChunkSize      = 100;
     static constexpr int  kLoadMaxChunkErrors = 8;
     static constexpr auto kLoadRetryBaseDelay = std::chrono::milliseconds(100);
@@ -672,16 +676,29 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
             mra->handle.save_resume_data(
                 lt::torrent_handle::save_info_dict);
 
+            EmitTorrentEvent(state, "torrent.metadata_received", *mra);
+
             break;
         }
         case lt::session_stats_alert::alert_type:
         {
-            auto ssa = lt::alert_cast<lt::session_stats_alert>(alert);
-            auto const& counters = ssa->counters();
-
-            boost::asio::post(m_options.io, [this, counters, weak = std::weak_ptr(state)]()
+            if (!HasSubscribers("session.stats"))
             {
-                if (auto state = weak.lock()) { m_session_stats(state, counters); }
+                break;
+            }
+
+            const auto counters = lt::alert_cast<lt::session_stats_alert>(alert)->counters();
+
+            nlohmann::json stats = nlohmann::json::object();
+
+            for (const auto& m : kSessionMetrics)
+            {
+                stats[m.name] = counters[m.value_index];
+            }
+
+            Publish(state, {
+                .name = "session.stats",
+                .data = { { "stats", std::move(stats) } }
             });
 
             break;
@@ -728,10 +745,45 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
 
             sma->handle.post_status();
 
-            boost::asio::post(m_options.io, [this, weak = std::weak_ptr(state), th = sma->handle]()
+            EmitTorrentEvent(state, "torrent.moved", *sma);
+
+            break;
+        }
+        case lt::storage_moved_failed_alert::alert_type:
+        {
+            const auto smfa = lt::alert_cast<lt::storage_moved_failed_alert>(alert);
+
+            if (!smfa->handle.is_valid())
             {
-                if (auto state = weak.lock()) { m_storage_moved(state, th); }
-            });
+                break;
+            }
+
+            BOOST_LOG_TRIVIAL(warning) << Sub(state, smfa->handle.info_hashes()) << smfa->message();
+
+            EmitTorrentEvent(state, "torrent.move_failed", *smfa);
+
+            break;
+        }
+        case lt::state_changed_alert::alert_type:
+        {
+            const auto sca = lt::alert_cast<lt::state_changed_alert>(alert);
+
+            EmitTorrentEvent(state, "torrent.state_changed", *sca);
+
+            break;
+        }
+        case lt::torrent_error_alert::alert_type:
+        {
+            const auto tea = lt::alert_cast<lt::torrent_error_alert>(alert);
+
+            if (!tea->handle.is_valid())
+            {
+                break;
+            }
+
+            BOOST_LOG_TRIVIAL(error) << Sub(state, tea->handle.info_hashes()) << tea->message();
+
+            EmitTorrentEvent(state, "torrent.error", *tea);
 
             break;
         }
@@ -752,6 +804,8 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
                 for (auto&& cb : node.mapped()) { cb(state); }
             }
 
+            EmitTorrentEvent(state, "torrent.checked", *tca);
+
             break;
         }
         case lt::torrent_finished_alert::alert_type:
@@ -767,7 +821,10 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
                   auto  client_data = tfa->handle.userdata().get<TorrentClientData>();
 
             // libtorrent posts this on every transition into finished (startup checks, rechecks)
-            // mark the first one, and only emit if we downloaded payload.
+            // 'first' is true exactly once per torrent - the first time it finishes with payload
+            // we downloaded.
+
+            bool first = false;
 
             if (client_data != nullptr && !client_data->completed_at.has_value())
             {
@@ -779,21 +836,18 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
                     status.info_hashes,
                     *client_data);
 
-                if (status.total_payload_download > 0)
-                {
-                    BOOST_LOG_TRIVIAL(info) << Sub(state, status.info_hashes) << "Torrent finished";
+                first = status.total_payload_download > 0;
+            }
 
-                    boost::asio::post(
-                        m_options.io,
-                        [this, weak = std::weak_ptr(state), handle = tfa->handle]()
-                        {
-                            if (auto state = weak.lock()) { m_torrent_finished(state, handle); }
-                        });
-                }
+            if (first)
+            {
+                BOOST_LOG_TRIVIAL(info) << Sub(state, status.info_hashes) << "Torrent finished";
             }
 
             status.handle.save_resume_data(
                 lt::torrent_handle::only_if_modified);
+
+            EmitTorrentEvent(state, "torrent.finished", *tfa, { { "first", first } });
 
             break;
         }
@@ -804,10 +858,36 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
             BOOST_LOG_TRIVIAL(debug)
                 << Sub(state, tpa->handle.info_hashes()) << "Torrent paused";
 
-            boost::asio::post(m_options.io, [this, weak = std::weak_ptr(state), th = tpa->handle]()
+            EmitTorrentEvent(state, "torrent.paused", *tpa);
+
+            break;
+        }
+        case lt::tracker_error_alert::alert_type:
+        {
+            const auto tea = lt::alert_cast<lt::tracker_error_alert>(alert);
+
+            if (tea->error == lt::errors::announce_skipped)
             {
-                if (auto state = weak.lock()) { m_torrent_paused(state, th); }
-            });
+                break;
+            }
+
+            EmitTorrentEvent(state, "tracker.error", *tea);
+
+            break;
+        }
+        case lt::tracker_reply_alert::alert_type:
+        {
+            const auto tra = lt::alert_cast<lt::tracker_reply_alert>(alert);
+
+            EmitTorrentEvent(state, "tracker.reply", *tra);
+
+            break;
+        }
+        case lt::tracker_warning_alert::alert_type:
+        {
+            const auto twa = lt::alert_cast<lt::tracker_warning_alert>(alert);
+
+            EmitTorrentEvent(state, "tracker.warning", *twa);
 
             break;
         }
@@ -1075,17 +1155,12 @@ void Sessions::OnAddTorrentAlert(const SessionStatePtr& state, const lt::add_tor
     alert->handle.save_resume_data(
         lt::torrent_handle::only_if_modified);
 
-    Emit(m_torrent_added, state, alert->handle);
+    EmitTorrentEvent(state, "torrent.added", *alert);
 }
 
 void Sessions::OnFileErrorAlert(const SessionStatePtr& state, const lt::file_error_alert* alert)
 {
-    TorrentFileErrorEvent evt{
-        .file = alert->filename(),
-        .torrent = alert->handle
-    };
-
-    Emit(m_torrent_file_error, state, evt);
+    EmitTorrentEvent(state, "torrent.file_error", *alert);
 }
 
 void Sessions::OnSaveResumeDataAlert(const SessionStatePtr& state, const lt::save_resume_data_alert* alert)
@@ -1135,7 +1210,17 @@ void Sessions::OnTorrentRemovedAlert(const SessionStatePtr& state, const lt::tor
             return kv.first.second == alert->info_hashes;
         });
 
-    Emit(m_torrent_removed, state, alert->info_hashes);
+    boost::asio::post(
+        m_options.io,
+        [this, weak = std::weak_ptr(state), hash = alert->info_hashes]()
+        {
+            if (auto state = weak.lock()) { m_torrent_removed(state, hash); }
+        });
+
+    Publish(state, {
+        .name              = "torrent.removed",
+        .torrent_info_hash = alert->info_hashes
+    });
 
     try
     {
@@ -1157,5 +1242,29 @@ void Sessions::OnTorrentResumedAlert(const SessionStatePtr& state, const lt::tor
         << Sub(state, alert->handle.info_hashes())
         << "Torrent resumed";
 
-    Emit(m_torrent_resumed, state, alert->handle);
+    EmitTorrentEvent(state, "torrent.resumed", *alert);
 }
+
+template<typename Alert>
+void Sessions::EmitTorrentEvent(const SessionStatePtr& state, std::string name, const Alert& alert, nlohmann::json extra)
+{
+    if (!HasSubscribers(name) || !alert.handle.is_valid())
+    {
+        return;
+    }
+
+    nlohmann::json data = alert;
+
+    if (extra.is_object())
+    {
+        data.update(extra);
+    }
+
+    Publish(state, {
+        .name              = std::move(name),
+        .data              = std::move(data),
+        .torrent           = alert.handle,
+        .torrent_info_hash = alert.handle.info_hashes()
+    });
+}
+
