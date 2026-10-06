@@ -210,6 +210,7 @@ add_library(
     src/json/_/fsspace.cpp
     src/json/_/keyvalueget.cpp
     src/json/_/keyvalueset.cpp
+    src/json/_/ltalerts.cpp
     src/json/_/ltannounceentry.cpp
     src/json/_/ltinfohash.cpp
     src/json/_/ltpeerinfo.cpp

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <libtorrent/alert_types.hpp>
 #include <libtorrent/announce_entry.hpp>
 #include <libtorrent/download_priority.hpp>
 #include <libtorrent/torrent_flags.hpp>
@@ -38,6 +39,23 @@ namespace libtorrent
     void to_json(nlohmann::json& json, const queue_position_t& pos);
     void to_json(nlohmann::json& json, const settings_pack& settings);
     void to_json(nlohmann::json& json, const torrent_status& ts);
+    void to_json(nlohmann::json& json, const lt::torrent_status::state_t& state);
+
+    // alerts
+    void to_json(nlohmann::json& json, const add_torrent_alert& alert);
+    void to_json(nlohmann::json& json, const file_error_alert& alert);
+    void to_json(nlohmann::json& json, const metadata_received_alert& alert);
+    void to_json(nlohmann::json& json, const state_changed_alert& alert);
+    void to_json(nlohmann::json& json, const storage_moved_alert& alert);
+    void to_json(nlohmann::json& json, const storage_moved_failed_alert& alert);
+    void to_json(nlohmann::json& json, const torrent_checked_alert& alert);
+    void to_json(nlohmann::json& json, const torrent_error_alert& alert);
+    void to_json(nlohmann::json& json, const torrent_finished_alert& alert);
+    void to_json(nlohmann::json& json, const torrent_paused_alert& alert);
+    void to_json(nlohmann::json& json, const torrent_resumed_alert& alert);
+    void to_json(nlohmann::json& json, const tracker_error_alert& alert);
+    void to_json(nlohmann::json& json, const tracker_reply_alert& alert);
+    void to_json(nlohmann::json& json, const tracker_warning_alert& alert);
 
     namespace aux
     {
