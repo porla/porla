@@ -566,7 +566,12 @@ INSTANTIATE_TEST_SUITE_P(Limits, PqlMatch, ::testing::Values(
     Case{ "download_limit_capped",        "download_limit:500kb..1mb", true,  [](Torrent& t) { t.status.download_limit = 750000; } },
     Case{ "has_upload_limit",             "has:upload_limit",          true,  [](Torrent& t) { t.status.upload_limit = 1; } },
     Case{ "has_upload_limit_unlimited",   "has:upload_limit",          false },
-    Case{ "unlimited_via_not_has",        "-has:download_limit",       true  }
+    Case{ "unlimited_via_not_has",        "-has:download_limit",       true  },
+    Case{ "uploads_limit_unlimited",      "uploads_limit:<10",         false, [](Torrent& t) { t.status.uploads_limit = -1; } },
+    Case{ "uploads_limit_capped",         "uploads_limit:<10",         true,  [](Torrent& t) { t.status.uploads_limit = 4; } },
+    Case{ "connections_limit_unlimited",  "connections_limit:<100",    false, [](Torrent& t) { t.status.connections_limit = -1; } },
+    Case{ "has_connections_limit",        "has:connections_limit",     true,  [](Torrent& t) { t.status.connections_limit = 50; } },
+    Case{ "has_connections_unlimited",    "has:connections_limit",     false, [](Torrent& t) { t.status.connections_limit = -1; } }
 ), CaseName);
 
 // --- values that mean "not set" ----------------------------------------------
@@ -577,7 +582,12 @@ INSTANTIATE_TEST_SUITE_P(Unset, PqlMatch, ::testing::Values(
     Case{ "has_queue_position",           "has:queue_position",              true,  [](Torrent& t) { t.status.queue_position = lt::queue_position_t{ 0 }; } },
     Case{ "last_seen_complete_unset",     "last_seen_complete:<2020-01-01",  false },
     Case{ "has_last_seen_complete_unset", "has:last_seen_complete",          false },
-    Case{ "has_last_seen_complete",       "has:last_seen_complete",          true,  [](Torrent& t) { t.status.last_seen_complete = kNow; } }
+    Case{ "has_last_seen_complete",       "has:last_seen_complete",          true,  [](Torrent& t) { t.status.last_seen_complete = kNow; } },
+    Case{ "num_complete_unscraped",       "num_complete:<3",                 false, [](Torrent& t) { t.status.num_complete = -1; } },
+    Case{ "num_complete_scraped",         "num_complete:<3",                 true,  [](Torrent& t) { t.status.num_complete = 2; } },
+    Case{ "num_incomplete_unscraped",     "num_incomplete:0",                false, [](Torrent& t) { t.status.num_incomplete = -1; } },
+    Case{ "has_num_complete_unscraped",   "has:num_complete",                false, [](Torrent& t) { t.status.num_complete = -1; } },
+    Case{ "has_num_complete",             "has:num_complete",                true,  [](Torrent& t) { t.status.num_complete = 0; } }
 ), CaseName);
 
 // --- last_upload / last_download ---------------------------------------------
