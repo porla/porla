@@ -382,7 +382,8 @@ void Sessions::LoadTorrentsChunk(const SessionStatePtr& state)
             try
             {
                 const auto& all_statuses = state->session->get_torrent_status(
-                    [](const auto& ts) { return true; });
+                    [](const auto& ts) { return true; },
+                    lt::status_flags_t::all());
 
                 for (const auto& ts : all_statuses)
                 {
