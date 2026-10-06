@@ -40,14 +40,7 @@ void SessionsUpdate::Execute(const SessionsUpdateReq& req, ResponseWriterHandle 
     session->metadata   = req.metadata;
     session->name       = req.name;
 
-    porla::Data::Models::Sessions::Update(
-        m_db,
-        *session);
-
-    if (const auto& state = m_sessions.Get(session->id))
-    {
-        state->name = req.name;
-    }
+    m_sessions.Update(*session);
 
     cb->Ok(SessionsUpdateRes{});
 }

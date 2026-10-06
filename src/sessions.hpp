@@ -12,6 +12,7 @@
 #include <nlohmann/json.hpp>
 #include <sqlite3.h>
 
+#include "data/models/sessions.hpp"
 
 namespace porla
 {
@@ -30,6 +31,15 @@ namespace porla
         {
             std::string        file;
             lt::torrent_handle torrent;
+        };
+
+        struct Event
+        {
+            std::string                           name;
+            std::map<std::string, nlohmann::json> data              = std::map<std::string, nlohmann::json>();
+            int                                   session_id        = -1;
+            lt::torrent_handle                    torrent           = {};
+            lt::info_hash_t                       torrent_info_hash;
         };
 
         struct SessionState
@@ -54,6 +64,9 @@ namespace porla
 
         using SessionStatePtr = std::shared_ptr<SessionState>;
 
+        // SessionStatePtr will be null on session.removed and session.unloaded - use session_id on those.
+        typedef boost::signals2::signal<void(SessionStatePtr, const Event&)> EventSignal;
+
         typedef boost::signals2::signal<void(SessionStatePtr, const lt::info_hash_t&)> InfoHashSignal;
         typedef boost::signals2::signal<void(SessionStatePtr, const lt::span<const int64_t>&)> SessionStatsSignal;
         typedef boost::signals2::signal<void(SessionStatePtr, const TorrentFileErrorEvent&)> TorrentFileErrorSignal;
@@ -66,10 +79,19 @@ namespace porla
         std::map<int, SessionStatePtr> All() { return m_sessions; }
         SessionStatePtr Get(const int id);
 
+        int  Add(const Data::Models::Sessions::Session& session);
+        void Remove(int id);
+        void Update(const Data::Models::Sessions::Session& session);
+
         void Load(const std::function<void()>& callback = {});
         void LoadById(int id, const std::function<void()>& callback = {});
         void SaveSessionParams(const SessionStatePtr& state);
         void UnloadById(int id);
+
+        boost::signals2::connection OnEvent(const EventSignal::slot_type& subscriber)
+        {
+            return m_event.connect(subscriber);
+        }
 
         boost::signals2::connection OnSessionStats(const SessionStatsSignal::slot_type& subscriber)
         {
@@ -117,6 +139,34 @@ namespace porla
         }
 
     private:
+        void Publish(const SessionStatePtr& state, Event event)
+        {
+            if (m_event.empty()) { return; }
+
+            event.session_id = state->id;
+
+            boost::asio::post(
+                m_options.io,
+                [this, weak = std::weak_ptr(state), event = std::move(event)]()
+                {
+                    if (auto state = weak.lock()) { m_event(state, event); }
+                });
+        }
+
+        void PublishDetached(int session_id, Event event)
+        {
+            if (m_event.empty()) { return; }
+
+            event.session_id = session_id;
+
+            boost::asio::post(
+                m_options.io,
+                [this, event = std::move(event)]()
+                {
+                    m_event(nullptr, event);
+                });
+        }
+
         void LoadTorrentsChunk(const SessionStatePtr& state);
         void FinishLoad(const SessionStatePtr& state);
 
@@ -150,6 +200,7 @@ namespace porla
         SessionsOptions m_options;
         std::map<int, SessionStatePtr> m_sessions;
 
+        EventSignal m_event;
         SessionStatsSignal m_session_stats;
         TorrentStatusListSignal m_state_update;
         TorrentHandleSignal m_storage_moved;

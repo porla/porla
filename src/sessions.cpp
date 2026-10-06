@@ -185,6 +185,61 @@ std::shared_ptr<Sessions::SessionState> Sessions::Get(const int id)
         : it->second;
 }
 
+int Sessions::Add(const Data::Models::Sessions::Session& session)
+{
+    const int id = Data::Models::Sessions::Insert(m_options.db, session);
+
+    BOOST_LOG_TRIVIAL(info) << "session[" << session.name << "] Added - loading";
+
+    LoadById(id);
+
+    if (const auto state = Get(id))
+    {
+        Publish(state, {
+            .name = "session.added"
+        });
+    }
+
+    return id;
+}
+
+void Sessions::Remove(int id)
+{
+    const auto session = Data::Models::Sessions::GetById(m_options.db, id);
+
+    if (!session)
+    {
+        return;
+    }
+
+    UnloadById(id);
+
+    Data::Models::Sessions::Remove(m_options.db, id);
+
+    BOOST_LOG_TRIVIAL(info) << "session[" << session->name << "] Removed";
+
+    PublishDetached(id, {
+        .name = "session.removed",
+        .data = {
+            { "session_name", session->name }
+        }
+    });
+}
+
+void Sessions::Update(const Data::Models::Sessions::Session& session)
+{
+    Data::Models::Sessions::Update(m_options.db, session);
+
+    if (const auto state = Get(session.id))
+    {
+        state->name = session.name;
+
+        Publish(state, {
+            .name = "session.updated"
+        });
+    }
+}
+
 void Sessions::Load(const std::function<void()>& callback)
 {
     const auto sessions = Data::Models::Sessions::List(m_options.db);
@@ -418,6 +473,14 @@ void Sessions::LoadTorrentsChunk(const SessionStatePtr& state)
             }
         }
 
+        Publish(state, {
+            .name = "session.loaded",
+            .data = {
+                { "torrents", load.loaded },
+                { "failed",   load.failed }
+            }
+        });
+
         FinishLoad(state);
 
         return;
@@ -488,9 +551,16 @@ void Sessions::UnloadById(int id)
         return;
     }
 
+    const auto name = it->second->name;
+
     UnloadSession(it->second);
 
     m_sessions.erase(it);
+
+    PublishDetached(id, {
+        .name = "session.unloaded",
+        .data = { { "session_name", name } }
+    });
 }
 
 void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
