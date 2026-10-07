@@ -13,6 +13,7 @@ include(GoogleTest)
 
 add_executable(
     porla_tests
+    events.cpp
     logging.cpp
     query/pql.cpp
     utils/string.cpp

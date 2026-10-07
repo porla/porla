@@ -10,7 +10,6 @@
 #include "../types/posessionhandle.hpp"
 
 using porla::Lua::LuaState;
-using porla::Sessions;
 
 namespace
 {
@@ -39,7 +38,7 @@ namespace
         "tracker.warning"
     };
 
-    sol::table ToLua(LuaState& state, const Sessions::SessionStatePtr& session, const Sessions::Event& event)
+    sol::table ToLua(LuaState& state, const porla::Event& event)
     {
         sol::table tbl = state.lua.create_table();
 
@@ -49,27 +48,31 @@ namespace
         }
 
         tbl["name"]       = event.name;
-        tbl["session_id"] = event.session_id;
 
-        if (session != nullptr)
+        if (const auto* session_event = dynamic_cast<const porla::SessionEvent*>(&event))
         {
-            tbl["session"] = std::make_shared<porla::Lua::Types::PoSessionHandle>(session);
+            tbl["session_id"] = session_event->session_id;
+
+            if (const auto session = session_event->session.lock())
+            {
+                tbl["session"] = std::make_shared<porla::Lua::Types::PoSessionHandle>(session);
+            }
         }
 
-        if (event.torrent.is_valid())
+        if (const auto* torrent_event = dynamic_cast<const porla::TorrentEvent*>(&event))
         {
-            tbl["torrent"] = event.torrent;
-        }
+            tbl["info_hash"] = torrent_event->info_hash;
 
-        if (event.torrent_info_hash != lt::info_hash_t())
-        {
-            tbl["info_hash"] = event.torrent_info_hash;
+            if (torrent_event->torrent_handle.is_valid())
+            {
+                tbl["torrent"] = torrent_event->torrent_handle;
+            }
         }
 
         return tbl;
     }
 
-    sol::table EventCache(LuaState& state, const Sessions::SessionStatePtr& session, const Sessions::Event& event)
+    sol::table EventCache(LuaState& state, const porla::Event& event)
     {
         auto registry = state.lua.registry();
 
@@ -78,7 +81,7 @@ namespace
             return registry["porla.events.last"];
         }
 
-        sol::table tbl = ToLua(state, session, event);
+        sol::table tbl = ToLua(state, event);
 
         registry["porla.events.last_id"] = event.id;
         registry["porla.events.last"]    = tbl;
@@ -140,14 +143,14 @@ sol::object porla::Lua::Packages::Events::Load(sol::this_state ts)
         }
 
         std::size_t                        callback_id = state->RegisterCallback(callback, false);
-        boost::signals2::scoped_connection connection  = state->sessions.OnEvent(
+        boost::signals2::scoped_connection connection  = state->events.On(
             event,
-            [weak, callback_id](const Sessions::SessionStatePtr& session, const Sessions::Event& evt)
+            [weak, callback_id](const porla::Event& event)
             {
                 auto state = weak.lock();
                 if (state == nullptr) { return; }
 
-                state->InvokeCallback(callback_id, EventCache(*state, session, evt));
+                state->InvokeCallback(callback_id, EventCache(*state, event));
             });
 
         const auto connection_id = state->RegisterScopedConnection(std::move(connection));

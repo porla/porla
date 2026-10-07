@@ -8,6 +8,7 @@
 #include "cmdargs.hpp"
 #include "config.hpp"
 #include "curlmulti.hpp"
+#include "events.hpp"
 #include "logger.hpp"
 #include "lua/pluginengine.hpp"
 #include "lua/pluginsource.hpp"
@@ -161,19 +162,23 @@ int main(int argc, char* argv[])
 
         boost::signals2::signal<void(const std::unordered_set<std::string>&)> kv_updated_signal;
 
+        porla::Events events(io);
+
         auto authenticator       = std::make_shared<porla::Auth::Authenticator>(cfg->db, cfg->secret_key);
         auto curl_multi_instance = porla::CurlMulti::Create(io);
         auto jsonrpc             = porla::Rpc::JsonRpc::Create(authenticator);
 
         porla::Sessions sessions(porla::SessionsOptions{
-            .db = cfg->db,
-            .io = io
+            .db     = cfg->db,
+            .events = events,
+            .io     = io
         });
 
         porla::Lua::PluginEngine plugin_engine{porla::Lua::PluginEngineOptions{
             .cfg         = *cfg,
             .curl_multi  = curl_multi_instance,
             .db          = cfg->db,
+            .events      = events,
             .hash_pool   = sodium_hash_pool,
             .http_server = &http_server,
             .jsonrpc     = jsonrpc,

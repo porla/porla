@@ -202,6 +202,7 @@ struct Plugin::State
             load_options.io,
             load_options.hash_pool,
             load_options.cfg,
+            load_options.events,
             load_options.sessions,
             lua);
 

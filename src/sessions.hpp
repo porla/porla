@@ -13,31 +13,24 @@
 #include <nlohmann/json.hpp>
 #include <sqlite3.h>
 
+#include "event.hpp"
 #include "data/models/sessions.hpp"
 
 namespace porla
 {
+    class Events;
     class Timer;
 
     struct SessionsOptions
     {
         sqlite3*                 db;
+        Events&                  events;
         boost::asio::io_context& io;
     };
 
     class Sessions
     {
     public:
-        struct Event
-        {
-            std::string        name;
-            nlohmann::json     data              = nlohmann::json::object();
-            int                session_id        = -1;
-            lt::torrent_handle torrent           = {};
-            lt::info_hash_t    torrent_info_hash;
-            std::uint64_t      id                = 0;
-        };
-
         struct SessionState
         {
             friend class Sessions;
@@ -60,9 +53,6 @@ namespace porla
 
         using SessionStatePtr = std::shared_ptr<SessionState>;
 
-        // SessionStatePtr will be null on session.removed and session.unloaded - use session_id on those.
-        typedef boost::signals2::signal<void(SessionStatePtr, const Event&)> EventSignal;
-
         typedef boost::signals2::signal<void(SessionStatePtr, const lt::info_hash_t&)> InfoHashSignal;
         typedef boost::signals2::signal<void(SessionStatePtr, const std::vector<lt::torrent_status>&)> TorrentStatusListSignal;
 
@@ -81,18 +71,6 @@ namespace porla
         void SaveSessionParams(const SessionStatePtr& state);
         void UnloadById(int id);
 
-        boost::signals2::connection OnEvent(std::string_view name, const EventSignal::slot_type& subscriber)
-        {
-            auto it = m_events.find(name);
-
-            if (it == m_events.end())
-            {
-                it = m_events.emplace(std::string(name), std::make_unique<EventSignal>()).first;
-            }
-
-            return it->second->connect(subscriber);
-        }
-
         boost::signals2::connection OnStateUpdate(const TorrentStatusListSignal::slot_type& subscriber)
         {
             return m_state_update.connect(subscriber);
@@ -104,51 +82,6 @@ namespace porla
         }
 
     private:
-        bool HasSubscribers(std::string_view name) const
-        {
-            const auto it = m_events.find(name);
-            return it != m_events.end() && !it->second->empty();
-        }
-
-        void Publish(const SessionStatePtr& state, Event event)
-        {
-            if (!HasSubscribers(event.name)) { return; }
-
-            event.session_id = state->id;
-            event.id         = ++m_last_event_id;
-
-            boost::asio::post(
-                m_options.io,
-                [this, weak = std::weak_ptr(state), event = std::move(event)]()
-                {
-                    if (auto state = weak.lock()) { Deliver(state, event); }
-                });
-        }
-
-        void PublishDetached(int session_id, Event event)
-        {
-            if (!HasSubscribers(event.name)) { return; }
-
-            event.session_id = session_id;
-            event.id         = ++m_last_event_id;
-
-            boost::asio::post(
-                m_options.io,
-                [this, event = std::move(event)]()
-                {
-                    Deliver(nullptr, event);
-                });
-        }
-
-        void Deliver(const SessionStatePtr& state, const Event& event)
-        {
-            // looked up again - subscribers may have come or gone since the event was queued
-            if (const auto it = m_events.find(event.name); it != m_events.end())
-            {
-                (*it->second)(state, event);
-            }
-        }
-
         void LoadTorrentsChunk(const SessionStatePtr& state);
         void FinishLoad(const SessionStatePtr& state);
 
@@ -168,16 +101,35 @@ namespace porla
         void SaveState(const SessionStatePtr& state);
         void UnloadSession(const SessionStatePtr& state);
 
+        template <typename T>
+        void Publish(const SessionStatePtr& state, T event);
+
+        template <typename T>
+        void PublishDetached(int session_id, T event);
+
         template<typename Alert>
         void EmitTorrentEvent(const SessionStatePtr& state, std::string name, const Alert& alert, nlohmann::json extra = {});
 
         SessionsOptions m_options;
         std::map<int, SessionStatePtr> m_sessions;
 
-        std::map<std::string, std::unique_ptr<EventSignal>, std::less<>> m_events;
-        std::uint64_t m_last_event_id = 0;
-
         TorrentStatusListSignal m_state_update;
         InfoHashSignal m_torrent_removed;
+    };
+
+    struct SessionEvent : Event
+    {
+        using Event::Event;
+
+        int                                   session_id = -1;
+        std::weak_ptr<Sessions::SessionState> session;
+    };
+
+    struct TorrentEvent : SessionEvent
+    {
+        using SessionEvent::SessionEvent;
+
+        lt::torrent_handle torrent_handle;
+        lt::info_hash_t    info_hash;
     };
 }
