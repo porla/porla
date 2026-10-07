@@ -1,26 +1,26 @@
 #include "presetsremove.hpp"
 
-#include "../../../data/models/presets.hpp"
+#include "../../../presets.hpp"
 
 using porla::Rpc::Methods::Presets::PresetsRemove;
 using porla::Rpc::Methods::Presets::PresetsRemoveReq;
 using porla::Rpc::Methods::Presets::PresetsRemoveRes;
 
-PresetsRemove::PresetsRemove(sqlite3* db)
-    : m_db(db)
+PresetsRemove::PresetsRemove(porla::Presets& presets)
+    : m_presets(presets)
 {
 }
 
 void PresetsRemove::Execute(const PresetsRemoveReq& req, ResponseWriterHandle cb)
 {
-    const auto preset = Data::Models::Presets::GetById(m_db, req.id);
+    const auto preset = m_presets.Get(req.id);
 
     if (!preset.has_value())
     {
         return cb->Error(-1, "Preset not found");
     }
 
-    Data::Models::Presets::Remove(m_db, req.id);
+    m_presets.Remove(preset->id);
 
     cb->Ok(PresetsRemoveRes{});
 }

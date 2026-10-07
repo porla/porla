@@ -164,6 +164,7 @@ add_library(
     src/keyvalue.cpp
     src/logger.cpp
     src/mmdb.cpp
+    src/presets.cpp
     src/sessions.cpp
     src/timer.cpp
     src/zip.cpp

@@ -4,7 +4,9 @@
 
 #include <boost/signals2.hpp>
 
-#include "../../keyvalue.hpp"
+#include "../../events.hpp"
+#include "../../keyvalueevent.hpp"
+#include "../../presetevent.hpp"
 #include "../pluginstate.hpp"
 #include "../types/pocancellable.hpp"
 #include "../types/pojson.hpp"
@@ -17,6 +19,9 @@ namespace
     const std::set<std::string, std::less<>> kEvents =
     {
         "kv.updated",
+        "preset.added",
+        "preset.removed",
+        "preset.updated",
         "session.added",
         "session.loaded",
         "session.removed",
@@ -74,6 +79,11 @@ namespace
         if (const auto* kv_event = dynamic_cast<const porla::KeyValueEvent*>(&event))
         {
             tbl["keys"] = sol::as_table(kv_event->keys);
+        }
+
+        if (const auto* preset_event = dynamic_cast<const porla::PresetEvent*>(&event))
+        {
+            tbl["preset_id"] = preset_event->preset_id;
         }
 
         return tbl;

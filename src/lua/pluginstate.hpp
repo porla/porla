@@ -10,26 +10,36 @@
 #include <sqlite3.h>
 #include <uWebSockets/App.h>
 
-#include "../config.hpp"
 #include "../cron.hpp"
-#include "../curlmulti.hpp"
-#include "../events.hpp"
-#include "../keyvalue.hpp"
-#include "../rpc/jsonrpc.hpp"
-#include "../sessions.hpp"
 #include "../timer.hpp"
 
 #include "types/pohttpserverresponse.hpp"
+
+namespace porla
+{
+    class Config;
+    class CurlMulti;
+    class Events;
+    class KeyValue;
+    class Presets;
+    class Sessions;
+}
+
+namespace porla::Rpc
+{
+    class JsonRpc;
+}
 
 namespace porla::Lua
 {
     struct LuaState : public std::enable_shared_from_this<LuaState>
     {
-        explicit LuaState(boost::asio::io_context& io, boost::asio::thread_pool& hash_pool, porla::Config& cfg, porla::Events& events, porla::KeyValue& kv, porla::Sessions& sessions, sol::state_view lua)
+        explicit LuaState(boost::asio::io_context& io, boost::asio::thread_pool& hash_pool, porla::Config& cfg, porla::Events& events, porla::KeyValue& kv, porla::Presets& presets, porla::Sessions& sessions, sol::state_view lua)
             : io(io)
             , cfg(cfg)
             , events(events)
             , kv(kv)
+            , presets(presets)
             , sessions(sessions)
             , lua(lua)
             , sodium_hash_pool(hash_pool)
@@ -205,6 +215,7 @@ namespace porla::Lua
         std::unordered_set<std::shared_ptr<Types::PoHttpServerResponse>> http_responses;
         std::weak_ptr<Rpc::JsonRpc>                               jsonrpc;
         porla::KeyValue&                                          kv;
+        porla::Presets&                                           presets;
         sol::state_view                                           lua;
         int                                                       plugin_id;
         porla::Sessions&                                          sessions;

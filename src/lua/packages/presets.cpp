@@ -1,6 +1,6 @@
 #include "presets.hpp"
 
-#include "../../data/models/presets.hpp"
+#include "../../presets.hpp"
 #include "../pluginstate.hpp"
 
 using porla::Lua::Packages::Presets;
@@ -20,7 +20,7 @@ sol::object Presets::Load(sol::this_state ts)
 
         if (state == nullptr) { return std::nullopt; }
 
-        return Data::Models::Presets::GetDefault(state->db);
+        return state->presets.GetDefault();
     });
 
     tbl.set_function("get", sol::overload(
@@ -33,7 +33,7 @@ sol::object Presets::Load(sol::this_state ts)
 
             if (state == nullptr) { return std::nullopt; }
 
-            return Data::Models::Presets::GetById(state->db, id);
+            return state->presets.Get(id);
         },
         [](sol::this_state ts, const std::string& name) -> std::optional<Data::Models::Presets::Preset>
         {
@@ -44,7 +44,7 @@ sol::object Presets::Load(sol::this_state ts)
 
             if (state == nullptr) { return std::nullopt; }
 
-            return Data::Models::Presets::GetByName(state->db, name);
+            return state->presets.GetByName(name);
         })
     );
 

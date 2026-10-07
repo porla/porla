@@ -204,6 +204,7 @@ struct Plugin::State
             load_options.cfg,
             load_options.events,
             load_options.kv,
+            load_options.presets,
             load_options.sessions,
             lua);
 

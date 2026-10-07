@@ -6,8 +6,8 @@
 #include <libtorrent/magnet_uri.hpp>
 #include <sodium.h>
 
-#include "../../../data/models/presets.hpp"
 #include "../../../data/models/sessions.hpp"
+#include "../../../presets.hpp"
 #include "../../../sessions.hpp"
 #include "../../../torrentclientdata.hpp"
 
@@ -18,7 +18,7 @@ using json = nlohmann::json;
 using porla::Rpc::Methods::Torrents::TorrentsAdd;
 using porla::Rpc::Methods::Torrents::TorrentsAddReq;
 
-static void ApplyPreset(lt::add_torrent_params& p, const porla::Data::Models::Presets::Preset& preset)
+static void ApplyPreset(lt::add_torrent_params& p, const porla::Presets::Preset& preset)
 {
     if (preset.download_limit.has_value())  p.download_limit  = preset.download_limit.value();
     if (preset.max_connections.has_value()) p.max_connections = preset.max_connections.value();
@@ -44,8 +44,9 @@ static void ApplyPreset(lt::add_torrent_params& p, const porla::Data::Models::Pr
         p.userdata.get<porla::TorrentClientData>()->tags = preset.tags;
 }
 
-TorrentsAdd::TorrentsAdd(sqlite3* db, porla::Sessions& sessions)
+TorrentsAdd::TorrentsAdd(sqlite3* db, porla::Presets& presets, porla::Sessions& sessions)
     : m_db(db)
+    , m_presets(presets)
     , m_sessions(sessions)
 {
 }
@@ -63,17 +64,17 @@ void TorrentsAdd::Execute(const TorrentsAddReq& req, ResponseWriterHandle cb)
     // - If there is a default preset, and that preset has a session_id, use that
     // - If nothing, use the default
 
-    const auto& default_preset = Data::Models::Presets::GetDefault(m_db);
+    const auto& default_preset = m_presets.GetDefault();
 
-    std::optional<Data::Models::Presets::Preset> preset;
+    std::optional<porla::Presets::Preset> preset;
 
     if (req.preset_id)
     {
-        preset = Data::Models::Presets::GetById(m_db, *req.preset_id);
+        preset = m_presets.Get(req.preset_id.value());
     }
     else if (req.preset)
     {
-        preset = Data::Models::Presets::GetByName(m_db, *req.preset);
+        preset = m_presets.GetByName(req.preset.value());
     }
     else
     {

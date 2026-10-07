@@ -14,6 +14,7 @@ void PoPreset::Register(sol::state& lua)
         sol::no_constructor,
         "id", sol::readonly(&Preset::id),
         "name", sol::readonly(&Preset::name),
+        "is_default", sol::readonly(&Preset::is_default),
         "category", sol::readonly(&Preset::category),
         "download_limit", sol::readonly(&Preset::download_limit),
         "flags", sol::readonly(&Preset::flags),

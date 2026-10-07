@@ -2,6 +2,7 @@
 
 #include "../pluginstate.hpp"
 #include "../../buildinfo.hpp"
+#include "../../config.hpp"
 
 using porla::Lua::Packages::Runtime;
 
