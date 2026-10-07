@@ -13,6 +13,7 @@
 #include "logger.hpp"
 #include "lua/pluginengine.hpp"
 #include "lua/pluginsource.hpp"
+#include "presets.hpp"
 #include "sessions.hpp"
 #include "timer.hpp"
 
@@ -168,6 +169,11 @@ int main(int argc, char* argv[])
             .events = events
         });
 
+        porla::Presets presets(porla::PresetsOptions{
+            .db     = cfg->db,
+            .events = events
+        });
+
         auto authenticator       = std::make_shared<porla::Auth::Authenticator>(cfg->db, cfg->secret_key);
         auto curl_multi_instance = porla::CurlMulti::Create(io);
         auto jsonrpc             = porla::Rpc::JsonRpc::Create(authenticator);
@@ -188,6 +194,7 @@ int main(int argc, char* argv[])
             .jsonrpc     = jsonrpc,
             .io          = io,
             .kv          = kv,
+            .presets     = presets,
             .sessions    = sessions
         }};
 
@@ -208,11 +215,11 @@ int main(int argc, char* argv[])
         jsonrpc->Register("plugins.remove",            std::make_shared<M::Plugins::PluginsRemove>(cfg->db, plugin_engine));
         jsonrpc->Register("plugins.update",            std::make_shared<M::Plugins::PluginsUpdate>(cfg->db, plugin_engine));
         jsonrpc->Register("plugins.upgrade",           std::make_shared<M::Plugins::PluginsUpgrade>(io, cfg->db, curl_multi_instance, plugin_engine, cfg->state_dir));
-        jsonrpc->Register("presets.add",               std::make_shared<M::Presets::PresetsAdd>(cfg->db));
-        jsonrpc->Register("presets.get",               std::make_shared<M::Presets::PresetsGet>(cfg->db));
-        jsonrpc->Register("presets.list",              std::make_shared<M::Presets::PresetsList>(cfg->db));
-        jsonrpc->Register("presets.remove",            std::make_shared<M::Presets::PresetsRemove>(cfg->db));
-        jsonrpc->Register("presets.update",            std::make_shared<M::Presets::PresetsUpdate>(cfg->db));
+        jsonrpc->Register("presets.add",               std::make_shared<M::Presets::PresetsAdd>(presets));
+        jsonrpc->Register("presets.get",               std::make_shared<M::Presets::PresetsGet>(presets));
+        jsonrpc->Register("presets.list",              std::make_shared<M::Presets::PresetsList>(presets));
+        jsonrpc->Register("presets.remove",            std::make_shared<M::Presets::PresetsRemove>(presets));
+        jsonrpc->Register("presets.update",            std::make_shared<M::Presets::PresetsUpdate>(presets));
         jsonrpc->Register("sessions.add",              std::make_shared<M::Sessions::SessionsAdd>(cfg->db, sessions));
         jsonrpc->Register("sessions.get",              std::make_shared<M::Sessions::SessionsGet>(cfg->db, sessions));
         jsonrpc->Register("sessions.list",             std::make_shared<M::Sessions::SessionsList>(cfg->db, sessions));
@@ -224,7 +231,7 @@ int main(int argc, char* argv[])
         jsonrpc->Register("sessions.update",           std::make_shared<M::Sessions::SessionsUpdate>(cfg->db, sessions));
         jsonrpc->Register("sys.status",                std::make_shared<M::Sys::SysStatus>(cfg->db));
         jsonrpc->Register("sys.versions",              std::make_shared<M::Sys::SysVersions>());
-        jsonrpc->Register("torrents.add",              std::make_shared<M::Torrents::TorrentsAdd>(cfg->db, sessions));
+        jsonrpc->Register("torrents.add",              std::make_shared<M::Torrents::TorrentsAdd>(cfg->db, presets, sessions));
         jsonrpc->Register("torrents.count",            std::make_shared<M::Torrents::TorrentsCount>(sessions));
         jsonrpc->Register("torrents.files.list",       std::make_shared<M::Torrents::TorrentsFilesList>(cfg->db, sessions));
         jsonrpc->Register("torrents.files.priorities", std::make_shared<M::Torrents::TorrentsFilesPriorities>(cfg->db, sessions));

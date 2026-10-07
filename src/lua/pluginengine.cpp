@@ -47,6 +47,7 @@ void PluginEngine::SetCore(const PluginSource& sources)
         .jsonrpc     = m_options.jsonrpc,
         .io          = m_options.io,
         .plugin_id   = 0,
+        .presets     = m_options.presets,
         .sessions    = m_options.sessions
     };
 
@@ -97,6 +98,7 @@ void PluginEngine::Load(int id)
         .jsonrpc     = m_options.jsonrpc,
         .io          = m_options.io,
         .plugin_id   = id,
+        .presets     = m_options.presets,
         .sessions    = m_options.sessions
     };
 

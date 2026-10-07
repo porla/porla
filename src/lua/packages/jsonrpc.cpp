@@ -2,6 +2,7 @@
 
 #include "../pluginstate.hpp"
 #include "../types/pojson.hpp"
+#include "../../rpc/jsonrpc.hpp"
 
 using porla::Lua::LuaState;
 using porla::Lua::Packages::JsonRpc;

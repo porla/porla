@@ -1,19 +1,19 @@
 #include "presetsget.hpp"
 
-#include "../../../data/models/presets.hpp"
+#include "../../../presets.hpp"
 
 using porla::Rpc::Methods::Presets::PresetsGet;
 using porla::Rpc::Methods::Presets::PresetsGetReq;
 using porla::Rpc::Methods::Presets::PresetsGetRes;
 
-PresetsGet::PresetsGet(sqlite3 *db)
-    : m_db(db)
+PresetsGet::PresetsGet(porla::Presets& presets)
+    : m_presets(presets)
 {
 }
 
 void PresetsGet::Execute(const PresetsGetReq &req, ResponseWriterHandle cb)
 {
-    const auto preset = Data::Models::Presets::GetById(m_db, req.id);
+    const auto preset = m_presets.Get(req.id);
 
     if (!preset.has_value())
     {

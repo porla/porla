@@ -1,22 +1,25 @@
 #pragma once
 
-#include <sqlite3.h>
-
 #include "../../typedmethod.hpp"
 
 #include "presetsget_reqres.hpp"
+
+namespace porla
+{
+    class Presets;
+}
 
 namespace porla::Rpc::Methods::Presets
 {
     class PresetsGet : public TypedMethod<PresetsGetReq, PresetsGetRes>
     {
     public:
-        explicit PresetsGet(sqlite3* db);
+        explicit PresetsGet(porla::Presets& presets);
 
     protected:
         void Execute(const PresetsGetReq& req, ResponseWriterHandle cb) override;
 
     private:
-        sqlite3* m_db;
+        porla::Presets& m_presets;
     };
 }

@@ -21,6 +21,7 @@ namespace porla
     class CurlMulti;
     class Events;
     class KeyValue;
+    class Presets;
     class Sessions;
 }
 
@@ -45,6 +46,7 @@ namespace porla::Lua
         std::weak_ptr<Rpc::JsonRpc> jsonrpc;
         boost::asio::io_context&    io;
         KeyValue&                   kv;
+        Presets&                    presets;
         Sessions&                   sessions;
     };
 
