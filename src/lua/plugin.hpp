@@ -19,6 +19,7 @@ namespace porla
     class Config;
     class CurlMulti;
     class Events;
+    class KeyValue;
     class Sessions;
 }
 
@@ -35,6 +36,7 @@ namespace porla::Lua
         std::shared_ptr<CurlMulti>  curl_multi;
         sqlite3*                    db;
         Events&                     events;
+        KeyValue&                   kv;
         boost::asio::thread_pool&   hash_pool;
         uWS::App*                   http_server;
         std::weak_ptr<Rpc::JsonRpc> jsonrpc;

@@ -1,7 +1,6 @@
 #include "kv.hpp"
 
-#include "../../data/models/keyvaluestore.hpp"
-
+#include "../../keyvalue.hpp"
 #include "../pluginstate.hpp"
 #include "../types/pojson.hpp"
 
@@ -22,7 +21,7 @@ sol::object Kv::Load(sol::this_state ts)
 
         if (state == nullptr) { return std::nullopt; }
 
-        const auto value = Data::Models::KeyValueStore::Get(state->db, key);
+        const auto value = state->kv.Get(key);
 
         if (value.is_null())
         {
@@ -43,7 +42,7 @@ sol::object Kv::Load(sol::this_state ts)
 
         const auto json_value = Types::PoJson::ToJson(ts, value, 0);
 
-        Data::Models::KeyValueStore::Set(state->db, key, json_value);
+        state->kv.Set(key, json_value);
     });
 
     return tbl;

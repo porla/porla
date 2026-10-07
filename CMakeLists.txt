@@ -161,6 +161,7 @@ add_library(
     src/curlmulti.cpp
     src/events.cpp
     src/fields.cpp
+    src/keyvalue.cpp
     src/logger.cpp
     src/mmdb.cpp
     src/sessions.cpp

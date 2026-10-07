@@ -4,6 +4,7 @@
 
 #include <boost/signals2.hpp>
 
+#include "../../keyvalue.hpp"
 #include "../pluginstate.hpp"
 #include "../types/pocancellable.hpp"
 #include "../types/pojson.hpp"
@@ -15,6 +16,7 @@ namespace
 {
     const std::set<std::string, std::less<>> kEvents =
     {
+        "kv.updated",
         "session.added",
         "session.loaded",
         "session.removed",
@@ -67,6 +69,11 @@ namespace
             {
                 tbl["torrent"] = torrent_event->torrent_handle;
             }
+        }
+
+        if (const auto* kv_event = dynamic_cast<const porla::KeyValueEvent*>(&event))
+        {
+            tbl["keys"] = sol::as_table(kv_event->keys);
         }
 
         return tbl;

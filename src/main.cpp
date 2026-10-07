@@ -9,6 +9,7 @@
 #include "config.hpp"
 #include "curlmulti.hpp"
 #include "events.hpp"
+#include "keyvalue.hpp"
 #include "logger.hpp"
 #include "lua/pluginengine.hpp"
 #include "lua/pluginsource.hpp"
@@ -160,9 +161,12 @@ int main(int argc, char* argv[])
         auto* http_loop = reinterpret_cast<us_loop_t*>(uWS::Loop::get(&io));
         uWS::App http_server;
 
-        boost::signals2::signal<void(const std::unordered_set<std::string>&)> kv_updated_signal;
-
         porla::Events events(io);
+
+        porla::KeyValue kv(porla::KeyValueOptions{
+            .db     = cfg->db,
+            .events = events
+        });
 
         auto authenticator       = std::make_shared<porla::Auth::Authenticator>(cfg->db, cfg->secret_key);
         auto curl_multi_instance = porla::CurlMulti::Create(io);
@@ -183,6 +187,7 @@ int main(int argc, char* argv[])
             .http_server = &http_server,
             .jsonrpc     = jsonrpc,
             .io          = io,
+            .kv          = kv,
             .sessions    = sessions
         }};
 
@@ -192,9 +197,9 @@ int main(int argc, char* argv[])
         jsonrpc->Register("auth.keys.remove",          std::make_shared<M::Auth::AuthKeysRemove>(cfg->db));
         jsonrpc->Register("auth.login",                std::make_shared<M::Auth::AuthLogin>(io, sodium_hash_pool, cfg->db, cfg->secret_key));
         jsonrpc->Register("fs.space",                  std::make_shared<M::Fs::FsSpace>());
-        jsonrpc->Register("kv.get",                    std::make_shared<M::Kv::KeyValueGet>(cfg->db));
-        jsonrpc->Register("kv.set",                    std::make_shared<M::Kv::KeyValueSet>(io, cfg->db, kv_updated_signal));
-        jsonrpc->Register("mmdb.lookup",               std::make_shared<M::Mmdb::MmdbLookup>(cfg->db, kv_updated_signal));
+        jsonrpc->Register("kv.get",                    std::make_shared<M::Kv::KeyValueGet>(kv));
+        jsonrpc->Register("kv.set",                    std::make_shared<M::Kv::KeyValueSet>(kv));
+        jsonrpc->Register("mmdb.lookup",               std::make_shared<M::Mmdb::MmdbLookup>(kv, events));
         jsonrpc->Register("plugins.add",               std::make_shared<M::Plugins::PluginsAdd>(cfg->db, plugin_engine));
         jsonrpc->Register("plugins.get",               std::make_shared<M::Plugins::PluginsGet>(cfg->db, plugin_engine));
         jsonrpc->Register("plugins.install",           std::make_shared<M::Plugins::PluginsInstall>(io, cfg->db, curl_multi_instance, plugin_engine, cfg->state_dir));
