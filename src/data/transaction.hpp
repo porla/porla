@@ -16,5 +16,6 @@ namespace porla::Data
     private:
         sqlite3* m_db;
         bool     m_active;
+        int      m_uncaught_exceptions;
     };
 }

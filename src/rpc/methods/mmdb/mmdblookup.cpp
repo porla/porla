@@ -2,35 +2,44 @@
 
 #include <boost/log/trivial.hpp>
 
-#include "../../../data/models/keyvaluestore.hpp"
+#include "../../../events.hpp"
+#include "../../../keyvalue.hpp"
 #include "../../../mmdb.hpp"
 
 namespace fs = std::filesystem;
 
 using json = nlohmann::json;
 
-using porla::Data::Models::KeyValueStore;
+using porla::Events;
+using porla::KeyValue;
 using porla::Rpc::Methods::Mmdb::MmdbLookup;
 using porla::Rpc::Methods::Mmdb::MmdbLookupReq;
 using porla::Rpc::Methods::Mmdb::MmdbLookupRes;
 
 struct MmdbLookup::State
 {
-    sqlite3*                     db;
-    std::unique_ptr<porla::Mmdb> mmdb;
-    boost::signals2::connection  reload;
+    explicit State(KeyValue& kv)
+        : kv(kv)
+    {
+    }
+
+    porla::KeyValue&                   kv;
+    std::unique_ptr<porla::Mmdb>       mmdb;
+    boost::signals2::scoped_connection reload;
 
     void Load()
     {
         mmdb = nullptr;
 
-        const auto mmdb_path = Data::Models::KeyValueStore::Get(db, "porla.mmdb.path");
+        const auto mmdb_path = kv.Get("porla.mmdb.path");
 
         if (mmdb_path.is_string() && mmdb_path != "")
         {
-            if (!fs::exists(mmdb_path))
+            std::error_code ec;
+            if (!fs::exists(mmdb_path.get<std::string>(), ec))
             {
-                BOOST_LOG_TRIVIAL(error) << "MMDB path " << mmdb_path.get<std::string>() << " does not exist";
+                BOOST_LOG_TRIVIAL(error) << "MMDB path " << mmdb_path.get<std::string>() << " is not usable: "
+                                        << (ec ? ec.message() : "does not exist");
                 return;
             }
 
@@ -41,13 +50,14 @@ struct MmdbLookup::State
     }
 };
 
-MmdbLookup::MmdbLookup(sqlite3* db, boost::signals2::signal<void(const std::unordered_set<std::string>&)>& kv_updated)
+MmdbLookup::MmdbLookup(KeyValue& kv, Events& events)
 {
-    m_state = std::make_shared<MmdbLookup::State>();
-    m_state->db = db;
-    m_state->reload = kv_updated.connect([s = m_state](const std::unordered_set<std::string>& keys)
+    m_state = std::make_shared<MmdbLookup::State>(kv);
+    m_state->reload = events.On("kv.updated", [weak = std::weak_ptr(m_state)](const porla::Event& event)
     {
-        if (keys.contains("porla.mmdb.path"))
+        const auto& keys = static_cast<const porla::KeyValueEvent&>(event).keys;
+
+        if (auto s = weak.lock(); s && std::ranges::find(keys, "porla.mmdb.path") != keys.end())
         {
             BOOST_LOG_TRIVIAL(debug) << "Reloading MMDB file";
             s->Load();

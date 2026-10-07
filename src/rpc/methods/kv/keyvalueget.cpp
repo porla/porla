@@ -1,15 +1,15 @@
 #include "keyvalueget.hpp"
 
-#include "../../../data/models/keyvaluestore.hpp"
+#include "../../../keyvalue.hpp"
 
-using porla::Data::Models::KeyValueStore;
+using porla::KeyValue;
 
 using porla::Rpc::Methods::Kv::KeyValueGet;
 using porla::Rpc::Methods::Kv::KeyValueGetReq;
 using porla::Rpc::Methods::Kv::KeyValueGetRes;
 
-KeyValueGet::KeyValueGet(sqlite3* db)
-    : m_db(db)
+KeyValueGet::KeyValueGet(const KeyValue& kv)
+    : m_kv(kv)
 {
 }
 
@@ -19,7 +19,7 @@ void KeyValueGet::Execute(const KeyValueGetReq& req, ResponseWriterHandle cb)
 
     for (const auto& key : req.keys)
     {
-        values.insert({ key, KeyValueStore::Get(m_db, key) });
+        values.insert({ key, m_kv.Get(key) });
     }
 
     cb->Ok(KeyValueGetRes{

@@ -11,6 +11,8 @@ namespace porla::Data::Models
     {
     public:
         static nlohmann::json Get(sqlite3* db, const std::string& key);
-        static void Set(sqlite3* db, const std::string& key, const nlohmann::json& value);
+
+        // returns false when a key was not set - for example, it was readonly.
+        static bool Set(sqlite3* db, const std::string& key, const nlohmann::json& value);
     };
 }

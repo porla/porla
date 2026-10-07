@@ -5,7 +5,6 @@
 #include <optional>
 
 #include <boost/signals2.hpp>
-#include <sqlite3.h>
 
 #include "../../typedmethod.hpp"
 
@@ -13,6 +12,8 @@
 
 namespace porla
 {
+    class Events;
+    class KeyValue;
     class Mmdb;
 }
 
@@ -21,7 +22,7 @@ namespace porla::Rpc::Methods::Mmdb
     class MmdbLookup : public TypedMethod<MmdbLookupReq, MmdbLookupRes>
     {
     public:
-        explicit MmdbLookup(sqlite3* db, boost::signals2::signal<void(const std::unordered_set<std::string>&)>& kv_updated);
+        explicit MmdbLookup(KeyValue& kv, Events& events);
 
     protected:
         void Execute(const MmdbLookupReq& req, ResponseWriterHandle cb) override;

@@ -20,6 +20,7 @@ namespace porla
     class Config;
     class CurlMulti;
     class Events;
+    class KeyValue;
     class Sessions;
 }
 
@@ -43,6 +44,7 @@ namespace porla::Lua
         uWS::App*                   http_server;
         std::weak_ptr<Rpc::JsonRpc> jsonrpc;
         boost::asio::io_context&    io;
+        KeyValue&                   kv;
         Sessions&                   sessions;
     };
 

@@ -21,7 +21,7 @@ nlohmann::json KeyValueStore::Get(sqlite3* db, const std::string& key)
     return value;
 }
 
-void KeyValueStore::Set(sqlite3* db, const std::string& key, const nlohmann::json& value)
+bool KeyValueStore::Set(sqlite3* db, const std::string& key, const nlohmann::json& value)
 {
     const std::string encoded_value = value.dump();
 
@@ -45,4 +45,6 @@ void KeyValueStore::Set(sqlite3* db, const std::string& key, const nlohmann::jso
     stmt.Bind("$key",   key);
     stmt.Bind("$value", encoded_value);
     stmt.Execute();
+
+    return sqlite3_changes(db) > 0;
 }

@@ -1,22 +1,25 @@
 #pragma once
 
-#include <sqlite3.h>
-
 #include "../../typedmethod.hpp"
 
 #include "keyvalueget_reqres.hpp"
+
+namespace porla
+{
+    class KeyValue;
+}
 
 namespace porla::Rpc::Methods::Kv
 {
     class KeyValueGet : public TypedMethod<KeyValueGetReq, KeyValueGetRes>
     {
     public:
-        explicit KeyValueGet(sqlite3* db);
+        explicit KeyValueGet(const KeyValue& kv);
 
     protected:
         void Execute(const KeyValueGetReq& req, ResponseWriterHandle cb) override;
 
     private:
-        sqlite3* m_db;
+        const KeyValue& m_kv;
     };
 }

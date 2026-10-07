@@ -14,6 +14,7 @@
 #include "../cron.hpp"
 #include "../curlmulti.hpp"
 #include "../events.hpp"
+#include "../keyvalue.hpp"
 #include "../rpc/jsonrpc.hpp"
 #include "../sessions.hpp"
 #include "../timer.hpp"
@@ -24,10 +25,11 @@ namespace porla::Lua
 {
     struct LuaState : public std::enable_shared_from_this<LuaState>
     {
-        explicit LuaState(boost::asio::io_context& io, boost::asio::thread_pool& hash_pool, porla::Config& cfg, porla::Events& events, porla::Sessions& sessions, sol::state_view lua)
+        explicit LuaState(boost::asio::io_context& io, boost::asio::thread_pool& hash_pool, porla::Config& cfg, porla::Events& events, porla::KeyValue& kv, porla::Sessions& sessions, sol::state_view lua)
             : io(io)
             , cfg(cfg)
             , events(events)
+            , kv(kv)
             , sessions(sessions)
             , lua(lua)
             , sodium_hash_pool(hash_pool)
@@ -202,6 +204,7 @@ namespace porla::Lua
         boost::asio::io_context&                                  io;
         std::unordered_set<std::shared_ptr<Types::PoHttpServerResponse>> http_responses;
         std::weak_ptr<Rpc::JsonRpc>                               jsonrpc;
+        porla::KeyValue&                                          kv;
         sol::state_view                                           lua;
         int                                                       plugin_id;
         porla::Sessions&                                          sessions;
