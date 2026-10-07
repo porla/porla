@@ -13,6 +13,7 @@
 #include "data/models/addtorrentparams.hpp"
 #include "data/models/sessions.hpp"
 #include "data/transaction.hpp"
+#include "events.hpp"
 #include "json/all.hpp"
 #include "timer.hpp"
 #include "torrentclientdata.hpp"
@@ -199,9 +200,7 @@ int Sessions::Add(const Data::Models::Sessions::Session& session)
 
     if (const auto state = Get(id))
     {
-        Publish(state, {
-            .name = "session.added"
-        });
+        Publish(state, SessionEvent("session.added"));
     }
 
     return id;
@@ -222,12 +221,7 @@ void Sessions::Remove(int id)
 
     BOOST_LOG_TRIVIAL(info) << "session[" << session->name << "] Removed";
 
-    PublishDetached(id, {
-        .name = "session.removed",
-        .data = {
-            { "session_name", session->name }
-        }
-    });
+    PublishDetached(id, SessionEvent("session.removed", {{ "session_name", session->name }}));
 }
 
 void Sessions::Update(const Data::Models::Sessions::Session& session)
@@ -238,9 +232,7 @@ void Sessions::Update(const Data::Models::Sessions::Session& session)
     {
         state->name = session.name;
 
-        Publish(state, {
-            .name = "session.updated"
-        });
+        Publish(state, SessionEvent("session.updated"));
     }
 }
 
@@ -477,13 +469,10 @@ void Sessions::LoadTorrentsChunk(const SessionStatePtr& state)
             }
         }
 
-        Publish(state, {
-            .name = "session.loaded",
-            .data = {
-                { "torrents", load.loaded },
-                { "failed",   load.failed }
-            }
-        });
+        Publish(state, SessionEvent("session.loaded", {
+            { "torrents", load.loaded },
+            { "failed",   load.failed }
+        }));
 
         FinishLoad(state);
 
@@ -561,10 +550,7 @@ void Sessions::UnloadById(int id)
 
     m_sessions.erase(it);
 
-    PublishDetached(id, {
-        .name = "session.unloaded",
-        .data = { { "session_name", name } }
-    });
+    PublishDetached(id, SessionEvent("session.unloaded", {{ "session_name", name }}));
 }
 
 void Sessions::ReadAlerts(const std::shared_ptr<SessionState>& state)
@@ -682,7 +668,7 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
         }
         case lt::session_stats_alert::alert_type:
         {
-            if (!HasSubscribers("session.stats"))
+            if (!m_options.events.HasSubscribers("session.stats"))
             {
                 break;
             }
@@ -696,10 +682,7 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
                 stats[m.name] = counters[m.value_index];
             }
 
-            Publish(state, {
-                .name = "session.stats",
-                .data = { { "stats", std::move(stats) } }
-            });
+            Publish(state, SessionEvent("session.stats", {{ "stats", std::move(stats) }}));
 
             break;
         }
@@ -1217,10 +1200,10 @@ void Sessions::OnTorrentRemovedAlert(const SessionStatePtr& state, const lt::tor
             if (auto state = weak.lock()) { m_torrent_removed(state, hash); }
         });
 
-    Publish(state, {
-        .name              = "torrent.removed",
-        .torrent_info_hash = alert->info_hashes
-    });
+    TorrentEvent removed("torrent.removed");
+    removed.info_hash = alert->info_hashes;
+
+    Publish(state, std::move(removed));
 
     try
     {
@@ -1245,10 +1228,31 @@ void Sessions::OnTorrentResumedAlert(const SessionStatePtr& state, const lt::tor
     EmitTorrentEvent(state, "torrent.resumed", *alert);
 }
 
+template <typename T>
+void Sessions::Publish(const SessionStatePtr& state, T event)
+{
+    static_assert(std::is_base_of_v<SessionEvent, T>);
+
+    event.session_id = state->id;
+    event.session    = state;
+
+    m_options.events.Publish(std::move(event));
+}
+
+template <typename T>
+void Sessions::PublishDetached(int session_id, T event)
+{
+    static_assert(std::is_base_of_v<SessionEvent, T>);
+
+    event.session_id = session_id;
+
+    m_options.events.Publish(std::move(event));
+}
+
 template<typename Alert>
 void Sessions::EmitTorrentEvent(const SessionStatePtr& state, std::string name, const Alert& alert, nlohmann::json extra)
 {
-    if (!HasSubscribers(name) || !alert.handle.is_valid())
+    if (!m_options.events.HasSubscribers(name) || !alert.handle.is_valid())
     {
         return;
     }
@@ -1260,11 +1264,10 @@ void Sessions::EmitTorrentEvent(const SessionStatePtr& state, std::string name, 
         data.update(extra);
     }
 
-    Publish(state, {
-        .name              = std::move(name),
-        .data              = std::move(data),
-        .torrent           = alert.handle,
-        .torrent_info_hash = alert.handle.info_hashes()
-    });
+    TorrentEvent event(std::move(name), std::move(data));
+    event.torrent_handle = alert.handle;
+    event.info_hash      = alert.handle.info_hashes();
+
+    Publish(state, std::move(event));
 }
 

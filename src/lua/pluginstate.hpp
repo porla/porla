@@ -13,6 +13,7 @@
 #include "../config.hpp"
 #include "../cron.hpp"
 #include "../curlmulti.hpp"
+#include "../events.hpp"
 #include "../rpc/jsonrpc.hpp"
 #include "../sessions.hpp"
 #include "../timer.hpp"
@@ -23,9 +24,10 @@ namespace porla::Lua
 {
     struct LuaState : public std::enable_shared_from_this<LuaState>
     {
-        explicit LuaState(boost::asio::io_context& io, boost::asio::thread_pool& hash_pool, porla::Config& cfg, porla::Sessions& sessions, sol::state_view lua)
+        explicit LuaState(boost::asio::io_context& io, boost::asio::thread_pool& hash_pool, porla::Config& cfg, porla::Events& events, porla::Sessions& sessions, sol::state_view lua)
             : io(io)
             , cfg(cfg)
+            , events(events)
             , sessions(sessions)
             , lua(lua)
             , sodium_hash_pool(hash_pool)
@@ -196,6 +198,7 @@ namespace porla::Lua
         std::shared_ptr<CurlMulti>                                curl;
         sqlite3*                                                  db;
         std::vector<std::function<void()>>                        destructors;
+        porla::Events&                                            events;
         boost::asio::io_context&                                  io;
         std::unordered_set<std::shared_ptr<Types::PoHttpServerResponse>> http_responses;
         std::weak_ptr<Rpc::JsonRpc>                               jsonrpc;

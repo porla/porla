@@ -159,6 +159,7 @@ add_library(
     src/cmdargs.cpp
     src/config.cpp
     src/curlmulti.cpp
+    src/events.cpp
     src/fields.cpp
     src/logger.cpp
     src/mmdb.cpp
