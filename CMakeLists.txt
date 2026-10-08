@@ -164,6 +164,7 @@ add_library(
     src/keyvalue.cpp
     src/logger.cpp
     src/mmdb.cpp
+    src/plugins.cpp
     src/presets.cpp
     src/sessions.cpp
     src/timer.cpp
@@ -319,7 +320,6 @@ add_library(
 
     src/lua/print.cpp
     src/lua/plugin.cpp
-    src/lua/pluginengine.cpp
     src/lua/pluginsource.cpp
 
     src/rpc/jsonrpc.cpp

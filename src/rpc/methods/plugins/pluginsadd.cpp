@@ -4,22 +4,16 @@
 
 #include <boost/log/trivial.hpp>
 
-#include "../../../data/models/plugins.hpp"
-
-#include "../../../lua/plugin.hpp"
-#include "../../../lua/pluginengine.hpp"
+#include "../../../plugins.hpp"
 
 namespace fs = std::filesystem;
 
-using porla::Data::Models::Plugins;
-using porla::Lua::PluginEngine;
 using porla::Rpc::Methods::Plugins::PluginsAdd;
 using porla::Rpc::Methods::Plugins::PluginsAddReq;
 using porla::Rpc::Methods::Plugins::PluginsAddRes;
 
-PluginsAdd::PluginsAdd(sqlite3* db, porla::Lua::PluginEngine& plugins)
-    : m_db(db)
-    , m_plugins(plugins)
+PluginsAdd::PluginsAdd(porla::Plugins& plugins)
+    : m_plugins(plugins)
 {
 }
 
@@ -37,18 +31,12 @@ void PluginsAdd::Execute(const PluginsAddReq& req, ResponseWriterHandle cb)
         return cb->Error(-3, "Plugin path does not exist");
     }
 
-    const auto plugin_id = Data::Models::Plugins::Insert(
-        m_db,
-        Data::Models::Plugins::Plugin{
-            .id       = -1,
-            .path     = plugin_path,
-            .config   = req.config,
-            .metadata = {}
-        });
-
-    BOOST_LOG_TRIVIAL(info) << "Plugin " << plugin_id << " installed with path " << plugin_path;
-
-    m_plugins.Load(plugin_id);
+    const auto plugin_id = m_plugins.Add(porla::Plugins::Plugin{
+        .id       = -1,
+        .path     = plugin_path,
+        .config   = req.config,
+        .metadata = {}
+    });
 
     return cb->Ok(PluginsAddRes{
         .id = plugin_id

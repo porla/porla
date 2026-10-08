@@ -6,6 +6,7 @@
 
 #include "../../events.hpp"
 #include "../../keyvalueevent.hpp"
+#include "../../pluginevent.hpp"
 #include "../../presetevent.hpp"
 #include "../pluginstate.hpp"
 #include "../types/pocancellable.hpp"
@@ -19,6 +20,11 @@ namespace
     const std::set<std::string, std::less<>> kEvents =
     {
         "kv.updated",
+        "plugin.added",
+        "plugin.loaded",
+        "plugin.removed",
+        "plugin.unloaded",
+        "plugin.updated",
         "preset.added",
         "preset.removed",
         "preset.updated",
@@ -79,6 +85,11 @@ namespace
         if (const auto* kv_event = dynamic_cast<const porla::KeyValueEvent*>(&event))
         {
             tbl["keys"] = sol::as_table(kv_event->keys);
+        }
+
+        if (const auto* plugin_event = dynamic_cast<const porla::PluginEvent*>(&event))
+        {
+            tbl["plugin_id"] = plugin_event->plugin_id;
         }
 
         if (const auto* preset_event = dynamic_cast<const porla::PresetEvent*>(&event))
@@ -166,6 +177,15 @@ sol::object porla::Lua::Packages::Events::Load(sol::this_state ts)
             {
                 auto state = weak.lock();
                 if (state == nullptr) { return; }
+
+                // a plugin never receives plugin events about itself
+                if (const auto* plugin_event = dynamic_cast<const porla::PluginEvent*>(&event))
+                {
+                    if (plugin_event->plugin_id == state->plugin_id)
+                    {
+                        return;
+                    }
+                }
 
                 state->InvokeCallback(callback_id, EventCache(*state, event));
             });
