@@ -3,6 +3,8 @@
 #include <libtorrent/torrent_handle.hpp>
 
 #include "potorrentdata.hpp"
+
+#include "../pluginstate.hpp"
 #include "../../torrentclientdata.hpp"
 
 using porla::Lua::Types::LtTorrentHandle;
@@ -195,13 +197,23 @@ void LtTorrentHandle::Register(sol::state& lua)
         "unset_flags",                [](const lt::torrent_handle& th, const lt::torrent_flags_t& flags) { th.unset_flags(flags); },
         "upload_limit",               &lt::torrent_handle::upload_limit,
         "url_seeds",                  [](const lt::torrent_handle& th) { return sol::as_table(th.url_seeds()); },
-        "userdata", [](const lt::torrent_handle& th) -> std::shared_ptr<PoTorrentData>
+        "userdata", [](const lt::torrent_handle& th, sol::this_state ts) -> std::shared_ptr<PoTorrentData>
         {
             if (th.userdata().get<TorrentClientData>() == nullptr)
             {
                 return nullptr;
             }
 
-            return std::make_shared<PoTorrentData>(th);
+            sol::state_view lua(ts);
+
+            auto weak = lua.registry()["state"].get<std::weak_ptr<porla::Lua::LuaState>>();
+            auto state = weak.lock();
+
+            if (state == nullptr)
+            {
+                return nullptr;
+            }
+
+            return std::make_shared<PoTorrentData>(th, state->torrents);
         });
 }

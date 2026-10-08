@@ -46,6 +46,7 @@ namespace
         "torrent.removed",
         "torrent.resumed",
         "torrent.state_changed",
+        "torrent.userdata_updated",
         "tracker.error",
         "tracker.reply",
         "tracker.warning"

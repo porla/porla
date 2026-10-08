@@ -5,6 +5,8 @@
 #include <libtorrent/magnet_uri.hpp>
 
 #include "poerror.hpp"
+#include "pojson.hpp"
+
 #include "../../torrentclientdata.hpp"
 
 using porla::TorrentClientData;
@@ -56,18 +58,34 @@ void LtAddTorrentParams::Register(sol::state& lua)
     lua["LtAddTorrentParams"] = atp;
 }
 
-lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params)
+lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params, const std::function<void(lt::add_torrent_params&)>& prepare)
 {
     const sol::table t = params.as<sol::table>();
 
-    lt::add_torrent_params atp;
+    lt::add_torrent_params                  atp;
+    std::shared_ptr<lt::add_torrent_params> base;
 
     if (sol::optional<sol::table> mt = t[sol::metatable_key])
     {
-        if (sol::optional<std::shared_ptr<lt::add_torrent_params>> base = (*mt)["__atp"])
+        if (sol::optional<std::shared_ptr<lt::add_torrent_params>> b = (*mt)["__atp"])
         {
-            if (*base) atp = **base;
+            base = *b;
+
+            if (base)
+            {
+                atp = *base;
+            }
         }
+    }
+
+    const auto changed = [&base](const auto& value, auto member)
+    {
+        return base == nullptr || !(value == (*base).*member);
+    };
+
+    if (prepare)
+    {
+        prepare(atp);
     }
 
     if (sol::optional<int>                               v = t["active_time"])        atp.active_time        = *v;
@@ -76,34 +94,37 @@ lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params)
     if (sol::optional<std::time_t>                       v = t["completed_time"])     atp.completed_time     = *v;
     if (sol::optional<std::string>                       v = t["created_by"])         atp.created_by         = *v;
     if (sol::optional<std::time_t>                       v = t["creation_date"])      atp.creation_date      = *v;
-    if (sol::optional<int>                               v = t["download_limit"])     atp.download_limit     = *v;
     if (sol::optional<std::time_t>                       v = t["finished_time"])      atp.finished_time      = *v;
-    if (sol::optional<lt::torrent_flags_t>               v = t["flags"])              atp.flags              = *v;
     if (sol::optional<lt::info_hash_t>                   v = t["info_hash"])          atp.info_hashes        = *v;
     if (sol::optional<std::time_t>                       v = t["last_download"])      atp.last_download      = *v;
     if (sol::optional<std::time_t>                       v = t["last_seen_complete"]) atp.last_seen_complete = *v;
     if (sol::optional<std::time_t>                       v = t["last_upload"])        atp.last_upload        = *v;
-    if (sol::optional<int>                               v = t["max_connections"])    atp.max_connections    = *v;
-    if (sol::optional<int>                               v = t["max_uploads"])        atp.max_uploads        = *v;
     if (sol::optional<std::string>                       v = t["name"])               atp.name               = *v;
     if (sol::optional<int>                               v = t["num_complete"])       atp.num_complete       = *v;
     if (sol::optional<int>                               v = t["num_downloaded"])     atp.num_downloaded     = *v;
     if (sol::optional<int>                               v = t["num_incomplete"])     atp.num_incomplete     = *v;
     if (sol::optional<std::string>                       v = t["part_file_dir"])      atp.part_file_dir      = *v;
     if (sol::optional<std::string>                       v = t["root_certificate"])   atp.root_certificate   = *v;
-    if (sol::optional<std::string>                       v = t["save_path"])          atp.save_path          = *v;
     if (sol::optional<std::time_t>                       v = t["seeding_time"])       atp.seeding_time       = *v;
     if (sol::optional<std::string>                       v = t["trackerid"])          atp.trackerid          = *v;
     if (sol::optional<std::shared_ptr<lt::torrent_info>> v = t["ti"])                 atp.ti                 = *v;
     if (sol::optional<std::int64_t>                      v = t["total_downloaded"])   atp.total_downloaded   = *v;
     if (sol::optional<std::int64_t>                      v = t["total_uploaded"])     atp.total_uploaded     = *v;
-    if (sol::optional<int>                               v = t["upload_limit"])       atp.upload_limit       = *v;
+
+    if (sol::optional<int>                 v = t["download_limit"];  v && changed(*v, &lt::add_torrent_params::download_limit))  atp.download_limit = *v;
+    if (sol::optional<lt::torrent_flags_t> v = t["flags"];           v && changed(*v, &lt::add_torrent_params::flags))           atp.flags = *v;
+    if (sol::optional<int>                 v = t["max_connections"]; v && changed(*v, &lt::add_torrent_params::max_connections)) atp.max_connections = *v;
+    if (sol::optional<int>                 v = t["max_uploads"];     v && changed(*v, &lt::add_torrent_params::max_uploads))     atp.max_uploads = *v;
+    if (sol::optional<std::string>         v = t["save_path"];       v && changed(*v, &lt::add_torrent_params::save_path))       atp.save_path = *v;
+    if (sol::optional<int>                 v = t["upload_limit"];    v && changed(*v, &lt::add_torrent_params::upload_limit))    atp.upload_limit = *v;
 
     if (sol::optional<std::string> storage_mode = t["storage_mode"])
     {
-        atp.storage_mode = storage_mode.value() == "allocate"
+        const auto mode = storage_mode.value() == "allocate"
             ? lt::storage_mode_allocate
             : lt::storage_mode_sparse;
+
+        if (changed(mode, &lt::add_torrent_params::storage_mode)) atp.storage_mode = mode;
     }
 
     if (sol::optional<sol::table> prios = t["file_priorities"])
@@ -197,6 +218,35 @@ lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params)
         if (sol::optional<std::string> v = (*userdata)["category"])
         {
             ud->category = *v;
+        }
+
+        if (sol::optional<sol::table> v = (*userdata)["metadata"])
+        {
+            const auto metadata = Types::PoJson::ToJson(t.lua_state(), *v, 0);
+
+            if (!metadata.is_object())
+            {
+                throw std::invalid_argument("'userdata.metadata' must be a table with string keys");
+            }
+
+            ud->metadata = metadata;
+        }
+
+        if (sol::optional<sol::table> v = (*userdata)["tags"])
+        {
+            std::unordered_set<std::string> tags;
+
+            for (const auto& [ _, tag ] : *v)
+            {
+                if (tag.get_type() != sol::type::string)
+                {
+                    throw std::invalid_argument("'userdata.tags' must be a list of strings");
+                }
+
+                tags.insert(tag.as<std::string>());
+            }
+
+            ud->tags = std::move(tags);
         }
     }
 

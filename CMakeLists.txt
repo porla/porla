@@ -168,6 +168,7 @@ add_library(
     src/presets.cpp
     src/sessions.cpp
     src/timer.cpp
+    src/torrents.cpp
     src/zip.cpp
     src/utils/eta.cpp
     src/utils/secretkey.cpp

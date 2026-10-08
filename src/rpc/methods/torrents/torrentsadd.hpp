@@ -1,7 +1,5 @@
 #pragma once
 
-#include <sqlite3.h>
-
 #include "../../typedmethod.hpp"
 
 #include "torrentsaddreq.hpp"
@@ -9,8 +7,7 @@
 
 namespace porla
 {
-    class Presets;
-    class Sessions;
+    class Torrents;
 }
 
 namespace porla::Rpc::Methods::Torrents
@@ -18,14 +15,12 @@ namespace porla::Rpc::Methods::Torrents
     class TorrentsAdd : public TypedMethod<TorrentsAddReq, TorrentsAddRes>
     {
     public:
-        explicit TorrentsAdd(sqlite3* db, porla::Presets& presets, porla::Sessions& session);
+        explicit TorrentsAdd(porla::Torrents& torrents);
 
     protected:
         void Execute(const TorrentsAddReq& req, ResponseWriterHandle cb) override;
 
     private:
-        sqlite3* m_db;
-        porla::Presets& m_presets;
-        porla::Sessions& m_sessions;
+        porla::Torrents& m_torrents;
     };
 }

@@ -156,7 +156,8 @@ porla::Lua::PluginLoadOptions Plugins::LoadOptions(int id) const
         .io          = m_options.io,
         .plugin_id   = id,
         .presets     = m_options.presets,
-        .sessions    = m_options.sessions
+        .sessions    = m_options.sessions,
+        .torrents    = m_options.torrents
     };
 }
 

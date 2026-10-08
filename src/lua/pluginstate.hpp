@@ -23,6 +23,7 @@ namespace porla
     class KeyValue;
     class Presets;
     class Sessions;
+    class Torrents;
 }
 
 namespace porla::Rpc
@@ -34,13 +35,14 @@ namespace porla::Lua
 {
     struct LuaState : public std::enable_shared_from_this<LuaState>
     {
-        explicit LuaState(boost::asio::io_context& io, boost::asio::thread_pool& hash_pool, porla::Config& cfg, porla::Events& events, porla::KeyValue& kv, porla::Presets& presets, porla::Sessions& sessions, sol::state_view lua)
+        explicit LuaState(boost::asio::io_context& io, boost::asio::thread_pool& hash_pool, porla::Config& cfg, porla::Events& events, porla::KeyValue& kv, porla::Presets& presets, porla::Sessions& sessions, porla::Torrents& torrents, sol::state_view lua)
             : io(io)
             , cfg(cfg)
             , events(events)
             , kv(kv)
             , presets(presets)
             , sessions(sessions)
+            , torrents(torrents)
             , lua(lua)
             , sodium_hash_pool(hash_pool)
         {
@@ -219,6 +221,7 @@ namespace porla::Lua
         sol::state_view                                           lua;
         int                                                       plugin_id;
         porla::Sessions&                                          sessions;
+        porla::Torrents&                                          torrents;
         boost::asio::thread_pool&                                 sodium_hash_pool;
 
     private:

@@ -37,6 +37,7 @@
 #include "types/pocancellable.hpp"
 #include "types/pohttpformfile.hpp"
 #include "types/pohttpserverresponse.hpp"
+#include "types/pojson.hpp"
 #include "types/pojsonrpcresponse.hpp"
 #include "types/popreset.hpp"
 #include "types/poquery.hpp"
@@ -206,6 +207,7 @@ struct Plugin::State
             load_options.kv,
             load_options.presets,
             load_options.sessions,
+            load_options.torrents,
             lua);
 
         lua_state->app       = load_options.http_server;
@@ -218,6 +220,12 @@ struct Plugin::State
         lua.registry()["state"] = std::weak_ptr(lua_state);
 
         lua.globals()["print"] = &Print;
+
+        // porla.null is the same value as json.null.
+        // it marks "clear this" where nil can't,
+        // since a table can't hold nil
+        lua.globals()["porla"] = lua.create_table_with(
+            "null", sol::light(Types::PoJson::NullSentinel()));
     }
 };
 

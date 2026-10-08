@@ -22,6 +22,7 @@ namespace porla
     class KeyValue;
     class Presets;
     class Sessions;
+    class Torrents;
 }
 
 namespace porla::Rpc
@@ -45,6 +46,7 @@ namespace porla::Lua
         int                         plugin_id;
         porla::Presets&             presets;
         porla::Sessions&            sessions;
+        porla::Torrents&            torrents;
     };
 
     class PluginSource;
