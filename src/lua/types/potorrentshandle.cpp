@@ -4,6 +4,9 @@
 #include "poquery.hpp"
 #include "potorrentsiterator.hpp"
 
+#include "../pluginstate.hpp"
+
+#include "../../torrents.hpp"
 #include "../../torrentclientdata.hpp"
 
 using porla::Lua::Types::PoTorrentsHandle;
@@ -27,24 +30,62 @@ void PoTorrentsHandle::Register(sol::state& lua)
         );
 }
 
-void PoTorrentsHandle::Add(const sol::table& params)
+std::tuple<sol::object, sol::object> PoTorrentsHandle::Add(sol::this_state ts, const sol::table& params, std::optional<sol::table> opts)
 {
-    auto state = m_state.lock();
-    if (state == nullptr) { return; }
+    sol::state_view lua(ts);
 
-    lt::add_torrent_params atp = LtAddTorrentParams::ToParams(params);
+    auto session   = m_state.lock();
+    auto lua_state = lua.registry()["state"].get<std::weak_ptr<porla::Lua::LuaState>>().lock();
 
-    if (auto userdata = atp.userdata.get<TorrentClientData>())
+    if (session == nullptr || lua_state == nullptr)
     {
-        userdata->state = m_state;
-    }
-    else
-    {
-        atp.userdata = lt::client_data_t(new TorrentClientData());
-        atp.userdata.get<TorrentClientData>()->state = m_state;
+        return { sol::lua_nil, sol::make_object(lua, "Session not loaded") };
     }
 
-    state->session->async_add_torrent(atp);
+    TorrentsAddOptions options{ .session_id = session->id };
+
+    if (opts.has_value())
+    {
+        if (sol::optional<int> v = (*opts)["preset_id"])        options.preset_id = *v;
+        else if (sol::optional<std::string> v = (*opts)["preset"]) options.preset = *v;
+    }
+
+    TorrentsAddResult      prepared;
+    TorrentClientData*     prepared_data = nullptr;
+    lt::add_torrent_params atp;
+
+    try
+    {
+        atp = LtAddTorrentParams::ToParams(
+            params,
+            [&](lt::add_torrent_params& p)
+            {
+                prepared      = lua_state->torrents.Prepare(p, options);
+                prepared_data = p.userdata.get<TorrentClientData>();
+            });
+    }
+    catch (...)
+    {
+        // invalid params - free what Prepare allocated before rethrowing to Lua
+        if (prepared) delete prepared_data;
+        throw;
+    }
+
+    if (!prepared)
+    {
+        // Prepare failed and allocated nothing, but ToParams may have created client data
+        delete atp.userdata.get<TorrentClientData>();
+        return { sol::lua_nil, sol::make_object(lua, prepared.what) };
+    }
+
+    const auto added = lua_state->torrents.Add(std::move(atp));
+
+    if (!added)
+    {
+        return { sol::lua_nil, sol::make_object(lua, added.what) };
+    }
+
+    return { sol::make_object(lua, added.info_hash), sol::lua_nil };
 }
 
 int PoTorrentsHandle::Count()

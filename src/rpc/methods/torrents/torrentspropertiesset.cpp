@@ -3,15 +3,17 @@
 #include "../../../data/models/addtorrentparams.hpp"
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions.hpp"
+#include "../../../torrents.hpp"
 #include "../../../torrentclientdata.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsPropertiesSet;
 using porla::Rpc::Methods::Torrents::TorrentsPropertiesSetReq;
 using porla::Rpc::Methods::Torrents::TorrentsPropertiesSetRes;
 
-TorrentsPropertiesSet::TorrentsPropertiesSet(sqlite3* db, porla::Sessions& sessions)
+TorrentsPropertiesSet::TorrentsPropertiesSet(sqlite3* db, porla::Sessions& sessions, porla::Torrents& torrents)
     : m_db(db)
     , m_sessions(sessions)
+    , m_torrents(torrents)
 {
 }
 
@@ -45,8 +47,6 @@ void TorrentsPropertiesSet::Execute(const TorrentsPropertiesSetReq& req, Respons
         return cb->Error(-4, "Torrent not valid");
     }
 
-    const auto client_data = it->second.handle.userdata().get<TorrentClientData>();
-
     if (const auto val = req.download_limit)
         it->second.handle.set_download_limit(*val);
 
@@ -69,26 +69,18 @@ void TorrentsPropertiesSet::Execute(const TorrentsPropertiesSetReq& req, Respons
 
     if (req.category.has_value() || req.tags.has_value())
     {
-        if (client_data == nullptr)
+        const bool updated = m_torrents.UpdateClientData(
+            it->second.handle,
+            [&req](TorrentClientData& client_data)
+            {
+                if (req.category.has_value()) client_data.category = req.category.value();
+                if (req.tags.has_value())     client_data.tags     = req.tags.value();
+            });
+
+        if (!updated)
         {
             return cb->Error(-5, "Torrent has no client data - cannot set category or tags");
         }
-
-        if (req.category.has_value())
-        {
-            client_data->category = req.category.value();
-        }
-
-        if (req.tags.has_value())
-        {
-            client_data->tags = req.tags.value();
-        }
-
-        Data::Models::AddTorrentParams::UpdateClientData(
-            m_db,
-            session_state->id,
-            it->second.info_hashes,
-            *client_data);
     }
 
     cb->Ok({});

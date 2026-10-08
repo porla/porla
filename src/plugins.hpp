@@ -21,6 +21,7 @@ namespace porla
     class KeyValue;
     class Presets;
     class Sessions;
+    class Torrents;
 }
 
 namespace porla::Lua
@@ -50,6 +51,7 @@ namespace porla
         KeyValue&                   kv;
         Presets&                    presets;
         Sessions&                   sessions;
+        Torrents&                   torrents;
     };
 
     class Plugins

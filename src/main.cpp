@@ -16,6 +16,7 @@
 #include "presets.hpp"
 #include "sessions.hpp"
 #include "timer.hpp"
+#include "torrents.hpp"
 
 #include "auth/authenticator.hpp"
 
@@ -184,6 +185,13 @@ int main(int argc, char* argv[])
             .io     = io
         });
 
+        porla::Torrents torrents(porla::TorrentsOptions{
+            .db       = cfg->db,
+            .events   = events,
+            .presets  = presets,
+            .sessions = sessions
+        });
+
         porla::Plugins plugins(porla::PluginsOptions{
             .cfg         = *cfg,
             .curl_multi  = curl_multi_instance,
@@ -195,7 +203,8 @@ int main(int argc, char* argv[])
             .io          = io,
             .kv          = kv,
             .presets     = presets,
-            .sessions    = sessions
+            .sessions    = sessions,
+            .torrents    = torrents
         });
 
         jsonrpc->Register("auth.init",                 std::make_shared<M::Auth::AuthInit>(io, sodium_hash_pool, cfg->db));
@@ -231,7 +240,7 @@ int main(int argc, char* argv[])
         jsonrpc->Register("sessions.update",           std::make_shared<M::Sessions::SessionsUpdate>(cfg->db, sessions));
         jsonrpc->Register("sys.status",                std::make_shared<M::Sys::SysStatus>(cfg->db));
         jsonrpc->Register("sys.versions",              std::make_shared<M::Sys::SysVersions>());
-        jsonrpc->Register("torrents.add",              std::make_shared<M::Torrents::TorrentsAdd>(cfg->db, presets, sessions));
+        jsonrpc->Register("torrents.add",              std::make_shared<M::Torrents::TorrentsAdd>(torrents));
         jsonrpc->Register("torrents.count",            std::make_shared<M::Torrents::TorrentsCount>(sessions));
         jsonrpc->Register("torrents.files.list",       std::make_shared<M::Torrents::TorrentsFilesList>(cfg->db, sessions));
         jsonrpc->Register("torrents.files.priorities", std::make_shared<M::Torrents::TorrentsFilesPriorities>(cfg->db, sessions));
@@ -247,7 +256,7 @@ int main(int argc, char* argv[])
         jsonrpc->Register("torrents.peers.list",       std::make_shared<M::Torrents::TorrentsPeersList>(cfg->db, sessions));
         jsonrpc->Register("torrents.pieces.get",       std::make_shared<M::Torrents::TorrentsPiecesGet>(cfg->db, sessions));
         jsonrpc->Register("torrents.properties.get",   std::make_shared<M::Torrents::TorrentsPropertiesGet>(cfg->db, sessions));
-        jsonrpc->Register("torrents.properties.set",   std::make_shared<M::Torrents::TorrentsPropertiesSet>(cfg->db, sessions));
+        jsonrpc->Register("torrents.properties.set",   std::make_shared<M::Torrents::TorrentsPropertiesSet>(cfg->db, sessions, torrents));
         jsonrpc->Register("torrents.queue.bottom",     std::make_shared<M::Torrents::TorrentsQueueBottom>(cfg->db, sessions));
         jsonrpc->Register("torrents.queue.down",       std::make_shared<M::Torrents::TorrentsQueueDown>(cfg->db, sessions));
         jsonrpc->Register("torrents.queue.set",        std::make_shared<M::Torrents::TorrentsQueueSet>(cfg->db, sessions));
