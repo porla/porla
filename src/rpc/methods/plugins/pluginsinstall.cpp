@@ -16,9 +16,8 @@ using porla::Rpc::Methods::Plugins::PluginsInstall;
 using porla::Rpc::Methods::Plugins::PluginsInstallReq;
 using porla::Rpc::Methods::Plugins::PluginsInstallRes;
 
-PluginsInstall::PluginsInstall(boost::asio::io_context& io, sqlite3* db, std::weak_ptr<CurlMulti> cm, porla::Plugins& plugins, const std::filesystem::path& state_dir)
+PluginsInstall::PluginsInstall(boost::asio::io_context& io, std::weak_ptr<CurlMulti> cm, porla::Plugins& plugins, const std::filesystem::path& state_dir)
     : TypedAsyncMethod(io.get_executor())
-    , m_db(db)
     , m_cm(cm)
     , m_plugins(plugins)
     , m_state_dir(state_dir)

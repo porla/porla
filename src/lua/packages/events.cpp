@@ -181,7 +181,7 @@ sol::object porla::Lua::Packages::Events::Load(sol::this_state ts)
                 // a plugin never receives plugin events about itself
                 if (const auto* plugin_event = dynamic_cast<const porla::PluginEvent*>(&event))
                 {
-                    if (plugin_event->id == state->plugin_id)
+                    if (plugin_event->plugin_id == state->plugin_id)
                     {
                         return;
                     }

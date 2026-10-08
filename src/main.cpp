@@ -209,12 +209,12 @@ int main(int argc, char* argv[])
         jsonrpc->Register("mmdb.lookup",               std::make_shared<M::Mmdb::MmdbLookup>(kv, events));
         jsonrpc->Register("plugins.add",               std::make_shared<M::Plugins::PluginsAdd>(plugins));
         jsonrpc->Register("plugins.get",               std::make_shared<M::Plugins::PluginsGet>(plugins));
-        jsonrpc->Register("plugins.install",           std::make_shared<M::Plugins::PluginsInstall>(io, cfg->db, curl_multi_instance, plugins, cfg->state_dir));
+        jsonrpc->Register("plugins.install",           std::make_shared<M::Plugins::PluginsInstall>(io, curl_multi_instance, plugins, cfg->state_dir));
         jsonrpc->Register("plugins.list",              std::make_shared<M::Plugins::PluginsList>(plugins));
         jsonrpc->Register("plugins.reload",            std::make_shared<M::Plugins::PluginsReload>(plugins));
         jsonrpc->Register("plugins.remove",            std::make_shared<M::Plugins::PluginsRemove>(plugins));
         jsonrpc->Register("plugins.update",            std::make_shared<M::Plugins::PluginsUpdate>(plugins));
-        jsonrpc->Register("plugins.upgrade",           std::make_shared<M::Plugins::PluginsUpgrade>(io, cfg->db, curl_multi_instance, plugins, cfg->state_dir));
+        jsonrpc->Register("plugins.upgrade",           std::make_shared<M::Plugins::PluginsUpgrade>(io, curl_multi_instance, plugins, cfg->state_dir));
         jsonrpc->Register("presets.add",               std::make_shared<M::Presets::PresetsAdd>(presets));
         jsonrpc->Register("presets.get",               std::make_shared<M::Presets::PresetsGet>(presets));
         jsonrpc->Register("presets.list",              std::make_shared<M::Presets::PresetsList>(presets));

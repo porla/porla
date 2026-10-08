@@ -2,8 +2,6 @@
 
 #include <memory>
 
-#include <sqlite3.h>
-
 #include "../../typedasyncmethod.hpp"
 
 #include "pluginsupgrade_reqres.hpp"
@@ -21,7 +19,6 @@ namespace porla::Rpc::Methods::Plugins
     public:
         explicit PluginsUpgrade(
             boost::asio::io_context& io,
-            sqlite3* db,
             std::weak_ptr<CurlMulti> cm,
             porla::Plugins& plugins,
             const std::filesystem::path& state_dir);
@@ -35,7 +32,6 @@ namespace porla::Rpc::Methods::Plugins
         boost::asio::awaitable<void> ExecuteAsync(PluginsUpgradeReq req, ResponseWriterHandle cb) override;
 
     private:
-        sqlite3* m_db;
         std::weak_ptr<CurlMulti> m_cm;
         porla::Plugins& m_plugins;
         std::filesystem::path m_state_dir;
