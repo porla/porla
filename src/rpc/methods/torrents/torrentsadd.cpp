@@ -28,7 +28,8 @@ namespace
         case Error::MissingInfoHash:  return cb->Error(-4, result.what);
         case Error::AlreadyInSession: return cb->Error(-5, result.what);
         case Error::MissingSavePath:  return cb->Error(-6, result.what);
-        case Error::Failed:           return cb->Error(-6, "Failed to add torrent to session", {{ "what", result.what }});
+        case Error::Failed:           return cb->Error(-7, "Failed to add torrent to session", {{ "what", result.what }});
+        case Error::InvalidData:      return cb->Error(-8, result.what);
         case Error::None:             return;
         }
     }

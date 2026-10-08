@@ -40,6 +40,7 @@ namespace porla
             AlreadyInSession,
             MissingInfoHash,
             MissingSavePath,
+            InvalidData,
             Failed
         };
 

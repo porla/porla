@@ -56,7 +56,7 @@ void PoTorrentData::Register(sol::state& lua)
             if (const sol::object v = changes["category"]; v.valid() && v.get_type() != sol::type::lua_nil)
             {
                 if (v.get_type() == sol::type::string) category = v.as<std::string>();
-                else if (IsNull(v))                    category = std::nullopt;
+                else if (IsNull(v))                    category = std::optional<std::string>{};
                 else throw sol::error("'category' must be a string, or porla.null to clear it");
             }
 

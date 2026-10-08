@@ -46,6 +46,24 @@ namespace
         if (!preset.tags.empty())
             p.userdata.get<porla::TorrentClientData>()->tags = preset.tags;
     }
+
+    bool IsValidClientData(const porla::TorrentClientData& data)
+    {
+        try
+        {
+            nlohmann::json{
+                { "category", data.category.value_or("") },
+                { "metadata", data.metadata },
+                { "tags", data.tags }
+            }.dump();
+
+            return true;
+        }
+        catch (const nlohmann::json::type_error&)
+        {
+            return false;
+        }
+    }
 }
 
 Torrents::Torrents(const TorrentsOptions& options)
@@ -155,10 +173,16 @@ TorrentsAddResult Torrents::Add(lt::add_torrent_params params)
         result.error = Error::MissingInfoHash;
         result.what  = "Failed to get info hash from params";
     }
-    else if (state->torrents.contains(info_hash))
+    else if (state->torrents.contains(info_hash)
+        || state->session->find_torrent(info_hash.get_best()).is_valid())
     {
         result.error = Error::AlreadyInSession;
         result.what  = "Torrent already in session";
+    }
+    else if (!IsValidClientData(*client_data))
+    {
+        result.error = Error::InvalidData;
+        result.what  = "Category, tags and metadata must be valid UTF-8";
     }
     else if (params.save_path.empty())
     {
@@ -196,15 +220,15 @@ bool Torrents::UpdateClientData(const lt::torrent_handle& th, const std::functio
         return false;
     }
 
-    const TorrentClientData before = *client_data;
+    TorrentClientData updated = *client_data;
 
-    change(*client_data);
+    change(updated);
 
     std::vector<std::string> fields;
 
-    if (client_data->category != before.category) fields.emplace_back("category");
-    if (client_data->metadata != before.metadata) fields.emplace_back("metadata");
-    if (client_data->tags     != before.tags)     fields.emplace_back("tags");
+    if (updated.category != client_data->category) fields.emplace_back("category");
+    if (updated.metadata != client_data->metadata) fields.emplace_back("metadata");
+    if (updated.tags     != client_data->tags)     fields.emplace_back("tags");
 
     if (fields.empty())
     {
@@ -217,7 +241,9 @@ bool Torrents::UpdateClientData(const lt::torrent_handle& th, const std::functio
         m_options.db,
         state->id,
         info_hash,
-        *client_data);
+        updated);
+
+    *client_data = std::move(updated);
 
     if (m_options.events.HasSubscribers("torrent.userdata_updated"))
     {
