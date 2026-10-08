@@ -3,27 +3,24 @@
 #include <boost/log/trivial.hpp>
 #include <filesystem>
 
-#include "../../../data/models/plugins.hpp"
+#include "../../../plugins.hpp"
 #include "../../../lua/plugin.hpp"
 #include "../../../lua/pluginengine.hpp"
 
 namespace fs = std::filesystem;
 
-using porla::Data::Models::Plugins;
-using porla::Lua::PluginEngine;
 using porla::Rpc::Methods::Plugins::PluginsUpdate;
 using porla::Rpc::Methods::Plugins::PluginsUpdateReq;
 using porla::Rpc::Methods::Plugins::PluginsUpdateRes;
 
-PluginsUpdate::PluginsUpdate(sqlite3* db, porla::Lua::PluginEngine& plugin_engine)
-    : m_db(db)
-    , m_plugin_engine(plugin_engine)
+PluginsUpdate::PluginsUpdate(porla::Plugins& plugins)
+    : m_plugins(plugins)
 {
 }
 
 void PluginsUpdate::Execute(const PluginsUpdateReq& req, ResponseWriterHandle cb)
 {
-    auto plugin = Data::Models::Plugins::GetById(m_db, req.id);
+    auto plugin = m_plugins.Get(req.id);
 
     if (!plugin.has_value())
     {
@@ -45,9 +42,7 @@ void PluginsUpdate::Execute(const PluginsUpdateReq& req, ResponseWriterHandle cb
     plugin->config   = req.config;
     plugin->path     = plugin_path.lexically_normal();
 
-    Data::Models::Plugins::Update(m_db, *plugin);
-
-    m_plugin_engine.Reload(req.id);
+    m_plugins.Update(*plugin);
 
     cb->Ok(PluginsUpdateRes{});
 }

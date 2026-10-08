@@ -1,14 +1,12 @@
 #pragma once
 
-#include <sqlite3.h>
-
 #include "../../typedmethod.hpp"
 
 #include "pluginsupdate_reqres.hpp"
 
-namespace porla::Lua
+namespace porla
 {
-    class PluginEngine;
+    class Plugins;
 }
 
 namespace porla::Rpc::Methods::Plugins
@@ -16,7 +14,7 @@ namespace porla::Rpc::Methods::Plugins
     class PluginsUpdate : public TypedMethod<PluginsUpdateReq, PluginsUpdateRes>
     {
     public:
-        explicit PluginsUpdate(sqlite3* db, porla::Lua::PluginEngine& plugin_engine);
+        explicit PluginsUpdate(porla::Plugins& plugins);
 
     protected:
         bool CanInvoke(const porla::Auth::Context& auth_ctx) override
@@ -27,7 +25,6 @@ namespace porla::Rpc::Methods::Plugins
         void Execute(const PluginsUpdateReq& req, ResponseWriterHandle cb) override;
 
     private:
-        sqlite3* m_db;
-        porla::Lua::PluginEngine& m_plugin_engine;
+        porla::Plugins& m_plugins;
     };
 }

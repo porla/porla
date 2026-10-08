@@ -6,25 +6,23 @@
 #include <boost/log/trivial.hpp>
 
 #include "../../../curlmulti.hpp"
-#include "../../../data/models/plugins.hpp"
 #include "../../../json/github.hpp"
 #include "../../../lua/plugin.hpp"
 #include "../../../lua/pluginengine.hpp"
+#include "../../../plugins.hpp"
 
 namespace fs = std::filesystem;
 
-using porla::Data::Models::Plugins;
 using porla::Json::GitHubRelease;
-using porla::Lua::PluginEngine;
 using porla::Rpc::Methods::Plugins::PluginsUpgrade;
 using porla::Rpc::Methods::Plugins::PluginsUpgradeReq;
 using porla::Rpc::Methods::Plugins::PluginsUpgradeRes;
 
-PluginsUpgrade::PluginsUpgrade(boost::asio::io_context& io, sqlite3* db, std::weak_ptr<CurlMulti> cm, PluginEngine& plugin_engine, const std::filesystem::path& state_dir)
+PluginsUpgrade::PluginsUpgrade(boost::asio::io_context& io, sqlite3* db, std::weak_ptr<CurlMulti> cm, porla::Plugins& plugins, const std::filesystem::path& state_dir)
     : TypedAsyncMethod(io.get_executor())
     , m_db(db)
     , m_cm(cm)
-    , m_plugin_engine(plugin_engine)
+    , m_plugins(plugins)
     , m_state_dir(state_dir)
 {
 }
@@ -34,7 +32,7 @@ boost::asio::awaitable<void> PluginsUpgrade::ExecuteAsync(PluginsUpgradeReq req,
     auto curl = m_cm.lock();
     if (curl == nullptr) { co_return cb->Error(-99, "Failed to lock state"); }
 
-    const auto plugin = Data::Models::Plugins::GetById(m_db, req.id);
+    const auto plugin = m_plugins.Get(req.id);
 
     if (!plugin.has_value())
     {
@@ -154,7 +152,7 @@ boost::asio::awaitable<void> PluginsUpgrade::ExecuteAsync(PluginsUpgradeReq req,
             .metadata = metadata
         });
 
-    m_plugin_engine.Reload(plugin->id);
+    m_plugins.Reload(plugin->id);
 
     std::error_code same_ec;
     if (!fs::equivalent(old_path, plugin_zip, same_ec) && fs::exists(old_path))

@@ -3,33 +3,29 @@
 #include <boost/log/trivial.hpp>
 #include <toml++/toml.hpp>
 
-#include "../../../data/models/plugins.hpp"
+#include "../../../plugins.hpp"
 #include "../../../lua/plugin.hpp"
-#include "../../../lua/pluginengine.hpp"
 #include "../../../lua/pluginsource.hpp"
 
-using porla::Data::Models::Plugins;
-using porla::Lua::PluginEngine;
 using porla::Rpc::Methods::Plugins::PluginsGet;
 using porla::Rpc::Methods::Plugins::PluginsGetReq;
 using porla::Rpc::Methods::Plugins::PluginsGetRes;
 
-PluginsGet::PluginsGet(sqlite3* db, PluginEngine& plugin_engine)
-    : m_db(db)
-    , m_plugin_engine(plugin_engine)
+PluginsGet::PluginsGet(porla::Plugins& plugins)
+    : m_plugins(plugins)
 {
 }
 
 void PluginsGet::Execute(const PluginsGetReq& req, ResponseWriterHandle cb)
 {
-    const auto plugin = Data::Models::Plugins::GetById(m_db, req.id);
+    const auto plugin = m_plugins.Get(req.id);
 
     if (!plugin.has_value())
     {
         return cb->Error(-1, "Plugin not found");
     }
 
-    const auto instance = m_plugin_engine.Get(req.id);
+    const auto instance = m_plugins.Instance(req.id);
 
     auto name     = std::optional<std::string>();
     auto version = std::optional<std::string>();
