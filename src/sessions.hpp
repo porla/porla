@@ -40,6 +40,8 @@ namespace porla
             std::unique_ptr<lt::session>                  session;
             std::map<lt::info_hash_t, lt::torrent_status> torrents;
 
+            ~SessionState();
+
             void Recheck(const lt::info_hash_t& hash);
 
         private:
@@ -48,6 +50,8 @@ namespace porla
             std::unique_ptr<LoadState>          m_load_state;
             std::vector<std::shared_ptr<Timer>> m_timers;
             std::unordered_set<lt::info_hash_t> m_adding;
+            bool                                m_reconcile_pending = false;
+
             std::map<std::pair<int, lt::info_hash_t>, std::vector<std::function<void(const std::shared_ptr<SessionState>&)>>> m_oneshot_torrent_callbacks;
         };
 
@@ -91,6 +95,12 @@ namespace porla
 
         void ReadAlerts(const SessionStatePtr& state);
         void ProcessAlert(const SessionStatePtr& state, const lt::alert* alert);
+
+        void ScheduleReconcileTorrents(const SessionStatePtr& state);
+        void ReconcileTorrents(const SessionStatePtr& state);
+        void UntrackInvalidTorrents(const SessionStatePtr& state);
+        void UntrackTorrent(const SessionStatePtr& state, const lt::info_hash_t& hash);
+        void UpdateInfoHashes(const SessionStatePtr& state, const lt::info_hash_t& prev, const lt::info_hash_t& curr);
 
         void OnAddTorrentAlert(const SessionStatePtr& state, const lt::add_torrent_alert* alert);
         void OnFileErrorAlert(const SessionStatePtr& state, const lt::file_error_alert* alert);
