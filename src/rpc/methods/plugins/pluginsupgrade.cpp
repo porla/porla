@@ -7,8 +7,6 @@
 
 #include "../../../curlmulti.hpp"
 #include "../../../json/github.hpp"
-#include "../../../lua/plugin.hpp"
-#include "../../../lua/pluginengine.hpp"
 #include "../../../plugins.hpp"
 
 namespace fs = std::filesystem;

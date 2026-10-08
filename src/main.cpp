@@ -11,7 +11,6 @@
 #include "events.hpp"
 #include "keyvalue.hpp"
 #include "logger.hpp"
-#include "lua/pluginengine.hpp"
 #include "lua/pluginsource.hpp"
 #include "plugins.hpp"
 #include "presets.hpp"

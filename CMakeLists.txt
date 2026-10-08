@@ -320,7 +320,6 @@ add_library(
 
     src/lua/print.cpp
     src/lua/plugin.cpp
-    src/lua/pluginengine.cpp
     src/lua/pluginsource.cpp
 
     src/rpc/jsonrpc.cpp

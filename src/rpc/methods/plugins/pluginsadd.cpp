@@ -6,13 +6,8 @@
 
 #include "../../../plugins.hpp"
 
-#include "../../../lua/plugin.hpp"
-#include "../../../lua/pluginengine.hpp"
-
 namespace fs = std::filesystem;
 
-using porla::Data::Models::Plugins;
-using porla::Lua::PluginEngine;
 using porla::Rpc::Methods::Plugins::PluginsAdd;
 using porla::Rpc::Methods::Plugins::PluginsAddReq;
 using porla::Rpc::Methods::Plugins::PluginsAddRes;

@@ -1,7 +1,5 @@
 #include "pluginsremove.hpp"
 
-#include "../../../lua/plugin.hpp"
-#include "../../../lua/pluginengine.hpp"
 #include "../../../plugins.hpp"
 
 using porla::Rpc::Methods::Plugins::PluginsRemove;

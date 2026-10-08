@@ -4,8 +4,6 @@
 #include <filesystem>
 
 #include "../../../plugins.hpp"
-#include "../../../lua/plugin.hpp"
-#include "../../../lua/pluginengine.hpp"
 
 namespace fs = std::filesystem;
 
