@@ -66,6 +66,38 @@ struct Sessions::SessionState::LoadState
     std::function<void()>    callback;
 };
 
+Sessions::SessionState::~SessionState()
+{
+    if (session == nullptr)
+    {
+        return;
+    }
+
+    std::vector<TorrentClientData*> data;
+
+    try
+    {
+        for (const auto& th : session->get_torrents())
+        {
+            if (auto* client_data = th.userdata().get<TorrentClientData>())
+            {
+                data.push_back(client_data);
+            }
+        }
+    }
+    catch(const std::exception& e)
+    {
+        BOOST_LOG_TRIVIAL(error) << "session[" << name << "] Failed to list torrents on teardown: " << e.what();
+    }
+
+    session.reset();
+
+    for (auto* d : data)
+    {
+        delete d;
+    }
+}
+
 void Sessions::SessionState::Recheck(const lt::info_hash_t& hash)
 {
     const auto it = torrents.find(hash);
@@ -440,6 +472,10 @@ void Sessions::LoadTorrentsChunk(const SessionStatePtr& state)
                 {
                     state->torrents.insert_or_assign(ts.info_hashes, ts);
                 }
+
+                // every loaded torrent is tracked now - add alerts still on their way, or lost,
+                // no longer need telling apart from new torrents
+                state->m_adding.clear();
             }
             catch(const std::exception& e)
             {
@@ -475,6 +511,13 @@ void Sessions::LoadTorrentsChunk(const SessionStatePtr& state)
         }));
 
         FinishLoad(state);
+
+        // a reconcile was requested during loading. schedule it now
+        if (state->m_reconcile_pending)
+        {
+            state->m_reconcile_pending = false;
+            ScheduleReconcileTorrents(state);
+        }
 
         return;
     }
@@ -594,7 +637,27 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
         case lt::alerts_dropped_alert::alert_type:
         {
             const auto ada = lt::alert_cast<lt::alerts_dropped_alert>(alert);
-            BOOST_LOG_TRIVIAL(warning) << Sub(state) << ada->message();
+
+            std::string types;
+
+            for (int i = 0; i < lt::num_alert_types; i++)
+            {
+                if (ada->dropped_alerts.test(i))
+                {
+                    types += (types.empty() ? "" : ",") + std::string(lt::alert_name(i));
+                }
+            }
+
+            BOOST_LOG_TRIVIAL(warning)
+                << Sub(state) << "The libtorrent alert queue is full and dropped "
+                << types << " alerts. Consider raising alert_queue_size.";
+
+            if (ada->dropped_alerts.test(lt::add_torrent_alert::alert_type)
+                || ada->dropped_alerts.test(lt::torrent_removed_alert::alert_type))
+            {
+                ScheduleReconcileTorrents(state);
+            }
+
             break;
         }
 
@@ -635,27 +698,7 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
 
                 if (it != state->torrents.end())
                 {
-                    const auto previous = it->first;
-
-                    auto node = state->torrents.extract(it);
-                    node.key() = info_hashes;
-                    node.mapped().info_hashes = info_hashes;
-
-                    state->torrents.insert(std::move(node));
-
-                    for (auto cb = state->m_oneshot_torrent_callbacks.begin(); cb != state->m_oneshot_torrent_callbacks.end();)
-                    {
-                        if (cb->first.second != previous)
-                        {
-                            ++cb;
-                            continue;
-                        }
-
-                        auto& callbacks = state->m_oneshot_torrent_callbacks[{ cb->first.first, info_hashes }];
-                        std::move(cb->second.begin(), cb->second.end(), std::back_inserter(callbacks));
-
-                        cb = state->m_oneshot_torrent_callbacks.erase(cb);
-                    }
+                    UpdateInfoHashes(state, it->first, info_hashes);
                 }
             }
 
@@ -698,6 +741,9 @@ void Sessions::ProcessAlert(const SessionStatePtr& state, const lt::alert* alert
                 {
                     BOOST_LOG_TRIVIAL(debug)
                         << Sub(state, status.info_hashes) << "Received state update for non-tracked torrent";
+
+                    ScheduleReconcileTorrents(state);
+
                     continue;
                 }
 
@@ -896,6 +942,8 @@ void Sessions::SaveState(const std::shared_ptr<SessionState>& state)
 {
     SaveSessionParams(state);
 
+    UntrackInvalidTorrents(state);
+
     std::vector<lt::torrent_status> torrents = state->session->get_torrent_status(
         [](lt::torrent_status const& ts)
         {
@@ -981,7 +1029,15 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
 
         while (outstanding > 0) {
             const auto found_alert = state->session->wait_for_alert(lt::seconds(10));
-            if (!found_alert) { continue; }
+
+            if (!found_alert)
+            {
+                BOOST_LOG_TRIVIAL(warning)
+                    << Sub(state) << "Gave up waiting for " << outstanding << " resume data alerts "
+                    << "in chunk " << i + 1;
+
+                break;
+            }
 
             std::vector<lt::alert *> alerts;
             state->session->pop_alerts(&alerts);
@@ -1072,6 +1128,8 @@ void Sessions::OnAddTorrentAlert(const SessionStatePtr& state, const lt::add_tor
 
         state->m_adding.erase(info_hash);
 
+        delete alert->params.userdata.get<TorrentClientData>();
+
         return;
     }
 
@@ -1098,6 +1156,13 @@ void Sessions::OnAddTorrentAlert(const SessionStatePtr& state, const lt::add_tor
         BOOST_LOG_TRIVIAL(debug)
             << Sub(state, status.info_hashes)
             << "Torrent already in session - ignoring duplicate add";
+
+        auto* extra = alert->params.userdata.get<TorrentClientData>();
+
+        if (extra != nullptr && extra != data)
+        {
+            delete extra;
+        }
 
         return;
     }
@@ -1184,37 +1249,7 @@ void Sessions::OnTorrentRemovedAlert(const SessionStatePtr& state, const lt::tor
     BOOST_LOG_TRIVIAL(info)
         << Sub(state, alert->info_hashes) << "Torrent removed";
 
-    state->torrents.erase(alert->info_hashes);
-
-    std::erase_if(
-        state->m_oneshot_torrent_callbacks,
-        [&](const auto& kv)
-        {
-            return kv.first.second == alert->info_hashes;
-        });
-
-    boost::asio::post(
-        m_options.io,
-        [this, weak = std::weak_ptr(state), hash = alert->info_hashes]()
-        {
-            if (auto state = weak.lock()) { m_torrent_removed(state, hash); }
-        });
-
-    TorrentEvent removed("torrent.removed");
-    removed.info_hash = alert->info_hashes;
-
-    Publish(state, std::move(removed));
-
-    try
-    {
-        AddTorrentParams::Remove(m_options.db, state->id, alert->info_hashes);
-    }
-    catch(const std::exception& e)
-    {
-        BOOST_LOG_TRIVIAL(error)
-            << Sub(state, alert->info_hashes) << "Failed to remove torrent from database: "
-            << e.what();
-    }
+    UntrackTorrent(state, alert->info_hashes);
 
     delete alert->userdata.get<TorrentClientData>();
 }
@@ -1271,3 +1306,292 @@ void Sessions::EmitTorrentEvent(const SessionStatePtr& state, std::string name, 
     Publish(state, std::move(event));
 }
 
+void Sessions::UntrackInvalidTorrents(const SessionStatePtr& state)
+{
+    std::vector<lt::info_hash_t> gone;
+
+    for (const auto& [ hash, status ] : state->torrents)
+    {
+        if (!status.handle.is_valid())
+        {
+            gone.push_back(hash);
+        }
+    }
+
+    if (gone.empty())
+    {
+        return;
+    }
+
+    for (const auto& hash : gone)
+    {
+        UntrackTorrent(state, hash);
+    }
+
+    BOOST_LOG_TRIVIAL(warning)
+        << Sub(state) << "Removed " << gone.size() << " orphaned torrent(s). "
+        << "This might be due to dropped alerts. Consider increasing alert_queue_size";
+}
+
+void Sessions::UntrackTorrent(const SessionStatePtr& state, const lt::info_hash_t& hash)
+{
+    state->m_adding.erase(hash);
+
+    const bool tracked = state->torrents.erase(hash) > 0;
+
+    std::erase_if(
+        state->m_oneshot_torrent_callbacks,
+        [&](const auto& kv)
+        {
+            return kv.first.second == hash;
+        });
+
+    if (tracked)
+    {
+        boost::asio::post(
+            m_options.io,
+            [this, weak = std::weak_ptr(state), hash]()
+            {
+                if (auto state = weak.lock()) { m_torrent_removed(state, hash); }
+            });
+
+        TorrentEvent removed("torrent.removed");
+        removed.info_hash = hash;
+
+        Publish(state, std::move(removed));
+    }
+
+    try
+    {
+        AddTorrentParams::Remove(m_options.db, state->id, hash);
+    }
+    catch(const std::exception& e)
+    {
+        BOOST_LOG_TRIVIAL(error)
+            << Sub(state, hash) << "Failed to remove torrent from database: "
+            << e.what();
+    }
+}
+
+void Sessions::UpdateInfoHashes(const SessionStatePtr& state, const lt::info_hash_t& prev, const lt::info_hash_t& curr)
+{
+    auto node = state->torrents.extract(prev);
+
+    if (node.empty())
+    {
+        return;
+    }
+
+    node.key() = curr;
+    node.mapped().info_hashes = curr;
+
+    state->torrents.insert(std::move(node));
+
+    for (auto cb = state->m_oneshot_torrent_callbacks.begin(); cb != state->m_oneshot_torrent_callbacks.end();)
+    {
+        if (cb->first.second != prev)
+        {
+            ++cb;
+            continue;
+        }
+
+        auto& callbacks = state->m_oneshot_torrent_callbacks[{ cb->first.first, curr }];
+        std::move(cb->second.begin(), cb->second.end(), std::back_inserter(callbacks));
+
+        cb = state->m_oneshot_torrent_callbacks.erase(cb);
+    }
+}
+
+void Sessions::ScheduleReconcileTorrents(const SessionStatePtr& state)
+{
+    if (state->m_reconcile_pending)
+    {
+        return;
+    }
+
+    state->m_reconcile_pending = true;
+
+    // if the reconcile is requested during loading, hold it off
+    // until all chunks have been loaded
+    if (state->m_load_state != nullptr)
+    {
+        return;
+    }
+
+    boost::asio::post(
+        m_options.io,
+        [this, weak = std::weak_ptr(state)]()
+        {
+            if (auto state = weak.lock())
+            {
+                ReconcileTorrents(state);
+            }
+        });
+}
+
+void Sessions::ReconcileTorrents(const SessionStatePtr& state)
+{
+    state->m_reconcile_pending = false;
+
+    std::vector<lt::torrent_handle> handles;
+
+    try
+    {
+        handles = state->session->get_torrents();
+    }
+    catch(const std::exception& e)
+    {
+        BOOST_LOG_TRIVIAL(error) << Sub(state) << "Failed to list torrents to reconcile: " << e.what();
+        return;
+    }
+
+    std::unordered_set<lt::info_hash_t>                          live;
+    std::optional<std::map<lt::torrent_handle, lt::info_hash_t>> keys;
+
+    int tracked   = 0;
+    int loaded    = 0;
+    int rehashed  = 0;
+    int untracked = 0;
+
+    const Transaction tx(m_options.db);
+
+    for (const auto& th : handles)
+    {
+        const auto hash = th.info_hashes();
+
+        live.insert(hash);
+
+        if (state->torrents.contains(hash))
+        {
+            continue;
+        }
+
+        if (!keys)
+        {
+            keys.emplace();
+
+            for (const auto& [ h, s ] : state->torrents)
+            {
+                keys->emplace(s.handle, h);
+            }
+        }
+
+        if (const auto key = keys->find(th); key != keys->end())
+        {
+            UpdateInfoHashes(state, key->second, hash);
+
+            try
+            {
+                const auto params = th.get_resume_data(lt::torrent_handle::save_info_dict);
+
+                AddTorrentParams::Update(
+                    m_options.db,
+                    state->id,
+                    hash,
+                    params,
+                    th.userdata().get<TorrentClientData>(),
+                    static_cast<int>(th.queue_position()));
+
+                if (params.ti)
+                {
+                    AddTorrentParams::InsertTorrentInfo(
+                        m_options.db,
+                        state->id,
+                        hash,
+                        *params.ti);
+                }
+            }
+            catch(const std::exception& e)
+            {
+                BOOST_LOG_TRIVIAL(error) << Sub(state, hash) << "Failed to store torrent with updated hashes: " << e.what();
+            }
+
+            rehashed++;
+
+            continue;
+        }
+
+        const auto status = th.status();
+
+        state->torrents.emplace(hash, status);
+
+        if (state->m_adding.erase(hash) > 0)
+        {
+            loaded++;
+            continue;
+        }
+
+        const auto* data = th.userdata().get<TorrentClientData>();
+
+        try
+        {
+            const auto params = th.get_resume_data(lt::torrent_handle::save_info_dict);
+
+            AddTorrentParams::Insert(
+                m_options.db,
+                state->id,
+                hash,
+                params,
+                data == nullptr ? TorrentClientData{} : *data,
+                static_cast<int>(status.queue_position));
+
+            if (params.ti)
+            {
+                AddTorrentParams::InsertTorrentInfo(
+                    m_options.db,
+                    state->id,
+                    hash,
+                    *params.ti);
+            }
+        }
+        catch (const std::exception& e)
+        {
+            BOOST_LOG_TRIVIAL(error) << Sub(state, hash) << "Failed to insert reconciled torrent: " << e.what();
+        }
+
+        if (m_options.events.HasSubscribers("torrent.added"))
+        {
+            nlohmann::json event_data = nlohmann::json::object();
+            event_data["error"] = lt::error_code{};
+
+            TorrentEvent added("torrent.added", std::move(event_data));
+            added.torrent_handle = th;
+            added.info_hash      = hash;
+
+            Publish(state, std::move(added));
+        }
+
+        tracked++;
+    }
+
+    if (state->torrents.size() != handles.size())
+    {
+        std::vector<lt::info_hash_t> gone;
+
+        for (const auto& [ hash, _ ] : state->torrents)
+        {
+            if (!live.contains(hash))
+            {
+                gone.push_back(hash);
+            }
+        }
+
+        for (const auto& hash : gone)
+        {
+            UntrackTorrent(state, hash);
+            untracked++;
+        }
+    }
+
+    if (tracked + loaded + rehashed + untracked == 0)
+    {
+        return;
+    }
+
+    BOOST_LOG_TRIVIAL(warning)
+        << Sub(state) << "Reconciled torrents:"
+        << " tracked=" << tracked
+        << " loaded=" << loaded
+        << " rehashed=" << rehashed
+        << " untracked=" << untracked;
+}
