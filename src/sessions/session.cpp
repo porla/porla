@@ -114,6 +114,23 @@ void Session::Start(std::function<void()> load_callback)
     m_jobs->Start(std::make_unique<Jobs::LoadTorrents>(count, std::move(load_callback)));
 }
 
+const porla::Torrent* Session::Find(const lt::info_hash_t& hash) const
+{
+    const auto it = m_torrents.find(hash);
+
+    if (it == m_torrents.end() || it->second.state != Torrent::State::Current)
+    {
+        return nullptr;
+    }
+
+    return &it->second;
+}
+
+std::size_t Session::Count() const
+{
+    return static_cast<std::size_t>(std::ranges::distance(Torrents()));
+}
+
 void Session::Stop()
 {
     m_jobs->Stop();
@@ -996,6 +1013,7 @@ bool Session::Track(const lt::torrent_status& status)
 {
     const auto [ it, inserted ] = m_torrents.try_emplace(status.info_hashes);
 
+    it->second.state  = Torrent::State::Current;
     it->second.status = status;
 
     if (inserted)

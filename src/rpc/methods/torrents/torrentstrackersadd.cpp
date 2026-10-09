@@ -33,14 +33,14 @@ void TorrentsTrackersAdd::Execute(const TorrentsTrackersAddReq& req, ResponseWri
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto it = session_state->Torrents().find(req.info_hash);
+    const auto torrent = session_state->Find(req.info_hash);
 
-    if (it == session_state->Torrents().end())
+    if (torrent == nullptr)
     {
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    if (!it->second.status.handle.is_valid())
+    if (!torrent->status.handle.is_valid())
     {
         return cb->Error(-4, "Torrent not valid");
     }
@@ -53,7 +53,7 @@ void TorrentsTrackersAdd::Execute(const TorrentsTrackersAddReq& req, ResponseWri
         ae.tier = req.tier.value();
     }
 
-    it->second.status.handle.add_tracker(ae);
+    torrent->status.handle.add_tracker(ae);
 
     cb->Ok(TorrentsTrackersAddRes{});
 }

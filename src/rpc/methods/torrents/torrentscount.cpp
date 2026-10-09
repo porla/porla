@@ -24,7 +24,7 @@ void TorrentsCount::Execute(const TorrentsCountReq& req, ResponseWriterHandle cb
     }
 
     TorrentsCountRes res{};
-    res.total = session_state->Torrents().size();
+    res.total = session_state->Count();
 
     for (const auto& [ _, t ] : session_state->Torrents())
     {

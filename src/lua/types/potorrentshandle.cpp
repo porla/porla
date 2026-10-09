@@ -95,7 +95,7 @@ int PoTorrentsHandle::Count()
     auto state = m_weak_session.lock();
     if (state == nullptr) { return -1; }
 
-    return state->Torrents().size();
+    return state->Count();
 }
 
 std::optional<std::tuple<lt::torrent_handle, lt::torrent_status>> PoTorrentsHandle::Get(const lt::info_hash_t& info_hash)
@@ -103,14 +103,14 @@ std::optional<std::tuple<lt::torrent_handle, lt::torrent_status>> PoTorrentsHand
     auto state = m_weak_session.lock();
     if (state == nullptr) { return std::nullopt; }
 
-    auto found = state->Torrents().find(info_hash);
+    auto found = state->Find(info_hash);
 
-    if (found == state->Torrents().end())
+    if (found == nullptr)
     {
         return std::nullopt;
     }
 
-    return std::make_tuple(found->second.status.handle, found->second.status);
+    return std::make_tuple(found->status.handle, found->status);
 }
 
 std::shared_ptr<PoTorrentsIterator> PoTorrentsHandle::List()
@@ -134,9 +134,9 @@ void PoTorrentsHandle::Remove(const lt::info_hash_t& ih, std::optional<sol::tabl
     auto state = m_weak_session.lock();
     if (state == nullptr) { return; }
 
-    auto found = state->Torrents().find(ih);
+    auto found = state->Find(ih);
 
-    if (found == state->Torrents().end())
+    if (found == nullptr)
     {
         return;
     }
@@ -162,7 +162,7 @@ void PoTorrentsHandle::Remove(const lt::info_hash_t& ih, std::optional<sol::tabl
     }
 
     state->Libtorrent().remove_torrent(
-        found->second.status.handle,
+        found->status.handle,
         flags);
 }
 

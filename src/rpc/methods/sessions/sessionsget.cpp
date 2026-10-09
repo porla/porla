@@ -36,7 +36,7 @@ void SessionsGet::Execute(const SessionsGetReq &req, ResponseWriterHandle cb)
                 : SessionsGetRes::SessionState{
                     .is_listening   = state->Libtorrent().is_listening(),
                     .is_paused      = state->Libtorrent().is_paused(),
-                    .torrents_total = static_cast<int>(state->Torrents().size())
+                    .torrents_total = static_cast<int>(state->Count())
                 }
         }
     });

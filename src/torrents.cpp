@@ -176,7 +176,7 @@ TorrentsAddResult Torrents::Add(lt::add_torrent_params params)
         result.error = Error::MissingInfoHash;
         result.what  = "Failed to get info hash from params";
     }
-    else if (session->Torrents().contains(info_hash)
+    else if (session->Find(info_hash) != nullptr
         || session->Libtorrent().find_torrent(info_hash.get_best()).is_valid())
     {
         result.error = Error::AlreadyInSession;

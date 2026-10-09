@@ -33,20 +33,20 @@ void TorrentsRemove::Execute(const TorrentsRemoveReq &req, ResponseWriterHandle 
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto it = session_state->Torrents().find(req.info_hash);
+    const auto torrent = session_state->Find(req.info_hash);
 
-    if (it == session_state->Torrents().end())
+    if (torrent == nullptr)
     {
         return cb->Error(-3, "Torrent not found");
     }
 
-    if (!it->second.status.handle.is_valid())
+    if (!torrent->status.handle.is_valid())
     {
         return cb->Error(-4, "Invalid torrent handle");
     }
 
     session_state->Libtorrent().remove_torrent(
-        it->second.status.handle,
+        torrent->status.handle,
         req.remove_data.value_or(false)
             ? lt::session::delete_files
             : lt::remove_flags_t{});

@@ -2,6 +2,8 @@
 
 #include <map>
 #include <memory>
+#include <optional>
+#include <ranges>
 #include <string>
 
 #include <boost/asio/io_context.hpp>
@@ -27,6 +29,11 @@ namespace porla
         boost::asio::io_context&        io;
     };
 
+    inline constexpr auto IsCurrent = [](const auto& entry)
+    {
+        return entry.second.state == Torrent::State::Current;
+    };
+
     // maps 1-1 with a libtorrent session
     class Session : public std::enable_shared_from_this<Session>
     {
@@ -43,7 +50,18 @@ namespace porla
 
         lt::session& Libtorrent() { return *m_session; }
 
-        const std::map<lt::info_hash_t, Torrent>& Torrents() const { return m_torrents; }
+        // Torrent lookup functions since we only want to return current torrents
+        const Torrent* Find(const lt::info_hash_t& hash) const;
+
+        std::size_t Count() const;
+
+        auto Torrents() const { return m_torrents | std::views::filter(IsCurrent); }
+
+        auto TorrentsAfter(const lt::info_hash_t& hash) const
+        {
+            return std::ranges::subrange(m_torrents.upper_bound(hash), m_torrents.end())
+                | std::views::filter(IsCurrent);
+        }
 
         // starts/loads the session. async, load_callback will be called
         // when session is fully loaded.

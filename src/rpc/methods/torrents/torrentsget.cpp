@@ -33,14 +33,14 @@ void TorrentsGet::Execute(const TorrentsGetReq& req, ResponseWriterHandle cb)
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto& it = session_state->Torrents().find(req.info_hash);
+    const auto torrent = session_state->Find(req.info_hash);
 
-    if (it == session_state->Torrents().end())
+    if (torrent == nullptr)
     {
         return cb->Error(-3, "Torrent not found in session");
     }
 
     return cb->Ok(TorrentsGetRes{
-        .torrent = it->second.status
+        .torrent = torrent->status
     });
 }
