@@ -14,9 +14,7 @@ namespace porla::Lua::Types
     class PoSessionsIterator
     {
     public:
-        using SessionPtr = std::shared_ptr<Session>;
-
-        explicit PoSessionsIterator(std::map<int, SessionPtr> sessions)
+        explicit PoSessionsIterator(std::map<int, std::shared_ptr<Session>> sessions)
             : m_sessions(sessions)
             , m_iterator(m_sessions.begin())
         {
@@ -25,8 +23,8 @@ namespace porla::Lua::Types
         std::shared_ptr<PoSessionHandle> operator()();
 
     private:
-        std::map<int, SessionPtr>                 m_sessions;
-        std::map<int, SessionPtr>::const_iterator m_iterator;
+        std::map<int, std::shared_ptr<Session>>                 m_sessions;
+        std::map<int, std::shared_ptr<Session>>::const_iterator m_iterator;
     };
 
 }
