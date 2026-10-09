@@ -6,6 +6,7 @@
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsRecheck;
 using porla::Rpc::Methods::Torrents::TorrentsRecheckReq;
@@ -42,12 +43,12 @@ void TorrentsRecheck::Execute(const TorrentsRecheckReq &req, ResponseWriterHandl
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    if (!it->second.handle.is_valid())
+    if (!it->second.status.handle.is_valid())
     {
         return cb->Error(-4, "Torrent not valid");
     }
 
-    session_state->Recheck(it->second.info_hashes);
+    session_state->Recheck(it->second.status.info_hashes);
 
     return cb->Ok(TorrentsRecheckRes{});
 }

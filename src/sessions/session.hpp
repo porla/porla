@@ -10,11 +10,13 @@
 #include <sqlite3.h>
 
 #include "../data/models/sessions.hpp"
+#include "torrent.hpp"
 
 namespace porla
 {
     class Events;
     class Timer;
+    struct Torrent;
 
     struct SessionOptions
     {
@@ -40,7 +42,7 @@ namespace porla
 
         lt::session& Libtorrent() { return *m_session; }
 
-        const std::map<lt::info_hash_t, lt::torrent_status>& Torrents() const { return m_torrents; }
+        const std::map<lt::info_hash_t, Torrent>& Torrents() const { return m_torrents; }
 
         // starts/loads the session. async, load_callback will be called
         // when session is fully loaded.
@@ -87,6 +89,8 @@ namespace porla
         // reconciles the torrents
         void ReconcileTorrents();
 
+        bool Track(const lt::torrent_status& status);
+
         // removes any torrent handles that are invalid (is_valid()=false)
         void UntrackInvalidTorrents();
 
@@ -110,14 +114,12 @@ namespace porla
         std::string    m_name;
         SessionOptions m_options;
 
-        std::unique_ptr<lt::session>                  m_session;
-        std::map<lt::info_hash_t, lt::torrent_status> m_torrents;
+        std::unique_ptr<lt::session>       m_session;
+        std::map<lt::info_hash_t, Torrent> m_torrents;
 
         std::unique_ptr<LoadState>          m_load_state;
         std::vector<std::shared_ptr<Timer>> m_timers;
         std::unordered_set<lt::info_hash_t> m_adding;
         bool                                m_reconcile_pending = false;
-
-        std::map<std::pair<int, lt::info_hash_t>, std::vector<std::function<void(Session&)>>> m_oneshot_torrent_callbacks;
     };
 }

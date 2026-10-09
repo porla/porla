@@ -3,6 +3,7 @@
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsFilesRename;
 using porla::Rpc::Methods::Torrents::TorrentsFilesRenameReq;
@@ -39,7 +40,7 @@ void TorrentsFilesRename::Execute(const TorrentsFilesRenameReq& req, ResponseWri
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    it->second.handle.rename_file(
+    it->second.status.handle.rename_file(
         lt::file_index_t{req.file_index},
         req.file_path);
 

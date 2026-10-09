@@ -3,6 +3,7 @@
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsTrackersAdd;
 using porla::Rpc::Methods::Torrents::TorrentsTrackersAddReq;
@@ -39,7 +40,7 @@ void TorrentsTrackersAdd::Execute(const TorrentsTrackersAddReq& req, ResponseWri
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    if (!it->second.handle.is_valid())
+    if (!it->second.status.handle.is_valid())
     {
         return cb->Error(-4, "Torrent not valid");
     }
@@ -52,7 +53,7 @@ void TorrentsTrackersAdd::Execute(const TorrentsTrackersAddReq& req, ResponseWri
         ae.tier = req.tier.value();
     }
 
-    it->second.handle.add_tracker(ae);
+    it->second.status.handle.add_tracker(ae);
 
     cb->Ok(TorrentsTrackersAddRes{});
 }

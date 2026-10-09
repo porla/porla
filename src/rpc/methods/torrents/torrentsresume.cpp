@@ -3,6 +3,7 @@
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsResume;
 using porla::Rpc::Methods::Torrents::TorrentsResumeReq;
@@ -39,12 +40,12 @@ void TorrentsResume::Execute(const TorrentsResumeReq& req, ResponseWriterHandle 
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    if (!it->second.handle.is_valid())
+    if (!it->second.status.handle.is_valid())
     {
         return cb->Error(-4, "Torrent not valid");
     }
 
-    it->second.handle.resume();
+    it->second.status.handle.resume();
 
     cb->Ok(TorrentsResumeRes{});
 }

@@ -10,6 +10,7 @@
 #include <libtorrent/session_stats.hpp>
 
 #include "sessionevent.hpp"
+#include "torrent.hpp"
 #include "torrentevent.hpp"
 
 #include "../data/models/addtorrentparams.hpp"
@@ -63,15 +64,20 @@ Session::~Session()
         return;
     }
 
-    std::vector<TorrentClientData*> data;
+    std::vector<TorrentClientData*> untracked;
 
     try
     {
         for (const auto& th : m_session->get_torrents())
         {
+            if (m_torrents.contains(th.info_hashes()))
+            {
+                continue;
+            }
+
             if (auto* client_data = th.userdata().get<TorrentClientData>())
             {
-                data.push_back(client_data);
+                untracked.push_back(client_data);
             }
         }
     }
@@ -82,7 +88,7 @@ Session::~Session()
 
     m_session.reset();
 
-    for (auto* d : data)
+    for (auto* d : untracked)
     {
         delete d;
     }
@@ -130,6 +136,10 @@ void Session::Start(std::function<void()> load_callback)
 void Session::Stop()
 {
     LoadComplete();
+
+    // reconcile torrents whose add alert was lost, otherwise they
+    // will be gone
+    ReconcileTorrents();
 
     m_session->set_alert_notify({});
     m_timers.clear();
@@ -284,55 +294,20 @@ void Session::Recheck(const lt::info_hash_t& hash)
         return;
     }
 
-    const auto& handle = it->second.handle;
+          auto& torrent = it->second;
+    const auto& handle  = torrent.status.handle;
 
-    // If the torrent is paused, it must be resumed in order to be rechecked.
-    // It should also not be auto managed, so remove it from that as well.
-    // When the session posts a torrent_check alert, restore its flags.
+    // libtorrent does not check a paused torrent, and auto management could pause it again.
+    // Run it unmanaged for the check, and put the flags back when torrent_checked arrives.
+    const auto flags = handle.flags() & (lt::torrent_flags::paused | lt::torrent_flags::auto_managed);
 
-    const auto alert_type     = lt::torrent_checked_alert::alert_type;
-    const auto original_flags = it->second.handle.flags();
-
-    if ((original_flags & lt::torrent_flags::auto_managed) == lt::torrent_flags::auto_managed)
+    if (flags)
     {
+        torrent.restore_after_check = flags;
+
         handle.unset_flags(lt::torrent_flags::auto_managed);
-    }
-
-    if ((original_flags & lt::torrent_flags::paused) == lt::torrent_flags::paused)
-    {
         handle.resume();
     }
-
-    m_oneshot_torrent_callbacks[{ alert_type, hash }].emplace_back(
-        [hash, original_flags](const Session& session)
-        {
-            const auto it = session.m_torrents.find(hash);
-
-            if (it == session.m_torrents.end())
-            {
-                return;
-            }
-
-            const auto& th = it->second.handle;
-
-            if (!th.is_valid())
-            {
-                return;
-            }
-
-            // TODO: Unsure about the order here. If there are reports that force-checking a torrent
-            //       leads to any issues with resume/pause, the order of these statements might matter.
-
-            if ((original_flags & lt::torrent_flags::auto_managed) == lt::torrent_flags::auto_managed)
-            {
-                th.set_flags(lt::torrent_flags::auto_managed);
-            }
-
-            if ((original_flags & lt::torrent_flags::paused) == lt::torrent_flags::paused)
-            {
-                th.pause();
-            }
-        });
 
     handle.force_recheck();
 }
@@ -433,7 +408,14 @@ void Session::LoadNextChunk()
 
                 for (const auto& ts : all_statuses)
                 {
-                    m_torrents.insert_or_assign(ts.info_hashes, ts);
+                    if (const auto it = m_torrents.find(ts.info_hashes); it != m_torrents.end())
+                    {
+                        it->second.status = ts;
+                    }
+                    else if (m_adding.contains(ts.info_hashes))
+                    {
+                        Track(ts);
+                    }
                 }
 
                 // every loaded torrent is tracked now - add alerts still on their way, or lost,
@@ -667,7 +649,7 @@ void Session::ProcessAlert(const lt::alert* alert)
                 const auto it = std::find_if(
                     m_torrents.begin(),
                     m_torrents.end(),
-                    [&](const auto& kv) { return kv.second.handle == mra->handle; });
+                    [&](const auto& kv) { return kv.second.status.handle == mra->handle; });
 
                 if (it != m_torrents.end())
                 {
@@ -722,7 +704,7 @@ void Session::ProcessAlert(const lt::alert* alert)
                     continue;
                 }
 
-                it->second = status;
+                it->second.status = status;
             }
 
             break;
@@ -798,9 +780,23 @@ void Session::ProcessAlert(const lt::alert* alert)
             BOOST_LOG_TRIVIAL(info) << Log(tca->handle.info_hashes())
                 << "Torrent finished checking";
 
-            if (auto node = m_oneshot_torrent_callbacks.extract({ alert->type(), tca->handle.info_hashes() }))
+            if (const auto it = m_torrents.find(tca->handle.info_hashes());
+                it != m_torrents.end() && it->second.restore_after_check.has_value())
             {
-                for (auto&& cb : node.mapped()) { cb(*this); }
+                const auto flags = std::exchange(it->second.restore_after_check, std::nullopt).value();
+
+                // TODO: Unsure about the order here. If there are reports that force-checking a torrent
+                //       leads to any issues with resume/pause, the order of these statements might matter.
+
+                if (flags & lt::torrent_flags::auto_managed)
+                {
+                    tca->handle.set_flags(lt::torrent_flags::auto_managed);
+                }
+
+                if (flags & lt::torrent_flags::paused)
+                {
+                    tca->handle.pause();
+                }
             }
 
             EmitTorrentEvent("torrent.checked", *tca);
@@ -924,7 +920,7 @@ void Session::OnAddTorrentAlert(const lt::add_torrent_alert* alert)
         status.handle      = alert->handle;
         status.info_hashes = alert->handle.info_hashes();
 
-        m_torrents.try_emplace(alert->handle.info_hashes(), status);
+        Track(status);
 
         return;
     }
@@ -932,11 +928,7 @@ void Session::OnAddTorrentAlert(const lt::add_torrent_alert* alert)
     const auto data   = alert->handle.userdata().get<TorrentClientData>();
     const auto status = alert->handle.status();
 
-    const auto [ _, inserted ] = m_torrents.insert_or_assign(
-        alert->handle.info_hashes(),
-        status);
-
-    if (!inserted)
+    if (!Track(status))
     {
         BOOST_LOG_TRIVIAL(debug)
             << Log(status.info_hashes)
@@ -1016,9 +1008,14 @@ void Session::OnTorrentRemovedAlert(const lt::torrent_removed_alert* alert)
     BOOST_LOG_TRIVIAL(info)
         << Log(alert->info_hashes) << "Torrent removed";
 
+    const bool loading = m_adding.contains(alert->info_hashes);
+
     UntrackTorrent(alert->info_hashes);
 
-    delete alert->userdata.get<TorrentClientData>();
+    if (loading)
+    {
+        delete alert->userdata.get<TorrentClientData>();
+    }
 }
 
 void Session::OnTorrentResumedAlert(const lt::torrent_resumed_alert* alert)
@@ -1099,7 +1096,7 @@ void Session::ReconcileTorrents()
 
             for (const auto& [ h, s ] : m_torrents)
             {
-                keys->emplace(s.handle, h);
+                keys->emplace(s.status.handle, h);
             }
         }
 
@@ -1131,7 +1128,7 @@ void Session::ReconcileTorrents()
 
         const auto status = th.status();
 
-        m_torrents.emplace(hash, status);
+        Track(status);
 
         if (m_adding.erase(hash) > 0)
         {
@@ -1206,13 +1203,27 @@ void Session::ReconcileTorrents()
         << " untracked=" << untracked;
 }
 
+bool Session::Track(const lt::torrent_status& status)
+{
+    const auto [ it, inserted ] = m_torrents.try_emplace(status.info_hashes);
+
+    it->second.status = status;
+
+    if (inserted)
+    {
+        it->second.data.reset(status.handle.userdata().get<TorrentClientData>());
+    }
+
+    return inserted;
+}
+
 void Session::UntrackInvalidTorrents()
 {
     std::vector<lt::info_hash_t> gone;
 
-    for (const auto& [ hash, status ] : m_torrents)
+    for (const auto& [ hash, t ] : m_torrents)
     {
-        if (!status.handle.is_valid())
+        if (!t.status.handle.is_valid())
         {
             gone.push_back(hash);
         }
@@ -1238,13 +1249,6 @@ void Session::UntrackTorrent(const lt::info_hash_t& hash)
     m_adding.erase(hash);
 
     const bool tracked = m_torrents.erase(hash) > 0;
-
-    std::erase_if(
-        m_oneshot_torrent_callbacks,
-        [&](const auto& kv)
-        {
-            return kv.first.second == hash;
-        });
 
     if (tracked)
     {
@@ -1276,23 +1280,9 @@ void Session::UpdateInfoHashes(const lt::info_hash_t& prev, const lt::info_hash_
     }
 
     node.key() = curr;
-    node.mapped().info_hashes = curr;
+    node.mapped().status.info_hashes = curr;
 
     m_torrents.insert(std::move(node));
-
-    for (auto cb = m_oneshot_torrent_callbacks.begin(); cb != m_oneshot_torrent_callbacks.end();)
-    {
-        if (cb->first.second != prev)
-        {
-            ++cb;
-            continue;
-        }
-
-        auto& callbacks = m_oneshot_torrent_callbacks[{ cb->first.first, curr }];
-        std::move(cb->second.begin(), cb->second.end(), std::back_inserter(callbacks));
-
-        cb = m_oneshot_torrent_callbacks.erase(cb);
-    }
 }
 
 template<typename T>

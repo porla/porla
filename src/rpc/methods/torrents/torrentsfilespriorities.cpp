@@ -3,6 +3,7 @@
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsFilesPriorities;
 using porla::Rpc::Methods::Torrents::TorrentsFilesPrioritiesReq;
@@ -40,7 +41,7 @@ void TorrentsFilesPriorities::Execute(const TorrentsFilesPrioritiesReq& req, Res
     }
 
     TorrentsFilesPrioritiesRes res{
-        .priorities = it->second.handle.get_file_priorities()
+        .priorities = it->second.status.handle.get_file_priorities()
     };
 
     cb->Ok(res);

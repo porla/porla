@@ -5,6 +5,7 @@
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsFilesList;
 using porla::Rpc::Methods::Torrents::TorrentsFilesListReq;
@@ -41,11 +42,11 @@ void TorrentsFilesList::Execute(const TorrentsFilesListReq& req, ResponseWriterH
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    if (auto tf = status->second.torrent_file.lock())
+    if (auto tf = status->second.status.torrent_file.lock())
     {
         return cb->Ok(TorrentsFilesListRes{
             .file_storage  = tf->layout(),
-            .renamed_files = status->second.handle.get_renamed_files()
+            .renamed_files = status->second.status.handle.get_renamed_files()
         });
     }
 

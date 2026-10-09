@@ -7,6 +7,7 @@
 #include "../../../query/pql.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 #include "../../../torrentclientdata.hpp"
 #include "../../../utils/eta.hpp"
 #include "../../../utils/ratio.hpp"
@@ -152,8 +153,9 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
 
     const auto now = std::time(nullptr);
 
-    for (const auto& [_, ts] : session_state->Torrents())
+    for (const auto& [_, t] : session_state->Torrents())
     {
+        const auto& ts     = t.status;
         const auto& handle = ts.handle;
 
         if (!handle.is_valid())

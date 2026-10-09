@@ -3,6 +3,7 @@
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsPropertiesGet;
 using porla::Rpc::Methods::Torrents::TorrentsPropertiesGetReq;
@@ -39,16 +40,16 @@ void TorrentsPropertiesGet::Execute(const TorrentsPropertiesGetReq& req, Respons
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    if (!it->second.handle.is_valid())
+    if (!it->second.status.handle.is_valid())
     {
         return cb->Error(-4, "Torrent not valid");
     }
 
     cb->Ok(TorrentsPropertiesGetRes{
-        .download_limit  = it->second.handle.download_limit(),
-        .flags           = it->second.handle.flags(),
-        .max_connections = it->second.handle.max_connections(),
-        .max_uploads     = it->second.handle.max_uploads(),
-        .upload_limit    = it->second.handle.upload_limit()
+        .download_limit  = it->second.status.handle.download_limit(),
+        .flags           = it->second.status.handle.flags(),
+        .max_connections = it->second.status.handle.max_connections(),
+        .max_uploads     = it->second.status.handle.max_uploads(),
+        .upload_limit    = it->second.status.handle.upload_limit()
     });
 }

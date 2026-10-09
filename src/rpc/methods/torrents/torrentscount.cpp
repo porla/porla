@@ -2,6 +2,7 @@
 
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 #include "../../../torrentclientdata.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsCount;
@@ -25,11 +26,9 @@ void TorrentsCount::Execute(const TorrentsCountReq& req, ResponseWriterHandle cb
     TorrentsCountRes res{};
     res.total = session_state->Torrents().size();
 
-    for (const auto& [ _, ts ] : session_state->Torrents())
+    for (const auto& [ _, t ] : session_state->Torrents())
     {
-        const auto client_data = ts.handle.is_valid()
-            ? ts.handle.userdata().get<TorrentClientData>()
-            : nullptr;
+        const auto& ts = t.status;
 
         if ((ts.state == lt::torrent_status::state_t::downloading
             || ts.state == lt::torrent_status::state_t::downloading_metadata)
@@ -84,14 +83,14 @@ void TorrentsCount::Execute(const TorrentsCountReq& req, ResponseWriterHandle cb
 
         res.trackers[ts.current_tracker]++;
 
-        if (client_data != nullptr)
+        if (t.data)
         {
-            if (client_data->category.has_value() && !client_data->category->empty())
+            if (t.data->category.has_value() && !t.data->category->empty())
             {
-                res.categories[client_data->category.value()]++;
+                res.categories[t.data->category.value()]++;
             }
 
-            for (const auto& tag : client_data->tags)
+            for (const auto& tag : t.data->tags)
             {
                 if (tag.empty()) continue;
                 res.tags[tag]++;

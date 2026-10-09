@@ -3,6 +3,7 @@
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsMove;
 using porla::Rpc::Methods::Torrents::TorrentsMoveReq;
@@ -48,12 +49,12 @@ void TorrentsMove::Execute(const TorrentsMoveReq &req, ResponseWriterHandle cb)
         if (req.flags.value() == "fail_if_exist")        flags = lt::move_flags_t::fail_if_exist;
     }
 
-    if (!it->second.handle.is_valid())
+    if (!it->second.status.handle.is_valid())
     {
         return cb->Error(-4, "Torrent not valid");
     }
 
-    it->second.handle.move_storage(req.path, flags);
+    it->second.status.handle.move_storage(req.path, flags);
 
     return cb->Ok(TorrentsMoveRes{});
 }

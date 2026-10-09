@@ -3,6 +3,7 @@
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsQueueAnyReq;
 using porla::Rpc::Methods::Torrents::TorrentsQueueAnyRes;
@@ -21,8 +22,8 @@ using porla::Rpc::Methods::Torrents::TorrentsQueueAnyRes;
         if (session_state == nullptr) { return cb->Error(-2, "Session not loaded"); } \
         const auto& it = session_state->Torrents().find(req.info_hash); \
         if (it == session_state->Torrents().end()) { return cb->Error(-3, "Torrent not found in session"); } \
-        if (!it->second.handle.is_valid()) { return cb->Error(-4, "Torrent not valid"); } \
-        it->second.handle.operation(); \
+        if (!it->second.status.handle.is_valid()) { return cb->Error(-4, "Torrent not valid"); } \
+        it->second.status.handle.operation(); \
         cb->Ok(TorrentsQueueAnyRes{}); \
     }
 

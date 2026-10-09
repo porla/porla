@@ -3,6 +3,7 @@
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsPause;
 using porla::Rpc::Methods::Torrents::TorrentsPauseReq;
@@ -39,13 +40,13 @@ void TorrentsPause::Execute(const TorrentsPauseReq& req, ResponseWriterHandle cb
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    if (!it->second.handle.is_valid())
+    if (!it->second.status.handle.is_valid())
     {
         return cb->Error(-4, "Torrent not valid");
     }
 
-    it->second.handle.unset_flags(lt::torrent_flags::auto_managed);
-    it->second.handle.pause();
+    it->second.status.handle.unset_flags(lt::torrent_flags::auto_managed);
+    it->second.status.handle.pause();
 
     cb->Ok(TorrentsPauseRes{});
 }

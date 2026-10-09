@@ -10,6 +10,7 @@
 #include "presets.hpp"
 #include "sessions/session.hpp"
 #include "sessions/sessions.hpp"
+#include "sessions/torrent.hpp"
 #include "sessions/torrentevent.hpp"
 #include "torrentclientdata.hpp"
 

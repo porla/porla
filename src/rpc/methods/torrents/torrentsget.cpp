@@ -3,6 +3,7 @@
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsGet;
 using porla::Rpc::Methods::Torrents::TorrentsGetReq;
@@ -40,6 +41,6 @@ void TorrentsGet::Execute(const TorrentsGetReq& req, ResponseWriterHandle cb)
     }
 
     return cb->Ok(TorrentsGetRes{
-        .torrent = it->second
+        .torrent = it->second.status
     });
 }

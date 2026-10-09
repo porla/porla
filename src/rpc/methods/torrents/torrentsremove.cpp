@@ -3,6 +3,7 @@
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsRemove;
 using porla::Rpc::Methods::Torrents::TorrentsRemoveReq;
@@ -39,13 +40,13 @@ void TorrentsRemove::Execute(const TorrentsRemoveReq &req, ResponseWriterHandle 
         return cb->Error(-3, "Torrent not found");
     }
 
-    if (!it->second.handle.is_valid())
+    if (!it->second.status.handle.is_valid())
     {
         return cb->Error(-4, "Invalid torrent handle");
     }
 
     session_state->Libtorrent().remove_torrent(
-        it->second.handle,
+        it->second.status.handle,
         req.remove_data.value_or(false)
             ? lt::session::delete_files
             : lt::remove_flags_t{});

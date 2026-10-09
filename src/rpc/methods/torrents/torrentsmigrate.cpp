@@ -61,7 +61,7 @@ void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandl
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    const auto prev_client_data = it->second.handle.userdata().get<TorrentClientData>();
+    const auto prev_client_data = it->second.status.handle.userdata().get<TorrentClientData>();
           auto client_data      = new TorrentClientData();
 
     if (prev_client_data)
@@ -72,7 +72,7 @@ void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandl
         client_data->tags         = prev_client_data->tags;
     }
 
-    lt::add_torrent_params params = it->second.handle.get_resume_data();
+    lt::add_torrent_params params = it->second.status.handle.get_resume_data();
     params.userdata = lt::client_data_t(client_data);
 
     RemoveState state{
@@ -120,5 +120,5 @@ void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandl
         }
     });
 
-    session_state->Libtorrent().remove_torrent(it->second.handle);
+    session_state->Libtorrent().remove_torrent(it->second.status.handle);
 }

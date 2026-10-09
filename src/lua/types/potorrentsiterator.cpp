@@ -1,6 +1,7 @@
 #include "potorrentsiterator.hpp"
 
 #include "../../sessions/session.hpp"
+#include "../../sessions/torrent.hpp"
 
 using porla::Lua::Types::PoTorrentsIterator;
 
@@ -19,7 +20,7 @@ std::optional<std::tuple<lt::torrent_handle, lt::torrent_status>> PoTorrentsIter
 
     while (next != session->Torrents().end())
     {
-        const auto& ts = next->second;
+        const auto& ts = next->second.status;
 
         m_last_hash = next->first;
 

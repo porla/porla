@@ -3,6 +3,7 @@
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsFilesProgress;
 using porla::Rpc::Methods::Torrents::TorrentsFilesProgressReq;
@@ -40,7 +41,7 @@ void TorrentsFilesProgress::Execute(const TorrentsFilesProgressReq& req, Respons
     }
 
     TorrentsFilesProgressRes res;
-    it->second.handle.file_progress(res.progress);
+    it->second.status.handle.file_progress(res.progress);
 
     cb->Ok(res);
 }

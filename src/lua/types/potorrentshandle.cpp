@@ -7,6 +7,7 @@
 #include "../pluginstate.hpp"
 
 #include "../../sessions/session.hpp"
+#include "../../sessions/torrent.hpp"
 #include "../../torrents.hpp"
 #include "../../torrentclientdata.hpp"
 
@@ -109,7 +110,7 @@ std::optional<std::tuple<lt::torrent_handle, lt::torrent_status>> PoTorrentsHand
         return std::nullopt;
     }
 
-    return std::make_tuple(found->second.handle, found->second);
+    return std::make_tuple(found->second.status.handle, found->second.status);
 }
 
 std::shared_ptr<PoTorrentsIterator> PoTorrentsHandle::List()
@@ -161,7 +162,7 @@ void PoTorrentsHandle::Remove(const lt::info_hash_t& ih, std::optional<sol::tabl
     }
 
     state->Libtorrent().remove_torrent(
-        found->second.handle,
+        found->second.status.handle,
         flags);
 }
 
