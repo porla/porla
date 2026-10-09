@@ -15,7 +15,7 @@
 namespace porla
 {
     class Events;
-    class Timer;
+    class Scheduler;
     struct Torrent;
 
     struct SessionOptions
@@ -58,6 +58,16 @@ namespace porla
         // to libtorrent checking by actually resuming, etc
         void Recheck(const lt::info_hash_t& hash);
 
+        std::string Log() const;
+        std::string Log(const lt::info_hash_t& hash) const;
+
+        // reconciles our torrents with the libtorrent session. use Jobs::ReconcileTorrents
+        // to trigger this instead of calling directly
+        void ReconcileTorrents();
+
+        // removes any torrent handles that are invalid (is_valid()=false)
+        void UntrackInvalidTorrents();
+
     private:
         struct LoadState;
 
@@ -68,11 +78,6 @@ namespace porla
         // have loaded
         void LoadComplete();
 
-        void PostDhtStats();
-        void PostSessionStats();
-        void PostTorrentUpdates();
-        void SaveState();
-
         void ReadAlerts();
         void ProcessAlert(const lt::alert* alert);
 
@@ -82,17 +87,7 @@ namespace porla
         void OnTorrentRemovedAlert(const lt::torrent_removed_alert* alert);
         void OnTorrentResumedAlert(const lt::torrent_resumed_alert* alert);
 
-        // called whenever the torrents needs to be reconciled (i.e needs sync
-        // with the actual lt session). can be called multiple times
-        void ScheduleReconcileTorrents();
-
-        // reconciles the torrents
-        void ReconcileTorrents();
-
         bool Track(const lt::torrent_status& status);
-
-        // removes any torrent handles that are invalid (is_valid()=false)
-        void UntrackInvalidTorrents();
 
         // untracks a torrent from our end
         void UntrackTorrent(const lt::info_hash_t& hash);
@@ -107,19 +102,15 @@ namespace porla
         template<typename Alert>
         void EmitTorrentEvent(std::string name, const Alert& alert, nlohmann::json extra = {});
 
-        std::string Log() const;
-        std::string Log(const lt::info_hash_t& hash) const;
-
         int            m_id;
         std::string    m_name;
         SessionOptions m_options;
 
         std::unique_ptr<lt::session>       m_session;
         std::map<lt::info_hash_t, Torrent> m_torrents;
+        std::unique_ptr<Scheduler>         m_jobs;
 
         std::unique_ptr<LoadState>          m_load_state;
-        std::vector<std::shared_ptr<Timer>> m_timers;
         std::unordered_set<lt::info_hash_t> m_adding;
-        bool                                m_reconcile_pending = false;
     };
 }

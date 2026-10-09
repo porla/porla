@@ -9,6 +9,10 @@
 #include <libtorrent/extensions/ut_pex.hpp>
 #include <libtorrent/session_stats.hpp>
 
+#include "jobs/poststats.hpp"
+#include "jobs/reconciletorrents.hpp"
+#include "jobs/savestate.hpp"
+#include "scheduler.hpp"
 #include "sessionevent.hpp"
 #include "torrent.hpp"
 #include "torrentevent.hpp"
@@ -17,7 +21,6 @@
 #include "../data/transaction.hpp"
 #include "../events.hpp"
 #include "../json/all.hpp"
-#include "../timer.hpp"
 #include "../torrentclientdata.hpp"
 #include "../utils/hex.hpp"
 
@@ -50,6 +53,7 @@ Session::Session(const SessionOptions& options)
     : m_id(options.record.id)
     , m_name(options.record.name)
     , m_options(options)
+    , m_jobs(std::make_unique<Scheduler>(options.io, *this))
 {
     m_session = std::make_unique<lt::session>(std::move(m_options.record.params));
     m_session->add_extension(&lt::create_smart_ban_plugin);
@@ -105,10 +109,17 @@ void Session::Start(std::function<void()> load_callback)
             });
         });
 
-    m_timers.emplace_back(Timer::Create(m_options.io, m_options.record.timer_dht_stats,       [t = weak_from_this()] { if (auto self = t.lock()) { self->PostDhtStats(); } }));
-    m_timers.emplace_back(Timer::Create(m_options.io, m_options.record.timer_save_state,      [t = weak_from_this()] { if (auto self = t.lock()) { self->SaveState(); } }));
-    m_timers.emplace_back(Timer::Create(m_options.io, m_options.record.timer_session_stats,   [t = weak_from_this()] { if (auto self = t.lock()) { self->PostSessionStats(); } }));
-    m_timers.emplace_back(Timer::Create(m_options.io, m_options.record.timer_torrent_updates, [t = weak_from_this()] { if (auto self = t.lock()) { self->PostTorrentUpdates(); } }));
+    using ms = std::chrono::milliseconds;
+
+    m_jobs->Every(ms(m_options.record.timer_dht_stats),       std::make_unique<Jobs::PostDhtStats>());
+    m_jobs->Every(ms(m_options.record.timer_save_state),      std::make_unique<Jobs::SaveState>());
+    m_jobs->Every(ms(m_options.record.timer_session_stats),   std::make_unique<Jobs::PostSessionStats>());
+    m_jobs->Every(ms(m_options.record.timer_torrent_updates), std::make_unique<Jobs::PostTorrentUpdates>());
+
+    m_jobs->Register(std::make_unique<Jobs::ReconcileTorrents>());
+
+    // suspend manual jobs (such as reconciliation) until load is done
+    m_jobs->Suspend();
 
     m_load_state = std::make_unique<Session::LoadState>(
         Session::LoadState{
@@ -142,7 +153,7 @@ void Session::Stop()
     ReconcileTorrents();
 
     m_session->set_alert_notify({});
-    m_timers.clear();
+    m_jobs->Stop();
 
     Persist();
 
@@ -457,12 +468,7 @@ void Session::LoadNextChunk()
 
         LoadComplete();
 
-        // a reconcile was requested during loading. schedule it now
-        if (m_reconcile_pending)
-        {
-            m_reconcile_pending = false;
-            ScheduleReconcileTorrents();
-        }
+        m_jobs->Resume();
 
         return;
     }
@@ -506,48 +512,6 @@ void Session::LoadComplete()
     {
         BOOST_LOG_TRIVIAL(error)
             << Log() << "Load completion callback failed: " << e.what();
-    }
-}
-
-void Session::PostDhtStats()
-{
-    m_session->post_dht_stats();
-}
-
-void Session::PostSessionStats()
-{
-    m_session->post_session_stats();
-}
-
-void Session::PostTorrentUpdates()
-{
-    m_session->post_torrent_updates();
-}
-
-void Session::SaveState()
-{
-    Persist();
-
-    UntrackInvalidTorrents();
-
-    std::vector<lt::torrent_status> torrents = m_session->get_torrent_status(
-        [](lt::torrent_status const& ts)
-        {
-            return bool(ts.need_save_resume_data & lt::torrent_handle::only_if_modified);
-        });
-
-    if (torrents.empty())
-    {
-        return;
-    }
-
-    BOOST_LOG_TRIVIAL(info) << Log()
-        << "Saving state for " << torrents.size() << " torrent(s)";
-
-    for (const auto& ts : torrents)
-    {
-        ts.handle.save_resume_data(
-            lt::torrent_handle::only_if_modified);
     }
 }
 
@@ -610,7 +574,7 @@ void Session::ProcessAlert(const lt::alert* alert)
             if (ada->dropped_alerts.test(lt::add_torrent_alert::alert_type)
                 || ada->dropped_alerts.test(lt::torrent_removed_alert::alert_type))
             {
-                ScheduleReconcileTorrents();
+                m_jobs->Trigger<Jobs::ReconcileTorrents>();
             }
 
             break;
@@ -699,7 +663,7 @@ void Session::ProcessAlert(const lt::alert* alert)
                     BOOST_LOG_TRIVIAL(debug)
                         << Log(status.info_hashes) << "Received state update for non-tracked torrent";
 
-                    ScheduleReconcileTorrents();
+                    m_jobs->Trigger<Jobs::ReconcileTorrents>();
 
                     continue;
                 }
@@ -1026,35 +990,8 @@ void Session::OnTorrentResumedAlert(const lt::torrent_resumed_alert* alert)
     EmitTorrentEvent("torrent.resumed", *alert);
 }
 
-void Session::ScheduleReconcileTorrents()
-{
-    if (m_reconcile_pending)
-    {
-        return;
-    }
-
-    m_reconcile_pending = true;
-
-    // if the reconcile is requested during loading, hold it off
-    // until all chunks have been loaded
-    if (m_load_state != nullptr)
-    {
-        return;
-    }
-
-    boost::asio::post(m_options.io, [t = weak_from_this()]()
-    {
-        if (auto self = t.lock())
-        {
-            self->ReconcileTorrents();
-        }
-    });
-}
-
 void Session::ReconcileTorrents()
 {
-    m_reconcile_pending = false;
-
     std::vector<lt::torrent_handle> handles;
 
     try
