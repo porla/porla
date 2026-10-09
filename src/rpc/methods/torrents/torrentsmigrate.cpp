@@ -49,6 +49,11 @@ void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandl
         return cb->Error(-2, "Session not loaded");
     }
 
+    if (!m_sessions.Get(req.target_session_id))
+    {
+        return cb->Error(-2, "Target session not loaded");
+    }
+
     const auto it = session_state->Torrents().find(req.info_hash);
 
     if (it == session_state->Torrents().end())
