@@ -9,6 +9,7 @@
 #include <libtorrent/extensions/ut_pex.hpp>
 #include <libtorrent/session_stats.hpp>
 
+#include "jobs/loadtorrents.hpp"
 #include "jobs/poststats.hpp"
 #include "jobs/reconciletorrents.hpp"
 #include "jobs/savestate.hpp"
@@ -31,23 +32,7 @@ using porla::Session;
 namespace
 {
     const std::vector<lt::stats_metric> kSessionMetrics = lt::session_stats_metrics();
-
-    static constexpr int  kLoadChunkSize      = 100;
-    static constexpr int  kLoadMaxChunkErrors = 8;
-    static constexpr auto kLoadRetryBaseDelay = std::chrono::milliseconds(100);
-    static constexpr auto kLoadRetryMaxDelay  = std::chrono::milliseconds(5000);
 }
-
-struct Session::LoadState
-{
-    AddTorrentParams::Cursor cursor;
-    int                      count;
-    int                      loaded;
-    int                      chunks;
-    int                      errors;
-    bool                     failed;
-    std::function<void()>    callback;
-};
 
 Session::Session(const SessionOptions& options)
     : m_id(options.record.id)
@@ -121,39 +106,23 @@ void Session::Start(std::function<void()> load_callback)
     // suspend manual jobs (such as reconciliation) until load is done
     m_jobs->Suspend();
 
-    m_load_state = std::make_unique<Session::LoadState>(
-        Session::LoadState{
-            .cursor   = {},
-            .count    = AddTorrentParams::Count(m_options.db, m_options.record.id),
-            .loaded   = 0,
-            .chunks   = 0,
-            .errors   = 0,
-            .failed   = false,
-            .callback = load_callback
-        });
+    const auto count = AddTorrentParams::Count(m_options.db, m_options.record.id);
 
     BOOST_LOG_TRIVIAL(info)
-        << Log() << "Loading " << m_load_state->count << " torrent(s) from storage";
+        << Log() << "Loading " << count << " torrent(s) from storage";
 
-    boost::asio::post(m_options.io, [t = weak_from_this()]()
-    {
-        if (const auto self = t.lock())
-        {
-            self->LoadNextChunk();
-        }
-    });
+    m_jobs->Start(std::make_unique<Jobs::LoadTorrents>(count, std::move(load_callback)));
 }
 
 void Session::Stop()
 {
-    LoadComplete();
+    m_jobs->Stop();
 
     // reconcile torrents whose add alert was lost, otherwise they
     // will be gone
     ReconcileTorrents();
 
     m_session->set_alert_notify({});
-    m_jobs->Stop();
 
     Persist();
 
@@ -323,13 +292,9 @@ void Session::Recheck(const lt::info_hash_t& hash)
     handle.force_recheck();
 }
 
-void Session::LoadNextChunk()
+bool Session::LoadChunk(Data::Models::AddTorrentParams::Cursor& cursor, int limit, int& loaded)
 {
-    if (m_load_state == nullptr)
-    {
-        return;
-    }
-
+    // drain alert queue between chunks
     try
     {   
         ReadAlerts();
@@ -339,180 +304,67 @@ void Session::LoadNextChunk()
         BOOST_LOG_TRIVIAL(error) << Log() << "Failed to read alerts during load: " << e.what();
     }
 
-    if (m_load_state == nullptr)
-    {
-        return;
-    }
-
-    bool more = false;
-
-    try
-    {
-        more = AddTorrentParams::Next(
-            m_options.db,
-            m_id,
-            m_load_state->cursor,
-            kLoadChunkSize,
-            [this](lt::add_torrent_params& params)
-            {
-                if (m_adding.contains(params.info_hashes)
-                    || m_torrents.contains(params.info_hashes))
-                {
-                    return;
-                }
-
-                params.userdata.get<TorrentClientData>()->session = weak_from_this();
-
-                m_adding.insert(params.info_hashes);
-                m_session->async_add_torrent(params);
-
-                m_load_state->loaded++;
-            });
-
-        m_load_state->errors = 0;
-    }
-    catch(const std::exception& e)
-    {
-        m_load_state->errors++;
-
-        if (m_load_state->errors <= kLoadMaxChunkErrors)
+    return AddTorrentParams::Next(
+        m_options.db,
+        m_id,
+        cursor,
+        limit,
+        [&](lt::add_torrent_params& params)
         {
-            const auto delay = std::min(
-                kLoadRetryMaxDelay,
-                kLoadRetryBaseDelay * (1 << (m_load_state->errors - 1)));
-
-            BOOST_LOG_TRIVIAL(warning)
-                << Log() << "Chunk failed at " << m_load_state->loaded
-                << " of " << m_load_state->count << " (attempt " << m_load_state->errors << " of "
-                << kLoadMaxChunkErrors << ", retrying in " << delay.count()
-                << "ms): " << e.what();
-
-            auto retry = std::make_shared<boost::asio::steady_timer>(m_options.io, delay);
-
-            retry->async_wait(
-                [retry, t = weak_from_this()](const boost::system::error_code& ec)
-                {
-                    if (ec) { return; }
-                    if (const auto self = t.lock()) { self->LoadNextChunk(); }
-                });
-
-            return;
-        }
-
-        BOOST_LOG_TRIVIAL(error)
-            << Log() << "Failed to load torrents after "
-            << m_load_state->loaded << " of " << m_load_state->count << ": " << e.what();
-
-        m_load_state->failed = true;
-        more                 = false;
-    }
-
-    if (!more)
-    {
-        if (m_load_state->loaded > 0)
-        {
-            try
+            if (m_adding.contains(params.info_hashes)
+                || m_torrents.contains(params.info_hashes))
             {
-                const auto& all_statuses = m_session->get_torrent_status(
-                    [](const auto& ts) { return true; },
-                    lt::status_flags_t::all());
-
-                for (const auto& ts : all_statuses)
-                {
-                    if (const auto it = m_torrents.find(ts.info_hashes); it != m_torrents.end())
-                    {
-                        it->second.status = ts;
-                    }
-                    else if (m_adding.contains(ts.info_hashes))
-                    {
-                        Track(ts);
-                    }
-                }
-
-                // every loaded torrent is tracked now - add alerts still on their way, or lost,
-                // no longer need telling apart from new torrents
-                m_adding.clear();
+                // never handed to libtorrent, so nothing else frees it
+                delete params.userdata.get<TorrentClientData>();
+                return;
             }
-            catch(const std::exception& e)
-            {
-                BOOST_LOG_TRIVIAL(error)
-                    << Log() << "Failed to read torrent status after load: " << e.what();
-            }
-        }
 
-        if (m_load_state->count > 0)
-        {
-            if (m_load_state->failed)
-            {
-                const auto remaining = m_load_state->count - m_load_state->loaded;
+            params.userdata.get<TorrentClientData>()->session = weak_from_this();
 
-                BOOST_LOG_TRIVIAL(error)
-                    << Log() << "Incomplete load - "
-                    << m_load_state->loaded << " of " << m_load_state->count
-                    << " torrent(s) were added. The remaining "
-                    << remaining << " are still in the database but not in the session. "
-                    << "Do not re-add them; restart Porla once the database is healthy.";
-            }
-            else
-            {
-                BOOST_LOG_TRIVIAL(info)
-                    << Log() << "Added " << m_load_state->loaded
-                    << " (of " << m_load_state->count << ") torrent(s) to the session";
-            }
-        }
+            m_adding.insert(params.info_hashes);
+            m_session->async_add_torrent(params);
 
-        Publish(SessionEvent("session.loaded", {
-            { "torrents", m_load_state->loaded },
-            { "failed",   m_load_state->failed }
-        }));
-
-        LoadComplete();
-
-        m_jobs->Resume();
-
-        return;
-    }
-
-    m_load_state->chunks++;
-
-    if (m_load_state->chunks % 10 == 0)
-    {
-        BOOST_LOG_TRIVIAL(info)
-            << Log() << m_load_state->loaded << " torrents (of "
-            << m_load_state->count << ") added";
-    }
-
-    boost::asio::post(m_options.io, [t = weak_from_this()]()
-    {
-        if (const auto self = t.lock()) { self->LoadNextChunk(); }
-    });
+            loaded++;
+        });
 }
 
-void Session::LoadComplete()
+void Session::LoadDone(int loaded, bool failed)
 {
-    if (m_load_state == nullptr)
+    if (loaded > 0)
     {
-        return;
+        try
+        {
+            const auto& all_statuses = m_session->get_torrent_status(
+                [](const auto& ts) { return true; },
+                lt::status_flags_t::all());
+
+            for (const auto& ts : all_statuses)
+            {
+                if (const auto it = m_torrents.find(ts.info_hashes); it != m_torrents.end())
+                {
+                    it->second.status = ts;
+                }
+                else if (m_adding.contains(ts.info_hashes))
+                {
+                    Track(ts);
+                }
+            }
+
+            m_adding.clear();
+        }
+        catch (const std::exception& e)
+        {
+            BOOST_LOG_TRIVIAL(error)
+                << Log() << "Failed to read torrent status after load: " << e.what();
+        }
     }
 
-    auto callback = std::move(m_load_state->callback);
+    Publish(SessionEvent("session.loaded", {
+        { "torrents", loaded },
+        { "failed",   failed }
+    }));
 
-    m_load_state.reset();
-
-    if (!callback)
-    {
-        return;
-    }
-
-    try
-    {
-        callback();
-    }
-    catch(const std::exception& e)
-    {
-        BOOST_LOG_TRIVIAL(error)
-            << Log() << "Load completion callback failed: " << e.what();
-    }
+    m_jobs->Resume();
 }
 
 void Session::ReadAlerts()

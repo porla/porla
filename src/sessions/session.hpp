@@ -9,6 +9,7 @@
 #include <nlohmann/json.hpp>
 #include <sqlite3.h>
 
+#include "../data/models/addtorrentparams.hpp"
 #include "../data/models/sessions.hpp"
 #include "torrent.hpp"
 
@@ -68,16 +69,11 @@ namespace porla
         // removes any torrent handles that are invalid (is_valid()=false)
         void UntrackInvalidTorrents();
 
-    private:
-        struct LoadState;
-
         // loads the next chunk of torrents
-        void LoadNextChunk();
+        bool LoadChunk(Data::Models::AddTorrentParams::Cursor& cursor, int limit, int& loaded);
+        void LoadDone(int loaded, bool failed);
 
-        // completes the loading. called once all chunks
-        // have loaded
-        void LoadComplete();
-
+    private:
         void ReadAlerts();
         void ProcessAlert(const lt::alert* alert);
 
@@ -110,7 +106,6 @@ namespace porla
         std::map<lt::info_hash_t, Torrent> m_torrents;
         std::unique_ptr<Scheduler>         m_jobs;
 
-        std::unique_ptr<LoadState>          m_load_state;
         std::unordered_set<lt::info_hash_t> m_adding;
     };
 }
