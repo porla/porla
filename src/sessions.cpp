@@ -1090,15 +1090,6 @@ void Sessions::UnloadSession(const std::shared_ptr<SessionState>& state)
                         rd->params,
                         data,
                         static_cast<int>(rd->handle.queue_position()));
-
-                    if (rd->params.ti)
-                    {
-                        AddTorrentParams::InsertTorrentInfo(
-                            m_options.db,
-                            state->id,
-                            info_hash,
-                            *rd->params.ti);
-                    }
                 }
                 catch(const std::exception& e)
                 {
@@ -1184,15 +1175,6 @@ void Sessions::OnAddTorrentAlert(const SessionStatePtr& state, const lt::add_tor
             alert->params,
             data == nullptr ? fallback : *data,
             static_cast<int>(status.queue_position));
-
-        if (alert->params.ti)
-        {
-            AddTorrentParams::InsertTorrentInfo(
-                m_options.db,
-                state->id,
-                alert->handle.info_hashes(),
-                *alert->params.ti);
-        }
     }
     catch(const std::exception& e)
     {
@@ -1231,15 +1213,6 @@ void Sessions::OnSaveResumeDataAlert(const SessionStatePtr& state, const lt::sav
         alert->params,
         data,
         static_cast<int>(alert->handle.queue_position()));
-
-    if (alert->params.ti)
-    {
-        AddTorrentParams::InsertTorrentInfo(
-            m_options.db,
-            state->id,
-            info_hashes,
-            *alert->params.ti);
-    }
 
     BOOST_LOG_TRIVIAL(debug) << Sub(state, info_hashes) << "Resume data saved";
 }
@@ -1491,15 +1464,6 @@ void Sessions::ReconcileTorrents(const SessionStatePtr& state)
                     params,
                     th.userdata().get<TorrentClientData>(),
                     static_cast<int>(th.queue_position()));
-
-                if (params.ti)
-                {
-                    AddTorrentParams::InsertTorrentInfo(
-                        m_options.db,
-                        state->id,
-                        hash,
-                        *params.ti);
-                }
             }
             catch(const std::exception& e)
             {
@@ -1534,15 +1498,6 @@ void Sessions::ReconcileTorrents(const SessionStatePtr& state)
                 params,
                 data == nullptr ? TorrentClientData{} : *data,
                 static_cast<int>(status.queue_position));
-
-            if (params.ti)
-            {
-                AddTorrentParams::InsertTorrentInfo(
-                    m_options.db,
-                    state->id,
-                    hash,
-                    *params.ti);
-            }
         }
         catch (const std::exception& e)
         {
