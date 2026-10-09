@@ -14,7 +14,7 @@
 #include "lua/pluginsource.hpp"
 #include "plugins.hpp"
 #include "presets.hpp"
-#include "sessions.hpp"
+#include "sessions/sessions.hpp"
 #include "timer.hpp"
 #include "torrents.hpp"
 
@@ -249,7 +249,7 @@ int main(int argc, char* argv[])
         jsonrpc->Register("torrents.files.rename",     std::make_shared<M::Torrents::TorrentsFilesRename>(cfg->db, sessions));
         jsonrpc->Register("torrents.get",              std::make_shared<M::Torrents::TorrentsGet>(cfg->db, sessions));
         jsonrpc->Register("torrents.list",             std::make_shared<M::Torrents::TorrentsList>(cfg->db, sessions));
-        jsonrpc->Register("torrents.migrate",          std::make_shared<M::Torrents::TorrentsMigrate>(cfg->db, sessions));
+        jsonrpc->Register("torrents.migrate",          std::make_shared<M::Torrents::TorrentsMigrate>(cfg->db, events, sessions));
         jsonrpc->Register("torrents.move",             std::make_shared<M::Torrents::TorrentsMove>(cfg->db, sessions));
         jsonrpc->Register("torrents.pause",            std::make_shared<M::Torrents::TorrentsPause>(cfg->db, sessions));
         jsonrpc->Register("torrents.peers.add",        std::make_shared<M::Torrents::TorrentsPeersAdd>(cfg->db, sessions));

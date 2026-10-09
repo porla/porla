@@ -1,6 +1,7 @@
 #include "torrentscount.hpp"
 
-#include "../../../sessions.hpp"
+#include "../../../sessions/session.hpp"
+#include "../../../sessions/sessions.hpp"
 #include "../../../torrentclientdata.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsCount;
@@ -22,9 +23,9 @@ void TorrentsCount::Execute(const TorrentsCountReq& req, ResponseWriterHandle cb
     }
 
     TorrentsCountRes res{};
-    res.total = session_state->torrents.size();
+    res.total = session_state->Torrents().size();
 
-    for (const auto& [ _, ts ] : session_state->torrents)
+    for (const auto& [ _, ts ] : session_state->Torrents())
     {
         const auto client_data = ts.handle.is_valid()
             ? ts.handle.userdata().get<TorrentClientData>()

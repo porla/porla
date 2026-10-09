@@ -18,7 +18,6 @@
 
 #include "buildinfo.hpp"
 #include "data/migrate.hpp"
-#include "sessions.hpp"
 #include "utils/secretkey.hpp"
 
 namespace fs = std::filesystem;

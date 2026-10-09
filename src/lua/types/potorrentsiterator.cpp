@@ -1,21 +1,23 @@
 #include "potorrentsiterator.hpp"
 
+#include "../../sessions/session.hpp"
+
 using porla::Lua::Types::PoTorrentsIterator;
 
 std::optional<std::tuple<lt::torrent_handle, lt::torrent_status>> PoTorrentsIterator::operator()()
 {
-    const auto state = m_state.lock();
+    const auto session = m_weak_session.lock();
 
-    if (state == nullptr)
+    if (session == nullptr)
     {
         return std::nullopt;
     }
 
     auto next = m_last_hash.has_value()
-        ? state->torrents.upper_bound(m_last_hash.value())
-        : state->torrents.begin();
+        ? session->Torrents().upper_bound(m_last_hash.value())
+        : session->Torrents().begin();
 
-    while (next != state->torrents.end())
+    while (next != session->Torrents().end())
     {
         const auto& ts = next->second;
 

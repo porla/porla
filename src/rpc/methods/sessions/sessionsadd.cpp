@@ -1,7 +1,9 @@
 #include "sessionsadd.hpp"
 
-#include "../../../sessions.hpp"
+#include <libtorrent/session.hpp>
+
 #include "../../../data/models/sessions.hpp"
+#include "../../../sessions/sessions.hpp"
 #include "../../../utils/ltsettings.hpp"
 
 using porla::Rpc::Methods::Sessions::SessionsAdd;

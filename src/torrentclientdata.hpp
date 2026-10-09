@@ -7,10 +7,10 @@
 
 #include <nlohmann/json.hpp>
 
-#include "sessions.hpp"
-
 namespace porla
 {
+    class Session;
+
     struct TorrentClientData
     {
         std::optional<std::string>            category     = std::nullopt;
@@ -18,6 +18,6 @@ namespace porla
         std::map<std::string, nlohmann::json> metadata     = {};
         std::unordered_set<std::string>       tags         = {};
 
-        std::weak_ptr<Sessions::SessionState> state        = {};
+        std::weak_ptr<Session>                session      = {};
     };
 }

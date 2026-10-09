@@ -8,6 +8,7 @@
 #include "../types/posessionsiterator.hpp"
 
 #include "../../data/models/sessions.hpp"
+#include "../../sessions/sessions.hpp"
 
 using porla::Lua::Types::PoSessionHandle;
 using porla::Lua::Types::PoSessionsIterator;

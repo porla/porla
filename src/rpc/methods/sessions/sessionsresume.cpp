@@ -1,7 +1,8 @@
 #include "sessionsresume.hpp"
 
 #include "../../../data/models/sessions.hpp"
-#include "../../../sessions.hpp"
+#include "../../../sessions/session.hpp"
+#include "../../../sessions/sessions.hpp"
 
 using porla::Rpc::Methods::Sessions::SessionsResume;
 using porla::Rpc::Methods::Sessions::SessionsResumeReq;
@@ -29,7 +30,7 @@ void SessionsResume::Execute(const SessionsResumeReq& req, ResponseWriterHandle 
         return cb->Error(-2, "Session not loaded");
     }
 
-    state->session->resume();
+    state->Libtorrent().resume();
 
     cb->Ok(SessionsResumeRes{});
 }

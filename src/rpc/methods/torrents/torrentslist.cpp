@@ -5,7 +5,8 @@
 #include "../../../data/models/sessions.hpp"
 #include "../../../fields.hpp"
 #include "../../../query/pql.hpp"
-#include "../../../sessions.hpp"
+#include "../../../sessions/session.hpp"
+#include "../../../sessions/sessions.hpp"
 #include "../../../torrentclientdata.hpp"
 #include "../../../utils/eta.hpp"
 #include "../../../utils/ratio.hpp"
@@ -147,11 +148,11 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
     }
 
     std::vector<const lt::torrent_status*> torrents;
-    torrents.reserve(session_state->torrents.size());
+    torrents.reserve(session_state->Torrents().size());
 
     const auto now = std::time(nullptr);
 
-    for (const auto& [_, ts] : session_state->torrents)
+    for (const auto& [_, ts] : session_state->Torrents())
     {
         const auto& handle = ts.handle;
 
@@ -340,6 +341,6 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
         .page_size                 = req.page_size.value_or(50),
         .torrents                  = std::move(page_items),
         .torrents_total            = static_cast<int>(torrents.size()),
-        .torrents_total_unfiltered = static_cast<int>(session_state->torrents.size())
+        .torrents_total_unfiltered = static_cast<int>(session_state->Torrents().size())
     });
 }

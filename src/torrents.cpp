@@ -8,7 +8,9 @@
 #include "data/models/sessions.hpp"
 #include "events.hpp"
 #include "presets.hpp"
-#include "sessions.hpp"
+#include "sessions/session.hpp"
+#include "sessions/sessions.hpp"
+#include "sessions/torrentevent.hpp"
 #include "torrentclientdata.hpp"
 
 using porla::Torrents;
@@ -96,11 +98,11 @@ TorrentsAddResult Torrents::Prepare(lt::add_torrent_params& params, const Torren
                 ? default_preset->session_id
                 : std::nullopt;
 
-    const auto session = session_id.has_value()
+    const auto session_record = session_id.has_value()
         ? Data::Models::Sessions::GetById(m_options.db, session_id.value())
         : Data::Models::Sessions::GetDefault(m_options.db);
 
-    if (!session)
+    if (!session_record)
     {
         return {
             .error      = Error::SessionNotFound,
@@ -109,14 +111,14 @@ TorrentsAddResult Torrents::Prepare(lt::add_torrent_params& params, const Torren
         };
     }
 
-    const auto state = m_options.sessions.Get(session->id);
+    const auto session = m_options.sessions.Get(session_record->id);
 
-    if (!state)
+    if (!session)
     {
         return {
             .error      = Error::SessionNotLoaded,
             .what       = "Session not loaded",
-            .session_id = session->id
+            .session_id = session_record->id
         };
     }
 
@@ -127,7 +129,7 @@ TorrentsAddResult Torrents::Prepare(lt::add_torrent_params& params, const Torren
             ? *existing_client_data
             : TorrentClientData{});
 
-    client_data->state = state;
+    client_data->session = session;
 
     params.userdata = lt::client_data_t(client_data);
 
@@ -145,15 +147,15 @@ TorrentsAddResult Torrents::Prepare(lt::add_torrent_params& params, const Torren
         ApplyPreset(params, preset.value());
     }
 
-    return { .session_id = state->id };
+    return { .session_id = session->Id() };
 }
 
 TorrentsAddResult Torrents::Add(lt::add_torrent_params params)
 {
     auto* client_data = params.userdata.get<TorrentClientData>();
-    auto  state       = client_data != nullptr ? client_data->state.lock() : nullptr;
+    auto  session     = client_data != nullptr ? client_data->session.lock() : nullptr;
 
-    if (state == nullptr)
+    if (session == nullptr)
     {
         delete client_data;
         return { .error = Error::SessionNotLoaded, .what = "Session not loaded" };
@@ -164,7 +166,7 @@ TorrentsAddResult Torrents::Add(lt::add_torrent_params params)
         : params.info_hashes;
 
     TorrentsAddResult result{
-        .session_id = state->id,
+        .session_id = session->Id(),
         .info_hash  = info_hash
     };
 
@@ -173,8 +175,8 @@ TorrentsAddResult Torrents::Add(lt::add_torrent_params params)
         result.error = Error::MissingInfoHash;
         result.what  = "Failed to get info hash from params";
     }
-    else if (state->torrents.contains(info_hash)
-        || state->session->find_torrent(info_hash.get_best()).is_valid())
+    else if (session->Torrents().contains(info_hash)
+        || session->Libtorrent().find_torrent(info_hash.get_best()).is_valid())
     {
         result.error = Error::AlreadyInSession;
         result.what  = "Torrent already in session";
@@ -193,7 +195,7 @@ TorrentsAddResult Torrents::Add(lt::add_torrent_params params)
     {
         try
         {
-            state->session->async_add_torrent(std::move(params));
+            session->Libtorrent().async_add_torrent(std::move(params));
             return result;
         }
         catch (const std::exception& e)
@@ -213,9 +215,9 @@ TorrentsAddResult Torrents::Add(lt::add_torrent_params params)
 bool Torrents::UpdateClientData(const lt::torrent_handle& th, const std::function<void(TorrentClientData&)>& change)
 {
     auto* client_data = th.is_valid() ? th.userdata().get<TorrentClientData>() : nullptr;
-    auto  state       = client_data != nullptr ? client_data->state.lock() : nullptr;
+    auto  session     = client_data != nullptr ? client_data->session.lock() : nullptr;
 
-    if (state == nullptr)
+    if (session == nullptr)
     {
         return false;
     }
@@ -239,7 +241,7 @@ bool Torrents::UpdateClientData(const lt::torrent_handle& th, const std::functio
 
     Data::Models::AddTorrentParams::UpdateClientData(
         m_options.db,
-        state->id,
+        session->Id(),
         info_hash,
         updated);
 
@@ -248,8 +250,8 @@ bool Torrents::UpdateClientData(const lt::torrent_handle& th, const std::functio
     if (m_options.events.HasSubscribers("torrent.userdata_updated"))
     {
         TorrentEvent event("torrent.userdata_updated", {{ "fields", fields }});
-        event.session_id     = state->id;
-        event.session        = state;
+        event.session_id     = session->Id();
+        event.session        = session;
         event.torrent_handle = th;
         event.info_hash      = info_hash;
 

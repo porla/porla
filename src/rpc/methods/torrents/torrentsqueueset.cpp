@@ -4,7 +4,8 @@
 #include <libtorrent/torrent_status.hpp>
 
 #include "../../../data/models/sessions.hpp"
-#include "../../../sessions.hpp"
+#include "../../../sessions/session.hpp"
+#include "../../../sessions/sessions.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsQueueSet;
 using porla::Rpc::Methods::Torrents::TorrentsQueueSetReq;
@@ -34,9 +35,9 @@ void TorrentsQueueSet::Execute(const TorrentsQueueSetReq &req, ResponseWriterHan
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto it = session_state->torrents.find(req.info_hash);
+    const auto it = session_state->Torrents().find(req.info_hash);
 
-    if (it == session_state->torrents.end())
+    if (it == session_state->Torrents().end())
     {
         return cb->Error(-3, "Torrent not found in session");
     }

@@ -2,7 +2,8 @@
 
 #include "data/transaction.hpp"
 #include "events.hpp"
-#include "sessions.hpp"
+#include "sessions/sessionevent.hpp"
+#include "sessions/sessions.hpp"
 
 using porla::Presets;
 using porla::PresetEvent;

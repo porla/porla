@@ -1,7 +1,8 @@
 #include "sessionssettingsget.hpp"
 
 #include "../../../data/models/sessions.hpp"
-#include "../../../sessions.hpp"
+#include "../../../sessions/session.hpp"
+#include "../../../sessions/sessions.hpp"
 
 using porla::Rpc::Methods::Sessions::SessionsSettingsGet;
 using porla::Rpc::Methods::Sessions::SessionsSettingsGetReq;
@@ -27,6 +28,6 @@ void SessionsSettingsGet::Execute(const SessionsSettingsGetReq &req, ResponseWri
     cb->Ok(SessionsSettingsGetRes{
         .settings = state == nullptr
             ? session->params.settings
-            : state->session->get_settings()
+            : state->Libtorrent().get_settings()
     });
 }

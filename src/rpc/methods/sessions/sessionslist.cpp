@@ -1,7 +1,8 @@
 #include "sessionslist.hpp"
 
 #include "../../../data/models/sessions.hpp"
-#include "../../../sessions.hpp"
+#include "../../../sessions/session.hpp"
+#include "../../../sessions/sessions.hpp"
 
 using porla::Data::Models::Sessions;
 using porla::Rpc::Methods::Sessions::SessionsList;
@@ -32,9 +33,9 @@ void SessionsList::Execute(const SessionsListReq& req, ResponseWriterHandle cb)
             .state      = state == nullptr
                 ? std::optional<SessionsListRes::SessionState>()
                 : SessionsListRes::SessionState{
-                    .is_listening   = state->session->is_listening(),
-                    .is_paused      = state->session->is_paused(),
-                    .torrents_total = static_cast<int>(state->torrents.size())
+                    .is_listening   = state->Libtorrent().is_listening(),
+                    .is_paused      = state->Libtorrent().is_paused(),
+                    .torrents_total = static_cast<int>(state->Torrents().size())
                 }
         });
     }

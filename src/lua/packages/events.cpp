@@ -8,6 +8,9 @@
 #include "../../keyvalueevent.hpp"
 #include "../../pluginevent.hpp"
 #include "../../presetevent.hpp"
+#include "../../sessions/sessionevent.hpp"
+#include "../../sessions/torrentevent.hpp"
+
 #include "../pluginstate.hpp"
 #include "../types/pocancellable.hpp"
 #include "../types/pojson.hpp"
@@ -61,7 +64,7 @@ namespace
             tbl[k] = porla::Lua::Types::PoJson::ToLua(state.lua.lua_state(), v, 0);
         }
 
-        tbl["name"]       = event.name;
+        tbl["name"] = event.name;
 
         if (const auto* session_event = dynamic_cast<const porla::SessionEvent*>(&event))
         {

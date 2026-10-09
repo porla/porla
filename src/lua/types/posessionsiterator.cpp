@@ -2,6 +2,8 @@
 
 #include "posessionhandle.hpp"
 
+#include "../../sessions/session.hpp"
+
 using porla::Lua::Types::PoSessionHandle;
 using porla::Lua::Types::PoSessionsIterator;
 

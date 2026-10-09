@@ -1,7 +1,8 @@
 #include "sessionsget.hpp"
 
 #include "../../../data/models/sessions.hpp"
-#include "../../../sessions.hpp"
+#include "../../../sessions/session.hpp"
+#include "../../../sessions/sessions.hpp"
 
 using porla::Rpc::Methods::Sessions::SessionsGet;
 using porla::Rpc::Methods::Sessions::SessionsGetReq;
@@ -33,9 +34,9 @@ void SessionsGet::Execute(const SessionsGetReq &req, ResponseWriterHandle cb)
             .state      = state == nullptr
                 ? std::optional<SessionsGetRes::SessionState>()
                 : SessionsGetRes::SessionState{
-                    .is_listening   = state->session->is_listening(),
-                    .is_paused      = state->session->is_paused(),
-                    .torrents_total = static_cast<int>(state->torrents.size())
+                    .is_listening   = state->Libtorrent().is_listening(),
+                    .is_paused      = state->Libtorrent().is_paused(),
+                    .torrents_total = static_cast<int>(state->Torrents().size())
                 }
         }
     });

@@ -2,8 +2,9 @@
 
 #include <boost/log/trivial.hpp>
 
-#include "../../../sessions.hpp"
 #include "../../../data/models/sessions.hpp"
+#include "../../../sessions/session.hpp"
+#include "../../../sessions/sessions.hpp"
 
 using porla::Rpc::Methods::Sessions::SessionsUpdate;
 using porla::Rpc::Methods::Sessions::SessionsUpdateReq;
