@@ -13,6 +13,7 @@
 #include "jobs/poststats.hpp"
 #include "jobs/reconciletorrents.hpp"
 #include "jobs/savestate.hpp"
+#include "alertdispatcher.hpp"
 #include "scheduler.hpp"
 #include "sessionevent.hpp"
 #include "torrent.hpp"
@@ -38,12 +39,15 @@ Session::Session(const SessionOptions& options)
     : m_id(options.record.id)
     , m_name(options.record.name)
     , m_options(options)
+    , m_alert_dispatcher(std::make_unique<AlertDispatcher>())
     , m_jobs(std::make_unique<Scheduler>(options.io, *this))
 {
     m_session = std::make_unique<lt::session>(std::move(m_options.record.params));
     m_session->add_extension(&lt::create_smart_ban_plugin);
     m_session->add_extension(&lt::create_ut_metadata_plugin);
     m_session->add_extension(&lt::create_ut_pex_plugin);
+
+    RegisterAlertHandlers();
 }
 
 Session::~Session()
@@ -222,11 +226,6 @@ void Session::Stop()
 
             for (lt::alert *a: alerts)
             {
-                if (lt::alert_cast<lt::torrent_paused_alert>(a))
-                {
-                    continue;
-                }
-
                 if (auto fail = lt::alert_cast<lt::save_resume_data_failed_alert>(a))
                 {
                     outstanding--;
@@ -238,39 +237,16 @@ void Session::Stop()
                     continue;
                 }
 
-                if (auto removed = lt::alert_cast<lt::torrent_removed_alert>(a))
+                if (lt::alert_cast<lt::save_resume_data_alert>(a))
                 {
-                    OnTorrentRemovedAlert(removed);
+                    outstanding--;
+                    m_alert_dispatcher->Dispatch(a);
                     continue;
                 }
 
-                const auto rd = lt::alert_cast<lt::save_resume_data_alert>(a);
-                if (!rd) { continue; }
-
-                outstanding--;
-
-                if (!rd->handle.is_valid())
+                if (lt::alert_cast<lt::torrent_removed_alert>(a))
                 {
-                    continue;
-                }
-
-                try
-                {
-                    const auto data      = rd->handle.userdata().get<TorrentClientData>();
-                    const auto info_hash = rd->handle.info_hashes();
-
-                    AddTorrentParams::Update(
-                        m_options.db,
-                        m_id,
-                        info_hash,
-                        rd->params,
-                        data,
-                        static_cast<int>(rd->handle.queue_position()));
-                }
-                catch(const std::exception& e)
-                {
-                    BOOST_LOG_TRIVIAL(error)
-                        << Log(rd->params.info_hashes) << "Failed to save resume data: " << e.what();
+                    m_alert_dispatcher->Dispatch(a);
                 }
             }
         }
@@ -344,312 +320,43 @@ void Session::ReadAlerts()
 void Session::ProcessAlert(const lt::alert* alert)
 {
     BOOST_LOG_TRIVIAL(trace) << Log() << alert->what() << ": " << alert->message();
+    m_alert_dispatcher->Dispatch(alert);
+}
 
-    switch (alert->type())
-    {
-        case lt::add_torrent_alert::alert_type:      OnAddTorrentAlert(lt::alert_cast<lt::add_torrent_alert>(alert));          break;
-        case lt::file_error_alert::alert_type:       OnFileErrorAlert(lt::alert_cast<lt::file_error_alert>(alert));            break;
-        case lt::save_resume_data_alert::alert_type: OnSaveResumeDataAlert(lt::alert_cast<lt::save_resume_data_alert>(alert)); break;
-        case lt::torrent_removed_alert::alert_type:  OnTorrentRemovedAlert(lt::alert_cast<lt::torrent_removed_alert>(alert));  break;
-        case lt::torrent_resumed_alert::alert_type:  OnTorrentResumedAlert(lt::alert_cast<lt::torrent_resumed_alert>(alert));  break;
-
-        case lt::alerts_dropped_alert::alert_type:
+template<typename A>
+void Session::Forward(std::string name)
+{
+    m_alert_dispatcher->On<A>(
+        [this, name = std::move(name)](const A* alert)
         {
-            const auto ada = lt::alert_cast<lt::alerts_dropped_alert>(alert);
-
-            std::string types;
-
-            for (int i = 0; i < lt::num_alert_types; i++)
-            {
-                if (ada->dropped_alerts.test(i))
-                {
-                    types += (types.empty() ? "" : ",") + std::string(lt::alert_name(i));
-                }
-            }
-
-            BOOST_LOG_TRIVIAL(warning)
-                << Log() << "The libtorrent alert queue is full and dropped "
-                << types << " alerts. Consider raising alert_queue_size.";
-
-            if (ada->dropped_alerts.test(lt::add_torrent_alert::alert_type)
-                || ada->dropped_alerts.test(lt::torrent_removed_alert::alert_type))
-            {
-                m_jobs->Trigger<Jobs::ReconcileTorrents>();
-            }
-
-            break;
-        }
-
-        case lt::listen_failed_alert::alert_type:
-        {
-            const auto lfa = lt::alert_cast<lt::listen_failed_alert>(alert);
-            BOOST_LOG_TRIVIAL(warning) << Log() << lfa->message();
-            break;
-        }
-        case lt::listen_succeeded_alert::alert_type:
-        {
-            const auto lsa = lt::alert_cast<lt::listen_succeeded_alert>(alert);
-            BOOST_LOG_TRIVIAL(info) << Log() << lsa->message();
-            break;
-        }
-        case lt::metadata_received_alert::alert_type:
-        {
-            auto mra = lt::alert_cast<lt::metadata_received_alert>(alert);
-
-            if (!mra->handle.is_valid())
-            {
-                break;
-            }
-
-            const auto info_hashes = mra->handle.info_hashes();
-
-            BOOST_LOG_TRIVIAL(info) << Log(info_hashes) << "Metadata received";
-
-            // A magnet link only carries the hash(es) it was added with. A hybrid
-            // torrent gains its other hash with the metadata, and every later alert
-            // uses the full hashes, so move the torrent to its new key.
-            if (!m_torrents.contains(info_hashes))
-            {
-                const auto it = std::find_if(
-                    m_torrents.begin(),
-                    m_torrents.end(),
-                    [&](const auto& kv) { return kv.second.status.handle == mra->handle; });
-
-                if (it != m_torrents.end())
-                {
-                    UpdateInfoHashes(it->first, info_hashes);
-                }
-            }
-
-            mra->handle.save_resume_data(
-                lt::torrent_handle::save_info_dict);
-
-            EmitTorrentEvent("torrent.metadata_received", *mra);
-
-            break;
-        }
-        case lt::session_stats_alert::alert_type:
-        {
-            if (!m_options.events.HasSubscribers("session.stats"))
-            {
-                break;
-            }
-
-            const auto counters = lt::alert_cast<lt::session_stats_alert>(alert)->counters();
-
-            nlohmann::json stats = nlohmann::json::object();
-
-            for (const auto& m : kSessionMetrics)
-            {
-                stats[m.name] = counters[m.value_index];
-            }
-
-            Publish(SessionEvent("session.stats", {
-                { "stats", std::move(stats) }
-            }));
-
-            break;
-        }
-        case lt::state_update_alert::alert_type:
-        {
-            auto sua = lt::alert_cast<lt::state_update_alert>(alert);
-
-            for (const auto& status : sua->status)
-            {
-                const auto it = m_torrents.find(status.info_hashes);
-
-                // recieved alert for missing torrent or torrent not Current - we
-                // could have missed an alert
-                if (it == m_torrents.end() || it->second.state != Torrent::State::Current)
-                {
-                    BOOST_LOG_TRIVIAL(debug)
-                        << Log(status.info_hashes) << "Received state update for non-tracked torrent";
-
-                    m_jobs->Trigger<Jobs::ReconcileTorrents>();
-
-                    continue;
-                }
-
-                it->second.status = status;
-            }
-
-            break;
-        }
-        case lt::storage_moved_alert::alert_type:
-        {
-            const auto sma = lt::alert_cast<lt::storage_moved_alert>(alert);
-
-            if (!sma->handle.is_valid())
-            {
-                break;
-            }
-
-            BOOST_LOG_TRIVIAL(info)
-                << Log(sma->handle.info_hashes()) << "Storage moved to " << sma->storage_path();
-
-            sma->handle.save_resume_data(
-                lt::torrent_handle::only_if_modified);
-
-            sma->handle.post_status();
-
-            EmitTorrentEvent("torrent.moved", *sma);
-
-            break;
-        }
-        case lt::storage_moved_failed_alert::alert_type:
-        {
-            const auto smfa = lt::alert_cast<lt::storage_moved_failed_alert>(alert);
-
-            if (!smfa->handle.is_valid())
-            {
-                break;
-            }
-
-            BOOST_LOG_TRIVIAL(warning) << Log(smfa->handle.info_hashes()) << smfa->message();
-
-            EmitTorrentEvent("torrent.move_failed", *smfa);
-
-            break;
-        }
-        case lt::state_changed_alert::alert_type:
-        {
-            const auto sca = lt::alert_cast<lt::state_changed_alert>(alert);
-
-            EmitTorrentEvent("torrent.state_changed", *sca);
-
-            break;
-        }
-        case lt::torrent_error_alert::alert_type:
-        {
-            const auto tea = lt::alert_cast<lt::torrent_error_alert>(alert);
-
-            if (!tea->handle.is_valid())
-            {
-                break;
-            }
-
-            BOOST_LOG_TRIVIAL(error) << Log(tea->handle.info_hashes()) << tea->message();
-
-            EmitTorrentEvent("torrent.error", *tea);
-
-            break;
-        }
-        case lt::torrent_checked_alert::alert_type:
-        {
-            const auto tca = lt::alert_cast<lt::torrent_checked_alert>(alert);
-
-            if (!tca->handle.is_valid())
-            {
-                break;
-            }
-
-            BOOST_LOG_TRIVIAL(info) << Log(tca->handle.info_hashes())
-                << "Torrent finished checking";
-
-            if (const auto it = m_torrents.find(tca->handle.info_hashes());
-                it != m_torrents.end() && it->second.restore_after_check.has_value())
-            {
-                const auto flags = std::exchange(it->second.restore_after_check, std::nullopt).value();
-
-                if (flags & lt::torrent_flags::auto_managed)
-                {
-                    tca->handle.set_flags(lt::torrent_flags::auto_managed);
-                }
-
-                if (flags & lt::torrent_flags::paused)
-                {
-                    tca->handle.pause();
-                }
-            }
-
-            EmitTorrentEvent("torrent.checked", *tca);
-
-            break;
-        }
-        case lt::torrent_finished_alert::alert_type:
-        {
-            const auto tfa = lt::alert_cast<lt::torrent_finished_alert>(alert);
-
-            if (!tfa->handle.is_valid())
-            {
-                break;
-            }
-
-            const auto& status      = tfa->handle.status();
-                  auto  client_data = tfa->handle.userdata().get<TorrentClientData>();
-
-            // libtorrent posts this on every transition into finished (startup checks, rechecks)
-            // 'first' is true exactly once per torrent - the first time it finishes with payload
-            // we downloaded.
-
-            bool first = false;
-
-            if (client_data != nullptr && !client_data->completed_at.has_value())
-            {
-                client_data->completed_at = std::time(nullptr);
-
-                AddTorrentParams::UpdateClientData(
-                    m_options.db,
-                    m_id,
-                    status.info_hashes,
-                    *client_data);
-
-                first = status.total_payload_download > 0;
-            }
-
-            if (first)
-            {
-                BOOST_LOG_TRIVIAL(info) << Log(status.info_hashes) << "Torrent finished";
-            }
-
-            status.handle.save_resume_data(
-                lt::torrent_handle::only_if_modified);
-
-            EmitTorrentEvent("torrent.finished", *tfa, { { "first", first } });
-
-            break;
-        }
-        case lt::torrent_paused_alert::alert_type:
-        {
-            const auto tpa = lt::alert_cast<lt::torrent_paused_alert>(alert);
-
-            BOOST_LOG_TRIVIAL(debug)
-                << Log(tpa->handle.info_hashes()) << "Torrent paused";
-
-            EmitTorrentEvent("torrent.paused", *tpa);
-
-            break;
-        }
-        case lt::tracker_error_alert::alert_type:
-        {
-            const auto tea = lt::alert_cast<lt::tracker_error_alert>(alert);
-
-            if (tea->error == lt::errors::announce_skipped)
-            {
-                break;
-            }
-
-            EmitTorrentEvent("tracker.error", *tea);
-
-            break;
-        }
-        case lt::tracker_reply_alert::alert_type:
-        {
-            const auto tra = lt::alert_cast<lt::tracker_reply_alert>(alert);
-
-            EmitTorrentEvent("tracker.reply", *tra);
-
-            break;
-        }
-        case lt::tracker_warning_alert::alert_type:
-        {
-            const auto twa = lt::alert_cast<lt::tracker_warning_alert>(alert);
-
-            EmitTorrentEvent("tracker.warning", *twa);
-
-            break;
-        }
-    }
+            EmitTorrentEvent(name, *alert);
+        });
+}
+
+void Session::RegisterAlertHandlers()
+{
+    m_alert_dispatcher->On<lt::add_torrent_alert>([this](auto* a)          { OnAddTorrentAlert(a); });
+    m_alert_dispatcher->On<lt::alerts_dropped_alert>([this](auto* a)       { OnAlertsDroppedAlert(a); });
+    m_alert_dispatcher->On<lt::listen_failed_alert>([this](auto* a)        { OnListenFailedAlert(a); });
+    m_alert_dispatcher->On<lt::listen_succeeded_alert>([this](auto* a)     { OnListenSucceededAlert(a); });
+    m_alert_dispatcher->On<lt::metadata_received_alert>([this](auto* a)    { OnMetadataReceivedAlert(a); });
+    m_alert_dispatcher->On<lt::save_resume_data_alert>([this](auto* a)     { OnSaveResumeDataAlert(a); });
+    m_alert_dispatcher->On<lt::session_stats_alert>([this](auto* a)        { OnSessionStatsAlert(a); });
+    m_alert_dispatcher->On<lt::state_update_alert>([this](auto* a)         { OnStateUpdateAlert(a); });
+    m_alert_dispatcher->On<lt::storage_moved_alert>([this](auto* a)        { OnStorageMovedAlert(a); });
+    m_alert_dispatcher->On<lt::storage_moved_failed_alert>([this](auto* a) { OnStorageMovedFailedAlert(a); });
+    m_alert_dispatcher->On<lt::torrent_checked_alert>([this](auto* a)      { OnTorrentCheckedAlert(a); });
+    m_alert_dispatcher->On<lt::torrent_error_alert>([this](auto* a)        { OnTorrentErrorAlert(a); });
+    m_alert_dispatcher->On<lt::torrent_finished_alert>([this](auto* a)     { OnTorrentFinishedAlert(a); });
+    m_alert_dispatcher->On<lt::torrent_paused_alert>([this](auto* a)       { OnTorrentPausedAlert(a); });
+    m_alert_dispatcher->On<lt::torrent_removed_alert>([this](auto* a)      { OnTorrentRemovedAlert(a); });
+    m_alert_dispatcher->On<lt::torrent_resumed_alert>([this](auto* a)      { OnTorrentResumedAlert(a); });
+    m_alert_dispatcher->On<lt::tracker_error_alert>([this](auto* a)        { OnTrackerErrorAlert(a); });
+
+    Forward<lt::file_error_alert>("torrent.file_error");
+    Forward<lt::state_changed_alert>("torrent.state_changed");
+    Forward<lt::tracker_reply_alert>("tracker.reply");
+    Forward<lt::tracker_warning_alert>("tracker.warning");
 }
 
 void Session::OnAddTorrentAlert(const lt::add_torrent_alert* alert)
@@ -741,11 +448,6 @@ void Session::OnAddTorrentAlert(const lt::add_torrent_alert* alert)
     EmitTorrentEvent("torrent.added", *alert);
 }
 
-void Session::OnFileErrorAlert(const lt::file_error_alert* alert)
-{
-    EmitTorrentEvent("torrent.file_error", *alert);
-}
-
 void Session::OnSaveResumeDataAlert(const lt::save_resume_data_alert* alert)
 {
     if (!alert->handle.is_valid())
@@ -759,13 +461,23 @@ void Session::OnSaveResumeDataAlert(const lt::save_resume_data_alert* alert)
     const auto data        = alert->handle.userdata().get<TorrentClientData>();
     const auto info_hashes = alert->handle.info_hashes();
 
-    AddTorrentParams::Update(
-        m_options.db,
-        m_id,
-        info_hashes,
-        alert->params,
-        data,
-        static_cast<int>(alert->handle.queue_position()));
+    try
+    {
+        AddTorrentParams::Update(
+            m_options.db,
+            m_id,
+            info_hashes,
+            alert->params,
+            data,
+            static_cast<int>(alert->handle.queue_position()));
+    }
+    catch(const std::exception& e)
+    {
+        BOOST_LOG_TRIVIAL(error)
+            << Log(info_hashes) << "Failed to save resume data: " << e.what();
+
+        return;
+    }
 
     BOOST_LOG_TRIVIAL(debug) << Log(info_hashes) << "Resume data saved";
 }
@@ -784,6 +496,244 @@ void Session::OnTorrentResumedAlert(const lt::torrent_resumed_alert* alert)
         << Log(alert->handle.info_hashes()) << "Torrent resumed";
 
     EmitTorrentEvent("torrent.resumed", *alert);
+}
+
+void Session::OnAlertsDroppedAlert(const lt::alerts_dropped_alert* alert)
+{
+    std::string types;
+
+    for (int i = 0; i < lt::num_alert_types; i++)
+    {
+        if (alert->dropped_alerts.test(i))
+        {
+            types += (types.empty() ? "" : ",") + std::string(lt::alert_name(i));
+        }
+    }
+
+    BOOST_LOG_TRIVIAL(warning)
+        << Log() << "The libtorrent alert queue is full and dropped "
+        << types << " alerts. Consider raising alert_queue_size.";
+
+    if (alert->dropped_alerts.test(lt::add_torrent_alert::alert_type)
+        || alert->dropped_alerts.test(lt::torrent_removed_alert::alert_type))
+    {
+        m_jobs->Trigger<Jobs::ReconcileTorrents>();
+    }
+}
+
+void Session::OnListenFailedAlert(const lt::listen_failed_alert* alert)
+{
+    BOOST_LOG_TRIVIAL(warning) << Log() << alert->message();
+}
+
+void Session::OnListenSucceededAlert(const lt::listen_succeeded_alert* alert)
+{
+    BOOST_LOG_TRIVIAL(info) << Log() << alert->message();
+}
+
+void Session::OnMetadataReceivedAlert(const lt::metadata_received_alert* alert)
+{
+    if (!alert->handle.is_valid())
+    {
+        return;
+    }
+
+    const auto info_hashes = alert->handle.info_hashes();
+
+    BOOST_LOG_TRIVIAL(info) << Log(info_hashes) << "Metadata received";
+
+    // A magnet link only carries the hash(es) it was added with. A hybrid
+    // torrent gains its other hash with the metadata, and every later alert
+    // uses the full hashes, so move the torrent to its new key.
+    if (!m_torrents.contains(info_hashes))
+    {
+        const auto it = std::find_if(
+            m_torrents.begin(),
+            m_torrents.end(),
+            [&](const auto& kv) { return kv.second.status.handle == alert->handle; });
+
+        if (it != m_torrents.end())
+        {
+            UpdateInfoHashes(it->first, info_hashes);
+        }
+    }
+
+    alert->handle.save_resume_data(
+        lt::torrent_handle::save_info_dict);
+
+    EmitTorrentEvent("torrent.metadata_received", *alert);
+}
+
+void Session::OnSessionStatsAlert(const lt::session_stats_alert* alert)
+{
+    if (!m_options.events.HasSubscribers("session.stats"))
+    {
+        return;
+    }
+
+    const auto counters = alert->counters();
+
+    nlohmann::json stats = nlohmann::json::object();
+
+    for (const auto& m : kSessionMetrics)
+    {
+        stats[m.name] = counters[m.value_index];
+    }
+
+    Publish(SessionEvent("session.stats", {
+        { "stats", std::move(stats) }
+    }));
+}
+
+void Session::OnStateUpdateAlert(const lt::state_update_alert* alert)
+{
+    for (const auto& status : alert->status)
+    {
+        const auto it = m_torrents.find(status.info_hashes);
+
+        // recieved alert for missing torrent or torrent not Current - we
+        // could have missed an alert
+        if (it == m_torrents.end() || it->second.state != Torrent::State::Current)
+        {
+            BOOST_LOG_TRIVIAL(debug)
+                << Log(status.info_hashes) << "Received state update for non-tracked torrent";
+
+            m_jobs->Trigger<Jobs::ReconcileTorrents>();
+
+            continue;
+        }
+
+        it->second.status = status;
+    }
+}
+
+void Session::OnStorageMovedAlert(const lt::storage_moved_alert* alert)
+{
+    if (!alert->handle.is_valid())
+    {
+        return;
+    }
+
+    BOOST_LOG_TRIVIAL(info)
+        << Log(alert->handle.info_hashes()) << "Storage moved to " << alert->storage_path();
+
+    alert->handle.save_resume_data(
+        lt::torrent_handle::only_if_modified);
+
+    alert->handle.post_status();
+
+    EmitTorrentEvent("torrent.moved", *alert);
+}
+
+void Session::OnStorageMovedFailedAlert(const lt::storage_moved_failed_alert* alert)
+{
+    if (!alert->handle.is_valid())
+    {
+        return;
+    }
+
+    BOOST_LOG_TRIVIAL(warning) << Log(alert->handle.info_hashes()) << alert->message();
+
+    EmitTorrentEvent("torrent.move_failed", *alert);
+}
+
+void Session::OnTorrentErrorAlert(const lt::torrent_error_alert* alert)
+{
+    if (!alert->handle.is_valid())
+    {
+        return;
+    }
+
+    BOOST_LOG_TRIVIAL(error) << Log(alert->handle.info_hashes()) << alert->message();
+
+    EmitTorrentEvent("torrent.error", *alert);
+}
+
+void Session::OnTorrentCheckedAlert(const lt::torrent_checked_alert* alert)
+{
+    if (!alert->handle.is_valid())
+    {
+        return;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << Log(alert->handle.info_hashes())
+        << "Torrent finished checking";
+
+    if (const auto it = m_torrents.find(alert->handle.info_hashes());
+        it != m_torrents.end() && it->second.restore_after_check.has_value())
+    {
+        const auto flags = std::exchange(it->second.restore_after_check, std::nullopt).value();
+
+        if (flags & lt::torrent_flags::auto_managed)
+        {
+            alert->handle.set_flags(lt::torrent_flags::auto_managed);
+        }
+
+        if (flags & lt::torrent_flags::paused)
+        {
+            alert->handle.pause();
+        }
+    }
+
+    EmitTorrentEvent("torrent.checked", *alert);
+}
+
+void Session::OnTorrentFinishedAlert(const lt::torrent_finished_alert* alert)
+{
+    if (!alert->handle.is_valid())
+    {
+        return;
+    }
+
+    const auto& status      = alert->handle.status();
+          auto  client_data = alert->handle.userdata().get<TorrentClientData>();
+
+    // libtorrent posts this on every transition into finished (startup checks, rechecks)
+    // 'first' is true exactly once per torrent - the first time it finishes with payload
+    // we downloaded.
+
+    bool first = false;
+
+    if (client_data != nullptr && !client_data->completed_at.has_value())
+    {
+        client_data->completed_at = std::time(nullptr);
+
+        AddTorrentParams::UpdateClientData(
+            m_options.db,
+            m_id,
+            status.info_hashes,
+            *client_data);
+
+        first = status.total_payload_download > 0;
+    }
+
+    if (first)
+    {
+        BOOST_LOG_TRIVIAL(info) << Log(status.info_hashes) << "Torrent finished";
+    }
+
+    status.handle.save_resume_data(
+        lt::torrent_handle::only_if_modified);
+
+    EmitTorrentEvent("torrent.finished", *alert, { { "first", first } });
+}
+
+void Session::OnTorrentPausedAlert(const lt::torrent_paused_alert* alert)
+{
+    BOOST_LOG_TRIVIAL(debug)
+        << Log(alert->handle.info_hashes()) << "Torrent paused";
+
+    EmitTorrentEvent("torrent.paused", *alert);
+}
+
+void Session::OnTrackerErrorAlert(const lt::tracker_error_alert* alert)
+{
+    if (alert->error == lt::errors::announce_skipped)
+    {
+        return;
+    }
+
+    EmitTorrentEvent("tracker.error", *alert);
 }
 
 void Session::ReconcileTorrents()

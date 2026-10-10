@@ -17,6 +17,7 @@
 
 namespace porla
 {
+    class AlertDispatcher;
     class Events;
     class Scheduler;
     struct Torrent;
@@ -97,11 +98,30 @@ namespace porla
     private:
         void ProcessAlert(const lt::alert* alert);
 
+        // publishes alerts of type A as the torrent event `name`, nothing more
+        template<typename A>
+        void Forward(std::string name);
+
+        // registers all alert handlers
+        void RegisterAlertHandlers();
+
         void OnAddTorrentAlert(const lt::add_torrent_alert* alert);
-        void OnFileErrorAlert(const lt::file_error_alert* alert);
+        void OnAlertsDroppedAlert(const lt::alerts_dropped_alert* alert);
+        void OnListenFailedAlert(const lt::listen_failed_alert* alert);
+        void OnListenSucceededAlert(const lt::listen_succeeded_alert* alert);
+        void OnMetadataReceivedAlert(const lt::metadata_received_alert* alert);
         void OnSaveResumeDataAlert(const lt::save_resume_data_alert* alert);
+        void OnSessionStatsAlert(const lt::session_stats_alert* alert);
+        void OnStateUpdateAlert(const lt::state_update_alert* alert);
+        void OnStorageMovedAlert(const lt::storage_moved_alert* alert);
+        void OnStorageMovedFailedAlert(const lt::storage_moved_failed_alert* alert);
+        void OnTorrentCheckedAlert(const lt::torrent_checked_alert* alert);
+        void OnTorrentErrorAlert(const lt::torrent_error_alert* alert);
+        void OnTorrentFinishedAlert(const lt::torrent_finished_alert* alert);
+        void OnTorrentPausedAlert(const lt::torrent_paused_alert* alert);
         void OnTorrentRemovedAlert(const lt::torrent_removed_alert* alert);
         void OnTorrentResumedAlert(const lt::torrent_resumed_alert* alert);
+        void OnTrackerErrorAlert(const lt::tracker_error_alert* alert);
 
         bool Track(const lt::torrent_status& status);
 
@@ -124,6 +144,7 @@ namespace porla
 
         std::unique_ptr<lt::session>       m_session;
         std::map<lt::info_hash_t, Torrent> m_torrents;
+        std::unique_ptr<AlertDispatcher>   m_alert_dispatcher;
         std::unique_ptr<Scheduler>         m_jobs;
     };
 }
