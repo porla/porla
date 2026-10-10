@@ -267,6 +267,6 @@ void Session::OnTrackerErrorAlert(const lt::tracker_error_alert* alert)
         return;
     }
 
-    EmitTorrentEvent("tracker.error", *alert);
+    EmitTorrentEvent("torrent.tracker_error", *alert);
 }
 
