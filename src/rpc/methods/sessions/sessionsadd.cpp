@@ -11,9 +11,8 @@ using porla::Rpc::Methods::Sessions::SessionsAddReq;
 using porla::Rpc::Methods::Sessions::SessionsAddRes;
 using porla::Utils::LibtorrentSettingsPack;
 
-SessionsAdd::SessionsAdd(sqlite3* db, porla::Sessions& sessions)
-    : m_db(db),
-    m_sessions(sessions)
+SessionsAdd::SessionsAdd(porla::Sessions& sessions)
+    : m_sessions(sessions)
 {
 }
 
@@ -30,7 +29,7 @@ void SessionsAdd::Execute(const SessionsAddReq& req, ResponseWriterHandle cb)
         settings,
         req.settings.value_or(std::map<std::string, nlohmann::json>()));
 
-    const auto session = Data::Models::Sessions::Session{
+    const auto session = porla::Sessions::Record{
         .id                    = -1,
         .name                  = req.name,
         .is_default            = false,

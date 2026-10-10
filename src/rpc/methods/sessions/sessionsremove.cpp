@@ -8,15 +8,14 @@ using porla::Rpc::Methods::Sessions::SessionsRemove;
 using porla::Rpc::Methods::Sessions::SessionsRemoveReq;
 using porla::Rpc::Methods::Sessions::SessionsRemoveRes;
 
-SessionsRemove::SessionsRemove(sqlite3* db, porla::Sessions& sessions)
-    : m_db(db)
-    , m_sessions(sessions)
+SessionsRemove::SessionsRemove(porla::Sessions& sessions)
+    : m_sessions(sessions)
 {
 }
 
 void SessionsRemove::Execute(const SessionsRemoveReq& req, ResponseWriterHandle cb)
 {
-    const auto session = porla::Data::Models::Sessions::GetById(m_db, req.id);
+    const auto session = m_sessions.Find(req.id);
 
     if (!session)
     {

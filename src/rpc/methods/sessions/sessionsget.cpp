@@ -8,15 +8,14 @@ using porla::Rpc::Methods::Sessions::SessionsGet;
 using porla::Rpc::Methods::Sessions::SessionsGetReq;
 using porla::Rpc::Methods::Sessions::SessionsGetRes;
 
-SessionsGet::SessionsGet(sqlite3* db, porla::Sessions& sessions)
-    : m_db(db)
-    , m_sessions(sessions)
+SessionsGet::SessionsGet(porla::Sessions& sessions)
+    : m_sessions(sessions)
 {
 }
 
 void SessionsGet::Execute(const SessionsGetReq &req, ResponseWriterHandle cb)
 {
-    const auto& session = Data::Models::Sessions::GetById(m_db, req.id);
+    const auto& session = m_sessions.Find(req.id);
 
     if (!session)
     {

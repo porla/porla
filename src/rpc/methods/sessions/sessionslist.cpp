@@ -9,15 +9,14 @@ using porla::Rpc::Methods::Sessions::SessionsList;
 using porla::Rpc::Methods::Sessions::SessionsListReq;
 using porla::Rpc::Methods::Sessions::SessionsListRes;
 
-SessionsList::SessionsList(sqlite3* db, porla::Sessions& sessions)
-    : m_db(db)
-    , m_sessions(sessions)
+SessionsList::SessionsList(porla::Sessions& sessions)
+    : m_sessions(sessions)
 {
 }
 
 void SessionsList::Execute(const SessionsListReq& req, ResponseWriterHandle cb)
 {
-    const auto& sessions = Data::Models::Sessions::List(m_db);
+    const auto& sessions = m_sessions.List();
 
     std::vector<SessionsListRes::Session> session_items;
 
