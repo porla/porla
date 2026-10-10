@@ -7,8 +7,26 @@
 
 #include "../pluginstate.hpp"
 #include "../../torrentclientdata.hpp"
+#include "../../utils/limits.hpp"
 
 using porla::Lua::Types::LtTorrentHandle;
+
+namespace
+{
+    int AssertPeerLimit(int limit)
+    {
+        const auto val = porla::Utils::CheckPeerLimit(limit);
+        if (val) { return *val; }
+        throw sol::error("Invalid value");
+    }
+
+    int AssertRateLimit(int limit)
+    {
+        const auto val = porla::Utils::CheckRateLimit(limit);
+        if (val) { return *val; }
+        throw sol::error("Invalid value");
+    }
+}
 
 void LtTorrentHandle::Register(sol::state& lua)
 {
@@ -176,7 +194,7 @@ void LtTorrentHandle::Register(sol::state& lua)
         },
         // save_resume_data
         // scrape_tracker
-        "set_download_limit",         &lt::torrent_handle::set_download_limit,
+        "set_download_limit",         [](const lt::torrent_handle& th, int value) { th.set_download_limit(AssertRateLimit(value)); },
         "set_flags",                  sol::overload(
             [](const lt::torrent_handle& th, const lt::torrent_flags_t& flags) { th.set_flags(flags); },
             [](const lt::torrent_handle& th, const lt::torrent_flags_t& flags, const lt::torrent_flags_t& mask)
@@ -184,14 +202,14 @@ void LtTorrentHandle::Register(sol::state& lua)
                 th.set_flags(flags, mask);
             }
         ),
-        "set_max_connections",        &lt::torrent_handle::set_max_connections,
-        "set_max_uploads",            &lt::torrent_handle::set_max_uploads,
+        "set_max_connections",        [](const lt::torrent_handle& th, int value) { th.set_max_connections(AssertPeerLimit(value)); },
+        "set_max_uploads",            [](const lt::torrent_handle& th, int value) { th.set_max_uploads(AssertPeerLimit(value)); },
         // set_metadata
         // set_piece_deadline
         // set_sequential_range
         "set_ssl_certificate",        &lt::torrent_handle::set_ssl_certificate,
         "set_ssl_certificate_buffer", &lt::torrent_handle::set_ssl_certificate_buffer,
-        "set_upload_limit",           &lt::torrent_handle::set_upload_limit,
+        "set_upload_limit",           [](const lt::torrent_handle& th, int value) { th.set_upload_limit(AssertRateLimit(value)); },
         "status",                     [](const lt::torrent_handle& th) { return th.status(); },
         "torrent_file",               &lt::torrent_handle::torrent_file,
         "trackers",                   [](const lt::torrent_handle& th) { return sol::as_table(th.trackers()); },

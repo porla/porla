@@ -7,6 +7,7 @@
 #include "../../../sessions/torrent.hpp"
 #include "../../../torrents.hpp"
 #include "../../../torrentclientdata.hpp"
+#include "../../../utils/limits.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsPropertiesSet;
 using porla::Rpc::Methods::Torrents::TorrentsPropertiesSetReq;
@@ -49,8 +50,16 @@ void TorrentsPropertiesSet::Execute(const TorrentsPropertiesSetReq& req, Respons
         return cb->Error(-4, "Torrent not valid");
     }
 
-    if (const auto val = req.download_limit)
-        torrent->status.handle.set_download_limit(*val);
+    // check all limits
+    const auto download_limit  = req.download_limit  ? Utils::CheckRateLimit(*req.download_limit)  : std::nullopt;
+    const auto upload_limit    = req.upload_limit    ? Utils::CheckRateLimit(*req.upload_limit)    : std::nullopt;
+    const auto max_connections = req.max_connections ? Utils::CheckPeerLimit(*req.max_connections) : std::nullopt;
+    const auto max_uploads     = req.max_uploads     ? Utils::CheckPeerLimit(*req.max_uploads)     : std::nullopt;
+
+    if (req.download_limit  && !download_limit)  return cb->Error(-5, "Invalid download_limit");
+    if (req.upload_limit    && !upload_limit)    return cb->Error(-5, "Invalid upload_limit");
+    if (req.max_connections && !max_connections) return cb->Error(-5, "Invalid max_connections");
+    if (req.max_uploads     && !max_uploads)     return cb->Error(-5, "Invalid max_uploads");
 
     if (req.flags.has_value() && req.flags_mask.has_value())
     {
@@ -60,14 +69,10 @@ void TorrentsPropertiesSet::Execute(const TorrentsPropertiesSetReq& req, Respons
         torrent->status.handle.set_flags(flags, mask);
     }
 
-    if (const auto val = req.max_connections)
-        torrent->status.handle.set_max_connections(*val);
-
-    if (const auto val = req.max_uploads)
-        torrent->status.handle.set_max_uploads(*val);
-
-    if (const auto val = req.upload_limit)
-        torrent->status.handle.set_upload_limit(*val);
+    if (download_limit)  torrent->status.handle.set_download_limit(*download_limit);
+    if (max_connections) torrent->status.handle.set_max_connections(*max_connections);
+    if (max_uploads)     torrent->status.handle.set_max_uploads(*max_uploads);
+    if (upload_limit)    torrent->status.handle.set_upload_limit(*upload_limit);
 
     if (req.category.has_value() || req.tags.has_value())
     {
@@ -81,7 +86,7 @@ void TorrentsPropertiesSet::Execute(const TorrentsPropertiesSetReq& req, Respons
 
         if (!updated)
         {
-            return cb->Error(-5, "Torrent has no client data - cannot set category or tags");
+            return cb->Error(-6, "Torrent has no client data - cannot set category or tags");
         }
     }
 
