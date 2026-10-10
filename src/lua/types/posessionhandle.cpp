@@ -22,7 +22,10 @@ void PoSessionHandle::Register(sol::state& lua)
         "apply_settings", [](const PoSessionHandle& session, lt::settings_pack& sp)
         {
             Utils::LibtorrentSettingsPack::UpdateStatic(sp);
-            session.Lock()->Libtorrent().apply_settings(sp);
+
+            auto s = session.Lock();
+            s->Libtorrent().apply_settings(sp);
+            s->Persist();
         },
         "get_settings", [](const PoSessionHandle& session)
         {
