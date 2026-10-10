@@ -295,7 +295,8 @@ void PoTcpClient::WriteComplete(const boost::system::error_code& ec, std::size_t
 
     if (write_op.callback_id.has_value())
     {
-        state->InvokeCallback(write_op.callback_id.value());
+        ec  ? state->InvokeCallback(write_op.callback_id.value(), ec.message())
+            : state->InvokeCallback(write_op.callback_id.value(), sol::lua_nil);
     }
 
     boost::asio::post(state->io, std::bind(&PoTcpClient::WriteNext, shared_from_this()));
