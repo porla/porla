@@ -120,6 +120,10 @@ bool Session::Add(lt::add_torrent_params params, Torrent::State state)
     it->second.state = state;
     it->second.data  = std::move(data);
 
+    // always set the update_subscribe flag so we are always getting
+    // the update alerts
+    params.flags |= lt::torrent_flags::update_subscribe;
+
     try
     {
         m_session->async_add_torrent(std::move(params));
