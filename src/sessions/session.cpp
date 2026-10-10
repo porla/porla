@@ -367,8 +367,8 @@ void Session::RegisterAlertHandlers()
 
     Forward<lt::file_error_alert>("torrent.file_error");
     Forward<lt::state_changed_alert>("torrent.state_changed");
-    Forward<lt::tracker_reply_alert>("tracker.reply");
-    Forward<lt::tracker_warning_alert>("tracker.warning");
+    Forward<lt::tracker_reply_alert>("torrent.tracker_reply");
+    Forward<lt::tracker_warning_alert>("torrent.tracker_warning");
 }
 
 void Session::ReconcileTorrents()

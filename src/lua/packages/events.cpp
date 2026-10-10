@@ -49,10 +49,10 @@ namespace
         "torrent.removed",
         "torrent.resumed",
         "torrent.state_changed",
-        "torrent.userdata_updated",
-        "tracker.error",
-        "tracker.reply",
-        "tracker.warning"
+        "torrent.tracker_error",
+        "torrent.tracker_reply",
+        "torrent.tracker_warning",
+        "torrent.userdata_updated"
     };
 
     sol::table ToLua(LuaState& state, const porla::Event& event)
