@@ -198,14 +198,9 @@ int AddTorrentParams::Count(sqlite3 *db, const int session_id)
 
 void AddTorrentParams::Insert(sqlite3 *db, const int session_id, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const TorrentClientData& client_data, const int queue_pos)
 {
-    const std::map<std::string, json> userdata = {
-        {"category", client_data.category ? json(client_data.category.value()) : json()},
-        {"metadata", client_data.metadata},
-        {"tags",     client_data.tags}
-    };
+    const std::string userdata = SerializeClientData(client_data);
 
     const std::vector<char> buf = WriteCleanResumeData(params);
-    const std::string userdata_str = json(userdata).dump();
 
     auto stmt = Statement::Prepare(
         db,
@@ -233,7 +228,7 @@ void AddTorrentParams::Insert(sqlite3 *db, const int session_id, const lt::info_
         .Bind("$session_id", session_id)
         .Bind("$queue_position", queue_pos)
         .Bind("$params", buf)
-        .Bind("$userdata", userdata_str)
+        .Bind("$userdata", userdata)
         .Execute();
 
     if (params.ti)
