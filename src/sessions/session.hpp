@@ -87,12 +87,16 @@ namespace porla
         // removes any torrent handles that are invalid (is_valid()=false)
         void UntrackInvalidTorrents();
 
-        // loads the next chunk of torrents
-        bool LoadChunk(Data::Models::AddTorrentParams::Cursor& cursor, int limit, int& loaded);
-        void LoadDone(int loaded, bool failed);
+        // adds a torrent to libtorrent. returns false if it could not be added.
+        // takes ownership of the userdata even on fail.
+        bool Add(lt::add_torrent_params params, Torrent::State state = Torrent::State::Adding);
+
+        // process pending libtorrent alerts
+        void ReadAlerts();
 
     private:
-        void ReadAlerts();
+        void OnLoaded(int loaded, bool failed);
+
         void ProcessAlert(const lt::alert* alert);
 
         void OnAddTorrentAlert(const lt::add_torrent_alert* alert);
@@ -123,7 +127,5 @@ namespace porla
         std::unique_ptr<lt::session>       m_session;
         std::map<lt::info_hash_t, Torrent> m_torrents;
         std::unique_ptr<Scheduler>         m_jobs;
-
-        std::unordered_set<lt::info_hash_t> m_adding;
     };
 }

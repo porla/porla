@@ -4,6 +4,7 @@
 
 #include "../session.hpp"
 
+using porla::Data::Models::AddTorrentParams;
 using porla::Jobs::LoadTorrents;
 
 namespace
@@ -14,19 +15,41 @@ namespace
     static constexpr auto kLoadRetryMaxDelay  = std::chrono::milliseconds(5000);
 }
 
-LoadTorrents::LoadTorrents(int count, std::function<void()> callback)
-    : m_count(count)
-    , m_callback(callback)
+LoadTorrents::LoadTorrents(sqlite3* db, int count, std::function<void(const Output&)> callback)
+    : m_db(db)
+    , m_count(count)
+    , m_callback(std::move(callback))
 {
 }
 
 porla::Job::Result LoadTorrents::Run(Session& session)
 {
+    try
+    {
+        session.ReadAlerts();
+    }
+    catch(const std::exception& e)
+    {
+        BOOST_LOG_TRIVIAL(error) << session.Log() << "Failed to read alerts during load: " << e.what();
+    }
+    
     bool more = false;
 
     try
     {
-        more     = session.LoadChunk(m_cursor, kLoadChunkSize, m_loaded);
+        more     = AddTorrentParams::Next(
+            m_db,
+            session.Id(),
+            m_cursor,
+            kLoadChunkSize,
+            [&](lt::add_torrent_params& params)
+            {
+                if (session.Add(params, Torrent::State::Loading))
+                {
+                    m_loaded++;
+                }
+            });
+
         m_errors = 0;
     }
     catch(const std::exception& e)
@@ -88,19 +111,17 @@ porla::Job::Result LoadTorrents::Run(Session& session)
         }
     }
 
-    session.LoadDone(m_loaded, m_failed);
-
-    Complete(session);
+    Complete(session, false);
 
     return Done();
 }
 
 void LoadTorrents::Stopped(Session& session)
 {
-    Complete(session);
+    Complete(session, true);
 }
 
-void LoadTorrents::Complete(const Session& session)
+void LoadTorrents::Complete(const Session& session, bool stopped)
 {
     auto callback = std::exchange(m_callback, nullptr);
 
@@ -111,7 +132,11 @@ void LoadTorrents::Complete(const Session& session)
 
     try
     {
-        callback();
+        callback(Output{
+            .loaded  = m_loaded,
+            .failed  = m_failed,
+            .stopped = stopped
+        });
     }
     catch(const std::exception& e)
     {

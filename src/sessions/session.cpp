@@ -48,39 +48,8 @@ Session::Session(const SessionOptions& options)
 
 Session::~Session()
 {
-    if (m_session == nullptr)
-    {
-        return;
-    }
-
-    std::vector<TorrentClientData*> untracked;
-
-    try
-    {
-        for (const auto& th : m_session->get_torrents())
-        {
-            if (m_torrents.contains(th.info_hashes()))
-            {
-                continue;
-            }
-
-            if (auto* client_data = th.userdata().get<TorrentClientData>())
-            {
-                untracked.push_back(client_data);
-            }
-        }
-    }
-    catch(const std::exception& e)
-    {
-        BOOST_LOG_TRIVIAL(error) << Log() << "Failed to list torrents on teardown: " << e.what();
-    }
-
+    // bye bye libtorrent session
     m_session.reset();
-
-    for (auto* d : untracked)
-    {
-        delete d;
-    }
 }
 
 void Session::Start(std::function<void()> load_callback)
@@ -111,7 +80,19 @@ void Session::Start(std::function<void()> load_callback)
     BOOST_LOG_TRIVIAL(info)
         << Log() << "Loading " << count << " torrent(s) from storage";
 
-    m_jobs->Start(std::make_unique<Jobs::LoadTorrents>(count, std::move(load_callback)));
+    m_jobs->Start(std::make_unique<Jobs::LoadTorrents>(
+        m_options.db,
+        count,
+        [t = weak_from_this(), callback = std::move(load_callback)](const Jobs::LoadTorrents::Output& output)
+        {
+            // only trigger OnLoaded if the job wasn't stopped
+            if (const auto self = t.lock(); self != nullptr && !output.stopped)
+            {
+                self->OnLoaded(output.loaded, output.failed);
+            }
+
+            if (callback) { callback(); }
+        }));
 }
 
 const porla::Torrent* Session::Find(const lt::info_hash_t& hash) const
@@ -129,6 +110,43 @@ const porla::Torrent* Session::Find(const lt::info_hash_t& hash) const
 std::size_t Session::Count() const
 {
     return static_cast<std::size_t>(std::ranges::distance(Torrents()));
+}
+
+bool Session::Add(lt::add_torrent_params params, Torrent::State state)
+{
+    // take ownership of the userdata immediately
+    std::unique_ptr<TorrentClientData> data(params.userdata.get<TorrentClientData>());
+
+    const auto hash = params.ti
+        ? params.ti->info_hashes()
+        : params.info_hashes;
+
+    const auto [ it, inserted ] = m_torrents.try_emplace(hash);
+
+    if (!inserted)
+    {
+        return false;
+    }
+
+    if (data != nullptr)
+    {
+        data->session = weak_from_this();
+    }
+
+    it->second.state = state;
+    it->second.data  = std::move(data);
+
+    try
+    {
+        m_session->async_add_torrent(std::move(params));
+    }
+    catch(...)
+    {
+        m_torrents.erase(it);
+        throw;
+    }
+
+    return true;
 }
 
 void Session::Stop()
@@ -283,7 +301,7 @@ void Session::Recheck(const lt::info_hash_t& hash)
 {
     const auto it = m_torrents.find(hash);
 
-    if (it == m_torrents.end())
+    if (it == m_torrents.end() || it->second.state != Torrent::State::Current)
     {
         BOOST_LOG_TRIVIAL(warning)
             << Log(hash) << "Failed to find torrent for rechecking";
@@ -309,68 +327,61 @@ void Session::Recheck(const lt::info_hash_t& hash)
     handle.force_recheck();
 }
 
-bool Session::LoadChunk(Data::Models::AddTorrentParams::Cursor& cursor, int limit, int& loaded)
-{
-    // drain alert queue between chunks
-    try
-    {   
-        ReadAlerts();
-    }
-    catch(const std::exception& e)
-    {
-        BOOST_LOG_TRIVIAL(error) << Log() << "Failed to read alerts during load: " << e.what();
-    }
-
-    return AddTorrentParams::Next(
-        m_options.db,
-        m_id,
-        cursor,
-        limit,
-        [&](lt::add_torrent_params& params)
-        {
-            if (m_adding.contains(params.info_hashes)
-                || m_torrents.contains(params.info_hashes))
-            {
-                // never handed to libtorrent, so nothing else frees it
-                delete params.userdata.get<TorrentClientData>();
-                return;
-            }
-
-            params.userdata.get<TorrentClientData>()->session = weak_from_this();
-
-            m_adding.insert(params.info_hashes);
-            m_session->async_add_torrent(params);
-
-            loaded++;
-        });
-}
-
-void Session::LoadDone(int loaded, bool failed)
+void Session::OnLoaded(int loaded, bool failed)
 {
     if (loaded > 0)
     {
         try
         {
-            const auto& all_statuses = m_session->get_torrent_status(
-                [](const auto& ts) { return true; },
+            const auto statuses = m_session->get_torrent_status(
+                [](const auto&) { return true; },
                 lt::status_flags_t::all());
 
-            for (const auto& ts : all_statuses)
+            ReadAlerts();
+
+            std::unordered_set<lt::info_hash_t> live;
+
+            for (const auto& ts : statuses)
             {
-                if (const auto it = m_torrents.find(ts.info_hashes); it != m_torrents.end())
+                live.insert(ts.info_hashes);
+
+                const auto it = m_torrents.find(ts.info_hashes);
+
+                if (it == m_torrents.end() || it->second.state == Torrent::State::Adding)
                 {
-                    it->second.status = ts;
+                    // not ours. will be adopted by an add torrent alert or by reconciliation
+                    continue;
                 }
-                else if (m_adding.contains(ts.info_hashes))
+
+                it->second.state  = Torrent::State::Current;
+                it->second.status = ts;
+            }
+
+            int lost = 0;
+
+            for (auto it = m_torrents.begin(); it != m_torrents.end();)
+            {
+                if (it->second.state == Torrent::State::Loading && !live.contains(it->first))
                 {
-                    Track(ts);
+                    it = m_torrents.erase(it);
+                    lost++;
+                }
+                else
+                {
+                    ++it;
                 }
             }
 
-            m_adding.clear();
+            if (lost > 0)
+            {
+                BOOST_LOG_TRIVIAL(warning)
+                    << Log() << lost << " stored torrent(s) failed to load and their alerts were lost";
+            }
         }
-        catch (const std::exception& e)
+        catch(const std::exception& e)
         {
+            // the torrents are loaded either way - promotion falls to their add
+            // alerts or reconciliation, so carry on and finish the load
             BOOST_LOG_TRIVIAL(error)
                 << Log() << "Failed to read torrent status after load: " << e.what();
         }
@@ -527,7 +538,9 @@ void Session::ProcessAlert(const lt::alert* alert)
             {
                 const auto it = m_torrents.find(status.info_hashes);
 
-                if (it == m_torrents.end())
+                // recieved alert for missing torrent or torrent not Current - we
+                // could have missed an alert
+                if (it == m_torrents.end() || it->second.state != Torrent::State::Current)
                 {
                     BOOST_LOG_TRIVIAL(debug)
                         << Log(status.info_hashes) << "Received state update for non-tracked torrent";
@@ -617,9 +630,6 @@ void Session::ProcessAlert(const lt::alert* alert)
                 it != m_torrents.end() && it->second.restore_after_check.has_value())
             {
                 const auto flags = std::exchange(it->second.restore_after_check, std::nullopt).value();
-
-                // TODO: Unsure about the order here. If there are reports that force-checking a torrent
-                //       leads to any issues with resume/pause, the order of these statements might matter.
 
                 if (flags & lt::torrent_flags::auto_managed)
                 {
@@ -724,64 +734,68 @@ void Session::ProcessAlert(const lt::alert* alert)
 
 void Session::OnAddTorrentAlert(const lt::add_torrent_alert* alert)
 {
+    const auto key = alert->params.ti
+        ? alert->params.ti->info_hashes()
+        : alert->params.info_hashes;
+
     if (alert->error)
     {
-        const auto name = alert->params.ti
-            ? alert->params.ti->name()
-            : alert->params.name;
+        BOOST_LOG_TRIVIAL(error) << Log(key) << "Failed to add torrent: " << alert->error.what();
 
-        const auto info_hash = alert->params.ti
-            ? alert->params.ti->info_hashes()
-            : alert->params.info_hashes;
-
-        BOOST_LOG_TRIVIAL(error)
-            << Log(info_hash)
-            << "Failed to add torrent: " << alert->error.what();
-
-        m_adding.erase(info_hash);
-
-        delete alert->params.userdata.get<TorrentClientData>();
-
-        return;
-    }
-
-    // this torrent was part of the load - we store it in our map
-    // but we don't announce it
-    if (m_adding.erase(alert->handle.info_hashes()) > 0)
-    {
-        lt::torrent_status status;
-        status.handle      = alert->handle;
-        status.info_hashes = alert->handle.info_hashes();
-
-        Track(status);
-
-        return;
-    }
-
-    const auto data   = alert->handle.userdata().get<TorrentClientData>();
-    const auto status = alert->handle.status();
-
-    if (!Track(status))
-    {
-        BOOST_LOG_TRIVIAL(debug)
-            << Log(status.info_hashes)
-            << "Torrent already in session - ignoring duplicate add";
-
-        auto* extra = alert->params.userdata.get<TorrentClientData>();
-
-        if (extra != nullptr && extra != data)
+        if (const auto it = m_torrents.find(key); it != m_torrents.end()
+            && it->second.state != Torrent::State::Current)
         {
-            delete extra;
+            m_torrents.erase(it);
         }
 
         return;
     }
 
-    if (data == nullptr)
+    const auto hash = alert->handle.info_hashes();
+          auto it   = m_torrents.find(key);
+
+    if (it != m_torrents.end() && key != hash)
     {
-        BOOST_LOG_TRIVIAL(error)
-            << Log(status.info_hashes) << "Missing userdata for torrent";
+        UpdateInfoHashes(key, hash);
+        it = m_torrents.find(hash);
     }
+
+    if (it == m_torrents.end())
+    {
+        BOOST_LOG_TRIVIAL(warning)
+            << Log(hash) << "Received add torrent alert for a torrent Porla did not add";
+
+        Track(alert->handle.status());
+
+        it = m_torrents.find(hash);
+
+        it->second.state = Torrent::State::Adding;
+    }
+
+    auto& torrent = it->second;
+
+    switch (torrent.state)
+    {
+    case Torrent::State::Current:
+        return;
+    case Torrent::State::Loading:
+    {
+        // a torrent added from the sqlite db - promote it to current
+        // but don't announce it to the world 
+        torrent.state              = Torrent::State::Current;
+        torrent.status.handle      = alert->handle;
+        torrent.status.info_hashes = hash;
+
+        return;
+    }
+    case Torrent::State::Adding:
+        break;
+    }
+
+    const auto status = alert->handle.status();
+
+    torrent.state  = Torrent::State::Current;
+    torrent.status = status;
 
     const TorrentClientData fallback;
 
@@ -792,13 +806,13 @@ void Session::OnAddTorrentAlert(const lt::add_torrent_alert* alert)
             m_id,
             alert->handle.info_hashes(),
             alert->params,
-            data == nullptr ? fallback : *data,
+            torrent.data == nullptr ? fallback : *torrent.data,
             static_cast<int>(status.queue_position));
     }
     catch(const std::exception& e)
     {
         BOOST_LOG_TRIVIAL(error)
-            << Log(status.info_hashes) << "Failed to insert: " << e.what();
+            << Log(hash) << "Failed to insert: " << e.what();
     }
 
     alert->handle.save_resume_data(
@@ -841,14 +855,7 @@ void Session::OnTorrentRemovedAlert(const lt::torrent_removed_alert* alert)
     BOOST_LOG_TRIVIAL(info)
         << Log(alert->info_hashes) << "Torrent removed";
 
-    const bool loading = m_adding.contains(alert->info_hashes);
-
     UntrackTorrent(alert->info_hashes);
-
-    if (loading)
-    {
-        delete alert->userdata.get<TorrentClientData>();
-    }
 }
 
 void Session::OnTorrentResumedAlert(const lt::torrent_resumed_alert* alert)
@@ -875,13 +882,18 @@ void Session::ReconcileTorrents()
         return;
     }
 
-    std::unordered_set<lt::info_hash_t>                          live;
-    std::optional<std::map<lt::torrent_handle, lt::info_hash_t>> keys;
+    // process all libtorrent alerts to make sure missings adds
+    // really are missing
+    ReadAlerts();
+
+    std::unordered_set<lt::info_hash_t>                                live;
+    std::optional<std::map<const TorrentClientData*, lt::info_hash_t>> owners;
 
     int tracked   = 0;
     int loaded    = 0;
     int rehashed  = 0;
     int untracked = 0;
+    int failed    = 0;
 
     const Transaction tx(m_options.db);
 
@@ -891,58 +903,81 @@ void Session::ReconcileTorrents()
 
         live.insert(hash);
 
-        if (m_torrents.contains(hash))
-        {
-            continue;
-        }
+        auto it = m_torrents.find(hash);
 
-        if (!keys)
+        if (it == m_torrents.end())
         {
-            keys.emplace();
-
-            for (const auto& [ h, s ] : m_torrents)
+            if (!owners)
             {
-                keys->emplace(s.status.handle, h);
+                owners.emplace();
+
+                for (const auto& [ h, t ] : m_torrents)
+                {
+                    if (t.data != nullptr)
+                    {
+                        owners->emplace(t.data.get(), h);
+                    }
+                }
+            }
+
+            if (const auto owner = owners->find(th.userdata().get<TorrentClientData>()); owner != owners->end())
+            {
+                UpdateInfoHashes(owner->second, hash);
+
+                it = m_torrents.find(hash);
+
+                if (it->second.state == Torrent::State::Current)
+                {
+                    try
+                    {
+                        const auto params = th.get_resume_data(lt::torrent_handle::save_info_dict);
+
+                        AddTorrentParams::Update(
+                            m_options.db,
+                            m_id,
+                            hash,
+                            params,
+                            th.userdata().get<TorrentClientData>(),
+                            static_cast<int>(th.queue_position()));
+                    }
+                    catch(const std::exception& e)
+                    {
+                        BOOST_LOG_TRIVIAL(error) << Log(hash) << "Failed to store torrent with updated hashes: " << e.what();
+                    }
+
+                    rehashed++;
+
+                    continue;
+                }
             }
         }
 
-        if (const auto key = keys->find(th); key != keys->end())
+        if (it != m_torrents.end())
         {
-            UpdateInfoHashes(key->second, hash);
-
-            try
+            if (it->second.state == Torrent::State::Current)
             {
-                const auto params = th.get_resume_data(lt::torrent_handle::save_info_dict);
-
-                AddTorrentParams::Update(
-                    m_options.db,
-                    m_id,
-                    hash,
-                    params,
-                    th.userdata().get<TorrentClientData>(),
-                    static_cast<int>(th.queue_position()));
-            }
-            catch(const std::exception& e)
-            {
-                BOOST_LOG_TRIVIAL(error) << Log(hash) << "Failed to store torrent with updated hashes: " << e.what();
+                continue;
             }
 
-            rehashed++;
+            const bool from_db = it->second.state == Torrent::State::Loading;
 
-            continue;
+            it->second.state  = Torrent::State::Current;
+            it->second.status = th.status();
+
+            if (from_db)
+            {
+                loaded++;
+                continue;
+            }
         }
-
-        const auto status = th.status();
-
-        Track(status);
-
-        if (m_adding.erase(hash) > 0)
+        else
         {
-            loaded++;
-            continue;
+            // a torrent in libtorrent that Porla isn't trackign
+            Track(th.status());
+            it = m_torrents.find(hash);
         }
 
-        const auto* data = th.userdata().get<TorrentClientData>();
+        const auto* data = it->second.data.get();
 
         try
         {
@@ -954,7 +989,7 @@ void Session::ReconcileTorrents()
                 hash,
                 params,
                 data == nullptr ? TorrentClientData{} : *data,
-                static_cast<int>(status.queue_position));
+                static_cast<int>(it->second.status.queue_position));
         }
         catch (const std::exception& e)
         {
@@ -991,12 +1026,22 @@ void Session::ReconcileTorrents()
 
         for (const auto& hash : gone)
         {
-            UntrackTorrent(hash);
-            untracked++;
+            const auto it = m_torrents.find(hash);
+
+            if (it->second.state == Torrent::State::Current)
+            {
+                UntrackTorrent(hash);
+                untracked++;
+                continue;
+            }
+
+            m_torrents.erase(it);
+
+            failed++;
         }
     }
 
-    if (tracked + loaded + rehashed + untracked == 0)
+    if (tracked + loaded + rehashed + untracked + failed == 0)
     {
         return;
     }
@@ -1006,7 +1051,8 @@ void Session::ReconcileTorrents()
         << " tracked=" << tracked
         << " loaded=" << loaded
         << " rehashed=" << rehashed
-        << " untracked=" << untracked;
+        << " untracked=" << untracked
+        << " failed=" << failed;
 }
 
 bool Session::Track(const lt::torrent_status& status)
@@ -1030,7 +1076,8 @@ void Session::UntrackInvalidTorrents()
 
     for (const auto& [ hash, t ] : m_torrents)
     {
-        if (!t.status.handle.is_valid())
+        // torrents that are still begin added have no handle yet
+        if (t.state == Torrent::State::Current && !t.status.handle.is_valid())
         {
             gone.push_back(hash);
         }
@@ -1053,11 +1100,17 @@ void Session::UntrackInvalidTorrents()
 
 void Session::UntrackTorrent(const lt::info_hash_t& hash)
 {
-    m_adding.erase(hash);
+    const auto it = m_torrents.find(hash);
 
-    const bool tracked = m_torrents.erase(hash) > 0;
+    const bool is_current = it != m_torrents.end()
+        && it->second.state == Torrent::State::Current;
 
-    if (tracked)
+    if (it != m_torrents.end())
+    {
+        m_torrents.erase(it);
+    }
+
+    if (is_current)
     {
         TorrentEvent removed("torrent.removed");
         removed.info_hash = hash;

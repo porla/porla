@@ -106,13 +106,17 @@ void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandl
             if (target_session == nullptr)
             {
                 BOOST_LOG_TRIVIAL(warning) << "Target session not found - torrent must be added manually";
+                delete state.params.userdata.get<TorrentClientData>();
                 state.writer->Error(-2, "Target session not found - torrent must be added manually");
                 return;
             }
 
-            state.params.userdata.get<TorrentClientData>()->session = target_session;
-
-            target_session->Libtorrent().async_add_torrent(state.params);
+            if (!target_session->Add(state.params))
+            {
+                BOOST_LOG_TRIVIAL(warning) << "Torrent already in target session " << target_session->Name();
+                state.writer->Error(-4, "Torrent already in target session");
+                return;
+            }
 
             BOOST_LOG_TRIVIAL(info) << "Torrent migrated to session " << target_session->Name();
 
