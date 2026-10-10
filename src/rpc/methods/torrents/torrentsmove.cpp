@@ -1,5 +1,7 @@
 #include "torrentsmove.hpp"
 
+#include "resolve.hpp"
+
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
@@ -9,35 +11,18 @@ using porla::Rpc::Methods::Torrents::TorrentsMove;
 using porla::Rpc::Methods::Torrents::TorrentsMoveReq;
 using porla::Rpc::Methods::Torrents::TorrentsMoveRes;
 
-TorrentsMove::TorrentsMove(sqlite3* db, porla::Sessions &sessions)
-    : m_db(db)
-    , m_sessions(sessions)
+TorrentsMove::TorrentsMove(porla::Sessions &sessions)
+    : m_sessions(sessions)
 {
 }
 
 void TorrentsMove::Execute(const TorrentsMoveReq &req, ResponseWriterHandle cb)
 {
-    const auto session = req.session_id.has_value()
-        ? Data::Models::Sessions::GetById(m_db, req.session_id.value())
-        : Data::Models::Sessions::GetDefault(m_db);
+    const auto resolved = ResolveTorrent(m_sessions, req.session_id, req.info_hash, cb);
 
-    if (!session)
+    if (!resolved)
     {
-        return cb->Error(-1, "Session not found");
-    }
-
-    const auto& session_state = m_sessions.Get(session->id);
-
-    if (session_state == nullptr)
-    {
-        return cb->Error(-2, "Session not loaded");
-    }
-
-    const auto torrent = session_state->Find(req.info_hash);
-
-    if (torrent == nullptr)
-    {
-        return cb->Error(-3, "Torrent not found in session");
+        return;
     }
 
     lt::move_flags_t flags = lt::move_flags_t::dont_replace;
@@ -49,12 +34,12 @@ void TorrentsMove::Execute(const TorrentsMoveReq &req, ResponseWriterHandle cb)
         if (req.flags.value() == "fail_if_exist")        flags = lt::move_flags_t::fail_if_exist;
     }
 
-    if (!torrent->status.handle.is_valid())
+    if (!resolved->torrent->status.handle.is_valid())
     {
         return cb->Error(-4, "Torrent not valid");
     }
 
-    torrent->status.handle.move_storage(req.path, flags);
+    resolved->torrent->status.handle.move_storage(req.path, flags);
 
     return cb->Ok(TorrentsMoveRes{});
 }

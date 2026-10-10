@@ -1,5 +1,7 @@
 #include "torrentspropertiesset.hpp"
 
+#include "resolve.hpp"
+
 #include "../../../data/models/addtorrentparams.hpp"
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
@@ -13,41 +15,19 @@ using porla::Rpc::Methods::Torrents::TorrentsPropertiesSet;
 using porla::Rpc::Methods::Torrents::TorrentsPropertiesSetReq;
 using porla::Rpc::Methods::Torrents::TorrentsPropertiesSetRes;
 
-TorrentsPropertiesSet::TorrentsPropertiesSet(sqlite3* db, porla::Sessions& sessions, porla::Torrents& torrents)
-    : m_db(db)
-    , m_sessions(sessions)
+TorrentsPropertiesSet::TorrentsPropertiesSet(porla::Sessions& sessions, porla::Torrents& torrents)
+    : m_sessions(sessions)
     , m_torrents(torrents)
 {
 }
 
 void TorrentsPropertiesSet::Execute(const TorrentsPropertiesSetReq& req, ResponseWriterHandle cb)
 {
-    const auto session = req.session_id.has_value()
-        ? Data::Models::Sessions::GetById(m_db, req.session_id.value())
-        : Data::Models::Sessions::GetDefault(m_db);
+    const auto resolved = ResolveTorrent(m_sessions, req.session_id, req.info_hash, cb);
 
-    if (!session)
+    if (!resolved)
     {
-        return cb->Error(-1, "Session not found");
-    }
-
-    const auto& session_state = m_sessions.Get(session->id);
-
-    if (session_state == nullptr)
-    {
-        return cb->Error(-2, "Session not loaded");
-    }
-
-    const auto torrent = session_state->Find(req.info_hash);
-
-    if (torrent == nullptr)
-    {
-        return cb->Error(-3, "Torrent not found in session");
-    }
-
-    if (!torrent->status.handle.is_valid())
-    {
-        return cb->Error(-4, "Torrent not valid");
+        return;
     }
 
     // check all limits
@@ -66,18 +46,18 @@ void TorrentsPropertiesSet::Execute(const TorrentsPropertiesSetReq& req, Respons
         const auto flags = req.flags.value();
         const auto mask  = req.flags_mask.value();
 
-        torrent->status.handle.set_flags(flags, mask);
+        resolved->torrent->status.handle.set_flags(flags, mask);
     }
 
-    if (download_limit)  torrent->status.handle.set_download_limit(*download_limit);
-    if (max_connections) torrent->status.handle.set_max_connections(*max_connections);
-    if (max_uploads)     torrent->status.handle.set_max_uploads(*max_uploads);
-    if (upload_limit)    torrent->status.handle.set_upload_limit(*upload_limit);
+    if (download_limit)  resolved->torrent->status.handle.set_download_limit(*download_limit);
+    if (max_connections) resolved->torrent->status.handle.set_max_connections(*max_connections);
+    if (max_uploads)     resolved->torrent->status.handle.set_max_uploads(*max_uploads);
+    if (upload_limit)    resolved->torrent->status.handle.set_upload_limit(*upload_limit);
 
     if (req.category.has_value() || req.tags.has_value())
     {
         const bool updated = m_torrents.UpdateClientData(
-            torrent->status.handle,
+            resolved->torrent->status.handle,
             [&req](TorrentClientData& client_data)
             {
                 if (req.category.has_value()) client_data.category = req.category.value();

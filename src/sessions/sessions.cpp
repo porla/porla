@@ -70,7 +70,39 @@ std::shared_ptr<Session> Sessions::Get(int id)
         : it->second;
 }
 
-int Sessions::Add(const Data::Models::Sessions::Session& session)
+std::optional<Sessions::Record> Sessions::Find(int id) const
+{
+    return Data::Models::Sessions::GetById(m_options.db, id);
+}
+
+std::optional<Sessions::Record> Sessions::FindByName(const std::string& name) const
+{
+    return Data::Models::Sessions::GetByName(m_options.db, name);
+}
+
+std::optional<Sessions::Record> Sessions::FindDefault() const
+{
+    return Data::Models::Sessions::GetDefault(m_options.db);
+}
+
+std::vector<Sessions::Record> Sessions::List() const
+{
+    return Data::Models::Sessions::List(m_options.db);
+}
+
+std::optional<int> Sessions::ResolveId(std::optional<int> id) const
+{
+    const auto record = id.has_value() ? Find(*id) : FindDefault();
+
+    if (!record)
+    {
+        return std::nullopt;
+    }
+
+    return record->id;
+}
+
+int Sessions::Add(const Record& session)
 {
     const int id = Data::Models::Sessions::Insert(m_options.db, session);
 
@@ -108,8 +140,19 @@ void Sessions::Remove(int id)
     PublishDetached(id, SessionEvent("session.removed", {{ "session_name", session->name }}));
 }
 
-void Sessions::Update(const Data::Models::Sessions::Session& session)
+void Sessions::Update(const Record& session)
 {
+    if (session.is_default)
+    {
+        const auto current = Find(session.id);
+
+        if (current && !current->is_default)
+        {
+            Data::Models::Sessions::SetDefault(m_options.db, session.id);
+            BOOST_LOG_TRIVIAL(info) << "session[" << session.name << "] Now the default session";
+        }
+    }
+
     Data::Models::Sessions::Update(m_options.db, session);
 
     if (const auto instance = Get(session.id))

@@ -3,6 +3,8 @@
 #include <boost/log/trivial.hpp>
 #include <boost/signals2.hpp>
 
+#include "resolve.hpp"
+
 #include "../../../data/models/sessions.hpp"
 #include "../../../events.hpp"
 #include "../../../sessions/session.hpp"
@@ -24,25 +26,22 @@ struct RemoveState
     porla::Rpc::ResponseWriterHandle             writer;
 };
 
-TorrentsMigrate::TorrentsMigrate(sqlite3* db, porla::Events& events, porla::Sessions &sessions)
-    : m_db(db)
-    , m_events(events)
+TorrentsMigrate::TorrentsMigrate(porla::Events& events, porla::Sessions &sessions)
+    : m_events(events)
     , m_sessions(sessions)
 {
 }
 
 void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandle cb)
 {
-    const auto session = req.session_id.has_value()
-        ? Data::Models::Sessions::GetById(m_db, req.session_id.value())
-        : Data::Models::Sessions::GetDefault(m_db);
+    const auto session = ResolveSession(m_sessions, req.session_id, cb);
 
     if (!session)
     {
-        return cb->Error(-1, "Session not found");
+        return;
     }
 
-    const auto& session_state = m_sessions.Get(session->id);
+    const auto& session_state = m_sessions.Get(session->Id());
 
     if (session_state == nullptr)
     {

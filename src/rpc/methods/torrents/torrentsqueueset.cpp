@@ -1,7 +1,6 @@
 #include "torrentsqueueset.hpp"
 
-#include <libtorrent/torrent_handle.hpp>
-#include <libtorrent/torrent_status.hpp>
+#include "resolve.hpp"
 
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
@@ -12,43 +11,21 @@ using porla::Rpc::Methods::Torrents::TorrentsQueueSet;
 using porla::Rpc::Methods::Torrents::TorrentsQueueSetReq;
 using porla::Rpc::Methods::Torrents::TorrentsQueueSetRes;
 
-TorrentsQueueSet::TorrentsQueueSet(sqlite3* db, porla::Sessions& sessions)
-    : m_db(db)
-    , m_sessions(sessions)
+TorrentsQueueSet::TorrentsQueueSet(porla::Sessions& sessions)
+    : m_sessions(sessions)
 {
 }
 
 void TorrentsQueueSet::Execute(const TorrentsQueueSetReq &req, ResponseWriterHandle cb)
 {
-    const auto session = req.session_id.has_value()
-        ? Data::Models::Sessions::GetById(m_db, req.session_id.value())
-        : Data::Models::Sessions::GetDefault(m_db);
+    const auto resolved = ResolveTorrent(m_sessions, req.session_id, req.info_hash, cb);
 
-    if (!session)
+    if (!resolved)
     {
-        return cb->Error(-1, "Session not found");
+        return;
     }
 
-    const auto& session_state = m_sessions.Get(session->id);
-
-    if (session_state == nullptr)
-    {
-        return cb->Error(-2, "Session not loaded");
-    }
-
-    const auto torrent = session_state->Find(req.info_hash);
-
-    if (torrent == nullptr)
-    {
-        return cb->Error(-3, "Torrent not found in session");
-    }
-
-    if (!torrent->status.handle.is_valid())
-    {
-        return cb->Error(-4, "Torrent not valid");
-    }
-
-    torrent->status.handle.queue_position_set(req.queue_position);
+    resolved->torrent->status.handle.queue_position_set(req.queue_position);
 
     return cb->Ok(TorrentsQueueSetRes{});
 }

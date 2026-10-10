@@ -8,15 +8,14 @@ using porla::Rpc::Methods::Sessions::SessionsPause;
 using porla::Rpc::Methods::Sessions::SessionsPauseReq;
 using porla::Rpc::Methods::Sessions::SessionsPauseRes;
 
-SessionsPause::SessionsPause(sqlite3* db, porla::Sessions& sessions)
-    : m_db(db)
-    , m_sessions(sessions)
+SessionsPause::SessionsPause(porla::Sessions& sessions)
+    : m_sessions(sessions)
 {
 }
 
 void SessionsPause::Execute(const SessionsPauseReq& req, ResponseWriterHandle cb)
 {
-    const auto session = Data::Models::Sessions::GetById(m_db, req.id);
+    const auto session = m_sessions.Find(req.id);
 
     if (!session)
     {

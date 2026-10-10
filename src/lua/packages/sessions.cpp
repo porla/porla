@@ -7,7 +7,6 @@
 #include "../types/posessionhandle.hpp"
 #include "../types/posessionsiterator.hpp"
 
-#include "../../data/models/sessions.hpp"
 #include "../../sessions/sessions.hpp"
 
 using porla::Lua::Types::PoSessionHandle;
@@ -33,13 +32,7 @@ sol::object porla::Lua::Packages::Sessions::Load(sol::this_state ts)
             return sol::lua_nil;
         }
 
-        const auto all_sessions    = porla::Data::Models::Sessions::List(state->db);
-        const auto loaded_sessions = std::count_if(
-            all_sessions.begin(),
-            all_sessions.end(),
-            [state](const auto s) { return state->sessions.Get(s.id) != nullptr; });
-
-        return sol::make_object(lua, loaded_sessions);
+        return sol::make_object(lua, state->sessions.All().size());
     });
 
     tbl.set_function("default", [](sol::this_state ts) -> std::shared_ptr<PoSessionHandle>
@@ -54,7 +47,7 @@ sol::object porla::Lua::Packages::Sessions::Load(sol::this_state ts)
             return nullptr;
         }
 
-        const auto default_session = porla::Data::Models::Sessions::GetDefault(state->db);
+        const auto default_session = state->sessions.FindDefault();
 
         if (!default_session)
         {
@@ -105,7 +98,7 @@ sol::object porla::Lua::Packages::Sessions::Load(sol::this_state ts)
                 return nullptr;
             }
 
-            const auto& session_db = Data::Models::Sessions::GetByName(state->db, name);
+            const auto& session_db = state->sessions.FindByName(name);
 
             if (!session_db)
             {

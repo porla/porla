@@ -2,6 +2,8 @@
 
 #include <boost/log/trivial.hpp>
 
+#include "resolve.hpp"
+
 #include "../../../data/models/sessions.hpp"
 #include "../../../fields.hpp"
 #include "../../../query/pql.hpp"
@@ -85,9 +87,8 @@ static const std::map<std::pair<std::string, bool>, std::function<bool(const lt:
     {{"upload_rate", true},     [](auto const& lhs, auto const& rhs) { return lhs.upload_rate < rhs.upload_rate; }},
 };
 
-TorrentsList::TorrentsList(sqlite3* db, porla::Sessions& sessions)
-    : m_db(db)
-    , m_sessions(sessions)
+TorrentsList::TorrentsList(porla::Sessions& sessions)
+    : m_sessions(sessions)
 {
 }
 
@@ -130,22 +131,14 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
         }
     }
 
-    const auto session = req.filters.has_value()
-        ? req.filters->session_id.has_value()
-            ? Data::Models::Sessions::GetById(m_db, req.filters->session_id.value())
-            : Data::Models::Sessions::GetDefault(m_db)
-        : Data::Models::Sessions::GetDefault(m_db);
+    const auto session_state = ResolveSession(
+        m_sessions,
+        req.filters.has_value() ? req.filters->session_id : std::nullopt,
+        cb);
 
-    if (!session)
+    if (!session_state)
     {
-        return cb->Error(-1, "Session not found");
-    }
-
-    const auto& session_state = m_sessions.Get(session->id);
-
-    if (session_state == nullptr)
-    {
-        return cb->Error(-2, "Session not loaded");
+        return;
     }
 
     std::vector<const lt::torrent_status*> torrents;

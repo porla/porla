@@ -1,5 +1,7 @@
 #include "torrentspeerslist.hpp"
 
+#include "resolve.hpp"
+
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
@@ -7,44 +9,22 @@
 
 using porla::Rpc::Methods::Torrents::TorrentsPeersList;
 
-TorrentsPeersList::TorrentsPeersList(sqlite3* db, porla::Sessions& sessions)
-    : m_db(db)
-    , m_sessions(sessions)
+TorrentsPeersList::TorrentsPeersList(porla::Sessions& sessions)
+    : m_sessions(sessions)
 {
 }
 
 void TorrentsPeersList::Execute(const TorrentsPeersListReq& req, ResponseWriterHandle cb)
 {
-    const auto session = req.session_id.has_value()
-        ? Data::Models::Sessions::GetById(m_db, req.session_id.value())
-        : Data::Models::Sessions::GetDefault(m_db);
+    const auto resolved = ResolveTorrent(m_sessions, req.session_id, req.info_hash, cb);
 
-    if (!session)
+    if (!resolved)
     {
-        return cb->Error(-1, "Session not found");
-    }
-
-    const auto& session_state = m_sessions.Get(session->id);
-
-    if (session_state == nullptr)
-    {
-        return cb->Error(-2, "Session not loaded");
-    }
-
-    const auto torrent = session_state->Find(req.info_hash);
-
-    if (torrent == nullptr)
-    {
-        return cb->Error(-3, "Torrent not found in session");
-    }
-
-    if (!torrent->status.handle.is_valid())
-    {
-        return cb->Error(-4, "Torrent not valid");
+        return;
     }
 
     std::vector<lt::peer_info> peers;
-    torrent->status.handle.get_peer_info(peers);
+    resolved->torrent->status.handle.get_peer_info(peers);
 
     cb->Ok(TorrentsPeersListRes{
         .peers = peers

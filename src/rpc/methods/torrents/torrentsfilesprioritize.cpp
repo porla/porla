@@ -1,5 +1,7 @@
 #include "torrentsfilesprioritize.hpp"
 
+#include "resolve.hpp"
+
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
@@ -9,38 +11,21 @@ using porla::Rpc::Methods::Torrents::TorrentsFilesPrioritize;
 using porla::Rpc::Methods::Torrents::TorrentsFilesPrioritizeReq;
 using porla::Rpc::Methods::Torrents::TorrentsFilesPrioritizeRes;
 
-TorrentsFilesPrioritize::TorrentsFilesPrioritize(sqlite3* db, porla::Sessions& sessions)
-    : m_db(db)
-    , m_sessions(sessions)
+TorrentsFilesPrioritize::TorrentsFilesPrioritize(porla::Sessions& sessions)
+    : m_sessions(sessions)
 {
 }
 
 void TorrentsFilesPrioritize::Execute(const TorrentsFilesPrioritizeReq& req, ResponseWriterHandle cb)
 {
-    const auto session = req.session_id.has_value()
-        ? Data::Models::Sessions::GetById(m_db, req.session_id.value())
-        : Data::Models::Sessions::GetDefault(m_db);
+    const auto resolved = ResolveTorrent(m_sessions, req.session_id, req.info_hash, cb);
 
-    if (!session)
+    if (!resolved)
     {
-        return cb->Error(-1, "Session not found");
+        return;
     }
 
-    const auto& session_state = m_sessions.Get(session->id);
-
-    if (session_state == nullptr)
-    {
-        return cb->Error(-2, "Session not loaded");
-    }
-
-    const auto torrent = session_state->Find(req.info_hash);
-
-    if (torrent == nullptr)
-    {
-        return cb->Error(-3, "Torrent not found in session");
-    }
-
-    std::vector<lt::download_priority_t> file_prios = torrent->status.handle.get_file_priorities();
+    std::vector<lt::download_priority_t> file_prios = resolved->torrent->status.handle.get_file_priorities();
 
     for (const auto& fp : req.priorities)
     {
@@ -54,7 +39,7 @@ void TorrentsFilesPrioritize::Execute(const TorrentsFilesPrioritizeReq& req, Res
         file_prios[index] = fp.priority;
     }
 
-    torrent->status.handle.prioritize_files(file_prios);
+    resolved->torrent->status.handle.prioritize_files(file_prios);
 
     cb->Ok({});
 }

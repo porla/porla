@@ -12,15 +12,14 @@ using porla::Rpc::Methods::Sessions::SessionsSettingsSetReq;
 using porla::Rpc::Methods::Sessions::SessionsSettingsSetRes;
 using porla::Utils::LibtorrentSettingsPack;
 
-SessionsSettingsSet::SessionsSettingsSet(sqlite3* db, porla::Sessions& sessions)
-    : m_db(db)
-    , m_sessions(sessions)
+SessionsSettingsSet::SessionsSettingsSet(porla::Sessions& sessions)
+    : m_sessions(sessions)
 {
 }
 
 void SessionsSettingsSet::Execute(const SessionsSettingsSetReq &req, ResponseWriterHandle cb)
 {
-    const auto session = Data::Models::Sessions::GetById(m_db, req.id);
+    const auto session = m_sessions.Find(req.id);
 
     if (!session)
     {
