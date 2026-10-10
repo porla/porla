@@ -59,8 +59,6 @@ using porla::Lua::PluginSource;
 
 namespace
 {
-    static int PORLA_LUA_API_VERSION = 1;
-
     std::string DescribeError(const sol::protected_function_result& result)
     {
         if (result.valid() || result.return_count() < 1)
