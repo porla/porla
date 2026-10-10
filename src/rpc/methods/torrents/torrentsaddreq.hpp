@@ -13,7 +13,6 @@ namespace porla::Rpc::Methods::Torrents
         std::optional<std::string>                           category;
         std::optional<int>                                   download_limit;
         std::optional<lt::torrent_flags_t>                   flags;
-        std::optional<std::vector<std::string>>              http_seeds;
         std::optional<std::string>                           magnet_uri;
         std::optional<int>                                   max_connections;
         std::optional<int>                                   max_uploads;

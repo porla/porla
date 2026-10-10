@@ -11,7 +11,6 @@ namespace porla::Rpc::Methods::Torrents
         category,
         download_limit,
         flags,
-        http_seeds,
         magnet_uri,
         max_connections,
         max_uploads,
