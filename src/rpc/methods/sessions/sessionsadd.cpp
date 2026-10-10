@@ -1,5 +1,7 @@
 #include "sessionsadd.hpp"
 
+#include <map>
+
 #include <libtorrent/session.hpp>
 
 #include "../../../data/models/sessions.hpp"
@@ -11,6 +13,16 @@ using porla::Rpc::Methods::Sessions::SessionsAddReq;
 using porla::Rpc::Methods::Sessions::SessionsAddRes;
 using porla::Utils::LibtorrentSettingsPack;
 
+namespace
+{
+    static const std::map<std::string, std::function<lt::settings_pack()>> packs
+    {
+        { "default", &lt::default_settings },
+        { "min_memory_usage", &lt::min_memory_usage },
+        { "high_performance_seed", &lt::high_performance_seed }
+    };
+}
+
 SessionsAdd::SessionsAdd(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
@@ -20,10 +32,14 @@ void SessionsAdd::Execute(const SessionsAddReq& req, ResponseWriterHandle cb)
 {
     std::string settings_base = req.settings_base.value_or("default");
 
-    lt::settings_pack settings;
-    if (settings_base == "default")               settings = lt::default_settings();
-    if (settings_base == "min_memory_usage")      settings = lt::min_memory_usage();
-    if (settings_base == "high_performance_seed") settings = lt::high_performance_seed();
+    const auto found_pack = packs.find(settings_base);
+
+    if (found_pack == packs.end())
+    {
+        return cb->Error(-32602, "Invalid session settings base", {{"field","settings_base"}});
+    }
+
+    lt::settings_pack settings = found_pack->second();
 
     LibtorrentSettingsPack::Update(
         settings,
