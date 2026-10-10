@@ -166,6 +166,9 @@ add_library(
     src/mmdb.cpp
     src/plugins.cpp
     src/presets.cpp
+    src/sessions/handlers/session.cpp
+    src/sessions/handlers/storage.cpp
+    src/sessions/handlers/torrents.cpp
     src/sessions/jobs/loadtorrents.cpp
     src/sessions/jobs/savestate.cpp
     src/sessions/scheduler.cpp
