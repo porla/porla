@@ -86,7 +86,7 @@ void TorrentsPropertiesSet::Execute(const TorrentsPropertiesSetReq& req, Respons
 
         if (!updated)
         {
-            return cb->Error(-5, "Torrent has no client data - cannot set category or tags");
+            return cb->Error(-6, "Torrent has no client data - cannot set category or tags");
         }
     }
 
