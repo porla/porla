@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "resolve.hpp"
+
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
@@ -11,42 +13,29 @@ using porla::Rpc::Methods::Torrents::TorrentsFilesList;
 using porla::Rpc::Methods::Torrents::TorrentsFilesListReq;
 using porla::Rpc::Methods::Torrents::TorrentsFilesListRes;
 
-TorrentsFilesList::TorrentsFilesList(sqlite3* db, porla::Sessions& sessions)
-    : m_db(db)
-    , m_sessions(sessions)
+TorrentsFilesList::TorrentsFilesList(porla::Sessions& sessions)
+    : m_sessions(sessions)
 {
 }
 
 void TorrentsFilesList::Execute(const TorrentsFilesListReq& req, ResponseWriterHandle cb)
 {
-    const auto session = req.session_id.has_value()
-        ? Data::Models::Sessions::GetById(m_db, req.session_id.value())
-        : Data::Models::Sessions::GetDefault(m_db);
+    const auto resolved = ResolveTorrent(
+        m_sessions,
+        req.session_id,
+        req.info_hash,
+        cb);
 
-    if (!session)
+    if (!resolved)
     {
-        return cb->Error(-1, "Session not found");
+        return;
     }
 
-    const auto& session_state = m_sessions.Get(session->id);
-
-    if (session_state == nullptr)
-    {
-        return cb->Error(-2, "Session not loaded");
-    }
-
-    const auto torrent = session_state->Find(req.info_hash);
-
-    if (torrent == nullptr)
-    {
-        return cb->Error(-3, "Torrent not found in session");
-    }
-
-    if (auto tf = torrent->status.torrent_file.lock())
+    if (auto tf = resolved->torrent->status.torrent_file.lock())
     {
         return cb->Ok(TorrentsFilesListRes{
             .file_storage  = tf->layout(),
-            .renamed_files = torrent->status.handle.get_renamed_files()
+            .renamed_files = resolved->torrent->status.handle.get_renamed_files()
         });
     }
 

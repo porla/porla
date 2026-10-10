@@ -364,6 +364,7 @@ add_library(
     src/rpc/methods/sessions/sessionsupdate.cpp
     src/rpc/methods/sys/sysstatus.cpp
     src/rpc/methods/sys/sysversions.cpp
+    src/rpc/methods/torrents/resolve.cpp
     src/rpc/methods/torrents/torrentsadd.cpp
     src/rpc/methods/torrents/torrentscount.cpp
     src/rpc/methods/torrents/torrentsfileslist.cpp

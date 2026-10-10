@@ -1,7 +1,5 @@
 #pragma once
 
-#include <sqlite3.h>
-
 #include "../../typedmethod.hpp"
 #include "torrentsqueueany_reqres.hpp"
 
@@ -16,11 +14,10 @@ namespace porla
         class TorrentsQueue##suffix : public TypedMethod<TorrentsQueueAnyReq, TorrentsQueueAnyRes> \
         { \
         public: \
-            explicit TorrentsQueue##suffix(sqlite3* db, porla::Sessions& sessions); \
+            explicit TorrentsQueue##suffix(porla::Sessions& sessions); \
         protected: \
             void Execute(const TorrentsQueueAnyReq& req, ResponseWriterHandle cb) override; \
         private: \
-            sqlite3* m_db; \
             porla::Sessions& m_sessions; \
         }; \
     }
