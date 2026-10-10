@@ -72,27 +72,11 @@ void Session::Start(std::function<void()> load_callback)
 
     m_jobs->Register(std::make_unique<Jobs::ReconcileTorrents>());
 
-    // suspend manual jobs (such as reconciliation) until load is done
-    m_jobs->Suspend();
-
-    const auto count = AddTorrentParams::Count(m_options.db, m_options.record.id);
-
-    BOOST_LOG_TRIVIAL(info)
-        << Log() << "Loading " << count << " torrent(s) from storage";
-
     m_jobs->Start(std::make_unique<Jobs::LoadTorrents>(
         m_options.db,
-        count,
-        [t = weak_from_this(), callback = std::move(load_callback)](const Jobs::LoadTorrents::Output& output)
-        {
-            // only trigger OnLoaded if the job wasn't stopped
-            if (const auto self = t.lock(); self != nullptr && !output.stopped)
-            {
-                self->OnLoaded(output.loaded, output.failed);
-            }
-
-            if (callback) { callback(); }
-        }));
+        m_options.events,
+        *m_jobs,
+        std::move(load_callback)));
 }
 
 const porla::Torrent* Session::Find(const lt::info_hash_t& hash) const
@@ -325,74 +309,6 @@ void Session::Recheck(const lt::info_hash_t& hash)
     }
 
     handle.force_recheck();
-}
-
-void Session::OnLoaded(int loaded, bool failed)
-{
-    if (loaded > 0)
-    {
-        try
-        {
-            const auto statuses = m_session->get_torrent_status(
-                [](const auto&) { return true; },
-                lt::status_flags_t::all());
-
-            ReadAlerts();
-
-            std::unordered_set<lt::info_hash_t> live;
-
-            for (const auto& ts : statuses)
-            {
-                live.insert(ts.info_hashes);
-
-                const auto it = m_torrents.find(ts.info_hashes);
-
-                if (it == m_torrents.end() || it->second.state == Torrent::State::Adding)
-                {
-                    // not ours. will be adopted by an add torrent alert or by reconciliation
-                    continue;
-                }
-
-                it->second.state  = Torrent::State::Current;
-                it->second.status = ts;
-            }
-
-            int lost = 0;
-
-            for (auto it = m_torrents.begin(); it != m_torrents.end();)
-            {
-                if (it->second.state == Torrent::State::Loading && !live.contains(it->first))
-                {
-                    it = m_torrents.erase(it);
-                    lost++;
-                }
-                else
-                {
-                    ++it;
-                }
-            }
-
-            if (lost > 0)
-            {
-                BOOST_LOG_TRIVIAL(warning)
-                    << Log() << lost << " stored torrent(s) failed to load and their alerts were lost";
-            }
-        }
-        catch(const std::exception& e)
-        {
-            // the torrents are loaded either way - promotion falls to their add
-            // alerts or reconciliation, so carry on and finish the load
-            BOOST_LOG_TRIVIAL(error)
-                << Log() << "Failed to read torrent status after load: " << e.what();
-        }
-    }
-
-    Publish(SessionEvent("session.loaded", {
-        { "torrents", loaded },
-        { "failed",   failed }
-    }));
-
-    m_jobs->Resume();
 }
 
 void Session::ReadAlerts()

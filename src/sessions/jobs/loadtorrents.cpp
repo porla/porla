@@ -2,7 +2,10 @@
 
 #include <boost/log/trivial.hpp>
 
+#include "../../events.hpp"
+#include "../scheduler.hpp"
 #include "../session.hpp"
+#include "../sessionevent.hpp"
 
 using porla::Data::Models::AddTorrentParams;
 using porla::Jobs::LoadTorrents;
@@ -15,15 +18,25 @@ namespace
     static constexpr auto kLoadRetryMaxDelay  = std::chrono::milliseconds(5000);
 }
 
-LoadTorrents::LoadTorrents(sqlite3* db, int count, std::function<void(const Output&)> callback)
+LoadTorrents::LoadTorrents(sqlite3* db, Events& events, Scheduler& scheduler, std::function<void()> callback)
     : m_db(db)
-    , m_count(count)
+    , m_events(events)
+    , m_scheduler(scheduler)
     , m_callback(std::move(callback))
 {
+    m_scheduler.Suspend();
 }
 
 porla::Job::Result LoadTorrents::Run(Session& session)
 {
+    if (m_count < 0)
+    {
+        m_count = AddTorrentParams::Count(m_db, session.Id());
+
+        BOOST_LOG_TRIVIAL(info)
+            << session.Log() << "Loading " << m_count << " torrent(s) from storage";
+    }
+
     try
     {
         session.ReadAlerts();
@@ -111,17 +124,17 @@ porla::Job::Result LoadTorrents::Run(Session& session)
         }
     }
 
-    Complete(session, false);
+    Finish(session);
 
     return Done();
 }
 
 void LoadTorrents::Stopped(Session& session)
 {
-    Complete(session, true);
+    Complete(session);
 }
 
-void LoadTorrents::Complete(const Session& session, bool stopped)
+void LoadTorrents::Complete(const Session& session)
 {
     auto callback = std::exchange(m_callback, nullptr);
 
@@ -132,15 +145,33 @@ void LoadTorrents::Complete(const Session& session, bool stopped)
 
     try
     {
-        callback(Output{
-            .loaded  = m_loaded,
-            .failed  = m_failed,
-            .stopped = stopped
-        });
+        callback();
     }
     catch(const std::exception& e)
     {
         BOOST_LOG_TRIVIAL(error)
             << session.Log() << "Load completion callback failed: " << e.what();
     }
+}
+
+void LoadTorrents::Finish(Session& session)
+{
+    if (m_loaded > 0)
+    {
+        session.ReconcileTorrents();
+    }
+
+    SessionEvent loaded("session.loaded", {
+        { "torrents", m_loaded },
+        { "failed",   m_failed }
+    });
+
+    loaded.session_id = session.Id();
+    loaded.session    = session.weak_from_this();
+
+    m_events.Publish(std::move(loaded));
+
+    m_scheduler.Resume();
+
+    Complete(session);
 }

@@ -95,8 +95,6 @@ namespace porla
         void ReadAlerts();
 
     private:
-        void OnLoaded(int loaded, bool failed);
-
         void ProcessAlert(const lt::alert* alert);
 
         void OnAddTorrentAlert(const lt::add_torrent_alert* alert);
