@@ -144,10 +144,31 @@ void Session::OnMetadataReceivedAlert(const lt::metadata_received_alert* alert)
         }
     }
 
-    alert->handle.save_resume_data(
-        lt::torrent_handle::save_info_dict);
+    const auto it = m_torrents.find(info_hashes);
 
-    EmitTorrentEvent("torrent.metadata_received", *alert);
+    MetadataReceived(alert->handle, it != m_torrents.end() ? &it->second : nullptr);
+}
+
+void Session::MetadataReceived(const lt::torrent_handle& th, Torrent* torrent)
+{
+    if (torrent == nullptr || !torrent->metadata_saved)
+    {
+        th.save_resume_data(lt::torrent_handle::save_info_dict);
+    }
+
+    if (torrent != nullptr && std::exchange(torrent->metadata_announced, true))
+    {
+        return;
+    }
+
+    if (m_options.events.HasSubscribers("torrent.metadata_received"))
+    {
+        TorrentEvent event("torrent.metadata_received", nlohmann::json::object());
+        event.torrent_handle = th;
+        event.info_hash      = th.info_hashes();
+
+        Publish(std::move(event));
+    }
 }
 
 void Session::OnTorrentErrorAlert(const lt::torrent_error_alert* alert)

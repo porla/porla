@@ -123,6 +123,8 @@ namespace porla
         void OnTorrentResumedAlert(const lt::torrent_resumed_alert* alert);
         void OnTrackerErrorAlert(const lt::tracker_error_alert* alert);
 
+        void MetadataReceived(const lt::torrent_handle& th, Torrent* torrent);
+
         bool Track(const lt::torrent_status& status);
 
         // untracks a torrent from our end

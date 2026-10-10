@@ -43,6 +43,14 @@ void Session::OnSaveResumeDataAlert(const lt::save_resume_data_alert* alert)
         return;
     }
 
+    if (alert->params.ti)
+    {
+        if (const auto it = m_torrents.find(info_hashes); it != m_torrents.end())
+        {
+            it->second.metadata_saved = true;
+        }
+    }
+
     BOOST_LOG_TRIVIAL(debug) << Log(info_hashes) << "Resume data saved";
 }
 

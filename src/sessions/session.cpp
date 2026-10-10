@@ -1,5 +1,7 @@
 #include "session.hpp"
 
+#include <algorithm>
+
 #include <boost/asio/post.hpp>
 #include <boost/log/trivial.hpp>
 
@@ -116,8 +118,10 @@ bool Session::Add(lt::add_torrent_params params, Torrent::State state)
         data->session = weak_from_this();
     }
 
-    it->second.state = state;
-    it->second.data  = std::move(data);
+    it->second.state              = state;
+    it->second.data               = std::move(data);
+    it->second.metadata_announced = params.ti != nullptr;
+    it->second.metadata_saved     = params.ti != nullptr;
 
     // always set the update_subscribe flag so we are always getting
     // the update alerts
@@ -151,13 +155,25 @@ void Session::Stop()
     m_session->pause();
 
     auto torrents = m_session->get_torrent_status(
-        [](const lt::torrent_status& ts)
+        [](const lt::torrent_status& ts) { return ts.has_metadata; });
+
+    const auto missing_ti = [&](const lt::torrent_status& ts)
+    {
+        const auto it = m_torrents.find(ts.info_hashes);
+        return it != m_torrents.end() && !it->second.metadata_saved;
+    };
+
+    std::erase_if(
+        torrents,
+        [&](const lt::torrent_status& ts)
         {
-            return ts.has_metadata && bool(ts.need_save_resume_data);
+            return !ts.need_save_resume_data && !missing_ti(ts);
         });
 
-    int chunk_size = 1000;
-    int chunks     = static_cast<int>(torrents.size() / chunk_size) + 1;
+    const auto current_settings = m_session->get_settings();
+    const int  alert_queue_size = current_settings.get_int(lt::settings_pack::alert_queue_size);
+    const int  chunk_size       = std::clamp(alert_queue_size, 1, 1000);
+    const int  chunks           = static_cast<int>(torrents.size() / chunk_size) + 1;
 
     BOOST_LOG_TRIVIAL(info)
         << Log() << "Saving resume data in " << chunks
@@ -181,12 +197,13 @@ void Session::Stop()
                 continue;
             }
 
+            const auto flags = missing_ti(*current)
+                ? lt::torrent_handle::flush_disk_cache | lt::torrent_handle::save_info_dict
+                : lt::torrent_handle::flush_disk_cache | lt::torrent_handle::only_if_modified;
+
             try
             {
-                current->handle.save_resume_data(
-                    lt::torrent_handle::flush_disk_cache
-                    | lt::torrent_handle::only_if_modified);
-
+                current->handle.save_resume_data(flags);
                 outstanding++;
             }
             catch(const std::exception& e)
@@ -427,6 +444,8 @@ void Session::ReconcileTorrents()
                             params,
                             th.userdata().get<TorrentClientData>(),
                             static_cast<int>(th.queue_position()));
+
+                        it->second.metadata_saved = params.ti != nullptr;
                     }
                     catch(const std::exception& e)
                     {
@@ -553,6 +572,10 @@ bool Session::Track(const lt::torrent_status& status)
     if (inserted)
     {
         it->second.data.reset(status.handle.userdata().get<TorrentClientData>());
+
+        // update adopted torrents
+        it->second.metadata_announced = status.has_metadata;
+        it->second.metadata_saved     = status.has_metadata;
     }
 
     return inserted;

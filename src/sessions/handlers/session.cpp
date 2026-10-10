@@ -92,5 +92,16 @@ void Session::OnStateUpdateAlert(const lt::state_update_alert* alert)
         }
 
         it->second.status = status;
+
+        if (status.has_metadata && (!it->second.metadata_announced || !it->second.metadata_saved))
+        {
+            if (!it->second.metadata_announced)
+            {
+                BOOST_LOG_TRIVIAL(info)
+                    << Log(status.info_hashes) << "Metadata received from a state update - alert was dropped";
+            }
+
+            MetadataReceived(status.handle, &it->second);
+        }
     }
 }

@@ -27,6 +27,11 @@ namespace porla
         lt::torrent_status                 status;
         std::unique_ptr<TorrentClientData> data;
 
+        // for torrents that lets libtorrent fetch metadata, track whether we
+        // received metadata and whether we saved metadata
+        bool metadata_announced = false;
+        bool metadata_saved     = false;
+
         // when we do a recheck of a torrent, store its flags
         // so we can restore them afterwards
         std::optional<lt::torrent_flags_t> restore_after_check;
