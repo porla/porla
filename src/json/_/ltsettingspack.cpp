@@ -2,51 +2,16 @@
 
 #include <libtorrent/settings_pack.hpp>
 
+#include "../../utils/ltsettings.hpp"
+
 namespace libtorrent
 {
     void from_json(const nlohmann::json& j, settings_pack& settings)
     {
         settings = lt::settings_pack();
 
-        const auto& input = j.get<std::map<std::string, nlohmann::json>>();
-
-        for (const auto& [ key, value ] : input)
-        {
-            const int type = lt::setting_by_name(key);
-
-            if (type == -1)
-            {
-                continue;
-            }
-
-            if ((type & lt::settings_pack::type_mask) == lt::settings_pack::bool_type_base)
-            {
-                if (!value.is_boolean())
-                {
-                    continue;
-                }
-
-                settings.set_bool(type, value.get<bool>());
-            }
-            else if((type & lt::settings_pack::type_mask) == lt::settings_pack::int_type_base)
-            {
-                if (!value.is_number())
-                {
-                    continue;
-                }
-
-                settings.set_int(type, value.get<int>());
-            }
-            else if((type & lt::settings_pack::type_mask) == lt::settings_pack::string_type_base)
-            {
-                if (!value.is_string())
-                {
-                    continue;
-                }
-
-                settings.set_str(type, value.get<std::string>());
-            }
-        }
+        porla::Utils::LibtorrentSettingsPack::Update(
+            settings, j.get<std::map<std::string, nlohmann::json>>());
     }
 
     void to_json(nlohmann::json& j, const settings_pack& settings)

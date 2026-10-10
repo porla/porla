@@ -3,7 +3,6 @@
 #include "resolve.hpp"
 
 #include "../../../data/models/addtorrentparams.hpp"
-#include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
 #include "../../../sessions/torrent.hpp"

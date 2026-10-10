@@ -402,7 +402,6 @@ target_compile_definitions(
     ${PROJECT_NAME}_core
     PUBLIC
     -DSOL_ALL_SAFETIES_ON=1
-    -DSQLITE_CORE
 )
 
 target_include_directories(

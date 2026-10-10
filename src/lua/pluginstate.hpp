@@ -273,7 +273,6 @@ namespace porla::Lua
                 return;
             }
 
-            const auto callback_id = entry->second.callback_id;
             [[maybe_unused]] const auto keep = entry->second.handle;
 
             InvokeCallback(entry->second.callback_id);
