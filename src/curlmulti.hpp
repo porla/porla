@@ -29,8 +29,6 @@ namespace porla
 
         void AddTransfer(CURL* easy, TransferComplete callback);
 
-        boost::asio::any_io_executor Executor() const { return m_strand; }
-
         void HttpGet(const std::string& url, HttpCallback callback);
 
         template<boost::asio::completion_token_for<void(int, std::string)> CompletionToken>

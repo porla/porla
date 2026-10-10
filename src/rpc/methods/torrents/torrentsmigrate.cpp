@@ -5,7 +5,6 @@
 
 #include "resolve.hpp"
 
-#include "../../../data/models/sessions.hpp"
 #include "../../../events.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
@@ -34,18 +33,11 @@ TorrentsMigrate::TorrentsMigrate(porla::Events& events, porla::Sessions &session
 
 void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandle cb)
 {
-    const auto session = ResolveSession(m_sessions, req.session_id, cb);
+    const auto session_state = ResolveSession(m_sessions, req.session_id, cb);
 
-    if (!session)
+    if (!session_state)
     {
         return;
-    }
-
-    const auto& session_state = m_sessions.Get(session->Id());
-
-    if (session_state == nullptr)
-    {
-        return cb->Error(-2, "Session not loaded");
     }
 
     if (!m_sessions.Get(req.target_session_id))
