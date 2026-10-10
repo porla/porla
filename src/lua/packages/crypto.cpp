@@ -11,6 +11,12 @@ namespace
 {
     constexpr unsigned char kSecretboxV1     = 0x01;
     constexpr std::size_t kSecretboxOverhead = 1 + crypto_secretbox_NONCEBYTES + crypto_secretbox_MACBYTES;
+
+    struct Zero
+    {
+        std::string value;
+        ~Zero() { if (!value.empty()) sodium_memzero(value.data(), value.size()); }
+    };
 }
 
 sol::object Crypto::Load(sol::this_state ts)
@@ -135,7 +141,7 @@ sol::object Crypto::Load(sol::this_state ts)
         return sodium_memcmp(left.c_str(), right.c_str(), left.size()) == 0;
     });
 
-    tbl.set_function("pwhash", [](sol::this_state ts, const std::string& input, sol::main_protected_function callback)
+    tbl.set_function("pwhash", [](sol::this_state ts, std::string input, sol::main_protected_function callback)
     {
         sol::state_view lua(ts);
 
@@ -151,25 +157,35 @@ sol::object Crypto::Load(sol::this_state ts)
 
         boost::asio::post(
             state->sodium_hash_pool,
-            [weak, work = boost::asio::make_work_guard(state->IoExecutor()), callback_id, password = std::string(input)]() mutable
+            [weak, work = boost::asio::make_work_guard(state->IoExecutor()), callback_id, password = Zero{std::move(input)}]() mutable
             {
                 std::string password_hashed;
                 password_hashed.resize(crypto_pwhash_STRBYTES);
 
                 int result = crypto_pwhash_str(
                     password_hashed.data(),
-                    password.c_str(),
-                    password.size(),
+                    password.value.c_str(),
+                    password.value.size(),
                     crypto_pwhash_OPSLIMIT_INTERACTIVE,
                     crypto_pwhash_MEMLIMIT_INTERACTIVE);
 
+                password_hashed.resize(std::strlen(password_hashed.c_str()));
+
                 boost::asio::post(
                     work.get_executor(),
-                    [weak, callback_id, password_hashed]()
+                    [weak, callback_id, password_hashed, result]()
                     {
                         auto state = weak.lock();
                         if (state == nullptr) { return; }
-                        state->InvokeCallback(callback_id, sol::lua_nil, password_hashed);
+
+                        if (result != 0)
+                        {
+                            state->InvokeCallback(callback_id, "failed to hash password", sol::lua_nil);
+                        }
+                        else
+                        {
+                            state->InvokeCallback(callback_id, sol::lua_nil, password_hashed);
+                        }
                     });
 
                 work.reset();
