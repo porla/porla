@@ -36,19 +36,19 @@ void TorrentsRecheck::Execute(const TorrentsRecheckReq &req, ResponseWriterHandl
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto& it = session_state->Torrents().find(req.info_hash);
+    const auto torrent = session_state->Find(req.info_hash);
 
-    if (it == session_state->Torrents().end())
+    if (torrent == nullptr)
     {
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    if (!it->second.status.handle.is_valid())
+    if (!torrent->status.handle.is_valid())
     {
         return cb->Error(-4, "Torrent not valid");
     }
 
-    session_state->Recheck(it->second.status.info_hashes);
+    session_state->Recheck(torrent->status.info_hashes);
 
     return cb->Ok(TorrentsRecheckRes{});
 }

@@ -37,42 +37,42 @@ void TorrentsPropertiesSet::Execute(const TorrentsPropertiesSetReq& req, Respons
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto it = session_state->Torrents().find(req.info_hash);
+    const auto torrent = session_state->Find(req.info_hash);
 
-    if (it == session_state->Torrents().end())
+    if (torrent == nullptr)
     {
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    if (!it->second.status.handle.is_valid())
+    if (!torrent->status.handle.is_valid())
     {
         return cb->Error(-4, "Torrent not valid");
     }
 
     if (const auto val = req.download_limit)
-        it->second.status.handle.set_download_limit(*val);
+        torrent->status.handle.set_download_limit(*val);
 
     if (req.flags.has_value() && req.flags_mask.has_value())
     {
         const auto flags = req.flags.value();
         const auto mask  = req.flags_mask.value();
 
-        it->second.status.handle.set_flags(flags, mask);
+        torrent->status.handle.set_flags(flags, mask);
     }
 
     if (const auto val = req.max_connections)
-        it->second.status.handle.set_max_connections(*val);
+        torrent->status.handle.set_max_connections(*val);
 
     if (const auto val = req.max_uploads)
-        it->second.status.handle.set_max_uploads(*val);
+        torrent->status.handle.set_max_uploads(*val);
 
     if (const auto val = req.upload_limit)
-        it->second.status.handle.set_upload_limit(*val);
+        torrent->status.handle.set_upload_limit(*val);
 
     if (req.category.has_value() || req.tags.has_value())
     {
         const bool updated = m_torrents.UpdateClientData(
-            it->second.status.handle,
+            torrent->status.handle,
             [&req](TorrentClientData& client_data)
             {
                 if (req.category.has_value()) client_data.category = req.category.value();

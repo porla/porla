@@ -33,9 +33,9 @@ void TorrentsMove::Execute(const TorrentsMoveReq &req, ResponseWriterHandle cb)
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto it = session_state->Torrents().find(req.info_hash);
+    const auto torrent = session_state->Find(req.info_hash);
 
-    if (it == session_state->Torrents().end())
+    if (torrent == nullptr)
     {
         return cb->Error(-3, "Torrent not found in session");
     }
@@ -49,12 +49,12 @@ void TorrentsMove::Execute(const TorrentsMoveReq &req, ResponseWriterHandle cb)
         if (req.flags.value() == "fail_if_exist")        flags = lt::move_flags_t::fail_if_exist;
     }
 
-    if (!it->second.status.handle.is_valid())
+    if (!torrent->status.handle.is_valid())
     {
         return cb->Error(-4, "Torrent not valid");
     }
 
-    it->second.status.handle.move_storage(req.path, flags);
+    torrent->status.handle.move_storage(req.path, flags);
 
     return cb->Ok(TorrentsMoveRes{});
 }

@@ -33,23 +33,23 @@ void TorrentsPropertiesGet::Execute(const TorrentsPropertiesGetReq& req, Respons
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto it = session_state->Torrents().find(req.info_hash);
+    const auto torrent = session_state->Find(req.info_hash);
 
-    if (it == session_state->Torrents().end())
+    if (torrent == nullptr)
     {
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    if (!it->second.status.handle.is_valid())
+    if (!torrent->status.handle.is_valid())
     {
         return cb->Error(-4, "Torrent not valid");
     }
 
     cb->Ok(TorrentsPropertiesGetRes{
-        .download_limit  = it->second.status.handle.download_limit(),
-        .flags           = it->second.status.handle.flags(),
-        .max_connections = it->second.status.handle.max_connections(),
-        .max_uploads     = it->second.status.handle.max_uploads(),
-        .upload_limit    = it->second.status.handle.upload_limit()
+        .download_limit  = torrent->status.handle.download_limit(),
+        .flags           = torrent->status.handle.flags(),
+        .max_connections = torrent->status.handle.max_connections(),
+        .max_uploads     = torrent->status.handle.max_uploads(),
+        .upload_limit    = torrent->status.handle.upload_limit()
     });
 }

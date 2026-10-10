@@ -14,23 +14,22 @@ std::optional<std::tuple<lt::torrent_handle, lt::torrent_status>> PoTorrentsIter
         return std::nullopt;
     }
 
-    auto next = m_last_hash.has_value()
-        ? session->Torrents().upper_bound(m_last_hash.value())
-        : session->Torrents().begin();
-
-    while (next != session->Torrents().end())
+    auto next = [&](auto torrents) -> std::optional<std::tuple<lt::torrent_handle, lt::torrent_status>>
     {
-        const auto& ts = next->second.status;
-
-        m_last_hash = next->first;
-
-        if (!m_query.has_value() || m_query->Includes(ts))
+        for (const auto& [ hash, torrent ] : torrents)
         {
-            return std::make_tuple(ts.handle, ts);
+            m_last_hash = hash;
+
+            if (!m_query.has_value() || m_query->Includes(torrent.status))
+            {
+                return std::make_tuple(torrent.status.handle, torrent.status);
+            }
         }
 
-        next++;
-    }
+        return std::nullopt;
+    };
 
-    return std::nullopt;
+    return m_last_hash.has_value()
+        ? next(session->TorrentsAfter(m_last_hash.value()))
+        : next(session->Torrents());
 }

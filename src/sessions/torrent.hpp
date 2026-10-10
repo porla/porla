@@ -11,6 +11,19 @@ namespace porla
 
     struct Torrent
     {
+        enum class State
+        {
+            // passed to async_add_torrent from storage
+            Loading,
+
+            // passed to async_add_torrent from user
+            Adding,
+
+            // torrent is in libtorrent, visible to all
+            Current
+        };
+
+        State                              state = State::Adding;
         lt::torrent_status                 status;
         std::unique_ptr<TorrentClientData> data;
 

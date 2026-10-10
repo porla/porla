@@ -20,10 +20,10 @@ using porla::Rpc::Methods::Torrents::TorrentsQueueAnyRes;
         if (!session) { return cb->Error(-1, "Session not found"); } \
         const auto& session_state = m_sessions.Get(session->id); \
         if (session_state == nullptr) { return cb->Error(-2, "Session not loaded"); } \
-        const auto& it = session_state->Torrents().find(req.info_hash); \
-        if (it == session_state->Torrents().end()) { return cb->Error(-3, "Torrent not found in session"); } \
-        if (!it->second.status.handle.is_valid()) { return cb->Error(-4, "Torrent not valid"); } \
-        it->second.status.handle.operation(); \
+        const auto torrent = session_state->Find(req.info_hash); \
+        if (torrent == nullptr) { return cb->Error(-3, "Torrent not found in session"); } \
+        if (!torrent->status.handle.is_valid()) { return cb->Error(-4, "Torrent not valid"); } \
+        torrent->status.handle.operation(); \
         cb->Ok(TorrentsQueueAnyRes{}); \
     }
 

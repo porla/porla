@@ -176,12 +176,6 @@ TorrentsAddResult Torrents::Add(lt::add_torrent_params params)
         result.error = Error::MissingInfoHash;
         result.what  = "Failed to get info hash from params";
     }
-    else if (session->Torrents().contains(info_hash)
-        || session->Libtorrent().find_torrent(info_hash.get_best()).is_valid())
-    {
-        result.error = Error::AlreadyInSession;
-        result.what  = "Torrent already in session";
-    }
     else if (!IsValidClientData(*client_data))
     {
         result.error = Error::InvalidData;
@@ -196,8 +190,11 @@ TorrentsAddResult Torrents::Add(lt::add_torrent_params params)
     {
         try
         {
-            session->Libtorrent().async_add_torrent(std::move(params));
-            return result;
+            if (!session->Add(std::move(params)))
+            {
+                result.error = Error::AlreadyInSession;
+                result.what  = "Torrent already in session";
+            }
         }
         catch (const std::exception& e)
         {
@@ -206,6 +203,8 @@ TorrentsAddResult Torrents::Add(lt::add_torrent_params params)
             result.error = Error::Failed;
             result.what  = e.what();
         }
+
+        return result;
     }
 
     delete client_data;

@@ -2,8 +2,12 @@
 
 #include <boost/log/trivial.hpp>
 
+#include "../../events.hpp"
+#include "../scheduler.hpp"
 #include "../session.hpp"
+#include "../sessionevent.hpp"
 
+using porla::Data::Models::AddTorrentParams;
 using porla::Jobs::LoadTorrents;
 
 namespace
@@ -14,19 +18,51 @@ namespace
     static constexpr auto kLoadRetryMaxDelay  = std::chrono::milliseconds(5000);
 }
 
-LoadTorrents::LoadTorrents(int count, std::function<void()> callback)
-    : m_count(count)
-    , m_callback(callback)
+LoadTorrents::LoadTorrents(sqlite3* db, Events& events, Scheduler& scheduler, std::function<void()> callback)
+    : m_db(db)
+    , m_events(events)
+    , m_scheduler(scheduler)
+    , m_callback(std::move(callback))
 {
+    m_scheduler.Suspend();
 }
 
 porla::Job::Result LoadTorrents::Run(Session& session)
 {
+    if (m_count < 0)
+    {
+        m_count = AddTorrentParams::Count(m_db, session.Id());
+
+        BOOST_LOG_TRIVIAL(info)
+            << session.Log() << "Loading " << m_count << " torrent(s) from storage";
+    }
+
+    try
+    {
+        session.ReadAlerts();
+    }
+    catch(const std::exception& e)
+    {
+        BOOST_LOG_TRIVIAL(error) << session.Log() << "Failed to read alerts during load: " << e.what();
+    }
+    
     bool more = false;
 
     try
     {
-        more     = session.LoadChunk(m_cursor, kLoadChunkSize, m_loaded);
+        more     = AddTorrentParams::Next(
+            m_db,
+            session.Id(),
+            m_cursor,
+            kLoadChunkSize,
+            [&](lt::add_torrent_params& params)
+            {
+                if (session.Add(params, Torrent::State::Loading))
+                {
+                    m_loaded++;
+                }
+            });
+
         m_errors = 0;
     }
     catch(const std::exception& e)
@@ -88,9 +124,7 @@ porla::Job::Result LoadTorrents::Run(Session& session)
         }
     }
 
-    session.LoadDone(m_loaded, m_failed);
-
-    Complete(session);
+    Finish(session);
 
     return Done();
 }
@@ -118,4 +152,30 @@ void LoadTorrents::Complete(const Session& session)
         BOOST_LOG_TRIVIAL(error)
             << session.Log() << "Load completion callback failed: " << e.what();
     }
+}
+
+void LoadTorrents::Finish(Session& session)
+{
+    if (m_loaded > 0)
+    {
+        session.ReconcileTorrents();
+    }
+
+    SessionEvent loaded("session.loaded", {
+        { "torrents", m_loaded },
+        { "failed",   m_failed }
+    });
+
+    loaded.session_id = session.Id();
+    loaded.session    = session.weak_from_this();
+
+    m_events.Publish(std::move(loaded));
+
+    // post torrent updates immediately to reduce the gap where torrents have no status
+    // without this it would take one tick of the post updates timer to receive full status
+    session.Libtorrent().post_torrent_updates();
+
+    m_scheduler.Resume();
+
+    Complete(session);
 }

@@ -54,14 +54,14 @@ void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandl
         return cb->Error(-2, "Target session not loaded");
     }
 
-    const auto it = session_state->Torrents().find(req.info_hash);
+    const auto torrent = session_state->Find(req.info_hash);
 
-    if (it == session_state->Torrents().end())
+    if (torrent == nullptr)
     {
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    const auto prev_client_data = it->second.status.handle.userdata().get<TorrentClientData>();
+    const auto prev_client_data = torrent->status.handle.userdata().get<TorrentClientData>();
           auto client_data      = new TorrentClientData();
 
     if (prev_client_data)
@@ -72,7 +72,7 @@ void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandl
         client_data->tags         = prev_client_data->tags;
     }
 
-    lt::add_torrent_params params = it->second.status.handle.get_resume_data();
+    lt::add_torrent_params params = torrent->status.handle.get_resume_data();
     params.userdata = lt::client_data_t(client_data);
 
     RemoveState state{
@@ -106,13 +106,17 @@ void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandl
             if (target_session == nullptr)
             {
                 BOOST_LOG_TRIVIAL(warning) << "Target session not found - torrent must be added manually";
+                delete state.params.userdata.get<TorrentClientData>();
                 state.writer->Error(-2, "Target session not found - torrent must be added manually");
                 return;
             }
 
-            state.params.userdata.get<TorrentClientData>()->session = target_session;
-
-            target_session->Libtorrent().async_add_torrent(state.params);
+            if (!target_session->Add(state.params))
+            {
+                BOOST_LOG_TRIVIAL(warning) << "Torrent already in target session " << target_session->Name();
+                state.writer->Error(-4, "Torrent already in target session");
+                return;
+            }
 
             BOOST_LOG_TRIVIAL(info) << "Torrent migrated to session " << target_session->Name();
 
@@ -120,5 +124,5 @@ void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandl
         }
     });
 
-    session_state->Libtorrent().remove_torrent(it->second.status.handle);
+    session_state->Libtorrent().remove_torrent(torrent->status.handle);
 }
