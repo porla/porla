@@ -45,7 +45,7 @@ void PoTorrentData::Register(sol::state& lua)
 
             return std::nullopt;
         },
-        "session", sol::property([](const PoTorrentData& ptd) { return std::make_shared<PoSessionHandle>(ptd.ClientData().state); }),
+        "session", sol::property([](const PoTorrentData& ptd) { return std::make_shared<PoSessionHandle>(ptd.ClientData().session); }),
         "tags", [](const PoTorrentData& d) { return sol::as_table(d.ClientData().tags); },
         "update", [](const PoTorrentData& d, const sol::table& changes, sol::this_state ts)
         {

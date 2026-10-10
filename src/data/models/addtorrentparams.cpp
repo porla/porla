@@ -150,6 +150,34 @@ namespace
 
         return buf;
     }
+
+    void WriteTorrentInfo(sqlite3* db, const int session_id, const lt::info_hash_t& hash, const lt::torrent_info& ti)
+    {
+        const auto              info_section = ti.info_section();
+        const std::vector<char> info(info_section.begin(), info_section.end());
+
+        auto stmt = Statement::Prepare(
+            db,
+            R"sql(
+            INSERT OR IGNORE INTO torrentinfos (id, info)
+            SELECT id, $info
+            FROM addtorrentparams
+            WHERE
+                (session_id = $session_id AND info_hash_v1 = $info_hash_v1
+                    AND (info_hash_v2 IS NULL OR info_hash_v2 = $info_hash_v2))
+                OR
+                (session_id = $session_id AND info_hash_v2 = $info_hash_v2
+                    AND (info_hash_v1 IS NULL OR info_hash_v1 = $info_hash_v1))
+            )sql");
+
+        stmt
+            .Bind("$info",         info)
+            .Bind("$info_hash_v1", hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
+            .Bind("$info_hash_v2", hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
+            .Bind("$session_id",   session_id)
+            .Execute();
+    }
+
 }
 
 int AddTorrentParams::Count(sqlite3 *db, const int session_id)
@@ -207,33 +235,11 @@ void AddTorrentParams::Insert(sqlite3 *db, const int session_id, const lt::info_
         .Bind("$params", buf)
         .Bind("$userdata", userdata_str)
         .Execute();
-}
 
-void AddTorrentParams::InsertTorrentInfo(sqlite3* db, const int session_id, const lt::info_hash_t& hash, const lt::torrent_info& ti)
-{
-    const auto              info_section = ti.info_section();
-    const std::vector<char> info(info_section.begin(), info_section.end());
-
-    auto stmt = Statement::Prepare(
-        db,
-        R"sql(
-        INSERT OR IGNORE INTO torrentinfos (id, info)
-        SELECT id, $info
-        FROM addtorrentparams
-        WHERE
-            (session_id = $session_id AND info_hash_v1 = $info_hash_v1
-                AND (info_hash_v2 IS NULL OR info_hash_v2 = $info_hash_v2))
-            OR
-            (session_id = $session_id AND info_hash_v2 = $info_hash_v2
-                AND (info_hash_v1 IS NULL OR info_hash_v1 = $info_hash_v1))
-        )sql");
-
-    stmt
-        .Bind("$info",         info)
-        .Bind("$info_hash_v1", hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
-        .Bind("$info_hash_v2", hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
-        .Bind("$session_id",   session_id)
-        .Execute();
+    if (params.ti)
+    {
+        WriteTorrentInfo(db, session_id, hash, *params.ti);
+    }
 }
 
 bool AddTorrentParams::Next(
@@ -382,6 +388,11 @@ void AddTorrentParams::Update(sqlite3 *db, const int session_id, const lt::info_
         .Bind("$session_id",     session_id)
         .Bind("$userdata",       userdata)
         .Execute();
+
+    if (params.ti)
+    {
+        WriteTorrentInfo(db, session_id, hash, *params.ti);
+    }
 }
 
 void AddTorrentParams::UpdateClientData(sqlite3 *db, const int session_id, const lt::info_hash_t& hash, const TorrentClientData& client_data)

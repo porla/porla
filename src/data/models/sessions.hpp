@@ -35,5 +35,6 @@ namespace porla::Data::Models
         static void Remove(sqlite3* db, int id);
         static void SetDefault(sqlite3* db, int id);
         static void Update(sqlite3* db, const Session& session);
+        static void UpdateParams(sqlite3* db, const int id, const lt::session_params& params);
     };
 }

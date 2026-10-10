@@ -1,6 +1,7 @@
 #include "../types.hpp"
 
 #include <libtorrent/torrent_handle.hpp>
+#include <libtorrent/torrent_status.hpp>
 
 #include "potorrentdata.hpp"
 

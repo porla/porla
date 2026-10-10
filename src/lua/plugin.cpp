@@ -49,7 +49,7 @@
 
 #include "../config.hpp"
 #include "../curlmulti.hpp"
-#include "../sessions.hpp"
+#include "../sessions/sessions.hpp"
 
 namespace fs = std::filesystem;
 

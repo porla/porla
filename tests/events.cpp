@@ -6,7 +6,9 @@
 #include <boost/asio/io_context.hpp>
 
 #include "../src/events.hpp"
-#include "../src/sessions.hpp"
+#include "../src/sessions/sessionevent.hpp"
+#include "../src/sessions/sessions.hpp"
+#include "../src/sessions/torrentevent.hpp"
 
 using porla::Event;
 using porla::Events;

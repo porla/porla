@@ -1,7 +1,8 @@
 #include "sessionspause.hpp"
 
 #include "../../../data/models/sessions.hpp"
-#include "../../../sessions.hpp"
+#include "../../../sessions/session.hpp"
+#include "../../../sessions/sessions.hpp"
 
 using porla::Rpc::Methods::Sessions::SessionsPause;
 using porla::Rpc::Methods::Sessions::SessionsPauseReq;
@@ -29,7 +30,7 @@ void SessionsPause::Execute(const SessionsPauseReq& req, ResponseWriterHandle cb
         return cb->Error(-2, "Session not loaded");
     }
 
-    state->session->pause();
+    state->Libtorrent().pause();
 
     return cb->Ok(SessionsPauseRes{});
 }

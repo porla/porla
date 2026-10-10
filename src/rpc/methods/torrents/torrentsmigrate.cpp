@@ -1,9 +1,13 @@
 #include "torrentsmigrate.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <boost/signals2.hpp>
 
 #include "../../../data/models/sessions.hpp"
-#include "../../../sessions.hpp"
+#include "../../../events.hpp"
+#include "../../../sessions/session.hpp"
+#include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrentevent.hpp"
 #include "../../../torrentclientdata.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsMigrate;
@@ -20,8 +24,9 @@ struct RemoveState
     porla::Rpc::ResponseWriterHandle             writer;
 };
 
-TorrentsMigrate::TorrentsMigrate(sqlite3* db, porla::Sessions &sessions)
+TorrentsMigrate::TorrentsMigrate(sqlite3* db, porla::Events& events, porla::Sessions &sessions)
     : m_db(db)
+    , m_events(events)
     , m_sessions(sessions)
 {
 }
@@ -44,14 +49,19 @@ void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandl
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto it = session_state->torrents.find(req.info_hash);
+    if (!m_sessions.Get(req.target_session_id))
+    {
+        return cb->Error(-2, "Target session not loaded");
+    }
 
-    if (it == session_state->torrents.end())
+    const auto it = session_state->Torrents().find(req.info_hash);
+
+    if (it == session_state->Torrents().end())
     {
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    const auto prev_client_data = it->second.handle.userdata().get<TorrentClientData>();
+    const auto prev_client_data = it->second.status.handle.userdata().get<TorrentClientData>();
           auto client_data      = new TorrentClientData();
 
     if (prev_client_data)
@@ -62,20 +72,22 @@ void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandl
         client_data->tags         = prev_client_data->tags;
     }
 
-    lt::add_torrent_params params = it->second.handle.get_resume_data();
+    lt::add_torrent_params params = it->second.status.handle.get_resume_data();
     params.userdata = lt::client_data_t(client_data);
 
     RemoveState state{
         .connection        = std::make_shared<boost::signals2::connection>(),
         .params            = params,
         .self              = weak_from_this(),
-        .source_session_id = session_state->id,
+        .source_session_id = session_state->Id(),
         .target_session_id = req.target_session_id,
         .writer            = cb
     };
 
-    *state.connection = m_sessions.OnTorrentRemoved([state](auto session_state, auto removed_hash)
+    *state.connection = m_events.On("torrent.removed", [state](const porla::Event& event)
     {
+        const auto& removed = static_cast<const porla::TorrentEvent&>(event);
+
         auto self = state.self.lock();
 
         if (self == nullptr)
@@ -85,7 +97,7 @@ void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandl
             return;
         }
 
-        if (session_state->id == state.source_session_id && removed_hash == state.params.info_hashes)
+        if (removed.session_id == state.source_session_id && removed.info_hash == state.params.info_hashes)
         {
             state.connection->disconnect();
 
@@ -98,15 +110,15 @@ void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandl
                 return;
             }
 
-            state.params.userdata.get<TorrentClientData>()->state = target_session;
+            state.params.userdata.get<TorrentClientData>()->session = target_session;
 
-            target_session->session->async_add_torrent(state.params);
+            target_session->Libtorrent().async_add_torrent(state.params);
 
-            BOOST_LOG_TRIVIAL(info) << "Torrent migrated to session " << target_session->name;
+            BOOST_LOG_TRIVIAL(info) << "Torrent migrated to session " << target_session->Name();
 
             state.writer->Ok({});
         }
     });
 
-    session_state->session->remove_torrent(it->second.handle);
+    session_state->Libtorrent().remove_torrent(it->second.status.handle);
 }

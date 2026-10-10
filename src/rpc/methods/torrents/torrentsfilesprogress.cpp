@@ -1,7 +1,9 @@
 #include "torrentsfilesprogress.hpp"
 
 #include "../../../data/models/sessions.hpp"
-#include "../../../sessions.hpp"
+#include "../../../sessions/session.hpp"
+#include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsFilesProgress;
 using porla::Rpc::Methods::Torrents::TorrentsFilesProgressReq;
@@ -31,15 +33,15 @@ void TorrentsFilesProgress::Execute(const TorrentsFilesProgressReq& req, Respons
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto it = session_state->torrents.find(req.info_hash);
+    const auto it = session_state->Torrents().find(req.info_hash);
 
-    if (it == session_state->torrents.end())
+    if (it == session_state->Torrents().end())
     {
         return cb->Error(-3, "Torrent not found in session");
     }
 
     TorrentsFilesProgressRes res;
-    it->second.handle.file_progress(res.progress);
+    it->second.status.handle.file_progress(res.progress);
 
     cb->Ok(res);
 }

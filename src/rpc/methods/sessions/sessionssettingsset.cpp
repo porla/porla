@@ -3,7 +3,8 @@
 #include <boost/log/trivial.hpp>
 
 #include "../../../data/models/sessions.hpp"
-#include "../../../sessions.hpp"
+#include "../../../sessions/session.hpp"
+#include "../../../sessions/sessions.hpp"
 #include "../../../utils/ltsettings.hpp"
 
 using porla::Rpc::Methods::Sessions::SessionsSettingsSet;
@@ -37,9 +38,8 @@ void SessionsSettingsSet::Execute(const SessionsSettingsSetReq &req, ResponseWri
 
     LibtorrentSettingsPack::UpdateStatic(settings);
 
-    state->session->apply_settings(settings);
-
-    m_sessions.SaveSessionParams(state);
+    state->Libtorrent().apply_settings(settings);
+    state->Persist();
 
     BOOST_LOG_TRIVIAL(info) << "Session settings for " << session->name << " updated";
 

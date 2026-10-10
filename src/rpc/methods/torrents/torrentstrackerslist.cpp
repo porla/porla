@@ -1,7 +1,9 @@
 #include "torrentstrackerslist.hpp"
 
 #include "../../../data/models/sessions.hpp"
-#include "../../../sessions.hpp"
+#include "../../../sessions/session.hpp"
+#include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsTrackersList;
 using porla::Rpc::Methods::Torrents::TorrentsTrackersListReq;
@@ -31,19 +33,19 @@ void TorrentsTrackersList::Execute(const TorrentsTrackersListReq& req, ResponseW
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto it = session_state->torrents.find(req.info_hash);
+    const auto it = session_state->Torrents().find(req.info_hash);
 
-    if (it == session_state->torrents.end())
+    if (it == session_state->Torrents().end())
     {
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    if (!it->second.handle.is_valid())
+    if (!it->second.status.handle.is_valid())
     {
         return cb->Error(-4, "Torrent not valid");
     }
 
     cb->Ok(TorrentsTrackersListRes{
-        .trackers = it->second.handle.trackers()
+        .trackers = it->second.status.handle.trackers()
     });
 }

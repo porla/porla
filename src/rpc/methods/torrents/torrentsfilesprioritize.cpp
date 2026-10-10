@@ -1,7 +1,9 @@
 #include "torrentsfilesprioritize.hpp"
 
 #include "../../../data/models/sessions.hpp"
-#include "../../../sessions.hpp"
+#include "../../../sessions/session.hpp"
+#include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsFilesPrioritize;
 using porla::Rpc::Methods::Torrents::TorrentsFilesPrioritizeReq;
@@ -31,14 +33,14 @@ void TorrentsFilesPrioritize::Execute(const TorrentsFilesPrioritizeReq& req, Res
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto it = session_state->torrents.find(req.info_hash);
+    const auto it = session_state->Torrents().find(req.info_hash);
 
-    if (it == session_state->torrents.end())
+    if (it == session_state->Torrents().end())
     {
         return cb->Error(-3, "Torrent not found in session");
     }
 
-    std::vector<lt::download_priority_t> file_prios = it->second.handle.get_file_priorities();
+    std::vector<lt::download_priority_t> file_prios = it->second.status.handle.get_file_priorities();
 
     for (const auto& fp : req.priorities)
     {
@@ -52,7 +54,7 @@ void TorrentsFilesPrioritize::Execute(const TorrentsFilesPrioritizeReq& req, Res
         file_prios[index] = fp.priority;
     }
 
-    it->second.handle.prioritize_files(file_prios);
+    it->second.status.handle.prioritize_files(file_prios);
 
     cb->Ok({});
 }

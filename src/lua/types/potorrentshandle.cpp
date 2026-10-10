@@ -6,6 +6,8 @@
 
 #include "../pluginstate.hpp"
 
+#include "../../sessions/session.hpp"
+#include "../../sessions/torrent.hpp"
 #include "../../torrents.hpp"
 #include "../../torrentclientdata.hpp"
 
@@ -34,7 +36,7 @@ std::tuple<sol::object, sol::object> PoTorrentsHandle::Add(sol::this_state ts, c
 {
     sol::state_view lua(ts);
 
-    auto session   = m_state.lock();
+    auto session   = m_weak_session.lock();
     auto lua_state = lua.registry()["state"].get<std::weak_ptr<porla::Lua::LuaState>>().lock();
 
     if (session == nullptr || lua_state == nullptr)
@@ -42,7 +44,7 @@ std::tuple<sol::object, sol::object> PoTorrentsHandle::Add(sol::this_state ts, c
         return { sol::lua_nil, sol::make_object(lua, "Session not loaded") };
     }
 
-    TorrentsAddOptions options{ .session_id = session->id };
+    TorrentsAddOptions options{ .session_id = session->Id() };
 
     if (opts.has_value())
     {
@@ -90,30 +92,30 @@ std::tuple<sol::object, sol::object> PoTorrentsHandle::Add(sol::this_state ts, c
 
 int PoTorrentsHandle::Count()
 {
-    auto state = m_state.lock();
+    auto state = m_weak_session.lock();
     if (state == nullptr) { return -1; }
 
-    return state->torrents.size();
+    return state->Torrents().size();
 }
 
 std::optional<std::tuple<lt::torrent_handle, lt::torrent_status>> PoTorrentsHandle::Get(const lt::info_hash_t& info_hash)
 {
-    auto state = m_state.lock();
+    auto state = m_weak_session.lock();
     if (state == nullptr) { return std::nullopt; }
 
-    auto found = state->torrents.find(info_hash);
+    auto found = state->Torrents().find(info_hash);
 
-    if (found == state->torrents.end())
+    if (found == state->Torrents().end())
     {
         return std::nullopt;
     }
 
-    return std::make_tuple(found->second.handle, found->second);
+    return std::make_tuple(found->second.status.handle, found->second.status);
 }
 
 std::shared_ptr<PoTorrentsIterator> PoTorrentsHandle::List()
 {
-    auto state = m_state.lock();
+    auto state = m_weak_session.lock();
     if (state == nullptr) { return nullptr; }
 
     return std::make_shared<PoTorrentsIterator>(state, std::nullopt);
@@ -121,7 +123,7 @@ std::shared_ptr<PoTorrentsIterator> PoTorrentsHandle::List()
 
 std::shared_ptr<PoTorrentsIterator> PoTorrentsHandle::List(const PoQuery& query)
 {
-    auto state = m_state.lock();
+    auto state = m_weak_session.lock();
     if (state == nullptr) { return nullptr; }
 
     return std::make_shared<PoTorrentsIterator>(state, query);
@@ -129,12 +131,12 @@ std::shared_ptr<PoTorrentsIterator> PoTorrentsHandle::List(const PoQuery& query)
 
 void PoTorrentsHandle::Remove(const lt::info_hash_t& ih, std::optional<sol::table> opts)
 {
-    auto state = m_state.lock();
+    auto state = m_weak_session.lock();
     if (state == nullptr) { return; }
 
-    auto found = state->torrents.find(ih);
+    auto found = state->Torrents().find(ih);
 
-    if (found == state->torrents.end())
+    if (found == state->Torrents().end())
     {
         return;
     }
@@ -159,14 +161,14 @@ void PoTorrentsHandle::Remove(const lt::info_hash_t& ih, std::optional<sol::tabl
         }
     }
 
-    state->session->remove_torrent(
-        found->second.handle,
+    state->Libtorrent().remove_torrent(
+        found->second.status.handle,
         flags);
 }
 
 void PoTorrentsHandle::Remove(const lt::torrent_handle& th, std::optional<sol::table> opts)
 {
-    auto state = m_state.lock();
+    auto state = m_weak_session.lock();
     if (state == nullptr) { return; }
 
     lt::remove_flags_t flags = {};
@@ -189,5 +191,5 @@ void PoTorrentsHandle::Remove(const lt::torrent_handle& th, std::optional<sol::t
         }
     }
 
-    state->session->remove_torrent(th, flags);
+    state->Libtorrent().remove_torrent(th, flags);
 }

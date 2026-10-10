@@ -1,8 +1,12 @@
 #pragma once
 
 #include <map>
+#include <memory>
 
-#include "../../sessions.hpp"
+namespace porla
+{
+    class Session;
+}
 
 namespace porla::Lua::Types
 {
@@ -11,7 +15,7 @@ namespace porla::Lua::Types
     class PoSessionsIterator
     {
     public:
-        explicit PoSessionsIterator(std::map<int, porla::Sessions::SessionStatePtr> sessions)
+        explicit PoSessionsIterator(std::map<int, std::shared_ptr<Session>> sessions)
             : m_sessions(sessions)
             , m_iterator(m_sessions.begin())
         {
@@ -20,8 +24,8 @@ namespace porla::Lua::Types
         std::shared_ptr<PoSessionHandle> operator()();
 
     private:
-        std::map<int, porla::Sessions::SessionStatePtr>                 m_sessions;
-        std::map<int, porla::Sessions::SessionStatePtr>::const_iterator m_iterator;
+        std::map<int, std::shared_ptr<Session>>                 m_sessions;
+        std::map<int, std::shared_ptr<Session>>::const_iterator m_iterator;
     };
 
 }

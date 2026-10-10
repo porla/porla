@@ -1,8 +1,13 @@
 #pragma once
 
+#include <libtorrent/torrent_handle.hpp>
+#include <libtorrent/torrent_status.hpp>
 #include <sol/sol.hpp>
 
-#include "../../sessions.hpp"
+namespace porla
+{
+    class Session;
+}
 
 namespace porla::Lua::Types
 {
@@ -14,8 +19,8 @@ namespace porla::Lua::Types
     public:
         static void Register(sol::state& lua);
 
-        explicit PoTorrentsHandle(std::weak_ptr<porla::Sessions::SessionState> state)
-            : m_state(state) {}
+        explicit PoTorrentsHandle(std::weak_ptr<Session> weak_session)
+            : m_weak_session(weak_session) {}
 
         std::tuple<sol::object, sol::object> Add(sol::this_state ts, const sol::table& params, std::optional<sol::table> opts);
 
@@ -30,6 +35,6 @@ namespace porla::Lua::Types
         void Remove(const lt::torrent_handle& th, std::optional<sol::table> opts);
 
     private:
-        std::weak_ptr<porla::Sessions::SessionState> m_state;
+        std::weak_ptr<Session> m_weak_session;
     };
 }

@@ -1,7 +1,9 @@
 #include "torrentsmove.hpp"
 
 #include "../../../data/models/sessions.hpp"
-#include "../../../sessions.hpp"
+#include "../../../sessions/session.hpp"
+#include "../../../sessions/sessions.hpp"
+#include "../../../sessions/torrent.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsMove;
 using porla::Rpc::Methods::Torrents::TorrentsMoveReq;
@@ -31,9 +33,9 @@ void TorrentsMove::Execute(const TorrentsMoveReq &req, ResponseWriterHandle cb)
         return cb->Error(-2, "Session not loaded");
     }
 
-    const auto it = session_state->torrents.find(req.info_hash);
+    const auto it = session_state->Torrents().find(req.info_hash);
 
-    if (it == session_state->torrents.end())
+    if (it == session_state->Torrents().end())
     {
         return cb->Error(-3, "Torrent not found in session");
     }
@@ -47,12 +49,12 @@ void TorrentsMove::Execute(const TorrentsMoveReq &req, ResponseWriterHandle cb)
         if (req.flags.value() == "fail_if_exist")        flags = lt::move_flags_t::fail_if_exist;
     }
 
-    if (!it->second.handle.is_valid())
+    if (!it->second.status.handle.is_valid())
     {
         return cb->Error(-4, "Torrent not valid");
     }
 
-    it->second.handle.move_storage(req.path, flags);
+    it->second.status.handle.move_storage(req.path, flags);
 
     return cb->Ok(TorrentsMoveRes{});
 }

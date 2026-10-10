@@ -1,7 +1,8 @@
 #include "sessionsremove.hpp"
 
 #include "../../../data/models/sessions.hpp"
-#include "../../../sessions.hpp"
+#include "../../../sessions/session.hpp"
+#include "../../../sessions/sessions.hpp"
 
 using porla::Rpc::Methods::Sessions::SessionsRemove;
 using porla::Rpc::Methods::Sessions::SessionsRemoveReq;
@@ -29,7 +30,7 @@ void SessionsRemove::Execute(const SessionsRemoveReq& req, ResponseWriterHandle 
 
     const auto session_state = m_sessions.Get(session->id);
 
-    if (session_state != nullptr && session_state->torrents.size() > 0)
+    if (session_state != nullptr && session_state->Torrents().size() > 0)
     {
         return cb->Error(-3, "Cannot remove session with torrents");
     }

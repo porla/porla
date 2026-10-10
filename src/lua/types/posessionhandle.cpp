@@ -2,6 +2,7 @@
 
 #include "potorrentshandle.hpp"
 
+#include "../../sessions/session.hpp"
 #include "../../utils/ltsettings.hpp"
 
 using porla::Lua::Types::PoSessionHandle;
@@ -16,31 +17,31 @@ void PoSessionHandle::Register(sol::state& lua)
         "name", sol::property(&PoSessionHandle::Name),
         "add_dht_node", [](const PoSessionHandle& session, const std::string& host, int port)
         {
-            session.Lock()->session->add_dht_node(std::make_pair(host, port));
+            session.Lock()->Libtorrent().add_dht_node(std::make_pair(host, port));
         },
         "apply_settings", [](const PoSessionHandle& session, lt::settings_pack& sp)
         {
             Utils::LibtorrentSettingsPack::UpdateStatic(sp);
-            session.Lock()->session->apply_settings(sp);
+            session.Lock()->Libtorrent().apply_settings(sp);
         },
         "get_settings", [](const PoSessionHandle& session)
         {
-            return session.Lock()->session->get_settings();
+            return session.Lock()->Libtorrent().get_settings();
         },
-        "is_paused", [](const PoSessionHandle& session) { return session.Lock()->session->is_paused(); },
-        "pause", [](const PoSessionHandle& session) { session.Lock()->session->pause(); },
-        "resume", [](const PoSessionHandle& session) { session.Lock()->session->resume(); },
+        "is_paused", [](const PoSessionHandle& session) { return session.Lock()->Libtorrent().is_paused(); },
+        "pause", [](const PoSessionHandle& session) { session.Lock()->Libtorrent().pause(); },
+        "resume", [](const PoSessionHandle& session) { session.Lock()->Libtorrent().resume(); },
         "torrents", &PoSessionHandle::Torrents);
 }
 
 int PoSessionHandle::Id()
 {
-    return Lock()->id;
+    return Lock()->Id();
 }
 
 std::string PoSessionHandle::Name()
 {
-    return Lock()->name;
+    return Lock()->Name();
 }
 
 std::shared_ptr<PoTorrentsHandle> PoSessionHandle::Torrents()
@@ -48,7 +49,7 @@ std::shared_ptr<PoTorrentsHandle> PoSessionHandle::Torrents()
     return std::make_shared<PoTorrentsHandle>(m_state);
 }
 
-std::shared_ptr<porla::Sessions::SessionState> PoSessionHandle::Lock() const
+std::shared_ptr<porla::Session> PoSessionHandle::Lock() const
 {
     auto state = m_state.lock();
 

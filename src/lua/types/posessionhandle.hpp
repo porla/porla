@@ -4,7 +4,10 @@
 
 #include <sol/sol.hpp>
 
-#include "../../sessions.hpp"
+namespace porla
+{
+    class Session;
+}
 
 namespace porla::Lua::Types
 {
@@ -15,7 +18,7 @@ namespace porla::Lua::Types
     public:
         static void Register(sol::state& lua);
 
-        explicit PoSessionHandle(std::weak_ptr<porla::Sessions::SessionState> state)
+        explicit PoSessionHandle(std::weak_ptr<Session> state)
             : m_state(state) {}
 
         int Id();
@@ -23,8 +26,8 @@ namespace porla::Lua::Types
         std::shared_ptr<PoTorrentsHandle> Torrents();
 
     private:
-        std::shared_ptr<porla::Sessions::SessionState> Lock() const;
+        std::shared_ptr<Session> Lock() const;
 
-        std::weak_ptr<porla::Sessions::SessionState> m_state;
+        std::weak_ptr<Session> m_state;
     };
 }

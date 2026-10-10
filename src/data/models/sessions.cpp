@@ -160,3 +160,13 @@ void Sessions::Update(sqlite3* db, const Sessions::Session& session)
     stmt.Bind("$params",   params_buffer);
     stmt.Execute();
 }
+
+void Sessions::UpdateParams(sqlite3* db, const int id, const lt::session_params& params)
+{
+    const std::vector<char> params_buffer = lt::write_session_params_buf(params);
+
+    Statement::Prepare(db, "UPDATE sessions SET params = $params WHERE id = $id")
+        .Bind("$id", id)
+        .Bind("$params", params_buffer)
+        .Execute();
+}
