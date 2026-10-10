@@ -171,6 +171,10 @@ void LoadTorrents::Finish(Session& session)
 
     m_events.Publish(std::move(loaded));
 
+    // post torrent updates immediately to reduce the gap where torrents have no status
+    // without this it would take one tick of the post updates timer to receive full status
+    session.Libtorrent().post_torrent_updates();
+
     m_scheduler.Resume();
 
     Complete(session);
