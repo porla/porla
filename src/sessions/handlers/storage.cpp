@@ -69,7 +69,7 @@ void Session::OnStorageMovedAlert(const lt::storage_moved_alert* alert)
 
     alert->handle.post_status();
 
-    EmitTorrentEvent("torrent.moved", *alert);
+    EmitTorrentEvent("torrent.storage_moved", *alert);
 }
 
 void Session::OnStorageMovedFailedAlert(const lt::storage_moved_failed_alert* alert)
@@ -81,5 +81,5 @@ void Session::OnStorageMovedFailedAlert(const lt::storage_moved_failed_alert* al
 
     BOOST_LOG_TRIVIAL(warning) << Log(alert->handle.info_hashes()) << alert->message();
 
-    EmitTorrentEvent("torrent.move_failed", *alert);
+    EmitTorrentEvent("torrent.storage_moved_failed", *alert);
 }
