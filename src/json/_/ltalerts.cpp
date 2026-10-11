@@ -60,6 +60,11 @@ namespace libtorrent
         json = nlohmann::json::object();
     }
 
+    void to_json(nlohmann::json& json, const torrent_need_cert_alert& alert)
+    {
+        json = nlohmann::json::object();
+    }
+
     void to_json(nlohmann::json& json, const torrent_paused_alert& alert)
     {
         json = nlohmann::json::object();

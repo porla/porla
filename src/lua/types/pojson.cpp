@@ -123,7 +123,7 @@ sol::object PoJson::ToLua(sol::this_state ts, const nlohmann::json& data, int de
     switch (data.type())
     {
     case nlohmann::json::value_t::null:
-        return sol::object(lua, sol::in_place, NullSentinel());
+        return sol::make_object(lua, sol::light(NullSentinel()));
 
     case nlohmann::json::value_t::boolean:
         return sol::make_object(lua, data.get<bool>());

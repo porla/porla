@@ -218,7 +218,10 @@ void LtTorrentHandle::Register(sol::state& lua)
         // set_metadata
         // set_piece_deadline
         // set_sequential_range
-        "set_ssl_certificate",        &lt::torrent_handle::set_ssl_certificate,
+        "set_ssl_certificate", [](lt::torrent_handle& th, const std::string& certificate, const std::string& private_key, const std::string& dh_params, sol::optional<std::string> passphrase)
+        {
+            th.set_ssl_certificate(certificate, private_key, dh_params, passphrase.value_or(""));
+        },
         "set_ssl_certificate_buffer", &lt::torrent_handle::set_ssl_certificate_buffer,
         "set_upload_limit",           [](const lt::torrent_handle& th, int value) { th.set_upload_limit(AssertRateLimit(value)); },
         "status",                     [](const lt::torrent_handle& th) { return th.status(); },

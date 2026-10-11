@@ -51,6 +51,7 @@ namespace libtorrent
     void to_json(nlohmann::json& json, const torrent_checked_alert& alert);
     void to_json(nlohmann::json& json, const torrent_error_alert& alert);
     void to_json(nlohmann::json& json, const torrent_finished_alert& alert);
+    void to_json(nlohmann::json& json, const torrent_need_cert_alert& alert);
     void to_json(nlohmann::json& json, const torrent_paused_alert& alert);
     void to_json(nlohmann::json& json, const torrent_resumed_alert& alert);
     void to_json(nlohmann::json& json, const tracker_error_alert& alert);
