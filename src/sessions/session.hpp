@@ -54,6 +54,9 @@ namespace porla
         // Torrent lookup functions since we only want to return current torrents
         const Torrent* Find(const lt::info_hash_t& hash) const;
 
+        // check if the current hash exists in the session (in any state)
+        bool Contains(const lt::info_hash_t& hash) const { return m_torrents.contains(hash); }
+
         std::size_t Count() const;
 
         auto Torrents() const { return m_torrents | std::views::filter(IsCurrent); }
