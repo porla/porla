@@ -42,10 +42,10 @@ int GetUserVersion(sqlite3* db)
     return version;
 }
 
-void SetUserVersion(sqlite3* db, int version)
+int SetUserVersion(sqlite3* db, int version)
 {
     std::string sql = "PRAGMA user_version = " + std::to_string(version) + ";";
-    sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
+    return sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
 }
 
 bool porla::Data::Migrate(sqlite3* db, const std::unique_ptr<porla::Config>& cfg)
@@ -87,21 +87,48 @@ bool porla::Data::Migrate(sqlite3* db, const std::unique_ptr<porla::Config>& cfg
 
     BOOST_LOG_TRIVIAL(info) << "Migrating database from version " << user_version << " to " << Migrations.size();
 
-    sqlite3_exec(db, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr);
+    if (sqlite3_exec(db, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr) != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to begin transaction: " << sqlite3_errmsg(db);
+        return false;
+    }
 
     for (int i = user_version; i < Migrations.size(); i++)
     {
-        if (Migrations.at(i)(db) != SQLITE_OK)
+        try
         {
+            const auto result = Migrations.at(i)(db);
+
+            if (result == SQLITE_OK)
+            {
+                continue;
+            }
+
             BOOST_LOG_TRIVIAL(error) << "Failed to apply migration " << i + 1 << ": " << sqlite3_errmsg(db);
-            sqlite3_exec(db, "ROLLBACK;", nullptr, nullptr, nullptr);
-            return false;
         }
+        catch(const std::exception& e)
+        {
+            BOOST_LOG_TRIVIAL(error) << "Failed to apply migration " << i + 1 << ": " << e.what();
+        }
+
+        sqlite3_exec(db, "ROLLBACK;", nullptr, nullptr, nullptr);
+
+        return false;
     }
 
-    SetUserVersion(db, static_cast<int>(Migrations.size()));
+    if (SetUserVersion(db, static_cast<int>(Migrations.size())) != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to set user_version: " << sqlite3_errmsg(db);
+        sqlite3_exec(db, "ROLLBACK;", nullptr, nullptr, nullptr);
+        return false;
+    }
 
-    sqlite3_exec(db, "COMMIT;", nullptr, nullptr, nullptr);
+    if (sqlite3_exec(db, "COMMIT;", nullptr, nullptr, nullptr) != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to commit migration transaction: " << sqlite3_errmsg(db);
+        sqlite3_exec(db, "ROLLBACK;", nullptr, nullptr, nullptr);
+        return false;
+    }
 
     return true;
 }
