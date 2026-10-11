@@ -25,6 +25,7 @@
 #include "migrations/0016_addapikeys.hpp"
 #include "migrations/0017_torrentinfos.hpp"
 #include "migrations/0018_addcompletedat.hpp"
+#include "migrations/0019_addautoincrementids.hpp"
 
 #include "statement.hpp"
 
@@ -70,6 +71,7 @@ bool porla::Data::Migrate(sqlite3* db, const std::unique_ptr<porla::Config>& cfg
         &porla::Data::Migrations::AddApiKeys::Migrate,
         &porla::Data::Migrations::TorrentInfos::Migrate,
         &porla::Data::Migrations::AddCompletedAt::Migrate,
+        &porla::Data::Migrations::AddAutoIncrementIds::Migrate,
     };
 
     int user_version = GetUserVersion(db);
