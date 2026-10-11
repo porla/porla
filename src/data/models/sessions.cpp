@@ -124,10 +124,10 @@ int Sessions::Insert(sqlite3* db, const Sessions::Session& session)
             $name,
             $metadata,
             $params,
-            timer_dht_stats,
-            timer_save_state,
-            timer_session_stats,
-            timer_torrent_updates
+            $timer_dht_stats,
+            $timer_save_state,
+            $timer_session_stats,
+            $timer_torrent_updates
         );
         )sql");
 
