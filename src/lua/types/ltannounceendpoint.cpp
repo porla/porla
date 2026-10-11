@@ -11,10 +11,11 @@ void LtAnnounceEndpoint::Register(sol::state& lua)
         sol::no_constructor,
         "enabled", sol::readonly(&lt::announce_endpoint::enabled),
         "info_hashes", sol::property([](const lt::announce_endpoint& ep) { return sol::as_table(ep.info_hashes); }),
-        "local_endpoint", sol::property([](const lt::announce_endpoint& ae)
+        "local_endpoint", sol::property([](const lt::announce_endpoint& ae, sol::this_state s)
         {
-            return std::make_tuple(
-                ae.local_endpoint.address().to_string(),
-                ae.local_endpoint.port());
+            sol::state_view lua(s);
+            return lua.create_table_with(
+                1, ae.local_endpoint.address().to_string(),
+                2, ae.local_endpoint.port());
         }));
 }

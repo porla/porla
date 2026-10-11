@@ -173,16 +173,27 @@ void LtTorrentHandle::Register(sol::state& lua)
             th.prioritize_files(file_priorities);
         },
         // prioritize_pieces
-        "queue_position",             &lt::torrent_handle::queue_position,
+        "queue_position",             [](const lt::torrent_handle& th) { return static_cast<int>(th.queue_position()); },
         "queue_position_bottom",      &lt::torrent_handle::queue_position_bottom,
         "queue_position_down",        &lt::torrent_handle::queue_position_down,
-        "queue_position_set",         &lt::torrent_handle::queue_position_set,
+        "queue_position_set",         [](const lt::torrent_handle& th, int pos) { th.queue_position_set(lt::queue_position_t{pos}); },
         "queue_position_top",         &lt::torrent_handle::queue_position_top,
         "queue_position_up",          &lt::torrent_handle::queue_position_up,
         "read_piece",                 [](const lt::torrent_handle& th, int piece_index)
                                         { th.read_piece(lt::piece_index_t{piece_index}); },
         "remove_url_seed",            &lt::torrent_handle::remove_url_seed,
-        "rename_file",                &lt::torrent_handle::rename_file,
+        "rename_file",                [](const lt::torrent_handle& th, int index, const std::string& name)
+        {
+            const auto ti = th.torrent_file();
+            if (!ti) { throw sol::error("cannot rename file on torrent without metadata"); }
+
+            if (index < 0 || index >= ti->num_files())
+            {
+                throw sol::error("file index out of range");
+            }
+
+            th.rename_file(lt::file_index_t{index}, name);
+        },
         // replace_trackers
         // reset_piece_deadline
         "resume",                     &lt::torrent_handle::resume,
