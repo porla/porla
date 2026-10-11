@@ -108,7 +108,7 @@ bool porla::Data::Migrate(sqlite3* db, const std::unique_ptr<porla::Config>& cfg
         }
         catch(const std::exception& e)
         {
-            BOOST_LOG_TRIVIAL(error) << "Failed to appy migration " << i + 1 << ": " << e.what();
+            BOOST_LOG_TRIVIAL(error) << "Failed to apply migration " << i + 1 << ": " << e.what();
         }
 
         sqlite3_exec(db, "ROLLBACK;", nullptr, nullptr, nullptr);
@@ -126,6 +126,7 @@ bool porla::Data::Migrate(sqlite3* db, const std::unique_ptr<porla::Config>& cfg
     if (sqlite3_exec(db, "COMMIT;", nullptr, nullptr, nullptr) != SQLITE_OK)
     {
         BOOST_LOG_TRIVIAL(error) << "Failed to commit migration transaction: " << sqlite3_errmsg(db);
+        sqlite3_exec(db, "ROLLBACK;", nullptr, nullptr, nullptr);
         return false;
     }
 
