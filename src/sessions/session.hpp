@@ -51,6 +51,8 @@ namespace porla
 
         lt::session& Libtorrent() { return *m_session; }
 
+        void SetTimers(const Data::Models::Sessions::Session& updated);
+
         // Torrent lookup functions since we only want to return current torrents
         const Torrent* Find(const lt::info_hash_t& hash) const;
 

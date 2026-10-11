@@ -181,11 +181,31 @@ void Sessions::Update(sqlite3* db, const Sessions::Session& session)
 
     const auto json = nlohmann::json(session.metadata).dump();
 
-    auto stmt = Statement::Prepare(db, "UPDATE sessions SET metadata = $metadata, name = $name, params = $params WHERE id = $id");
-    stmt.Bind("$id",       session.id);
-    stmt.Bind("$metadata", json);
-    stmt.Bind("$name",     session.name);
-    stmt.Bind("$params",   params_buffer);
+    auto stmt = Statement::Prepare(
+        db,
+        R"sql(
+        UPDATE
+            sessions
+        SET
+            metadata              = $metadata,
+            name                  = $name,
+            params                = $params,
+            timer_dht_stats       = $timer_dht_stats,
+            timer_save_state      = $timer_save_state,
+            timer_session_stats   = $timer_session_stats,
+            timer_torrent_updates = $timer_torrent_updates
+        WHERE
+            id = $id
+        )sql");
+
+    stmt.Bind("$id",                    session.id);
+    stmt.Bind("$metadata",              json);
+    stmt.Bind("$name",                  session.name);
+    stmt.Bind("$params",                params_buffer);
+    stmt.Bind("$timer_dht_stats",       session.timer_dht_stats);
+    stmt.Bind("$timer_save_state",      session.timer_save_state);
+    stmt.Bind("$timer_session_stats",   session.timer_session_stats);
+    stmt.Bind("$timer_torrent_updates", session.timer_torrent_updates);
     stmt.Execute();
 }
 

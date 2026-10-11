@@ -34,6 +34,12 @@ namespace porla
         // requires manual trigger
         void Register(std::unique_ptr<Job> job);
 
+        template<typename T>
+        void SetInterval(std::chrono::milliseconds interval)
+        {
+            SetInterval(std::type_index(typeid(T)), std::move(interval));
+        }
+
         // trigger a manual job
         template<typename T>
         void Trigger() { Trigger(std::type_index(typeid(T))); }
@@ -52,6 +58,8 @@ namespace porla
 
         struct Entry;
         struct State;
+
+        void SetInterval(std::type_index type, std::chrono::milliseconds interval);
 
         void Trigger(std::type_index type);
 

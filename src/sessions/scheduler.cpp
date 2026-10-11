@@ -59,6 +59,25 @@ void Scheduler::Register(std::unique_ptr<Job> job)
     Add(*m_state, Kind::Manual, {}, std::move(job));
 }
 
+void Scheduler::SetInterval(std::type_index type, std::chrono::milliseconds interval)
+{
+    for (const auto& entry : m_state->entries)
+    {
+        if (entry->kind != Kind::Periodic || entry->type != type)
+        {
+            continue;
+        }
+
+        entry->interval = interval;
+
+        if (entry->scheduled && !entry->running)
+        {
+            entry->timer.cancel();
+            Schedule(m_state, entry, interval);
+        }
+    }
+}
+
 void Scheduler::Trigger(std::type_index type)
 {
     for (const auto& entry : m_state->entries)

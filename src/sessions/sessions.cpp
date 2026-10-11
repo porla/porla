@@ -158,6 +158,7 @@ void Sessions::Update(const Record& session)
     if (const auto instance = Get(session.id))
     {
         instance->Rename(session.name);
+        instance->SetTimers(session);
 
         SessionEvent updated("session.updated");
         updated.session_id = instance->Id();

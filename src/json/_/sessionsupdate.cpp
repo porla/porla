@@ -10,7 +10,11 @@ namespace porla::Rpc::Methods::Sessions
         id,
         name,
         is_default,
-        metadata)
+        metadata,
+        timer_dht_stats,
+        timer_save_state,
+        timer_session_stats,
+        timer_torrent_updates)
 
     void to_json(nlohmann::json& j, const SessionsUpdateRes& res)
     {

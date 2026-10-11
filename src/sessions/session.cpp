@@ -80,6 +80,31 @@ void Session::Start(std::function<void()> load_callback)
         std::move(load_callback)));
 }
 
+void Session::SetTimers(const Data::Models::Sessions::Session& updated)
+{
+    using ms = std::chrono::milliseconds;
+
+    if (std::exchange(m_options.record.timer_dht_stats, updated.timer_dht_stats) != m_options.record.timer_dht_stats)
+    {
+        m_jobs->SetInterval<Jobs::PostDhtStats>(ms(m_options.record.timer_dht_stats));
+    }
+
+    if (std::exchange(m_options.record.timer_save_state, updated.timer_save_state) != m_options.record.timer_save_state)
+    {
+        m_jobs->SetInterval<Jobs::SaveState>(ms(m_options.record.timer_save_state));
+    }
+
+    if (std::exchange(m_options.record.timer_session_stats, updated.timer_session_stats) != m_options.record.timer_session_stats)
+    {
+        m_jobs->SetInterval<Jobs::PostSessionStats>(ms(m_options.record.timer_session_stats));
+    }
+
+    if (std::exchange(m_options.record.timer_torrent_updates, updated.timer_torrent_updates) != m_options.record.timer_torrent_updates)
+    {
+        m_jobs->SetInterval<Jobs::PostDhtStats>(ms(m_options.record.timer_torrent_updates));
+    }
+}
+
 const porla::Torrent* Session::Find(const lt::info_hash_t& hash) const
 {
     const auto it = m_torrents.find(hash);
