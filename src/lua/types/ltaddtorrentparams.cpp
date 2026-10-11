@@ -12,6 +12,22 @@
 using porla::TorrentClientData;
 using porla::Lua::Types::LtAddTorrentParams;
 
+namespace
+{
+
+    bool IsLuaInteger(const sol::object& o)
+    {
+        lua_State* L = o.lua_state();
+        o.push(L);
+
+        const bool result = lua_isinteger(L, -1) != 0;
+
+        lua_pop(L, 1);
+
+        return result;
+    }
+}
+
 void LtAddTorrentParams::Register(sol::state& lua)
 {
     sol::table atp = lua.create_table();
@@ -184,6 +200,45 @@ lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params, c
         atp.trackers = trackers;
     }
 
+    if (sol::optional<sol::table> tt = t["tracker_tiers"])
+    {
+        const auto count = tt.value().size();
+
+        if (count > atp.trackers.size())
+        {
+            throw std::invalid_argument("cannot have more tracker tiers than trackers");
+        }
+
+        std::vector<int> tracker_tiers;
+        tracker_tiers.reserve(count);
+
+        for (size_t i = 1; i <= count; i++)
+        {
+            std::optional<sol::object> val = (*tt)[i];
+
+            if (!val)
+            {
+                throw std::invalid_argument("missing value");
+            }
+
+            if (!IsLuaInteger(*val))
+            {
+                throw std::invalid_argument("invalid type (not an integer)");
+            }
+
+            const auto tier = val->as<lua_Integer>();
+
+            if (tier < 0 || tier > std::numeric_limits<int>::max())
+            {
+                throw std::invalid_argument("invalid tracker tier (must be 0 or greater)");
+            }
+
+            tracker_tiers.push_back(static_cast<int>(tier));
+        }
+
+        atp.tracker_tiers = tracker_tiers;
+    }
+
     if (sol::optional<sol::table> us = t["url_seeds"])
     {
         std::vector<std::string> url_seeds;
@@ -253,7 +308,7 @@ lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params, c
     // banned peers
     // dht nodes
     // peers
-    //tbl["tracker_tiers"]      = tracker_tiers;
+
     return atp;
 }
 

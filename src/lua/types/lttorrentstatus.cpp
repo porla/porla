@@ -83,7 +83,7 @@ void LtTorrentStatus::Register(sol::state& lua)
         "num_uploads",            sol::readonly(&lt::torrent_status::num_uploads),
         // pieces
         "progress",               sol::readonly(&lt::torrent_status::progress),
-        "queue_position",         sol::readonly(&lt::torrent_status::queue_position),
+        "queue_position",         sol::readonly_property([](const lt::torrent_status& ts) { return static_cast<int>(ts.queue_position); }),
         "ratio",                  sol::property([](const lt::torrent_status& ts) { return Utils::Ratio(ts); }),
         "ratio_real",             sol::property([](const lt::torrent_status& ts) { return Utils::RealRatio(ts); }),
         "renamed_files",          sol::property([](const lt::torrent_status& ts) { return ts.renamed_files; }),
@@ -106,7 +106,7 @@ void LtTorrentStatus::Register(sol::state& lua)
             {
                 return ts.storage_mode == lt::storage_mode_allocate ? "allocate" : "sparse";
             }),
-        "torrent_file",           sol::property([](const lt::torrent_status& ts) { return ts.torrent_file; }),
+        "torrent_file",           sol::property([](const lt::torrent_status& ts) { return ts.torrent_file.lock(); }),
         "total",                  sol::readonly(&lt::torrent_status::total),
         "total_done",             sol::readonly(&lt::torrent_status::total_done),
         "total_download",         sol::readonly(&lt::torrent_status::total_download),
