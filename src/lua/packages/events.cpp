@@ -43,6 +43,7 @@ namespace
         "torrent.file_error",
         "torrent.finished",
         "torrent.metadata_received",
+        "torrent.need_cert",
         "torrent.storage_moved_failed",
         "torrent.storage_moved",
         "torrent.paused",
@@ -61,6 +62,11 @@ namespace
 
         for (const auto& [ k, v ] : event.data.items())
         {
+            if (v.is_null())
+            {
+                continue;
+            }
+
             tbl[k] = porla::Lua::Types::PoJson::ToLua(state.lua.lua_state(), v, 0);
         }
 
