@@ -112,6 +112,7 @@ namespace porla
 
         void OnAddTorrentAlert(const lt::add_torrent_alert* alert);
         void OnAlertsDroppedAlert(const lt::alerts_dropped_alert* alert);
+        void OnDhtStatsAlert(const lt::dht_stats_alert* alert);
         void OnListenFailedAlert(const lt::listen_failed_alert* alert);
         void OnListenSucceededAlert(const lt::listen_succeeded_alert* alert);
         void OnMetadataReceivedAlert(const lt::metadata_received_alert* alert);

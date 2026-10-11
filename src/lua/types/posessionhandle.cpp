@@ -34,6 +34,8 @@ void PoSessionHandle::Register(sol::state& lua)
         "is_paused", [](const PoSessionHandle& session) { return session.Lock()->Libtorrent().is_paused(); },
         "pause", [](const PoSessionHandle& session) { session.Lock()->Libtorrent().pause(); },
         "resume", [](const PoSessionHandle& session) { session.Lock()->Libtorrent().resume(); },
+        "post_dht_stats", [](const PoSessionHandle& session) { session.Lock()->Libtorrent().post_dht_stats(); },
+        "post_session_stats", [](const PoSessionHandle& session) { session.Lock()->Libtorrent().post_session_stats(); },
         "torrents", &PoSessionHandle::Torrents);
 }
 

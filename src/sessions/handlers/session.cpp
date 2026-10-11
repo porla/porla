@@ -11,6 +11,7 @@
 #include "../sessionevent.hpp"
 
 #include "../../events.hpp"
+#include "../../json/all.hpp"
 
 using porla::Session;
 
@@ -40,6 +41,23 @@ void Session::OnAlertsDroppedAlert(const lt::alerts_dropped_alert* alert)
     {
         m_jobs->Trigger<Jobs::ReconcileTorrents>();
     }
+}
+
+void Session::OnDhtStatsAlert(const lt::dht_stats_alert* alert)
+{
+    if (!m_options.events.HasSubscribers("session.dht_stats"))
+    {
+        return;
+    }
+
+    if (alert->routing_table.empty() && alert->nid.is_all_zeros())
+    {
+        return;
+    }
+
+    Publish(SessionEvent("session.dht_stats", {
+        { "stats", *alert }
+    }));
 }
 
 void Session::OnListenFailedAlert(const lt::listen_failed_alert* alert)

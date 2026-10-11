@@ -32,6 +32,7 @@ namespace
         "preset.removed",
         "preset.updated",
         "session.added",
+        "session.dht_stats",
         "session.loaded",
         "session.removed",
         "session.stats",

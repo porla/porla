@@ -2,10 +2,50 @@
 
 namespace libtorrent
 {
+    void to_json(nlohmann::json& json, const dht_lookup& lookup)
+    {
+        std::stringstream target_hex;
+        target_hex << lookup.target;
+
+        json = nlohmann::json::object();
+        json["type"] = lookup.type;
+        json["outstanding_requests"] = lookup.outstanding_requests;
+        json["timeouts"] = lookup.timeouts;
+        json["responses"] = lookup.responses;
+        json["branch_factor"] = lookup.branch_factor;
+        json["nodes_left"] = lookup.nodes_left;
+        json["last_sent"] = lookup.last_sent;
+        json["first_timeout"] = lookup.first_timeout;
+        json["target"] = target_hex.str();
+    }
+
+    void to_json(nlohmann::json& json, const dht_routing_bucket& bucket)
+    {
+        json = nlohmann::json::object();
+        json["num_nodes"] = bucket.num_nodes;
+        json["num_replacements"] = bucket.num_replacements;
+        json["last_active"] = bucket.last_active;
+    }
+
     void to_json(nlohmann::json& json, const add_torrent_alert& alert)
     {
         json = nlohmann::json::object();
         json["error"] = alert.error;
+    }
+
+    void to_json(nlohmann::json& json, const dht_stats_alert& alert)
+    {
+        std::stringstream nid_hex;
+        nid_hex << alert.nid;
+
+        json = nlohmann::json::object();
+        json["active_requests"] = alert.active_requests;
+        json["routing_table"] = alert.routing_table;
+        json["nid"] = nid_hex.str();
+        json["local_endpoint"] = {
+            alert.local_endpoint.address().to_string(),
+            alert.local_endpoint.port()
+        };
     }
 
     void to_json(nlohmann::json& json, const file_error_alert& alert)
