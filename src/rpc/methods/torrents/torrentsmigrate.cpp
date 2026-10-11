@@ -47,7 +47,7 @@ struct RemoveState
             {
                 BOOST_LOG_TRIVIAL(warning) << "Target session did not exist or did not accept torrent - added back to source";
 
-                return writer->Error(-5, "Torrent migration failed - added back to source session");
+                return writer->Error(-6, "Torrent migration failed - added back to source session");
             }
         }
 
@@ -55,7 +55,7 @@ struct RemoveState
         BOOST_LOG_TRIVIAL(error)
             << "Failed to migrate torrent and source did not accept it back - lost torrent " << params.info_hashes << " at " << params.save_path;
 
-        return writer->Error(-6, "Migration failed - neither target nor source accepted the torrent");
+        return writer->Error(-7, "Migration failed - neither target nor source accepted the torrent");
     }
 
     void TimedOut()
@@ -100,7 +100,7 @@ void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandl
 
     if (target_session->Contains(resolved->torrent->status.info_hashes))
     {
-        return cb->Error(-4, "Torrent already in target session");
+        return cb->Error(-5, "Torrent already in target session");
     }
 
     auto state = std::make_shared<RemoveState>(RemoveState{
