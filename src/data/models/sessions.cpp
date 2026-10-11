@@ -105,11 +105,39 @@ std::optional<Sessions::Session> Sessions::GetByName(sqlite3* db, const std::str
 
 int Sessions::Insert(sqlite3* db, const Sessions::Session& session)
 {
+    const std::string metadata = nlohmann::json(session.metadata).dump();
     std::vector params_buffer = lt::write_session_params_buf(session.params);
 
-    auto stmt = Statement::Prepare(db, "INSERT INTO sessions (name, params) VALUES ($name, $params);");
-    stmt.Bind("$name",   session.name);
-    stmt.Bind("$params", params_buffer);
+    auto stmt = Statement::Prepare(
+        db,
+        R"sql(
+        INSERT INTO sessions (
+            name,
+            metadata,
+            params,
+            timer_dht_stats,
+            timer_save_state,
+            timer_session_stats,
+            timer_torrent_updates
+        )
+        VALUES (
+            $name,
+            $metadata,
+            $params,
+            timer_dht_stats,
+            timer_save_state,
+            timer_session_stats,
+            timer_torrent_updates
+        );
+        )sql");
+
+    stmt.Bind("$name",                  session.name);
+    stmt.Bind("$metadata",              metadata);
+    stmt.Bind("$params",                params_buffer);
+    stmt.Bind("$timer_dht_stats",       session.timer_dht_stats);
+    stmt.Bind("$timer_save_state",      session.timer_save_state);
+    stmt.Bind("$timer_session_stats",   session.timer_session_stats);
+    stmt.Bind("$timer_torrent_updates", session.timer_torrent_updates);
     stmt.Execute();
 
     return sqlite3_last_insert_rowid(db);
