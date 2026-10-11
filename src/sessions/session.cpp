@@ -66,9 +66,9 @@ void Session::Start(std::function<void()> load_callback)
 
     using ms = std::chrono::milliseconds;
 
-    m_jobs->Every(ms(m_options.record.timer_dht_stats),       std::make_unique<Jobs::PostDhtStats>());
+    m_jobs->Every(ms(m_options.record.timer_dht_stats),       std::make_unique<Jobs::PostDhtStats>(m_options.events));
     m_jobs->Every(ms(m_options.record.timer_save_state),      std::make_unique<Jobs::SaveState>());
-    m_jobs->Every(ms(m_options.record.timer_session_stats),   std::make_unique<Jobs::PostSessionStats>());
+    m_jobs->Every(ms(m_options.record.timer_session_stats),   std::make_unique<Jobs::PostSessionStats>(m_options.events));
     m_jobs->Every(ms(m_options.record.timer_torrent_updates), std::make_unique<Jobs::PostTorrentUpdates>());
 
     m_jobs->Register(std::make_unique<Jobs::ReconcileTorrents>());
@@ -78,6 +78,23 @@ void Session::Start(std::function<void()> load_callback)
         m_options.events,
         *m_jobs,
         std::move(load_callback)));
+}
+
+void Session::SetTimers(const Data::Models::Sessions::Session& updated)
+{
+    using ms = std::chrono::milliseconds;
+
+    const auto apply = [this](int& current, int value, auto tag)
+    {
+        if (current == value) return;
+        current = value;
+        m_jobs->SetInterval<typename decltype(tag)::type>(ms(value));
+    };
+
+    apply(m_options.record.timer_dht_stats,       updated.timer_dht_stats,       std::type_identity<Jobs::PostDhtStats>{});
+    apply(m_options.record.timer_save_state,      updated.timer_save_state,      std::type_identity<Jobs::SaveState>{});
+    apply(m_options.record.timer_session_stats,   updated.timer_session_stats,   std::type_identity<Jobs::PostSessionStats>{});
+    apply(m_options.record.timer_torrent_updates, updated.timer_torrent_updates, std::type_identity<Jobs::PostTorrentUpdates>{});
 }
 
 const porla::Torrent* Session::Find(const lt::info_hash_t& hash) const
@@ -349,6 +366,7 @@ void Session::RegisterAlertHandlers()
 {
     m_alert_dispatcher->On<lt::add_torrent_alert>([this](auto* a)          { OnAddTorrentAlert(a); });
     m_alert_dispatcher->On<lt::alerts_dropped_alert>([this](auto* a)       { OnAlertsDroppedAlert(a); });
+    m_alert_dispatcher->On<lt::dht_stats_alert>([this](auto* a)            { OnDhtStatsAlert(a); });
     m_alert_dispatcher->On<lt::listen_failed_alert>([this](auto* a)        { OnListenFailedAlert(a); });
     m_alert_dispatcher->On<lt::listen_succeeded_alert>([this](auto* a)     { OnListenSucceededAlert(a); });
     m_alert_dispatcher->On<lt::metadata_received_alert>([this](auto* a)    { OnMetadataReceivedAlert(a); });

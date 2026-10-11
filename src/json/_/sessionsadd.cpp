@@ -10,7 +10,11 @@ namespace porla::Rpc::Methods::Sessions
         name,
         metadata,
         settings,
-        settings_base)
+        settings_base,
+        timer_dht_stats,
+        timer_save_state,
+        timer_session_stats,
+        timer_torrent_updates)
 
     NLOHMANN_JSONIFY_ALL_THINGS(
         SessionsAddRes,
