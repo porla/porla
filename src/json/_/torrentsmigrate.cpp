@@ -14,6 +14,9 @@ namespace porla::Rpc::Methods::Torrents
 
     void to_json(nlohmann::json& json, const TorrentsMigrateRes& res)
     {
-        json = {};
+        json = {
+            {"info_hash", res.info_hash},
+            {"session_id", res.session_id}
+        };
     }
 }

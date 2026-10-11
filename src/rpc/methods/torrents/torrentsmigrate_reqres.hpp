@@ -16,5 +16,7 @@ namespace porla::Rpc::Methods::Torrents
 
     struct TorrentsMigrateRes
     {
+        libtorrent::info_hash_t info_hash;
+        int                     session_id;
     };
 }

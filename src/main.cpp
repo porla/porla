@@ -249,7 +249,7 @@ int main(int argc, char* argv[])
         jsonrpc->Register("torrents.files.rename",     std::make_shared<M::Torrents::TorrentsFilesRename>(sessions));
         jsonrpc->Register("torrents.get",              std::make_shared<M::Torrents::TorrentsGet>(sessions));
         jsonrpc->Register("torrents.list",             std::make_shared<M::Torrents::TorrentsList>(sessions));
-        jsonrpc->Register("torrents.migrate",          std::make_shared<M::Torrents::TorrentsMigrate>(events, sessions));
+        jsonrpc->Register("torrents.migrate",          std::make_shared<M::Torrents::TorrentsMigrate>(io, events, sessions));
         jsonrpc->Register("torrents.move",             std::make_shared<M::Torrents::TorrentsMove>(sessions));
         jsonrpc->Register("torrents.pause",            std::make_shared<M::Torrents::TorrentsPause>(sessions));
         jsonrpc->Register("torrents.peers.add",        std::make_shared<M::Torrents::TorrentsPeersAdd>(sessions));

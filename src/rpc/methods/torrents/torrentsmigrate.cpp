@@ -1,5 +1,6 @@
 #include "torrentsmigrate.hpp"
 
+#include <boost/asio/steady_timer.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/signals2.hpp>
 
@@ -17,103 +18,154 @@ using porla::Rpc::Methods::Torrents::TorrentsMigrateRes;
 
 struct RemoveState
 {
+    porla::TorrentClientData                     client_data = {};
     std::shared_ptr<boost::signals2::connection> connection;
+    bool                                         did_add  = false;
+    bool                                         did_fail = false;
     lt::add_torrent_params                       params;
-    std::weak_ptr<TorrentsMigrate>               self;
+    std::weak_ptr<porla::Session>                source_session;
     int                                          source_session_id;
-    int                                          target_session_id;
+    std::weak_ptr<porla::Session>                target_session;
+    std::unique_ptr<boost::asio::steady_timer>   timeout;
     porla::Rpc::ResponseWriterHandle             writer;
+
+    void Fail()
+    {
+        if (did_add || did_fail) { return; }
+        did_fail = true;
+
+        timeout->cancel();
+
+        auto session = source_session.lock();
+
+        // target session did not exist, or it did not accept the torrent
+        if (session)
+        {
+            params.userdata = lt::client_data_t(new porla::TorrentClientData(client_data));
+
+            if (session->Add(params))
+            {
+                BOOST_LOG_TRIVIAL(warning) << "Target session did not exist or did not accept torrent - added back to source";
+
+                return writer->Error(-5, "Torrent migration failed - added back to source session");
+            }
+        }
+
+        // We now have a failure on our hand, a torrent is missing.
+        BOOST_LOG_TRIVIAL(error)
+            << "Failed to migrate torrent and source did not accept it back - lost torrent " << params.info_hashes << " at " << params.save_path;
+
+        return writer->Error(-6, "Migration failed - neither target nor source accepted the torrent");
+    }
+
+    void TimedOut()
+    {
+        if (did_add || did_fail) { return; }
+        did_fail = true;
+        connection->disconnect();
+
+        BOOST_LOG_TRIVIAL(error) << "Timed out waiting for removal of " << params.info_hashes << " at " << params.save_path;
+
+        writer->Error(-32603, "Timed out waiting for removal");
+    }
 };
 
-TorrentsMigrate::TorrentsMigrate(porla::Events& events, porla::Sessions &sessions)
-    : m_events(events)
+TorrentsMigrate::TorrentsMigrate(boost::asio::io_context& io, porla::Events& events, porla::Sessions &sessions)
+    : m_io(io)
+    , m_events(events)
     , m_sessions(sessions)
 {
 }
 
 void TorrentsMigrate::Execute(const TorrentsMigrateReq &req, ResponseWriterHandle cb)
 {
-    const auto session_state = ResolveSession(m_sessions, req.session_id, cb);
+    const auto resolved = ResolveTorrent(m_sessions, req.session_id, req.info_hash, cb);
 
-    if (!session_state)
+    if (!resolved)
     {
         return;
     }
 
-    if (!m_sessions.Get(req.target_session_id))
+    if (req.target_session_id == resolved->session->Id())
+    {
+        return cb->Error(-32602, "target_session_id must differ from session_id", {{"field", "target_session_id"}});
+    }
+
+    auto target_session = m_sessions.Get(req.target_session_id);
+
+    if (!target_session)
     {
         return cb->Error(-2, "Target session not loaded");
     }
 
-    const auto torrent = session_state->Find(req.info_hash);
-
-    if (torrent == nullptr)
+    if (target_session->Contains(resolved->torrent->status.info_hashes))
     {
-        return cb->Error(-3, "Torrent not found in session");
+        return cb->Error(-4, "Torrent already in target session");
     }
 
-    const auto prev_client_data = torrent->status.handle.userdata().get<TorrentClientData>();
-          auto client_data      = new TorrentClientData();
+    auto state = std::make_shared<RemoveState>(RemoveState{
+        .connection        = std::make_shared<boost::signals2::connection>(),
+        .params            = resolved->torrent->status.handle.get_resume_data(),
+        .source_session    = resolved->session,
+        .source_session_id = resolved->session->Id(),
+        .target_session    = target_session,
+        .timeout           = std::make_unique<boost::asio::steady_timer>(m_io),
+        .writer            = cb
+    });
+
+    const auto prev_client_data = resolved->torrent->status.handle.userdata().get<TorrentClientData>();
 
     if (prev_client_data)
     {
-        client_data->category     = prev_client_data->category;
-        client_data->completed_at = prev_client_data->completed_at;
-        client_data->metadata     = prev_client_data->metadata;
-        client_data->tags         = prev_client_data->tags;
+        state->client_data.category     = prev_client_data->category;
+        state->client_data.completed_at = prev_client_data->completed_at;
+        state->client_data.metadata     = prev_client_data->metadata;
+        state->client_data.tags         = prev_client_data->tags;
     }
 
-    lt::add_torrent_params params = torrent->status.handle.get_resume_data();
-    params.userdata = lt::client_data_t(client_data);
+    *state->connection = m_events.On("torrent.removed",
+        [state](const porla::Event& event)
+        {
+            if (state->did_fail) return;
 
-    RemoveState state{
-        .connection        = std::make_shared<boost::signals2::connection>(),
-        .params            = params,
-        .self              = weak_from_this(),
-        .source_session_id = session_state->Id(),
-        .target_session_id = req.target_session_id,
-        .writer            = cb
-    };
+            const auto& removed = static_cast<const porla::TorrentEvent&>(event);
 
-    *state.connection = m_events.On("torrent.removed", [state](const porla::Event& event)
+            if (removed.session_id == state->source_session_id && removed.info_hash == state->params.info_hashes)
+            {
+                auto source_session = state->source_session.lock();
+                auto target_session = state->target_session.lock();
+
+                state->connection->disconnect();
+
+                // Best case, target session exists and accepts the torrent
+                if (target_session)
+                {
+                    state->params.userdata = lt::client_data_t(new TorrentClientData(state->client_data));
+
+                    if (target_session->Add(state->params))
+                    {
+                        state->did_add = true;
+                        state->timeout->cancel();
+
+                        BOOST_LOG_TRIVIAL(info) << "Torrent " << state->params.info_hashes << " migrated to session " << target_session->Name();
+
+                        return state->writer->Ok(TorrentsMigrateRes{
+                            .info_hash  = state->params.info_hashes,
+                            .session_id = target_session->Id()
+                        });
+                    }
+                }
+
+                state->Fail();
+            }
+        });
+
+    resolved->session->Libtorrent().remove_torrent(resolved->torrent->status.handle);
+
+    state->timeout->expires_after(std::chrono::seconds(30));
+    state->timeout->async_wait([state](const boost::system::error_code& ec)
     {
-        const auto& removed = static_cast<const porla::TorrentEvent&>(event);
-
-        auto self = state.self.lock();
-
-        if (self == nullptr)
-        {
-            state.connection->disconnect();
-            state.writer->Error(-1, "Failed to lock self");
-            return;
-        }
-
-        if (removed.session_id == state.source_session_id && removed.info_hash == state.params.info_hashes)
-        {
-            state.connection->disconnect();
-
-            auto target_session = self->m_sessions.Get(state.target_session_id);
-
-            if (target_session == nullptr)
-            {
-                BOOST_LOG_TRIVIAL(warning) << "Target session not found - torrent must be added manually";
-                delete state.params.userdata.get<TorrentClientData>();
-                state.writer->Error(-2, "Target session not found - torrent must be added manually");
-                return;
-            }
-
-            if (!target_session->Add(state.params))
-            {
-                BOOST_LOG_TRIVIAL(warning) << "Torrent already in target session " << target_session->Name();
-                state.writer->Error(-4, "Torrent already in target session");
-                return;
-            }
-
-            BOOST_LOG_TRIVIAL(info) << "Torrent migrated to session " << target_session->Name();
-
-            state.writer->Ok({});
-        }
+        if (ec) { return; }
+        state->TimedOut();
     });
-
-    session_state->Libtorrent().remove_torrent(torrent->status.handle);
 }
