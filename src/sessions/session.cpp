@@ -251,7 +251,7 @@ void Session::Stop()
             std::vector<lt::alert *> alerts;
             m_session->pop_alerts(&alerts);
 
-            const Transaction tx(m_options.db);
+            Transaction tx(m_options.db);
 
             for (lt::alert *a: alerts)
             {
@@ -277,6 +277,11 @@ void Session::Stop()
                 {
                     m_alert_dispatcher->Dispatch(a);
                 }
+            }
+
+            if (!tx.Commit())
+            {
+                BOOST_LOG_TRIVIAL(error) << Log() << "Failed to commit shutdown save changes";
             }
         }
     }
@@ -330,7 +335,7 @@ void Session::ReadAlerts()
         return;
     }
 
-    const Transaction tx(m_options.db);
+    Transaction tx(m_options.db);
 
     for (const auto alert : alerts)
     {
@@ -343,6 +348,11 @@ void Session::ReadAlerts()
             BOOST_LOG_TRIVIAL(error)
                 << Log() << "Failed to process alert " << alert->what() << ": " << e.what();
         }
+    }
+
+    if (!tx.Commit())
+    {
+        BOOST_LOG_TRIVIAL(error) << Log() << "Failed to commit process alert changes";
     }
 }
 
@@ -419,7 +429,7 @@ void Session::ReconcileTorrents()
     int untracked = 0;
     int failed    = 0;
 
-    const Transaction tx(m_options.db);
+    Transaction tx(m_options.db);
 
     for (const auto& th : handles)
     {
@@ -565,6 +575,11 @@ void Session::ReconcileTorrents()
 
             failed++;
         }
+    }
+
+    if (!tx.Commit())
+    {
+        BOOST_LOG_TRIVIAL(error) << Log() << "Failed to commit reconcile changes";
     }
 
     if (tracked + loaded + rehashed + untracked + failed == 0)

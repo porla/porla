@@ -1,6 +1,8 @@
 #include "transaction.hpp"
 
 #include <exception>
+#include <stdexcept>
+#include <string>
 
 #include <boost/log/trivial.hpp>
 
@@ -13,8 +15,43 @@ Transaction::Transaction(sqlite3* db)
 {
     if (!m_active)
     {
-        BOOST_LOG_TRIVIAL(warning)
-            << "Failed to begin transaction: " << sqlite3_errmsg(m_db);
+        throw std::runtime_error("Failed to begin transaction: " + std::string(sqlite3_errmsg(db)));
+    }
+}
+
+bool Transaction::Commit()
+{
+    if (!m_active)
+    {
+        return false;
+    }
+
+    if (sqlite3_exec(m_db, "COMMIT;", nullptr, nullptr, nullptr) != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(error) << "db[tx] Failed to commit transaction: " << sqlite3_errmsg(m_db);
+        Rollback();
+        return false;
+    }
+
+    m_active = false;
+
+    return true;
+}
+
+void Transaction::Rollback()
+{
+    if (!m_active)
+    {
+        return;
+    }
+
+    m_active = false;
+
+    const auto in_transaction = sqlite3_get_autocommit(m_db) == 0;
+
+    if (in_transaction && sqlite3_exec(m_db, "ROLLBACK;", nullptr, nullptr, nullptr) != SQLITE_OK)
+    {
+        BOOST_LOG_TRIVIAL(error) << "db[tx] Failed to roll back transaction: " << sqlite3_errmsg(m_db);
     }
 }
 
@@ -25,19 +62,10 @@ Transaction::~Transaction()
         return;
     }
 
-    if (std::uncaught_exceptions() > m_uncaught_exceptions)
+    if (std::uncaught_exceptions() <= m_uncaught_exceptions)
     {
-        sqlite3_exec(m_db, "ROLLBACK;", nullptr, nullptr, nullptr);
-        return;
+        BOOST_LOG_TRIVIAL(error) << "db[tx] Transaction destroyed without commit or rollback - rolling back";
     }
 
-    const auto res = sqlite3_exec(m_db, "COMMIT;", nullptr, nullptr, nullptr);
-
-    if (res != SQLITE_OK)
-    {
-        BOOST_LOG_TRIVIAL(error)
-            << "Failed to commit transaction: " << sqlite3_errmsg(m_db);
-
-        sqlite3_exec(m_db, "ROLLBACK;", nullptr, nullptr, nullptr);
-    }
+    Rollback();
 }
