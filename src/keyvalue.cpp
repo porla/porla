@@ -25,18 +25,21 @@ void KeyValue::Set(const std::string& key, const nlohmann::json& value)
 
 void KeyValue::Set(const std::map<std::string, nlohmann::json>& values)
 {
+    Data::Transaction tx(m_options.db);
+
     KeyValueEvent event("kv.updated");
 
+    for (const auto& [ key, value ] : values)
     {
-        Data::Transaction tx(m_options.db);
-
-        for (const auto& [ key, value ] : values)
+        if (KeyValueStore::Set(m_options.db, key, value))
         {
-            if (KeyValueStore::Set(m_options.db, key, value))
-            {
-                event.keys.push_back(key);
-            }
+            event.keys.push_back(key);
         }
+    }
+
+    if (!tx.Commit())
+    {
+        throw std::runtime_error("Failed to commit key-value changes");
     }
 
     if (event.keys.empty())

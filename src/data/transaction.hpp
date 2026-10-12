@@ -13,6 +13,9 @@ namespace porla::Data
         Transaction(const Transaction&)            = delete;
         Transaction& operator=(const Transaction&) = delete;
 
+        bool Commit();
+        void Rollback();
+
     private:
         sqlite3* m_db;
         bool     m_active;

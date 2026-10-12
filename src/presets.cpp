@@ -93,24 +93,27 @@ void Presets::Update(const Presets::Preset& preset)
 
 void Presets::ClearSession(int session_id)
 {
+    Data::Transaction tx(m_options.db);
+
     std::vector<int> cleared;
 
+    for (auto preset : All())
     {
-        Data::Transaction tx(m_options.db);
-
-        for (auto preset : All())
+        if (preset.session_id != session_id)
         {
-            if (preset.session_id != session_id)
-            {
-                continue;
-            }
-
-            preset.session_id = std::nullopt;
-
-            Model::Update(m_options.db, preset);
-
-            cleared.push_back(preset.id);
+            continue;
         }
+
+        preset.session_id = std::nullopt;
+
+        Model::Update(m_options.db, preset);
+
+        cleared.push_back(preset.id);
+    }
+
+    if (!tx.Commit())
+    {
+        throw std::runtime_error("Failed to commit preset->session_id=null changes");
     }
 
     for (const int id : cleared)
