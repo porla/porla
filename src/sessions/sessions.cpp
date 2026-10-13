@@ -5,8 +5,13 @@
 #include "session.hpp"
 #include "sessionevent.hpp"
 
+#include "../data/models/addtorrentparams.hpp"
+#include "../data/models/presets.hpp"
+#include "../data/transaction.hpp"
 #include "../events.hpp"
+#include "../presetevent.hpp"
 
+using porla::Data::Transaction;
 using porla::Session;
 using porla::Sessions;
 
@@ -68,6 +73,11 @@ std::shared_ptr<Session> Sessions::Get(int id)
     return it == m_sessions.end()
         ? nullptr
         : it->second;
+}
+
+std::size_t Sessions::CountParams(int id) const
+{
+    return Data::Models::AddTorrentParams::Count(m_options.db, id);
 }
 
 std::optional<Sessions::Record> Sessions::Find(int id) const
@@ -133,9 +143,25 @@ void Sessions::Remove(int id)
 
     UnloadById(id);
 
+    Transaction tx(m_options.db);
+
+    const auto preset_ids = Data::Models::Presets::ClearSessions(m_options.db, id);
     Data::Models::Sessions::Remove(m_options.db, id);
 
+    if (!tx.Commit())
+    {
+        throw std::runtime_error("Failed to commit session removal transaction");
+    }
+
     BOOST_LOG_TRIVIAL(info) << "session[" << session->name << "] Removed";
+
+    for (const auto preset_id : preset_ids)
+    {
+        PresetEvent preset_updated("preset.updated");
+        preset_updated.preset_id = preset_id;
+
+        m_options.events.Publish(std::move(preset_updated));
+    }
 
     PublishDetached(id, SessionEvent("session.removed", {{ "session_name", session->name }}));
 }

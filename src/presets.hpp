@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-#include <boost/signals2.hpp>
 #include <sqlite3.h>
 
 #include "data/models/presets.hpp"
@@ -39,10 +38,8 @@ namespace porla
         void Update(const Preset& preset);
 
     private:
-        void ClearSession(int session_id);
         void PublishUpdated(int id);
 
         PresetsOptions                     m_options;
-        boost::signals2::scoped_connection m_session_removed;
     };
 }

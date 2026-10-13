@@ -71,6 +71,21 @@ static Presets::Preset LoadFromRow(const porla::Data::Statement::IRow &row)
     };
 }
 
+std::vector<int> Presets::ClearSessions(sqlite3* db, int session_id)
+{
+    std::vector<int> preset_ids;
+
+    Statement::Prepare(db, "UPDATE presets SET session_id = NULL WHERE session_id = $session_id RETURNING id")
+        .Bind("$session_id", session_id)
+        .Step([&preset_ids](const auto& row)
+        {
+            preset_ids.push_back(row.GetInt32("id"));
+            return SQLITE_OK;
+        });
+
+    return preset_ids;
+}
+
 void Presets::ForEach(sqlite3 *db, const std::function<void(const Presets::Preset &)> &cb)
 {
     Statement::Prepare(db, PresetSelectPrefix + " ORDER BY name ASC")

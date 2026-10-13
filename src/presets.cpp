@@ -1,9 +1,6 @@
 #include "presets.hpp"
 
-#include "data/transaction.hpp"
 #include "events.hpp"
-#include "sessions/sessionevent.hpp"
-#include "sessions/sessions.hpp"
 
 using porla::Presets;
 using porla::PresetEvent;
@@ -13,10 +10,6 @@ using Model = porla::Data::Models::Presets;
 Presets::Presets(const PresetsOptions& options)
     : m_options(options)
 {
-    m_session_removed = m_options.events.On("session.removed", [this](const Event& event)
-    {
-        ClearSession(static_cast<const SessionEvent&>(event).session_id);
-    });
 }
 
 int Presets::Add(const std::string& name)
@@ -88,37 +81,6 @@ void Presets::Update(const Presets::Preset& preset)
     if (preset.is_default && previous_default.has_value() && previous_default->id != preset.id)
     {
         PublishUpdated(previous_default->id);
-    }
-}
-
-void Presets::ClearSession(int session_id)
-{
-    Data::Transaction tx(m_options.db);
-
-    std::vector<int> cleared;
-
-    for (auto preset : All())
-    {
-        if (preset.session_id != session_id)
-        {
-            continue;
-        }
-
-        preset.session_id = std::nullopt;
-
-        Model::Update(m_options.db, preset);
-
-        cleared.push_back(preset.id);
-    }
-
-    if (!tx.Commit())
-    {
-        throw std::runtime_error("Failed to commit preset->session_id=null changes");
-    }
-
-    for (const int id : cleared)
-    {
-        PublishUpdated(id);
     }
 }
 

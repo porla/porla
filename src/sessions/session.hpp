@@ -61,6 +61,8 @@ namespace porla
 
         std::size_t Count() const;
 
+        bool Empty() const { return m_torrents.empty(); }
+
         auto Torrents() const { return m_torrents | std::views::filter(IsCurrent); }
 
         auto TorrentsAfter(const lt::info_hash_t& hash) const
