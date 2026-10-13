@@ -128,8 +128,15 @@ TorrentClientData& PoTorrentData::ClientData() const
 
 void PoTorrentData::Update(const std::function<void(TorrentClientData&)>& change) const
 {
-    if (!m_torrents.UpdateClientData(m_th, change))
+    const auto result = m_torrents.UpdateClientData(m_th, change);
+
+    if (result == porla::Torrents::UpdateClientDataResult::NotFound)
     {
         throw sol::error("Torrent is no longer in the session");
+    }
+
+    if (result == porla::Torrents::UpdateClientDataResult::InvalidData)
+    {
+        throw sol::error("Category, tags and metadata must be valid UTF-8");
     }
 }

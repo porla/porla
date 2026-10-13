@@ -56,6 +56,13 @@ namespace porla
     class Torrents
     {
     public:
+        enum class UpdateClientDataResult
+        {
+            Ok,
+            NotFound,
+            InvalidData
+        };
+
         explicit Torrents(const TorrentsOptions& options);
 
         Torrents(const Torrents&)            = delete;
@@ -65,7 +72,7 @@ namespace porla
 
         TorrentsAddResult Add(lt::add_torrent_params params);
 
-        bool UpdateClientData(const lt::torrent_handle& th, const std::function<void(TorrentClientData&)>& change);
+        UpdateClientDataResult UpdateClientData(const lt::torrent_handle& th, const std::function<void(TorrentClientData&)>& change);
 
     private:
         TorrentsOptions m_options;
