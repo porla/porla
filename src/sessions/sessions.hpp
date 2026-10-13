@@ -41,6 +41,7 @@ namespace porla
         std::shared_ptr<Session> Get(int id);
 
         // query stored sessions, loaded or not
+        std::size_t CountParams(int id) const;
         std::optional<Record> Find(int id) const;
         std::optional<Record> FindByName(const std::string& name) const;
         std::optional<Record> FindDefault() const;

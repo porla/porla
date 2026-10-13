@@ -29,7 +29,7 @@ void SessionsRemove::Execute(const SessionsRemoveReq& req, ResponseWriterHandle 
 
     const auto session_state = m_sessions.Get(session->id);
 
-    if (session_state != nullptr && session_state->Count() > 0)
+    if (m_sessions.CountParams(session->id) > 0 || (session_state != nullptr && !session_state->Empty()))
     {
         return cb->Error(-3, "Cannot remove session with torrents");
     }

@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 #include <unordered_set>
 
 #include <libtorrent/torrent_flags.hpp>
@@ -31,6 +32,10 @@ namespace porla::Data::Models
             std::unordered_set<std::string>                      tags;
             std::optional<int>                                   upload_limit;
         };
+
+        // clears the session_id for all presets with the given session
+        // and returns a vector of the preset ids affected
+        static std::vector<int> ClearSessions(sqlite3* db, int session_id);
 
         static void ForEach(sqlite3* db, const std::function<void(const Preset&)>& cb);
         static std::optional<Preset> GetById(sqlite3* db, int id);
