@@ -395,8 +395,9 @@ add_library(
     src/query/_aux/PqlParser.cpp
     src/query/pql.cpp
 
-    src/utils/ratio.cpp
+    src/utils/ltflags.cpp
     src/utils/ltsettings.cpp
+    src/utils/ratio.cpp
 )
 
 target_compile_definitions(
