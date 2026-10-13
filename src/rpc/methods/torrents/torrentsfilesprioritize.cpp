@@ -24,21 +24,28 @@ void TorrentsFilesPrioritize::Execute(const TorrentsFilesPrioritizeReq& req, Res
         return;
     }
 
-    std::vector<lt::download_priority_t> file_prios = resolved->torrent->status.handle.get_file_priorities();
+    const auto tf = resolved->torrent->status.torrent_file.lock();
 
+    if (!tf)
+    {
+        return cb->Ok({});
+    }
+
+    const auto& th        = resolved->torrent->status.handle;
+    const auto  num_files = tf->num_files();
+
+    // set each priority on its own - libtorrent merges these while a disk job is running.
+    // a get_file_priorities/prioritize_files round trip would block the io thread and
+    // could overwrite priorities that libtorrent has queued but not applied yet.
     for (const auto& fp : req.priorities)
     {
-        const auto index = static_cast<int>(fp.index);
-
-        if (index < 0 || index >= file_prios.size())
+        if (fp.index < lt::file_index_t{0} || static_cast<int>(fp.index) >= num_files)
         {
             continue;
         }
 
-        file_prios[index] = fp.priority;
+        th.file_priority(fp.index, fp.priority);
     }
-
-    resolved->torrent->status.handle.prioritize_files(file_prios);
 
     cb->Ok({});
 }
