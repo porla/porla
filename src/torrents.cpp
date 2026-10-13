@@ -88,8 +88,14 @@ TorrentsAddResult Torrents::Prepare(lt::add_torrent_params& params, const Torren
 
     if (options.preset_id.has_value())   preset = m_options.presets.Get(options.preset_id.value());
     else if (options.preset.has_value()) preset = m_options.presets.GetByName(options.preset.value());
-    else                                 preset = default_preset;
 
+    if ((options.preset || options.preset_id) && !preset)
+    {
+        return {
+            .error = Error::MissingPreset,
+            .what  = "Preset not found"
+        };
+    }
 
     const std::optional<int> session_id = options.session_id.has_value()
         ? options.session_id

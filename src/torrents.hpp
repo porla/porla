@@ -38,6 +38,7 @@ namespace porla
             SessionNotFound,
             SessionNotLoaded,
             AlreadyInSession,
+            MissingPreset,
             MissingInfoHash,
             MissingSavePath,
             InvalidData,
