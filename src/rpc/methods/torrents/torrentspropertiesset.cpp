@@ -40,6 +40,27 @@ void TorrentsPropertiesSet::Execute(const TorrentsPropertiesSetReq& req, Respons
     if (req.max_connections && !max_connections) return cb->Error(-5, "Invalid max_connections");
     if (req.max_uploads     && !max_uploads)     return cb->Error(-5, "Invalid max_uploads");
 
+    if (req.category.has_value() || req.tags.has_value())
+    {
+        const auto result = m_torrents.UpdateClientData(
+            resolved->torrent->status.handle,
+            [&req](TorrentClientData& client_data)
+            {
+                if (req.category.has_value()) client_data.category = req.category.value();
+                if (req.tags.has_value())     client_data.tags     = req.tags.value();
+            });
+
+        if (result == porla::Torrents::UpdateClientDataResult::NotFound)
+        {
+            return cb->Error(-6, "Torrent has no client data - cannot set category or tags");
+        }
+
+        if (result == porla::Torrents::UpdateClientDataResult::InvalidData)
+        {
+            return cb->Error(-8, "Category, tags and metadata must be valid UTF-8");
+        }
+    }
+
     if (req.flags.has_value() && req.flags_mask.has_value())
     {
         const auto flags = req.flags.value();
@@ -52,22 +73,6 @@ void TorrentsPropertiesSet::Execute(const TorrentsPropertiesSetReq& req, Respons
     if (max_connections) resolved->torrent->status.handle.set_max_connections(*max_connections);
     if (max_uploads)     resolved->torrent->status.handle.set_max_uploads(*max_uploads);
     if (upload_limit)    resolved->torrent->status.handle.set_upload_limit(*upload_limit);
-
-    if (req.category.has_value() || req.tags.has_value())
-    {
-        const bool updated = m_torrents.UpdateClientData(
-            resolved->torrent->status.handle,
-            [&req](TorrentClientData& client_data)
-            {
-                if (req.category.has_value()) client_data.category = req.category.value();
-                if (req.tags.has_value())     client_data.tags     = req.tags.value();
-            });
-
-        if (!updated)
-        {
-            return cb->Error(-6, "Torrent has no client data - cannot set category or tags");
-        }
-    }
 
     cb->Ok({});
 }

@@ -218,19 +218,24 @@ TorrentsAddResult Torrents::Add(lt::add_torrent_params params)
     return result;
 }
 
-bool Torrents::UpdateClientData(const lt::torrent_handle& th, const std::function<void(TorrentClientData&)>& change)
+Torrents::UpdateClientDataResult Torrents::UpdateClientData(const lt::torrent_handle& th, const std::function<void(TorrentClientData&)>& change)
 {
     auto* client_data = th.is_valid() ? th.userdata().get<TorrentClientData>() : nullptr;
     auto  session     = client_data != nullptr ? client_data->session.lock() : nullptr;
 
     if (session == nullptr)
     {
-        return false;
+        return UpdateClientDataResult::NotFound;
     }
 
     TorrentClientData updated = *client_data;
 
     change(updated);
+
+    if (!IsValidClientData(updated))
+    {
+        return UpdateClientDataResult::InvalidData;
+    }
 
     std::vector<std::string> fields;
 
@@ -240,7 +245,7 @@ bool Torrents::UpdateClientData(const lt::torrent_handle& th, const std::functio
 
     if (fields.empty())
     {
-        return true;
+        return UpdateClientDataResult::Ok;
     }
 
     const auto info_hash = th.info_hashes();
@@ -264,5 +269,5 @@ bool Torrents::UpdateClientData(const lt::torrent_handle& th, const std::functio
         m_options.events.Publish(std::move(event));
     }
 
-    return true;
+    return UpdateClientDataResult::Ok;
 }
