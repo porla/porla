@@ -10,21 +10,7 @@
 #include <sol/sol.hpp>
 #include <sqlite3.h>
 
-#include "packages/codec.hpp"
-#include "packages/crypto.hpp"
-#include "packages/events.hpp"
-#include "packages/filesystem.hpp"
-#include "packages/httpclient.hpp"
-#include "packages/httpserver.hpp"
-#include "packages/jsonrpc.hpp"
-#include "packages/kv.hpp"
-#include "packages/presets.hpp"
-#include "packages/runtime.hpp"
-#include "packages/sessions.hpp"
-#include "packages/sockets.hpp"
-#include "packages/timers.hpp"
-#include "packages/zip.hpp"
-
+#include "packages.hpp"
 #include "pluginsource.hpp"
 #include "pluginstate.hpp"
 #include "print.hpp"
