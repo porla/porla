@@ -15,7 +15,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Plugins
 {
-    class PluginsInstall : public TypedAsyncMethod<PluginsInstallReq, PluginsInstallRes>
+    class PluginsInstall : public TypedAsyncMethod<PluginsInstallReq>
     {
     public:
         explicit PluginsInstall(

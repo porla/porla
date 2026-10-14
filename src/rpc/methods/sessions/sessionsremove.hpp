@@ -10,7 +10,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Sessions
 {
-    class SessionsRemove : public TypedMethod<SessionsRemoveReq, SessionsRemoveRes>
+    class SessionsRemove : public TypedMethod<SessionsRemoveReq>
     {
     public:
         explicit SessionsRemove(porla::Sessions& sessions);

@@ -5,6 +5,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Auth
 {
     struct AuthInitReq
@@ -13,7 +15,5 @@ namespace porla::Rpc::Methods::Auth
         std::string password;
     };
 
-    struct AuthInitRes
-    {
-    };
+    PORLA_JSON_REQUEST(AuthInitReq, username, password)
 }

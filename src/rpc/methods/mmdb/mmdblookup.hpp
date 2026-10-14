@@ -1,10 +1,6 @@
 #pragma once
 
-#include <filesystem>
 #include <memory>
-#include <optional>
-
-#include <boost/signals2.hpp>
 
 #include "../../typedmethod.hpp"
 
@@ -19,7 +15,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Mmdb
 {
-    class MmdbLookup : public TypedMethod<MmdbLookupReq, MmdbLookupRes>
+    class MmdbLookup : public TypedMethod<MmdbLookupReq>
     {
     public:
         explicit MmdbLookup(KeyValue& kv, Events& events);

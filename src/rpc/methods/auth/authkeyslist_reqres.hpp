@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Auth
 {
     struct AuthKeysListReq
@@ -22,4 +24,10 @@ namespace porla::Rpc::Methods::Auth
 
         std::vector<Key> keys;
     };
+
+    PORLA_JSON_NO_PARAMS(AuthKeysListReq)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(AuthKeysListRes::Key, id, name, created_at, expires_at)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(AuthKeysListRes, keys)
 }

@@ -4,6 +4,8 @@
 #include <optional>
 #include <string>
 
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Auth
 {
     struct AuthKeysCreateReq
@@ -17,4 +19,8 @@ namespace porla::Rpc::Methods::Auth
         std::string id;
         std::string key;
     };
+
+    PORLA_JSON_REQUEST(AuthKeysCreateReq, name, expires_at)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(AuthKeysCreateRes, id, key)
 }

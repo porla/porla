@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <nlohmann/json.hpp>
+#include "../../../json/utils.hpp"
 
 namespace porla::Rpc::Methods::Presets
 {
@@ -22,4 +22,17 @@ namespace porla::Rpc::Methods::Presets
 
         std::vector<ListItem> presets;
     };
+
+    PORLA_JSON_NO_PARAMS(PresetsListReq)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
+        PresetsListRes::ListItem,
+        id,
+        name,
+        is_default,
+        metadata)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
+        PresetsListRes,
+        presets)
 }

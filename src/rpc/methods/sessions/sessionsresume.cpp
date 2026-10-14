@@ -6,7 +6,6 @@
 
 using porla::Rpc::Methods::Sessions::SessionsResume;
 using porla::Rpc::Methods::Sessions::SessionsResumeReq;
-using porla::Rpc::Methods::Sessions::SessionsResumeRes;
 
 SessionsResume::SessionsResume(porla::Sessions& sessions)
     : m_sessions(sessions)
@@ -31,5 +30,5 @@ void SessionsResume::Execute(const SessionsResumeReq& req, ResponseWriterHandle 
 
     state->Libtorrent().resume();
 
-    cb->Ok(SessionsResumeRes{});
+    cb->Ok();
 }

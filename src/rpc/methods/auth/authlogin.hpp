@@ -9,7 +9,7 @@
 
 namespace porla::Rpc::Methods::Auth
 {
-    class AuthLogin : public TypedAsyncMethod<AuthLoginReq, AuthLoginRes>
+    class AuthLogin : public TypedAsyncMethod<AuthLoginReq>
     {
     public:
         explicit AuthLogin(boost::asio::io_context& io, boost::asio::thread_pool& hash_pool, sqlite3* db, const std::string& secret_key);

@@ -8,7 +8,6 @@
 
 using porla::Rpc::Methods::Sessions::SessionsUpdate;
 using porla::Rpc::Methods::Sessions::SessionsUpdateReq;
-using porla::Rpc::Methods::Sessions::SessionsUpdateRes;
 
 SessionsUpdate::SessionsUpdate(porla::Sessions& sessions)
     : m_sessions(sessions)
@@ -54,5 +53,5 @@ void SessionsUpdate::Execute(const SessionsUpdateReq& req, ResponseWriterHandle 
 
     m_sessions.Update(*session);
 
-    cb->Ok(SessionsUpdateRes{});
+    cb->Ok();
 }

@@ -10,7 +10,7 @@
 
 namespace porla::Rpc::Methods::Auth
 {
-    class AuthInit : public TypedAsyncMethod<AuthInitReq, AuthInitRes>
+    class AuthInit : public TypedAsyncMethod<AuthInitReq>
     {
     public:
         explicit AuthInit(boost::asio::io_context& io, boost::asio::thread_pool& hash_pool, sqlite3* db);

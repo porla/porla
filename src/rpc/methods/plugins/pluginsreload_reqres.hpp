@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Plugins
 {
     struct PluginsReloadReq
@@ -7,7 +9,5 @@ namespace porla::Rpc::Methods::Plugins
         int id;
     };
 
-    struct PluginsReloadRes
-    {
-    };
+    PORLA_JSON_REQUEST(PluginsReloadReq, id)
 }

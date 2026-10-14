@@ -10,7 +10,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Sessions
 {
-    class SessionsSettingsGet : public TypedMethod<SessionsSettingsGetReq, SessionsSettingsGetRes>
+    class SessionsSettingsGet : public TypedMethod<SessionsSettingsGetReq>
     {
     public:
         explicit SessionsSettingsGet(porla::Sessions& sessions);

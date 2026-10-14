@@ -4,7 +4,6 @@
 
 using porla::Rpc::Methods::Presets::PresetsUpdate;
 using porla::Rpc::Methods::Presets::PresetsUpdateReq;
-using porla::Rpc::Methods::Presets::PresetsUpdateRes;
 
 PresetsUpdate::PresetsUpdate(porla::Presets& presets)
     : m_presets(presets)
@@ -43,5 +42,5 @@ void PresetsUpdate::Execute(const PresetsUpdateReq &req, ResponseWriterHandle cb
         .upload_limit = req.upload_limit
     });
 
-    cb->Ok(PresetsUpdateRes{});
+    cb->Ok();
 }

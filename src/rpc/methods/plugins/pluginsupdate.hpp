@@ -11,7 +11,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Plugins
 {
-    class PluginsUpdate : public TypedMethod<PluginsUpdateReq, PluginsUpdateRes>
+    class PluginsUpdate : public TypedMethod<PluginsUpdateReq>
     {
     public:
         explicit PluginsUpdate(porla::Plugins& plugins);

@@ -6,7 +6,7 @@
 
 namespace porla::Rpc::Methods::Fs
 {
-    class FsSpace : public TypedMethod<FsSpaceReq, FsSpaceRes>
+    class FsSpace : public TypedMethod<FsSpaceReq>
     {
     public:
         explicit FsSpace();

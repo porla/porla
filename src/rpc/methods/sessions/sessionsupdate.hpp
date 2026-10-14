@@ -10,7 +10,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Sessions
 {
-    class SessionsUpdate : public TypedMethod<SessionsUpdateReq, SessionsUpdateRes>
+    class SessionsUpdate : public TypedMethod<SessionsUpdateReq>
     {
     public:
         explicit SessionsUpdate(porla::Sessions& sessions);

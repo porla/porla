@@ -11,7 +11,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Presets
 {
-    class PresetsUpdate : public TypedMethod<PresetsUpdateReq, PresetsUpdateRes>
+    class PresetsUpdate : public TypedMethod<PresetsUpdateReq>
     {
     public:
         explicit PresetsUpdate(porla::Presets& presets);

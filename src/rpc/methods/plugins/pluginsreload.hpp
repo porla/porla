@@ -11,7 +11,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Plugins
 {
-    class PluginsReload : public TypedMethod<PluginsReloadReq, PluginsReloadRes>
+    class PluginsReload : public TypedMethod<PluginsReloadReq>
     {
     public:
         explicit PluginsReload(porla::Plugins& plugins);

@@ -2,6 +2,8 @@
 
 #include <libtorrent/settings_pack.hpp>
 
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Sessions
 {
     struct SessionsSettingsSetReq
@@ -10,7 +12,5 @@ namespace porla::Rpc::Methods::Sessions
         libtorrent::settings_pack settings;
     };
 
-    struct SessionsSettingsSetRes
-    {
-    };
+    PORLA_JSON_REQUEST(SessionsSettingsSetReq, settings)
 }

@@ -3,6 +3,8 @@
 #include <map>
 #include <string>
 
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Fs
 {
     struct FsSpaceReq
@@ -29,4 +31,19 @@ namespace porla::Rpc::Methods::Fs
         std::uint64_t               free{0};
         std::optional<FsSpaceQuota> quota{std::nullopt};
     };
+
+    PORLA_JSON_REQUEST(FsSpaceReq, path)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
+        FsSpaceQuota,
+        blocks_limit_hard,
+        blocks_limit_soft,
+        blocks_time,
+        current_inodes,
+        current_space,
+        inodes_limit_hard,
+        inodes_limit_soft,
+        inodes_time)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(FsSpaceRes, available, capacity, free, quota)
 }

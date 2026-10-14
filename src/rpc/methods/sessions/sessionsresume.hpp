@@ -10,7 +10,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Sessions
 {
-    class SessionsResume : public TypedMethod<SessionsResumeReq, SessionsResumeRes>
+    class SessionsResume : public TypedMethod<SessionsResumeReq>
     {
     public:
         explicit SessionsResume(porla::Sessions& sessions);

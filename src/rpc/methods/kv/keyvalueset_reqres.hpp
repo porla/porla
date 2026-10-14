@@ -3,7 +3,7 @@
 #include <map>
 #include <string>
 
-#include <nlohmann/json.hpp>
+#include "../../../json/utils.hpp"
 
 namespace porla::Rpc::Methods::Kv
 {
@@ -12,7 +12,5 @@ namespace porla::Rpc::Methods::Kv
         std::map<std::string, nlohmann::json> values;
     };
 
-    struct KeyValueSetRes
-    {
-    };
+    PORLA_JSON_REQUEST(KeyValueSetReq, values)
 }

@@ -5,7 +5,8 @@
 #include <unordered_set>
 
 #include <libtorrent/torrent_flags.hpp>
-#include <nlohmann/json.hpp>
+
+#include "../../../json/utils.hpp"
 
 namespace porla::Rpc::Methods::Presets
 {
@@ -28,7 +29,21 @@ namespace porla::Rpc::Methods::Presets
         std::optional<int>                                   upload_limit;
     };
 
-    struct PresetsUpdateRes
-    {
-    };
+    PORLA_JSON_REQUEST(
+        PresetsUpdateReq,
+        id,
+        name,
+        is_default,
+        category,
+        download_limit,
+        flags,
+        flags_mask,
+        max_connections,
+        max_uploads,
+        metadata,
+        session_id,
+        save_path,
+        storage_mode,
+        tags,
+        upload_limit)
 }

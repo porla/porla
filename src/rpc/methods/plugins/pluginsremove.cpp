@@ -4,7 +4,6 @@
 
 using porla::Rpc::Methods::Plugins::PluginsRemove;
 using porla::Rpc::Methods::Plugins::PluginsRemoveReq;
-using porla::Rpc::Methods::Plugins::PluginsRemoveRes;
 
 PluginsRemove::PluginsRemove(porla::Plugins& plugins)
     : m_plugins(plugins)
@@ -22,5 +21,5 @@ void PluginsRemove::Execute(const PluginsRemoveReq& req, ResponseWriterHandle cb
 
     m_plugins.Remove(req.id);
 
-    cb->Ok({});
+    cb->Ok();
 }

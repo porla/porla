@@ -214,15 +214,7 @@ add_library(
     src/data/statement.cpp
     src/data/transaction.cpp
 
-    src/json/_/authinit.cpp
-    src/json/_/authkeyscreate.cpp
-    src/json/_/authkeyslist.cpp
-    src/json/_/authkeysremove.cpp
-    src/json/_/authlogin.cpp
     src/json/_/errorcode.cpp
-    src/json/_/fsspace.cpp
-    src/json/_/keyvalueget.cpp
-    src/json/_/keyvalueset.cpp
     src/json/_/ltalerts.cpp
     src/json/_/ltannounceentry.cpp
     src/json/_/ltinfohash.cpp
@@ -231,29 +223,6 @@ add_library(
     src/json/_/ltsettingspack.cpp
     src/json/_/lttorrentflags.cpp
     src/json/_/lttorrentstatus.cpp
-    src/json/_/mmdblookup.cpp
-    src/json/_/pluginsadd.cpp
-    src/json/_/pluginsget.cpp
-    src/json/_/pluginsinstall.cpp
-    src/json/_/pluginslist.cpp
-    src/json/_/pluginsreload.cpp
-    src/json/_/pluginsremove.cpp
-    src/json/_/pluginsupdate.cpp
-    src/json/_/pluginsupgrade.cpp
-    src/json/_/presetsadd.cpp
-    src/json/_/presetsget.cpp
-    src/json/_/presetslist.cpp
-    src/json/_/presetsremove.cpp
-    src/json/_/presetsupdate.cpp
-    src/json/_/sessionsadd.cpp
-    src/json/_/sessionsget.cpp
-    src/json/_/sessionslist.cpp
-    src/json/_/sessionspause.cpp
-    src/json/_/sessionsremove.cpp
-    src/json/_/sessionsresume.cpp
-    src/json/_/sessionssettingsget.cpp
-    src/json/_/sessionssettingsset.cpp
-    src/json/_/sessionsupdate.cpp
     src/json/_/torrentclientdata.cpp
     src/json/_/torrentsadd.cpp
     src/json/_/torrentscount.cpp

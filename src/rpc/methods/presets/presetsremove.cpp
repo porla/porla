@@ -4,7 +4,6 @@
 
 using porla::Rpc::Methods::Presets::PresetsRemove;
 using porla::Rpc::Methods::Presets::PresetsRemoveReq;
-using porla::Rpc::Methods::Presets::PresetsRemoveRes;
 
 PresetsRemove::PresetsRemove(porla::Presets& presets)
     : m_presets(presets)
@@ -22,5 +21,5 @@ void PresetsRemove::Execute(const PresetsRemoveReq& req, ResponseWriterHandle cb
 
     m_presets.Remove(preset->id);
 
-    cb->Ok(PresetsRemoveRes{});
+    cb->Ok();
 }

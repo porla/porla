@@ -4,7 +4,8 @@
 #include <string>
 
 #include <libtorrent/settings_pack.hpp>
-#include <nlohmann/json.hpp>
+
+#include "../../../json/utils.hpp"
 
 namespace porla::Rpc::Methods::Sessions
 {
@@ -17,7 +18,6 @@ namespace porla::Rpc::Methods::Sessions
     {
         struct SessionState
         {
-
             bool  is_listening;
             bool  is_paused;
             int   torrents_total;
@@ -34,4 +34,24 @@ namespace porla::Rpc::Methods::Sessions
 
         Session session;
     };
+
+    PORLA_JSON_REQUEST(SessionsGetReq, id)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
+        SessionsGetRes::SessionState,
+        is_listening,
+        is_paused,
+        torrents_total)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
+        SessionsGetRes::Session,
+        id,
+        name,
+        is_default,
+        metadata,
+        state)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
+        SessionsGetRes,
+        session)
 }

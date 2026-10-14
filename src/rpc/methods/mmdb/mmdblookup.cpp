@@ -1,6 +1,9 @@
 #include "mmdblookup.hpp"
 
+#include <filesystem>
+
 #include <boost/log/trivial.hpp>
+#include <boost/signals2.hpp>
 
 #include "../../../events.hpp"
 #include "../../../keyvalue.hpp"

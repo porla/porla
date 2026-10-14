@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Presets
 {
     struct PresetsRemoveReq
@@ -7,7 +9,5 @@ namespace porla::Rpc::Methods::Presets
         int id;
     };
 
-    struct PresetsRemoveRes
-    {
-    };
+    PORLA_JSON_REQUEST(PresetsRemoveReq, id)
 }

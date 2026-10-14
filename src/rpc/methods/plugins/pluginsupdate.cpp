@@ -9,7 +9,6 @@ namespace fs = std::filesystem;
 
 using porla::Rpc::Methods::Plugins::PluginsUpdate;
 using porla::Rpc::Methods::Plugins::PluginsUpdateReq;
-using porla::Rpc::Methods::Plugins::PluginsUpdateRes;
 
 PluginsUpdate::PluginsUpdate(porla::Plugins& plugins)
     : m_plugins(plugins)
@@ -42,5 +41,5 @@ void PluginsUpdate::Execute(const PluginsUpdateReq& req, ResponseWriterHandle cb
 
     m_plugins.Update(*plugin);
 
-    cb->Ok(PluginsUpdateRes{});
+    cb->Ok();
 }

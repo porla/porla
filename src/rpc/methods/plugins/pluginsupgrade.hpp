@@ -14,7 +14,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Plugins
 {
-    class PluginsUpgrade : public TypedAsyncMethod<PluginsUpgradeReq, PluginsUpgradeRes>
+    class PluginsUpgrade : public TypedAsyncMethod<PluginsUpgradeReq>
     {
     public:
         explicit PluginsUpgrade(

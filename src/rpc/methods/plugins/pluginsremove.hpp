@@ -11,7 +11,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Plugins
 {
-    class PluginsRemove : public TypedMethod<PluginsRemoveReq, PluginsRemoveRes>
+    class PluginsRemove : public TypedMethod<PluginsRemoveReq>
     {
     public:
         explicit PluginsRemove(porla::Plugins& plugins);
