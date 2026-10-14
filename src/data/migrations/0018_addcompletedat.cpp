@@ -1,4 +1,4 @@
-#include "0018_addcompletedat.hpp"
+#include "../migrations.hpp"
 
 #include <ctime>
 
@@ -9,7 +9,6 @@
 #include "../statement.hpp"
 
 using json = nlohmann::json;
-using porla::Data::Migrations::AddCompletedAt;
 using porla::Data::Statement;
 
 namespace
@@ -67,7 +66,7 @@ namespace
     }
 }
 
-int AddCompletedAt::Migrate(sqlite3* db)
+int porla::Data::Migrations::AddCompletedAt(sqlite3* db)
 {
     BOOST_LOG_TRIVIAL(info) << "Moving 'signal:finished' markers to completed_at";
 

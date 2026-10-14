@@ -1,10 +1,8 @@
-#include "0003_users.hpp"
+#include "../migrations.hpp"
 
 #include <boost/log/trivial.hpp>
 
-using porla::Data::Migrations::Users;
-
-int Users::Migrate(sqlite3* db)
+int porla::Data::Migrations::Users(sqlite3* db)
 {
     BOOST_LOG_TRIVIAL(info) << "Creating 'users' table";
 

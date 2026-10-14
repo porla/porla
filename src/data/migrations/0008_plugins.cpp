@@ -1,10 +1,8 @@
-#include "0008_plugins.hpp"
+#include "../migrations.hpp"
 
 #include <boost/log/trivial.hpp>
 
-using porla::Data::Migrations::Plugins;
-
-int Plugins::Migrate(sqlite3* db)
+int porla::Data::Migrations::Plugins(sqlite3* db)
 {
     BOOST_LOG_TRIVIAL(info) << "Creating 'plugins' table";
 

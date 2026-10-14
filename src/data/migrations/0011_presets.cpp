@@ -1,4 +1,4 @@
-#include "0011_presets.hpp"
+#include "../migrations.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <nlohmann/json.hpp>
@@ -7,7 +7,6 @@
 #include "../statement.hpp"
 
 using json = nlohmann::json;
-using porla::Data::Migrations::Presets;
 
 namespace lt = libtorrent;
 
@@ -30,7 +29,7 @@ std::optional<int> GetSessionId(sqlite3* db, std::string session_name)
     return session_id;
 }
 
-int Presets::Migrate(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
+int porla::Data::Migrations::Presets(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
 {
     BOOST_LOG_TRIVIAL(info) << "Adding 'presets' table";
 

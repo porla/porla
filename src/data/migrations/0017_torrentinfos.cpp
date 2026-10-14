@@ -1,4 +1,4 @@
-#include "0017_torrentinfos.hpp"
+#include "../migrations.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <libtorrent/bdecode.hpp>
@@ -8,7 +8,6 @@
 
 #include "../statement.hpp"
 
-using porla::Data::Migrations::TorrentInfos;
 using porla::Data::Statement;
 
 namespace
@@ -66,7 +65,7 @@ namespace
     }
 }
 
-int TorrentInfos::Migrate(sqlite3* db)
+int porla::Data::Migrations::TorrentInfos(sqlite3* db)
 {
     BOOST_LOG_TRIVIAL(info) << "Adding table 'torrentinfos'";
 

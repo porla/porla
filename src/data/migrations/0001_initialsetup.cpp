@@ -1,10 +1,8 @@
-#include "0001_initialsetup.hpp"
+#include "../migrations.hpp"
 
 #include <boost/log/trivial.hpp>
 
-using porla::Data::Migrations::InitialSetup;
-
-int InitialSetup::Migrate(sqlite3* db)
+int porla::Data::Migrations::InitialSetup(sqlite3* db)
 {
     BOOST_LOG_TRIVIAL(info) << "Creating 'addtorrentparams' table";
 

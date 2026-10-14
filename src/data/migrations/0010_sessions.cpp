@@ -1,4 +1,4 @@
-#include "0010_sessions.hpp"
+#include "../migrations.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <libtorrent/bencode.hpp>
@@ -8,11 +8,9 @@
 #include "../../config.hpp"
 #include "../statement.hpp"
 
-using porla::Data::Migrations::Sessions;
-
 namespace lt = libtorrent;
 
-int Sessions::Migrate(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
+int porla::Data::Migrations::Sessions(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
 {
     BOOST_LOG_TRIVIAL(info) << "Adding 'sessions' table";
 

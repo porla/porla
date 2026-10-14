@@ -1,10 +1,8 @@
-#include "0005_metadata.hpp"
+#include "../migrations.hpp"
 
 #include <boost/log/trivial.hpp>
 
-using porla::Data::Migrations::TorrentsMetadata;
-
-int TorrentsMetadata::Migrate(sqlite3* db)
+int porla::Data::Migrations::TorrentsMetadata(sqlite3* db)
 {
     BOOST_LOG_TRIVIAL(info) << "Creating 'torrentsmetadata' table";
 

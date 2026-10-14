@@ -1,10 +1,8 @@
-#include "0002_addsessionsettings.hpp"
+#include "../migrations.hpp"
 
 #include <boost/log/trivial.hpp>
 
-using porla::Data::Migrations::AddSessionSettings;
-
-int AddSessionSettings::Migrate(sqlite3* db)
+int porla::Data::Migrations::AddSessionSettings(sqlite3* db)
 {
     BOOST_LOG_TRIVIAL(info) << "Creating 'sessionsettings' table";
 
