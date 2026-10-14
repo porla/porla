@@ -10,7 +10,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Torrents
 {
-    class TorrentsTrackersList : public TypedMethod<TorrentsTrackersListReq, TorrentsTrackersListRes>
+    class TorrentsTrackersList : public TypedMethod<TorrentsTrackersListReq>
     {
     public:
         explicit TorrentsTrackersList(porla::Sessions& sessions);

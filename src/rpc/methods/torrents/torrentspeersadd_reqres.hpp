@@ -5,14 +5,21 @@
 
 #include <libtorrent/info_hash.hpp>
 
+#include "../../../json/lttypes.hpp"
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Torrents
 {
     struct TorrentsPeersAddReq
     {
         libtorrent::info_hash_t                        info_hash;
-        std::vector<std::tuple<std::string, uint16_t>> peers;
         std::optional<int>                             session_id;
+        std::vector<std::tuple<std::string, uint16_t>> peers;
     };
 
-    struct TorrentsPeersAddRes {};
+    PORLA_JSON_REQUEST(
+        TorrentsPeersAddReq,
+        info_hash,
+        session_id,
+        peers)
 }

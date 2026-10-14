@@ -2,7 +2,6 @@
 
 #include <sodium.h>
 
-#include "../../rpc/methods/torrents/torrentspiecesget_reqres.hpp"
 #include "../utils.hpp"
 
 namespace libtorrent
@@ -36,17 +35,4 @@ namespace libtorrent
 
         j = { pieces.size(), output };
     }
-}
-
-namespace porla::Rpc::Methods::Torrents
-{
-    NLOHMANN_JSONIFY_ALL_THINGS(
-        TorrentsPiecesGetReq,
-        info_hash,
-        session_id)
-
-    NLOHMANN_JSONIFY_ALL_THINGS(
-        TorrentsPiecesGetRes,
-        pieces,
-        verified_pieces)
 }

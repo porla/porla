@@ -10,7 +10,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Torrents
 {
-    class TorrentsPiecesGet : public TypedMethod<TorrentsPiecesGetReq, TorrentsPiecesGetRes>
+    class TorrentsPiecesGet : public TypedMethod<TorrentsPiecesGetReq>
     {
     public:
         explicit TorrentsPiecesGet(porla::Sessions& sessions);

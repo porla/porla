@@ -12,7 +12,6 @@
 
 using porla::Rpc::Methods::Torrents::TorrentsPropertiesSet;
 using porla::Rpc::Methods::Torrents::TorrentsPropertiesSetReq;
-using porla::Rpc::Methods::Torrents::TorrentsPropertiesSetRes;
 
 TorrentsPropertiesSet::TorrentsPropertiesSet(porla::Sessions& sessions, porla::Torrents& torrents)
     : m_sessions(sessions)
@@ -74,5 +73,5 @@ void TorrentsPropertiesSet::Execute(const TorrentsPropertiesSetReq& req, Respons
     if (max_uploads)     resolved->torrent->status.handle.set_max_uploads(*max_uploads);
     if (upload_limit)    resolved->torrent->status.handle.set_upload_limit(*upload_limit);
 
-    cb->Ok({});
+    cb->Ok();
 }

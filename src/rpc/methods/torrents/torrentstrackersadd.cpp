@@ -8,7 +8,6 @@
 
 using porla::Rpc::Methods::Torrents::TorrentsTrackersAdd;
 using porla::Rpc::Methods::Torrents::TorrentsTrackersAddReq;
-using porla::Rpc::Methods::Torrents::TorrentsTrackersAddRes;
 
 TorrentsTrackersAdd::TorrentsTrackersAdd(porla::Sessions& sessions)
     : m_sessions(sessions)
@@ -34,5 +33,5 @@ void TorrentsTrackersAdd::Execute(const TorrentsTrackersAddReq& req, ResponseWri
 
     resolved->torrent->status.handle.add_tracker(ae);
 
-    cb->Ok(TorrentsTrackersAddRes{});
+    cb->Ok();
 }

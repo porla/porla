@@ -10,7 +10,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Torrents
 {
-    class TorrentsResume : public TypedMethod<TorrentsResumeReq, TorrentsResumeRes>
+    class TorrentsResume : public TypedMethod<TorrentsResumeReq>
     {
     public:
         explicit TorrentsResume(porla::Sessions& sessions);

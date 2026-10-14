@@ -7,6 +7,9 @@
 #include <libtorrent/announce_entry.hpp>
 #include <libtorrent/info_hash.hpp>
 
+#include "../../../json/lttypes.hpp"
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Torrents
 {
     struct TorrentsTrackersListReq
@@ -19,4 +22,13 @@ namespace porla::Rpc::Methods::Torrents
     {
         std::vector<libtorrent::announce_entry> trackers;
     };
+
+    PORLA_JSON_REQUEST(
+        TorrentsTrackersListReq,
+        info_hash,
+        session_id)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
+        TorrentsTrackersListRes,
+        trackers)
 }

@@ -10,7 +10,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Torrents
 {
-    class TorrentsMove : public TypedMethod<TorrentsMoveReq, TorrentsMoveRes>
+    class TorrentsMove : public TypedMethod<TorrentsMoveReq>
     {
     public:
         explicit TorrentsMove(porla::Sessions& sessions);

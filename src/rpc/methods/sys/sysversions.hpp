@@ -7,7 +7,7 @@
 
 namespace porla::Rpc::Methods::Sys
 {
-    class SysVersions : public TypedMethod<nlohmann::json, std::map<std::string, nlohmann::json>>
+    class SysVersions : public TypedMethod<nlohmann::json>
     {
     protected:
         void Execute(const nlohmann::json& req, ResponseWriterHandle cb) override;

@@ -1,8 +1,7 @@
 #pragma once
 
 #include "../../typedmethod.hpp"
-#include "torrentsremovereq.hpp"
-#include "torrentsremoveres.hpp"
+#include "torrentsremove_reqres.hpp"
 
 namespace porla
 {
@@ -11,7 +10,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Torrents
 {
-    class TorrentsRemove : public TypedMethod<TorrentsRemoveReq, TorrentsRemoveRes>
+    class TorrentsRemove : public TypedMethod<TorrentsRemoveReq>
     {
     public:
         explicit TorrentsRemove(porla::Sessions& sessions);

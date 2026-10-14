@@ -5,6 +5,9 @@
 
 #include <libtorrent/info_hash.hpp>
 
+#include "../../../json/lttypes.hpp"
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Torrents
 {
     struct TorrentsFilesRenameReq
@@ -15,7 +18,10 @@ namespace porla::Rpc::Methods::Torrents
         std::string             file_path;
     };
 
-    struct TorrentsFilesRenameRes
-    {
-    };
+    PORLA_JSON_REQUEST(
+        TorrentsFilesRenameReq,
+        info_hash,
+        session_id,
+        file_index,
+        file_path)
 }

@@ -4,6 +4,8 @@
 #include <optional>
 #include <string>
 
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Torrents
 {
     struct TorrentsCountReq
@@ -25,4 +27,22 @@ namespace porla::Rpc::Methods::Torrents
         std::map<std::string, int> tags;
         std::map<std::string, int> trackers;
     };
+
+    PORLA_JSON_REQUEST(
+        TorrentsCountReq,
+        session_id)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
+        TorrentsCountRes,
+        categories,
+        downloading,
+        downloading_queued,
+        error,
+        finished,
+        paused,
+        seeding,
+        seeding_queued,
+        total,
+        tags,
+        trackers)
 }

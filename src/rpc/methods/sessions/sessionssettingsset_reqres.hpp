@@ -12,5 +12,5 @@ namespace porla::Rpc::Methods::Sessions
         libtorrent::settings_pack settings;
     };
 
-    PORLA_JSON_REQUEST(SessionsSettingsSetReq, settings)
+    PORLA_JSON_REQUEST(SessionsSettingsSetReq, id, settings)
 }

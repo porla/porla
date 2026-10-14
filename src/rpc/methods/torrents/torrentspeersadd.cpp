@@ -10,7 +10,6 @@
 
 using porla::Rpc::Methods::Torrents::TorrentsPeersAdd;
 using porla::Rpc::Methods::Torrents::TorrentsPeersAddReq;
-using porla::Rpc::Methods::Torrents::TorrentsPeersAddRes;
 
 TorrentsPeersAdd::TorrentsPeersAdd(porla::Sessions& sessions)
     : m_sessions(sessions)
@@ -40,5 +39,5 @@ void TorrentsPeersAdd::Execute(const TorrentsPeersAddReq& req, ResponseWriterHan
         resolved->torrent->status.handle.connect_peer(boost::asio::ip::tcp::endpoint{addr,port});
     }
 
-    cb->Ok(TorrentsPeersAddRes{});
+    cb->Ok();
 }

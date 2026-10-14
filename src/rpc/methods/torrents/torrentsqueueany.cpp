@@ -7,7 +7,6 @@
 #include "../../../sessions/torrent.hpp"
 
 using porla::Rpc::Methods::Torrents::TorrentsQueueAnyReq;
-using porla::Rpc::Methods::Torrents::TorrentsQueueAnyRes;
 
 #define QUEUE_IMPL(suffix, operation) \
     using porla::Rpc::Methods::Torrents::TorrentsQueue##suffix; \
@@ -18,7 +17,7 @@ using porla::Rpc::Methods::Torrents::TorrentsQueueAnyRes;
         const auto resolved = ResolveTorrent(m_sessions, req.session_id, req.info_hash, cb); \
         if (!resolved) { return; } \
         resolved->torrent->status.handle.operation(); \
-        cb->Ok(TorrentsQueueAnyRes{}); \
+        cb->Ok(); \
     }
 
 QUEUE_IMPL(Bottom, queue_position_bottom)

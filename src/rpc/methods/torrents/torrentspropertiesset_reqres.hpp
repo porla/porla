@@ -4,6 +4,9 @@
 
 #include <libtorrent/info_hash.hpp>
 
+#include "../../../json/lttypes.hpp"
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Torrents
 {
     struct TorrentsPropertiesSetReq
@@ -21,7 +24,16 @@ namespace porla::Rpc::Methods::Torrents
         std::optional<int>                             upload_limit;
     };
 
-    struct TorrentsPropertiesSetRes
-    {
-    };
+    PORLA_JSON_REQUEST(
+        TorrentsPropertiesSetReq,
+        info_hash,
+        session_id,
+        category,
+        download_limit,
+        flags,
+        flags_mask,
+        max_connections,
+        max_uploads,
+        tags,
+        upload_limit)
 }

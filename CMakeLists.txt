@@ -223,31 +223,9 @@ add_library(
     src/json/_/ltsettingspack.cpp
     src/json/_/lttorrentflags.cpp
     src/json/_/lttorrentstatus.cpp
+    src/json/_/lttypedbitfield.cpp
     src/json/_/torrentclientdata.cpp
-    src/json/_/torrentsadd.cpp
-    src/json/_/torrentscount.cpp
     src/json/_/torrentsfileslist.cpp
-    src/json/_/torrentsfilespriorities.cpp
-    src/json/_/torrentsfilesprioritize.cpp
-    src/json/_/torrentsfilesprogress.cpp
-    src/json/_/torrentsfilesrename.cpp
-    src/json/_/torrentsget.cpp
-    src/json/_/torrentslist.cpp
-    src/json/_/torrentsmigrate.cpp
-    src/json/_/torrentsmove.cpp
-    src/json/_/torrentspause.cpp
-    src/json/_/torrentspeersadd.cpp
-    src/json/_/torrentspeerslist.cpp
-    src/json/_/torrentspiecesget.cpp
-    src/json/_/torrentspropertiesget.cpp
-    src/json/_/torrentspropertiesset.cpp
-    src/json/_/torrentsqueueany.cpp
-    src/json/_/torrentsqueueset.cpp
-    src/json/_/torrentsrecheck.cpp
-    src/json/_/torrentsremove.cpp
-    src/json/_/torrentsresume.cpp
-    src/json/_/torrentstrackersadd.cpp
-    src/json/_/torrentstrackerslist.cpp
 
     src/lua/packages/codec.cpp
     src/lua/packages/crypto.cpp

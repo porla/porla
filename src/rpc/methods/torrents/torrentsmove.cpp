@@ -8,7 +8,6 @@
 
 using porla::Rpc::Methods::Torrents::TorrentsMove;
 using porla::Rpc::Methods::Torrents::TorrentsMoveReq;
-using porla::Rpc::Methods::Torrents::TorrentsMoveRes;
 
 TorrentsMove::TorrentsMove(porla::Sessions &sessions)
     : m_sessions(sessions)
@@ -40,5 +39,5 @@ void TorrentsMove::Execute(const TorrentsMoveReq &req, ResponseWriterHandle cb)
 
     resolved->torrent->status.handle.move_storage(req.path, flags);
 
-    return cb->Ok(TorrentsMoveRes{});
+    return cb->Ok();
 }

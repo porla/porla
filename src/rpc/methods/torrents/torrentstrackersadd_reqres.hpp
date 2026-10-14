@@ -6,6 +6,9 @@
 
 #include <libtorrent/info_hash.hpp>
 
+#include "../../../json/lttypes.hpp"
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Torrents
 {
     struct TorrentsTrackersAddReq
@@ -16,7 +19,10 @@ namespace porla::Rpc::Methods::Torrents
         std::optional<uint8_t>  tier;
     };
 
-    struct TorrentsTrackersAddRes
-    {
-    };
+    PORLA_JSON_REQUEST(
+        TorrentsTrackersAddReq,
+        info_hash,
+        session_id,
+        url,
+        tier)
 }

@@ -13,7 +13,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Torrents
 {
-    class TorrentsMigrate : public TypedMethod<TorrentsMigrateReq, TorrentsMigrateRes>
+    class TorrentsMigrate : public TypedMethod<TorrentsMigrateReq>
     {
     public:
         explicit TorrentsMigrate(boost::asio::io_context& io, porla::Events& events, porla::Sessions& sessions);

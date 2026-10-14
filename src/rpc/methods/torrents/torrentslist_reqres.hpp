@@ -7,6 +7,9 @@
 #include <libtorrent/info_hash.hpp>
 #include <libtorrent/torrent_status.hpp>
 
+#include "../../../json/lttypes.hpp"
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Torrents
 {
     struct TorrentsListFilters
@@ -41,4 +44,34 @@ namespace porla::Rpc::Methods::Torrents
         int                                     torrents_total;
         int                                     torrents_total_unfiltered;
     };
+
+    PORLA_JSON_REQUEST(
+        TorrentsListFilters,
+        category,
+        errc,
+        flags,
+        query,
+        session_id,
+        save_path,
+        state,
+        status,
+        tags)
+
+    PORLA_JSON_REQUEST(
+        TorrentsListReq,
+        filters,
+        page,
+        page_size,
+        order_by,
+        order_by_dir)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
+        TorrentsListRes,
+        order_by,
+        order_by_dir,
+        page,
+        page_size,
+        torrents,
+        torrents_total,
+        torrents_total_unfiltered)
 }

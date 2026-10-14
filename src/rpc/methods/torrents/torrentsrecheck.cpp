@@ -8,7 +8,6 @@
 
 using porla::Rpc::Methods::Torrents::TorrentsRecheck;
 using porla::Rpc::Methods::Torrents::TorrentsRecheckReq;
-using porla::Rpc::Methods::Torrents::TorrentsRecheckRes;
 
 TorrentsRecheck::TorrentsRecheck(porla::Sessions& sessions)
     : m_sessions(sessions)
@@ -26,5 +25,5 @@ void TorrentsRecheck::Execute(const TorrentsRecheckReq &req, ResponseWriterHandl
 
     resolved->session->Recheck(resolved->torrent->status.info_hashes);
 
-    return cb->Ok(TorrentsRecheckRes{});
+    return cb->Ok();
 }

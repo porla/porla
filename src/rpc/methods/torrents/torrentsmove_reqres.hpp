@@ -5,6 +5,9 @@
 
 #include <libtorrent/info_hash.hpp>
 
+#include "../../../json/lttypes.hpp"
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Torrents
 {
     struct TorrentsMoveReq
@@ -15,7 +18,10 @@ namespace porla::Rpc::Methods::Torrents
         std::optional<int>         session_id;
     };
 
-    struct TorrentsMoveRes
-    {
-    };
+    PORLA_JSON_REQUEST(
+        TorrentsMoveReq,
+        flags,
+        info_hash,
+        path,
+        session_id)
 }

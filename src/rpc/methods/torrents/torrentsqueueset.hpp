@@ -10,7 +10,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Torrents
 {
-    class TorrentsQueueSet : public TypedMethod<TorrentsQueueSetReq, TorrentsQueueSetRes>
+    class TorrentsQueueSet : public TypedMethod<TorrentsQueueSetReq>
     {
     public:
         explicit TorrentsQueueSet(porla::Sessions& sessions);
