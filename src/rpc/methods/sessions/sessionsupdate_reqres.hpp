@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-#include <nlohmann/json.hpp>
+#include "../../../json/utils.hpp"
 
 namespace porla::Rpc::Methods::Sessions
 {
@@ -20,7 +20,14 @@ namespace porla::Rpc::Methods::Sessions
         std::optional<int>                    timer_torrent_updates;
     };
 
-    struct SessionsUpdateRes
-    {
-    };
+    PORLA_JSON_REQUEST(
+        SessionsUpdateReq,
+        id,
+        name,
+        is_default,
+        metadata,
+        timer_dht_stats,
+        timer_save_state,
+        timer_session_stats,
+        timer_torrent_updates)
 }

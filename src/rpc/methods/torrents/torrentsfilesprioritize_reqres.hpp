@@ -7,6 +7,9 @@
 #include <libtorrent/info_hash.hpp>
 #include <libtorrent/units.hpp>
 
+#include "../../../json/lttypes.hpp"
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Torrents
 {
     struct TorrentsFilesPrioritizeReq
@@ -22,7 +25,14 @@ namespace porla::Rpc::Methods::Torrents
         std::vector<FilePrio>   priorities;
     };
 
-    struct TorrentsFilesPrioritizeRes
-    {
-    };
+    PORLA_JSON_REQUEST(
+        TorrentsFilesPrioritizeReq::FilePrio,
+        index,
+        priority)
+
+    PORLA_JSON_REQUEST(
+        TorrentsFilesPrioritizeReq,
+        info_hash,
+        session_id,
+        priorities)
 }

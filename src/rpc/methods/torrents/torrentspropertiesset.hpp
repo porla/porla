@@ -11,7 +11,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Torrents
 {
-    class TorrentsPropertiesSet : public TypedMethod<TorrentsPropertiesSetReq, TorrentsPropertiesSetRes>
+    class TorrentsPropertiesSet : public TypedMethod<TorrentsPropertiesSetReq>
     {
     public:
         explicit TorrentsPropertiesSet(porla::Sessions& sessions, porla::Torrents& torrents);

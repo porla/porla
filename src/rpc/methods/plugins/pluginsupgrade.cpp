@@ -14,7 +14,6 @@ namespace fs = std::filesystem;
 using porla::Json::GitHubRelease;
 using porla::Rpc::Methods::Plugins::PluginsUpgrade;
 using porla::Rpc::Methods::Plugins::PluginsUpgradeReq;
-using porla::Rpc::Methods::Plugins::PluginsUpgradeRes;
 
 PluginsUpgrade::PluginsUpgrade(boost::asio::io_context& io, std::weak_ptr<CurlMulti> cm, porla::Plugins& plugins, const std::filesystem::path& state_dir)
     : TypedAsyncMethod(io.get_executor())
@@ -158,5 +157,5 @@ boost::asio::awaitable<void> PluginsUpgrade::ExecuteAsync(PluginsUpgradeReq req,
         }
     }
 
-    cb->Ok(PluginsUpgradeRes{});
+    cb->Ok();
 }

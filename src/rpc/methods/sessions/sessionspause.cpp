@@ -6,7 +6,6 @@
 
 using porla::Rpc::Methods::Sessions::SessionsPause;
 using porla::Rpc::Methods::Sessions::SessionsPauseReq;
-using porla::Rpc::Methods::Sessions::SessionsPauseRes;
 
 SessionsPause::SessionsPause(porla::Sessions& sessions)
     : m_sessions(sessions)
@@ -31,5 +30,5 @@ void SessionsPause::Execute(const SessionsPauseReq& req, ResponseWriterHandle cb
 
     state->Libtorrent().pause();
 
-    return cb->Ok(SessionsPauseRes{});
+    return cb->Ok();
 }

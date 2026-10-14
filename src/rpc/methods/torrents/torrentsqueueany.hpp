@@ -11,7 +11,7 @@ namespace porla
 #define QUEUE_CLASS(suffix) \
     namespace porla::Rpc::Methods::Torrents \
     { \
-        class TorrentsQueue##suffix : public TypedMethod<TorrentsQueueAnyReq, TorrentsQueueAnyRes> \
+        class TorrentsQueue##suffix : public TypedMethod<TorrentsQueueAnyReq> \
         { \
         public: \
             explicit TorrentsQueue##suffix(porla::Sessions& sessions); \

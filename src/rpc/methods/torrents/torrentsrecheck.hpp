@@ -10,7 +10,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Torrents
 {
-    class TorrentsRecheck : public TypedMethod<TorrentsRecheckReq, TorrentsRecheckRes>
+    class TorrentsRecheck : public TypedMethod<TorrentsRecheckReq>
     {
     public:
         explicit TorrentsRecheck(porla::Sessions& sessions);

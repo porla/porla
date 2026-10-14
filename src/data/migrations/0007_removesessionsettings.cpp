@@ -1,10 +1,8 @@
-#include "0007_removesessionsettings.hpp"
+#include "../migrations.hpp"
 
 #include <boost/log/trivial.hpp>
 
-using porla::Data::Migrations::RemoveSessionSettings;
-
-int RemoveSessionSettings::Migrate(sqlite3* db)
+int porla::Data::Migrations::RemoveSessionSettings(sqlite3* db)
 {
     BOOST_LOG_TRIVIAL(info) << "Removing 'sessionsettings' table";
 

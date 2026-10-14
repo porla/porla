@@ -1,10 +1,8 @@
-#include "0009_multisessions.hpp"
+#include "../migrations.hpp"
 
 #include <boost/log/trivial.hpp>
 
-using porla::Data::Migrations::MultiSessions;
-
-int MultiSessions::Migrate(sqlite3* db)
+int porla::Data::Migrations::MultiSessions(sqlite3* db)
 {
     BOOST_LOG_TRIVIAL(info) << "Adding 'session_id' column to table 'addtorrentparams'";
 

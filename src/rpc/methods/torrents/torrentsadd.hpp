@@ -2,8 +2,7 @@
 
 #include "../../typedmethod.hpp"
 
-#include "torrentsaddreq.hpp"
-#include "torrentsaddres.hpp"
+#include "torrentsadd_reqres.hpp"
 
 namespace porla
 {
@@ -12,7 +11,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Torrents
 {
-    class TorrentsAdd : public TypedMethod<TorrentsAddReq, TorrentsAddRes>
+    class TorrentsAdd : public TypedMethod<TorrentsAddReq>
     {
     public:
         explicit TorrentsAdd(porla::Torrents& torrents);

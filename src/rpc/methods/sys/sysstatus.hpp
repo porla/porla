@@ -9,7 +9,7 @@
 
 namespace porla::Rpc::Methods::Sys
 {
-    class SysStatus : public TypedMethod<nlohmann::json, std::map<std::string, nlohmann::json>>
+    class SysStatus : public TypedMethod<nlohmann::json>
     {
     public:
         explicit SysStatus(sqlite3* db);

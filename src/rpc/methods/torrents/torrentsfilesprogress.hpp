@@ -10,7 +10,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Torrents
 {
-    class TorrentsFilesProgress : public TypedMethod<TorrentsFilesProgressReq, TorrentsFilesProgressRes>
+    class TorrentsFilesProgress : public TypedMethod<TorrentsFilesProgressReq>
     {
     public:
         explicit TorrentsFilesProgress(porla::Sessions& sessions);

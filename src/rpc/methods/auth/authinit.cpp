@@ -8,7 +8,6 @@
 using porla::Auth::Password;
 using porla::Rpc::Methods::Auth::AuthInit;
 using porla::Rpc::Methods::Auth::AuthInitReq;
-using porla::Rpc::Methods::Auth::AuthInitRes;
 
 AuthInit::AuthInit(boost::asio::io_context& io, boost::asio::thread_pool& hash_pool, sqlite3* db)
     : TypedAsyncMethod(io.get_executor())
@@ -46,5 +45,5 @@ boost::asio::awaitable<void> AuthInit::ExecuteAsync(AuthInitReq req, ResponseWri
 
     BOOST_LOG_TRIVIAL(info) << "User " << req.username << " created";
 
-    out->Ok(AuthInitRes{});
+    out->Ok();
 }

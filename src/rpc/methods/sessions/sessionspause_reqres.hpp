@@ -3,6 +3,8 @@
 #include <optional>
 #include <string>
 
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Sessions
 {
     struct SessionsPauseReq
@@ -10,5 +12,5 @@ namespace porla::Rpc::Methods::Sessions
         int id;
     };
 
-    struct SessionsPauseRes {};
+    PORLA_JSON_REQUEST(SessionsPauseReq, id)
 }

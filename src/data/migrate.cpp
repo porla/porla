@@ -7,27 +7,10 @@
 #include <boost/log/trivial.hpp>
 
 #include "../config.hpp"
-#include "migrations/0001_initialsetup.hpp"
-#include "migrations/0002_addsessionsettings.hpp"
-#include "migrations/0003_users.hpp"
-#include "migrations/0004_removesessionparams.hpp"
-#include "migrations/0005_metadata.hpp"
-#include "migrations/0006_clientdata.hpp"
-#include "migrations/0007_removesessionsettings.hpp"
-#include "migrations/0008_plugins.hpp"
-#include "migrations/0009_multisessions.hpp"
-#include "migrations/0010_sessions.hpp"
-#include "migrations/0011_presets.hpp"
-#include "migrations/0012_alterplugins.hpp"
-#include "migrations/0013_addkeyvaluestore.hpp"
-#include "migrations/0014_morepresets.hpp"
-#include "migrations/0015_addtorrentparamsindex.hpp"
-#include "migrations/0016_addapikeys.hpp"
-#include "migrations/0017_torrentinfos.hpp"
-#include "migrations/0018_addcompletedat.hpp"
-#include "migrations/0019_addautoincrementids.hpp"
 
+#include "migrations.hpp"
 #include "statement.hpp"
+#include "transaction.hpp"
 
 int GetUserVersion(sqlite3* db)
 {
@@ -53,25 +36,25 @@ bool porla::Data::Migrate(sqlite3* db, const std::unique_ptr<porla::Config>& cfg
 {
     static std::vector<std::function<int(sqlite3*)>> Migrations =
     {
-        &porla::Data::Migrations::InitialSetup::Migrate,
-        &porla::Data::Migrations::AddSessionSettings::Migrate,
-        &porla::Data::Migrations::Users::Migrate,
-        &porla::Data::Migrations::RemoveSessionParams::Migrate,
-        &porla::Data::Migrations::TorrentsMetadata::Migrate,
-        &porla::Data::Migrations::ClientData::Migrate,
-        &porla::Data::Migrations::RemoveSessionSettings::Migrate,
-        &porla::Data::Migrations::Plugins::Migrate,
-        &porla::Data::Migrations::MultiSessions::Migrate,
-        [&cfg](sqlite3* db) { return porla::Data::Migrations::Sessions::Migrate(db, cfg); },
-        [&cfg](sqlite3* db) { return porla::Data::Migrations::Presets::Migrate(db, cfg); },
-        &porla::Data::Migrations::AlterPlugins::Migrate,
-        &porla::Data::Migrations::AddKeyValueStore::Migrate,
-        &porla::Data::Migrations::MorePresets::Migrate,
-        &porla::Data::Migrations::AddTorrentParamsIndex::Migrate,
-        &porla::Data::Migrations::AddApiKeys::Migrate,
-        &porla::Data::Migrations::TorrentInfos::Migrate,
-        &porla::Data::Migrations::AddCompletedAt::Migrate,
-        &porla::Data::Migrations::AddAutoIncrementIds::Migrate,
+        &porla::Data::Migrations::InitialSetup,
+        &porla::Data::Migrations::AddSessionSettings,
+        &porla::Data::Migrations::Users,
+        &porla::Data::Migrations::RemoveSessionParams,
+        &porla::Data::Migrations::TorrentsMetadata,
+        &porla::Data::Migrations::ClientData,
+        &porla::Data::Migrations::RemoveSessionSettings,
+        &porla::Data::Migrations::Plugins,
+        &porla::Data::Migrations::MultiSessions,
+        [&cfg](sqlite3* db) { return porla::Data::Migrations::Sessions(db, cfg); },
+        [&cfg](sqlite3* db) { return porla::Data::Migrations::Presets(db, cfg); },
+        &porla::Data::Migrations::AlterPlugins,
+        &porla::Data::Migrations::AddKeyValueStore,
+        &porla::Data::Migrations::MorePresets,
+        &porla::Data::Migrations::AddTorrentParamsIndex,
+        &porla::Data::Migrations::AddApiKeys,
+        &porla::Data::Migrations::TorrentInfos,
+        &porla::Data::Migrations::AddCompletedAt,
+        &porla::Data::Migrations::AddAutoIncrementIds,
     };
 
     int user_version = GetUserVersion(db);
@@ -89,11 +72,7 @@ bool porla::Data::Migrate(sqlite3* db, const std::unique_ptr<porla::Config>& cfg
 
     BOOST_LOG_TRIVIAL(info) << "Migrating database from version " << user_version << " to " << Migrations.size();
 
-    if (sqlite3_exec(db, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr) != SQLITE_OK)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Failed to begin transaction: " << sqlite3_errmsg(db);
-        return false;
-    }
+    Transaction tx(db);
 
     for (int i = user_version; i < Migrations.size(); i++)
     {
@@ -113,7 +92,7 @@ bool porla::Data::Migrate(sqlite3* db, const std::unique_ptr<porla::Config>& cfg
             BOOST_LOG_TRIVIAL(error) << "Failed to apply migration " << i + 1 << ": " << e.what();
         }
 
-        sqlite3_exec(db, "ROLLBACK;", nullptr, nullptr, nullptr);
+        tx.Rollback();
 
         return false;
     }
@@ -121,14 +100,13 @@ bool porla::Data::Migrate(sqlite3* db, const std::unique_ptr<porla::Config>& cfg
     if (SetUserVersion(db, static_cast<int>(Migrations.size())) != SQLITE_OK)
     {
         BOOST_LOG_TRIVIAL(error) << "Failed to set user_version: " << sqlite3_errmsg(db);
-        sqlite3_exec(db, "ROLLBACK;", nullptr, nullptr, nullptr);
+        tx.Rollback();
         return false;
     }
 
-    if (sqlite3_exec(db, "COMMIT;", nullptr, nullptr, nullptr) != SQLITE_OK)
+    if (!tx.Commit())
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to commit migration transaction: " << sqlite3_errmsg(db);
-        sqlite3_exec(db, "ROLLBACK;", nullptr, nullptr, nullptr);
+        BOOST_LOG_TRIVIAL(error) << "Failed to commit migration transaction";
         return false;
     }
 

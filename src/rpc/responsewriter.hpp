@@ -16,6 +16,7 @@ namespace porla::Rpc
         virtual void Error(int code, const std::string& message, const nlohmann::json& data = {}) = 0;
         virtual void Header(const std::string& name, const std::string& value) = 0;
         virtual void Ok(const nlohmann::json& j) = 0;
+        void Ok() { Ok(nullptr); }
     };
 
     using ResponseWriterHandle = std::shared_ptr<ResponseWriter>;

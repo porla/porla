@@ -6,6 +6,9 @@
 #include <libtorrent/info_hash.hpp>
 #include <libtorrent/torrent_handle.hpp>
 
+#include "../../../json/lttypes.hpp"
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Torrents
 {
     struct TorrentsQueueSetReq
@@ -15,7 +18,9 @@ namespace porla::Rpc::Methods::Torrents
         libtorrent::queue_position_t queue_position;
     };
 
-    struct TorrentsQueueSetRes
-    {
-    };
+    PORLA_JSON_REQUEST(
+        TorrentsQueueSetReq,
+        info_hash,
+        session_id,
+        queue_position)
 }

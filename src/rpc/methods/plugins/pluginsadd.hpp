@@ -11,7 +11,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Plugins
 {
-    class PluginsAdd : public TypedMethod<PluginsAddReq, PluginsAddRes>
+    class PluginsAdd : public TypedMethod<PluginsAddReq>
     {
     public:
         explicit PluginsAdd(porla::Plugins& plugins);

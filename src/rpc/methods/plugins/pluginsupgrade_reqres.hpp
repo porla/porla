@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-#include <nlohmann/json.hpp>
+#include "../../../json/utils.hpp"
 
 namespace porla::Rpc::Methods::Plugins
 {
@@ -14,7 +14,5 @@ namespace porla::Rpc::Methods::Plugins
         std::string version;
     };
 
-    struct PluginsUpgradeRes
-    {
-    };
+    PORLA_JSON_REQUEST(PluginsUpgradeReq, id, version)
 }

@@ -1,10 +1,8 @@
-#include "0019_addautoincrementids.hpp"
+#include "../migrations.hpp"
 
 #include <boost/log/trivial.hpp>
 
-using porla::Data::Migrations::AddAutoIncrementIds;
-
-int AddAutoIncrementIds::Migrate(sqlite3* db)
+int porla::Data::Migrations::AddAutoIncrementIds(sqlite3* db)
 {
     BOOST_LOG_TRIVIAL(info) << "Making ID columns of plugins, presets and sessions AUTOINCREMENT";
 

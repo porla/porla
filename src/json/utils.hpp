@@ -62,3 +62,10 @@ namespace porla
       NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(EXTEND_JSON_FROM, __VA_ARGS__))          \
   }
 }
+
+#define PORLA_JSON_REQUEST(Type, ...) \
+  inline void from_json(const nlohmann::json& nlohmann_json_j, Type& nlohmann_json_t) { \
+    NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(EXTEND_JSON_FROM, __VA_ARGS__)) }
+
+#define PORLA_JSON_NO_PARAMS(Type) \
+  inline void from_json(const nlohmann::json&, Type&) {}

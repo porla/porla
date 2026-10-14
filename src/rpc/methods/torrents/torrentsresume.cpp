@@ -8,7 +8,6 @@
 
 using porla::Rpc::Methods::Torrents::TorrentsResume;
 using porla::Rpc::Methods::Torrents::TorrentsResumeReq;
-using porla::Rpc::Methods::Torrents::TorrentsResumeRes;
 
 TorrentsResume::TorrentsResume(porla::Sessions& sessions)
     : m_sessions(sessions)
@@ -26,5 +25,5 @@ void TorrentsResume::Execute(const TorrentsResumeReq& req, ResponseWriterHandle 
 
     resolved->torrent->status.handle.resume();
 
-    cb->Ok(TorrentsResumeRes{});
+    cb->Ok();
 }

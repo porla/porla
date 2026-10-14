@@ -7,7 +7,7 @@
 
 namespace porla::Rpc::Methods::Auth
 {
-    class AuthKeysCreate : public TypedMethod<AuthKeysCreateReq, AuthKeysCreateRes>
+    class AuthKeysCreate : public TypedMethod<AuthKeysCreateReq>
     {
     public:
         explicit AuthKeysCreate(sqlite3* db);

@@ -1,10 +1,8 @@
-#include "0006_clientdata.hpp"
+#include "../migrations.hpp"
 
 #include <boost/log/trivial.hpp>
 
-using porla::Data::Migrations::ClientData;
-
-int ClientData::Migrate(sqlite3* db)
+int porla::Data::Migrations::ClientData(sqlite3* db)
 {
     BOOST_LOG_TRIVIAL(info) << "Adding client_data column to addtorrentparams table";
 

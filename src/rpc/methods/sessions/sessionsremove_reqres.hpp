@@ -3,7 +3,7 @@
 #include <map>
 #include <string>
 
-#include <nlohmann/json.hpp>
+#include "../../../json/utils.hpp"
 
 namespace porla::Rpc::Methods::Sessions
 {
@@ -12,7 +12,5 @@ namespace porla::Rpc::Methods::Sessions
         int id;
     };
 
-    struct SessionsRemoveRes
-    {
-    };
+    PORLA_JSON_REQUEST(SessionsRemoveReq, id)
 }

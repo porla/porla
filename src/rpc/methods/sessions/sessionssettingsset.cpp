@@ -9,7 +9,6 @@
 
 using porla::Rpc::Methods::Sessions::SessionsSettingsSet;
 using porla::Rpc::Methods::Sessions::SessionsSettingsSetReq;
-using porla::Rpc::Methods::Sessions::SessionsSettingsSetRes;
 using porla::Utils::LibtorrentSettingsPack;
 
 SessionsSettingsSet::SessionsSettingsSet(porla::Sessions& sessions)
@@ -42,5 +41,5 @@ void SessionsSettingsSet::Execute(const SessionsSettingsSetReq &req, ResponseWri
 
     BOOST_LOG_TRIVIAL(info) << "Session settings for " << session->name << " updated";
 
-    cb->Ok(SessionsSettingsSetRes{});
+    cb->Ok();
 }

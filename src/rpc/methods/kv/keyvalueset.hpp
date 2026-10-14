@@ -11,7 +11,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Kv
 {
-    class KeyValueSet : public TypedMethod<KeyValueSetReq, KeyValueSetRes>
+    class KeyValueSet : public TypedMethod<KeyValueSetReq>
     {
     public:
         explicit KeyValueSet(KeyValue& kv);

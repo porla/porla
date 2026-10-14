@@ -5,6 +5,9 @@
 
 #include <libtorrent/info_hash.hpp>
 
+#include "../../../json/lttypes.hpp"
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Torrents
 {
     struct TorrentsRemoveReq
@@ -13,4 +16,10 @@ namespace porla::Rpc::Methods::Torrents
         std::optional<int>                   session_id;
         std::optional<bool>                  remove_data;
     };
+
+    PORLA_JSON_REQUEST(
+        TorrentsRemoveReq,
+        info_hash,
+        session_id,
+        remove_data)
 }

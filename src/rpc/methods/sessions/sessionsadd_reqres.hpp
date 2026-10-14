@@ -5,7 +5,8 @@
 #include <string>
 
 #include <libtorrent/settings_pack.hpp>
-#include <nlohmann/json.hpp>
+
+#include "../../../json/utils.hpp"
 
 namespace porla::Rpc::Methods::Sessions
 {
@@ -25,4 +26,19 @@ namespace porla::Rpc::Methods::Sessions
     {
         int id;
     };
+
+    PORLA_JSON_REQUEST(
+        SessionsAddReq,
+        name,
+        metadata,
+        settings_base,
+        settings,
+        timer_dht_stats,
+        timer_save_state,
+        timer_session_stats,
+        timer_torrent_updates)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
+        SessionsAddRes,
+        id)
 }

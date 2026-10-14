@@ -8,7 +8,6 @@
 
 using porla::Rpc::Methods::Torrents::TorrentsFilesPrioritize;
 using porla::Rpc::Methods::Torrents::TorrentsFilesPrioritizeReq;
-using porla::Rpc::Methods::Torrents::TorrentsFilesPrioritizeRes;
 
 TorrentsFilesPrioritize::TorrentsFilesPrioritize(porla::Sessions& sessions)
     : m_sessions(sessions)
@@ -47,5 +46,5 @@ void TorrentsFilesPrioritize::Execute(const TorrentsFilesPrioritizeReq& req, Res
         th.file_priority(fp.index, fp.priority);
     }
 
-    cb->Ok({});
+    cb->Ok();
 }

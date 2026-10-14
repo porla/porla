@@ -4,6 +4,9 @@
 
 #include <libtorrent/info_hash.hpp>
 
+#include "../../../json/lttypes.hpp"
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Torrents
 {
     struct TorrentsPropertiesGetReq
@@ -20,4 +23,17 @@ namespace porla::Rpc::Methods::Torrents
         int max_uploads;
         int upload_limit;
     };
+
+    PORLA_JSON_REQUEST(
+        TorrentsPropertiesGetReq,
+        info_hash,
+        session_id)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
+        TorrentsPropertiesGetRes,
+        download_limit,
+        flags,
+        max_connections,
+        max_uploads,
+        upload_limit)
 }

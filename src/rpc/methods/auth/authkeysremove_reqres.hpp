@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Auth
 {
     struct AuthKeysRemoveReq
@@ -7,7 +9,5 @@ namespace porla::Rpc::Methods::Auth
         std::string id;
     };
 
-    struct AuthKeysRemoveRes
-    {
-    };
+    PORLA_JSON_REQUEST(AuthKeysRemoveReq, id)
 }

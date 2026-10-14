@@ -10,7 +10,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Torrents
 {
-    class TorrentsFilesPrioritize : public TypedMethod<TorrentsFilesPrioritizeReq, TorrentsFilesPrioritizeRes>
+    class TorrentsFilesPrioritize : public TypedMethod<TorrentsFilesPrioritizeReq>
     {
     public:
         explicit TorrentsFilesPrioritize(porla::Sessions& sessions);

@@ -4,7 +4,7 @@
 
 namespace porla::Rpc
 {
-    template<typename TReq, typename TRes>
+    template<typename TReq, typename TRes = void>
     class TypedMethod : public Method
     {
     public:

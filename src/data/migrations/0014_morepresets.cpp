@@ -1,11 +1,9 @@
-#include "0014_morepresets.hpp"
+#include "../migrations.hpp"
 
 #include <boost/log/trivial.hpp>
 #include <sqlite3.h>
 
-using porla::Data::Migrations::MorePresets;
-
-int MorePresets::Migrate(sqlite3* db)
+int porla::Data::Migrations::MorePresets(sqlite3* db)
 {
     BOOST_LOG_TRIVIAL(info) << "Adding columns to 'presets' table";
 

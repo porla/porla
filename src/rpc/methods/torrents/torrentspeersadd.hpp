@@ -10,7 +10,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Torrents
 {
-    class TorrentsPeersAdd : public TypedMethod<TorrentsPeersAddReq, TorrentsPeersAddRes>
+    class TorrentsPeersAdd : public TypedMethod<TorrentsPeersAddReq>
     {
     public:
         explicit TorrentsPeersAdd(porla::Sessions& sessions);

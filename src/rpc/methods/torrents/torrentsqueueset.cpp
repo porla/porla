@@ -8,7 +8,6 @@
 
 using porla::Rpc::Methods::Torrents::TorrentsQueueSet;
 using porla::Rpc::Methods::Torrents::TorrentsQueueSetReq;
-using porla::Rpc::Methods::Torrents::TorrentsQueueSetRes;
 
 TorrentsQueueSet::TorrentsQueueSet(porla::Sessions& sessions)
     : m_sessions(sessions)
@@ -26,5 +25,5 @@ void TorrentsQueueSet::Execute(const TorrentsQueueSetReq &req, ResponseWriterHan
 
     resolved->torrent->status.handle.queue_position_set(req.queue_position);
 
-    return cb->Ok(TorrentsQueueSetRes{});
+    return cb->Ok();
 }

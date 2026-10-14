@@ -10,7 +10,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Presets
 {
-    class PresetsRemove : public TypedMethod<PresetsRemoveReq, PresetsRemoveRes>
+    class PresetsRemove : public TypedMethod<PresetsRemoveReq>
     {
     public:
         explicit PresetsRemove(porla::Presets& presets);

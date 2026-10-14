@@ -6,7 +6,6 @@
 
 using porla::Rpc::Methods::Sessions::SessionsRemove;
 using porla::Rpc::Methods::Sessions::SessionsRemoveReq;
-using porla::Rpc::Methods::Sessions::SessionsRemoveRes;
 
 SessionsRemove::SessionsRemove(porla::Sessions& sessions)
     : m_sessions(sessions)
@@ -36,5 +35,5 @@ void SessionsRemove::Execute(const SessionsRemoveReq& req, ResponseWriterHandle 
 
     m_sessions.Remove(session->id);
 
-    cb->Ok(SessionsRemoveRes{});
+    cb->Ok();
 }

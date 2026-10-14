@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include "../../../json/utils.hpp"
+
 namespace porla::Rpc::Methods::Sessions
 {
     struct SessionsListReq
@@ -29,4 +31,24 @@ namespace porla::Rpc::Methods::Sessions
 
         std::vector<Session> sessions;
     };
+
+    PORLA_JSON_NO_PARAMS(SessionsListReq)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
+        SessionsListRes::SessionState,
+        is_listening,
+        is_paused,
+        torrents_total)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
+        SessionsListRes::Session,
+        id,
+        name,
+        is_default,
+        metadata,
+        state)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
+        SessionsListRes,
+        sessions)
 }

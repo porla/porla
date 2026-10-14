@@ -1,4 +1,4 @@
-#include "jsonrpc.hpp"
+#include "../packages.hpp"
 
 #include "../pluginstate.hpp"
 #include "../types/pojson.hpp"

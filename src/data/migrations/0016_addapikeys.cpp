@@ -1,10 +1,8 @@
-#include "0016_addapikeys.hpp"
+#include "../migrations.hpp"
 
 #include <boost/log/trivial.hpp>
 
-using porla::Data::Migrations::AddApiKeys;
-
-int AddApiKeys::Migrate(sqlite3* db)
+int porla::Data::Migrations::AddApiKeys(sqlite3* db)
 {
     BOOST_LOG_TRIVIAL(info) << "Adding table 'apikeys'";
 

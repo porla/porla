@@ -4,7 +4,8 @@
 #include <unordered_set>
 
 #include <libtorrent/torrent_flags.hpp>
-#include <nlohmann/json.hpp>
+
+#include "../../../json/utils.hpp"
 
 namespace porla::Rpc::Methods::Presets
 {
@@ -37,4 +38,28 @@ namespace porla::Rpc::Methods::Presets
 
         Preset preset;
     };
+
+    PORLA_JSON_REQUEST(PresetsGetReq, id)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
+        PresetsGetRes::Preset,
+        id,
+        name,
+        is_default,
+        metadata,
+        category,
+        download_limit,
+        flags,
+        flags_mask,
+        max_connections,
+        max_uploads,
+        save_path,
+        session_id,
+        storage_mode,
+        tags,
+        upload_limit)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
+        PresetsGetRes,
+        preset)
 }

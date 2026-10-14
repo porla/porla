@@ -10,7 +10,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Sessions
 {
-    class SessionsAdd : public TypedMethod<SessionsAddReq, SessionsAddRes>
+    class SessionsAdd : public TypedMethod<SessionsAddReq>
     {
     public:
         explicit SessionsAdd(porla::Sessions& sessions);

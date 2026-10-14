@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include <nlohmann/json.hpp>
+#include "../../../json/utils.hpp"
 
 namespace porla::Rpc::Methods::Plugins
 {
@@ -27,4 +27,17 @@ namespace porla::Rpc::Methods::Plugins
 
         std::vector<Plugin> plugins;
     };
+
+    PORLA_JSON_NO_PARAMS(PluginsListReq)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
+        PluginsListRes::Plugin,
+        id,
+        path,
+        name,
+        version,
+        metadata,
+        is_loaded)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(PluginsListRes, plugins)
 }

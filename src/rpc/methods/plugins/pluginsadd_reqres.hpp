@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-#include <nlohmann/json.hpp>
+#include "../../../json/utils.hpp"
 
 namespace porla::Rpc::Methods::Plugins
 {
@@ -18,4 +18,8 @@ namespace porla::Rpc::Methods::Plugins
     {
         int id;
     };
+
+    PORLA_JSON_REQUEST(PluginsAddReq, path, config)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(PluginsAddRes, id)
 }

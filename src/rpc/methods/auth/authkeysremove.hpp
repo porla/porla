@@ -8,7 +8,7 @@
 
 namespace porla::Rpc::Methods::Auth
 {
-    class AuthKeysRemove : public TypedMethod<AuthKeysRemoveReq, AuthKeysRemoveRes>
+    class AuthKeysRemove : public TypedMethod<AuthKeysRemoveReq>
     {
     public:
         explicit AuthKeysRemove(sqlite3* db);

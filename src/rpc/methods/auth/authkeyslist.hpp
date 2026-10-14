@@ -8,7 +8,7 @@
 
 namespace porla::Rpc::Methods::Auth
 {
-    class AuthKeysList : public TypedMethod<AuthKeysListReq, AuthKeysListRes>
+    class AuthKeysList : public TypedMethod<AuthKeysListReq>
     {
     public:
         explicit AuthKeysList(sqlite3* db);

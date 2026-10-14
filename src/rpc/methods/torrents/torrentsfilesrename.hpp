@@ -10,7 +10,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Torrents
 {
-    class TorrentsFilesRename : public TypedMethod<TorrentsFilesRenameReq, TorrentsFilesRenameRes>
+    class TorrentsFilesRename : public TypedMethod<TorrentsFilesRenameReq>
     {
     public:
         explicit TorrentsFilesRename(porla::Sessions& sessions);

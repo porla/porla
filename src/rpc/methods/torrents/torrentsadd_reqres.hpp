@@ -4,7 +4,11 @@
 #include <string>
 #include <unordered_set>
 
+#include <libtorrent/info_hash.hpp>
 #include <libtorrent/torrent_flags.hpp>
+
+#include "../../../json/lttypes.hpp"
+#include "../../../json/utils.hpp"
 
 namespace porla::Rpc::Methods::Torrents
 {
@@ -28,4 +32,35 @@ namespace porla::Rpc::Methods::Torrents
         std::optional<int>                                   upload_limit;
         std::optional<std::vector<std::string>>              url_seeds;
     };
+
+    struct TorrentsAddRes
+    {
+        libtorrent::info_hash_t info_hash;
+        int                     session_id;
+    };
+
+    PORLA_JSON_REQUEST(
+        TorrentsAddReq,
+        category,
+        download_limit,
+        flags,
+        magnet_uri,
+        max_connections,
+        max_uploads,
+        metadata,
+        name,
+        preset,
+        preset_id,
+        save_path,
+        session_id,
+        tags,
+        ti,
+        trackers,
+        upload_limit,
+        url_seeds)
+
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
+        TorrentsAddRes,
+        info_hash,
+        session_id)
 }

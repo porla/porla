@@ -10,7 +10,7 @@ namespace porla
 
 namespace porla::Rpc::Methods::Torrents
 {
-    class TorrentsCount : public TypedMethod<TorrentsCountReq, TorrentsCountRes>
+    class TorrentsCount : public TypedMethod<TorrentsCountReq>
     {
     public:
         explicit TorrentsCount(porla::Sessions& sessions);

@@ -1,10 +1,8 @@
-#include "0015_addtorrentparamsindex.hpp"
+#include "../migrations.hpp"
 
 #include <boost/log/trivial.hpp>
 
-using porla::Data::Migrations::AddTorrentParamsIndex;
-
-int AddTorrentParamsIndex::Migrate(sqlite3* db)
+int porla::Data::Migrations::AddTorrentParamsIndex(sqlite3* db)
 {
     BOOST_LOG_TRIVIAL(info) << "Adding index to 'addtorrentparams' table";
 

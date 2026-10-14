@@ -214,15 +214,7 @@ add_library(
     src/data/statement.cpp
     src/data/transaction.cpp
 
-    src/json/_/authinit.cpp
-    src/json/_/authkeyscreate.cpp
-    src/json/_/authkeyslist.cpp
-    src/json/_/authkeysremove.cpp
-    src/json/_/authlogin.cpp
     src/json/_/errorcode.cpp
-    src/json/_/fsspace.cpp
-    src/json/_/keyvalueget.cpp
-    src/json/_/keyvalueset.cpp
     src/json/_/ltalerts.cpp
     src/json/_/ltannounceentry.cpp
     src/json/_/ltinfohash.cpp
@@ -231,54 +223,9 @@ add_library(
     src/json/_/ltsettingspack.cpp
     src/json/_/lttorrentflags.cpp
     src/json/_/lttorrentstatus.cpp
-    src/json/_/mmdblookup.cpp
-    src/json/_/pluginsadd.cpp
-    src/json/_/pluginsget.cpp
-    src/json/_/pluginsinstall.cpp
-    src/json/_/pluginslist.cpp
-    src/json/_/pluginsreload.cpp
-    src/json/_/pluginsremove.cpp
-    src/json/_/pluginsupdate.cpp
-    src/json/_/pluginsupgrade.cpp
-    src/json/_/presetsadd.cpp
-    src/json/_/presetsget.cpp
-    src/json/_/presetslist.cpp
-    src/json/_/presetsremove.cpp
-    src/json/_/presetsupdate.cpp
-    src/json/_/sessionsadd.cpp
-    src/json/_/sessionsget.cpp
-    src/json/_/sessionslist.cpp
-    src/json/_/sessionspause.cpp
-    src/json/_/sessionsremove.cpp
-    src/json/_/sessionsresume.cpp
-    src/json/_/sessionssettingsget.cpp
-    src/json/_/sessionssettingsset.cpp
-    src/json/_/sessionsupdate.cpp
+    src/json/_/lttypedbitfield.cpp
     src/json/_/torrentclientdata.cpp
-    src/json/_/torrentsadd.cpp
-    src/json/_/torrentscount.cpp
     src/json/_/torrentsfileslist.cpp
-    src/json/_/torrentsfilespriorities.cpp
-    src/json/_/torrentsfilesprioritize.cpp
-    src/json/_/torrentsfilesprogress.cpp
-    src/json/_/torrentsfilesrename.cpp
-    src/json/_/torrentsget.cpp
-    src/json/_/torrentslist.cpp
-    src/json/_/torrentsmigrate.cpp
-    src/json/_/torrentsmove.cpp
-    src/json/_/torrentspause.cpp
-    src/json/_/torrentspeersadd.cpp
-    src/json/_/torrentspeerslist.cpp
-    src/json/_/torrentspiecesget.cpp
-    src/json/_/torrentspropertiesget.cpp
-    src/json/_/torrentspropertiesset.cpp
-    src/json/_/torrentsqueueany.cpp
-    src/json/_/torrentsqueueset.cpp
-    src/json/_/torrentsrecheck.cpp
-    src/json/_/torrentsremove.cpp
-    src/json/_/torrentsresume.cpp
-    src/json/_/torrentstrackersadd.cpp
-    src/json/_/torrentstrackerslist.cpp
 
     src/lua/packages/codec.cpp
     src/lua/packages/crypto.cpp

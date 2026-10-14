@@ -1,10 +1,8 @@
-#include "0013_addkeyvaluestore.hpp"
+#include "../migrations.hpp"
 
 #include <boost/log/trivial.hpp>
 
-using porla::Data::Migrations::AddKeyValueStore;
-
-int AddKeyValueStore::Migrate(sqlite3* db)
+int porla::Data::Migrations::AddKeyValueStore(sqlite3* db)
 {
     BOOST_LOG_TRIVIAL(info) << "Adding 'kvs' table";
 
