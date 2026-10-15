@@ -34,6 +34,7 @@ namespace libtorrent
     void to_json(nlohmann::json& json, const torrent_status& ts);
     void to_json(nlohmann::json& json, const lt::torrent_status::state_t& state);
     void to_json(nlohmann::json& j, const typed_bitfield<piece_index_t>& pieces);
+    void to_json(nlohmann::json& j, const libtorrent::file_flags_t& flags);
 
     // alerts
     void to_json(nlohmann::json& json, const add_torrent_alert& alert);

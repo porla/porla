@@ -1,6 +1,6 @@
 #include "torrentstrackersadd.hpp"
 
-#include "resolve.hpp"
+#include "../resolve.hpp"
 
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"

@@ -5,7 +5,7 @@
 #include "torrentevent.hpp"
 
 #include "../events.hpp"
-#include "../json/all.hpp"
+#include "../json/lttypes.hpp"
 
 namespace porla
 {

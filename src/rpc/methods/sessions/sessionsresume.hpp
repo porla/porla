@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../typedmethod.hpp"
-#include "sessionsresume_reqres.hpp"
+#include "sessionref.hpp"
 
 namespace porla
 {
@@ -10,13 +10,13 @@ namespace porla
 
 namespace porla::Rpc::Methods::Sessions
 {
-    class SessionsResume : public TypedMethod<SessionsResumeReq>
+    class SessionsResume : public TypedMethod<SessionRef>
     {
     public:
         explicit SessionsResume(porla::Sessions& sessions);
 
     protected:
-        void Execute(const SessionsResumeReq& req, ResponseWriterHandle cb) override;
+        void Execute(const SessionRef& req, ResponseWriterHandle cb) override;
 
     private:
         porla::Sessions& m_sessions;

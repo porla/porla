@@ -47,9 +47,7 @@ namespace porla
         std::optional<Record> FindDefault() const;
         std::vector<Record> List() const;
 
-        // the id of the given session, or of the default session if no id is given
-        // nullopt if that session does not exist
-        std::optional<int> ResolveId(std::optional<int> id) const;
+        std::optional<Record> Resolve(std::optional<int> id) const;
 
         int Add(const Record& session);
         void Remove(int id);

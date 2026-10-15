@@ -20,4 +20,7 @@ namespace porla
 
         std::weak_ptr<Session>                session      = {};
     };
+
+    void from_json(const nlohmann::json& j, TorrentClientData& d);
+    void to_json(nlohmann::json& j, const TorrentClientData& d);
 }

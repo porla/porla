@@ -11,7 +11,6 @@
 #include "../sessionevent.hpp"
 
 #include "../../events.hpp"
-#include "../../json/all.hpp"
 
 using porla::Session;
 

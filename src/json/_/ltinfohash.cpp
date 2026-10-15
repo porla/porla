@@ -1,5 +1,3 @@
-#include "../all.hpp"
-
 #include <sstream>
 
 #include <libtorrent/info_hash.hpp>

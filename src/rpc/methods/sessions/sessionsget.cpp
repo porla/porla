@@ -1,11 +1,10 @@
 #include "sessionsget.hpp"
 
-#include "../../../data/models/sessions.hpp"
+#include "../resolve.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
 
 using porla::Rpc::Methods::Sessions::SessionsGet;
-using porla::Rpc::Methods::Sessions::SessionsGetReq;
 using porla::Rpc::Methods::Sessions::SessionsGetRes;
 
 SessionsGet::SessionsGet(porla::Sessions& sessions)
@@ -13,13 +12,13 @@ SessionsGet::SessionsGet(porla::Sessions& sessions)
 {
 }
 
-void SessionsGet::Execute(const SessionsGetReq &req, ResponseWriterHandle cb)
+void SessionsGet::Execute(const SessionRef &req, ResponseWriterHandle cb)
 {
-    const auto& session = m_sessions.Find(req.id);
+    const auto session = FindSession(m_sessions, req.id, cb);
 
     if (!session)
     {
-        return cb->Error(-1, "Session not found");
+        return;
     }
 
     const auto& state = m_sessions.Get(req.id);

@@ -1,7 +1,8 @@
 #pragma once
 
 #include "../../typedmethod.hpp"
-#include "torrentstrackerslist_reqres.hpp"
+
+#include "torrentref.hpp"
 
 namespace porla
 {
@@ -10,13 +11,13 @@ namespace porla
 
 namespace porla::Rpc::Methods::Torrents
 {
-    class TorrentsTrackersList : public TypedMethod<TorrentsTrackersListReq>
+    class TorrentsTrackersList : public TypedMethod<TorrentRef>
     {
     public:
         explicit TorrentsTrackersList(porla::Sessions& sessions);
 
     protected:
-        void Execute(const TorrentsTrackersListReq& req, ResponseWriterHandle cb) override;
+        void Execute(const TorrentRef& req, ResponseWriterHandle cb) override;
 
     private:
         porla::Sessions& m_sessions;

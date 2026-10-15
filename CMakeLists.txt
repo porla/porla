@@ -175,6 +175,7 @@ add_library(
     src/sessions/session.cpp
     src/sessions/sessions.cpp
     src/timer.cpp
+    src/torrentclientdata.cpp
     src/torrents.cpp
     src/zip.cpp
     src/utils/eta.cpp
@@ -217,6 +218,7 @@ add_library(
     src/json/_/errorcode.cpp
     src/json/_/ltalerts.cpp
     src/json/_/ltannounceentry.cpp
+    src/json/_/ltfileflags.cpp
     src/json/_/ltinfohash.cpp
     src/json/_/ltpeerinfo.cpp
     src/json/_/ltqueueposition.cpp
@@ -224,8 +226,6 @@ add_library(
     src/json/_/lttorrentflags.cpp
     src/json/_/lttorrentstatus.cpp
     src/json/_/lttypedbitfield.cpp
-    src/json/_/torrentclientdata.cpp
-    src/json/_/torrentsfileslist.cpp
 
     src/lua/packages/codec.cpp
     src/lua/packages/crypto.cpp
@@ -279,6 +279,7 @@ add_library(
     src/lua/pluginsource.cpp
 
     src/rpc/jsonrpc.cpp
+    src/rpc/methods/resolve.cpp
     src/rpc/methods/auth/authinit.cpp
     src/rpc/methods/auth/authkeyscreate.cpp
     src/rpc/methods/auth/authkeyslist.cpp
@@ -312,7 +313,7 @@ add_library(
     src/rpc/methods/sessions/sessionsupdate.cpp
     src/rpc/methods/sys/sysstatus.cpp
     src/rpc/methods/sys/sysversions.cpp
-    src/rpc/methods/torrents/resolve.cpp
+    src/rpc/methods/torrents/torrentaction.cpp
     src/rpc/methods/torrents/torrentsadd.cpp
     src/rpc/methods/torrents/torrentscount.cpp
     src/rpc/methods/torrents/torrentsfileslist.cpp
@@ -324,16 +325,12 @@ add_library(
     src/rpc/methods/torrents/torrentslist.cpp
     src/rpc/methods/torrents/torrentsmigrate.cpp
     src/rpc/methods/torrents/torrentsmove.cpp
-    src/rpc/methods/torrents/torrentspause.cpp
     src/rpc/methods/torrents/torrentspeersadd.cpp
     src/rpc/methods/torrents/torrentspeerslist.cpp
     src/rpc/methods/torrents/torrentspiecesget.cpp
     src/rpc/methods/torrents/torrentspropertiesget.cpp
-    src/rpc/methods/torrents/torrentsqueueany.cpp
     src/rpc/methods/torrents/torrentsqueueset.cpp
-    src/rpc/methods/torrents/torrentsrecheck.cpp
     src/rpc/methods/torrents/torrentsremove.cpp
-    src/rpc/methods/torrents/torrentsresume.cpp
     src/rpc/methods/torrents/torrentspropertiesset.cpp
     src/rpc/methods/torrents/torrentstrackersadd.cpp
     src/rpc/methods/torrents/torrentstrackerslist.cpp

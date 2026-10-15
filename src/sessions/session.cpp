@@ -24,7 +24,8 @@
 #include "../data/models/addtorrentparams.hpp"
 #include "../data/transaction.hpp"
 #include "../events.hpp"
-#include "../json/all.hpp"
+#include "../json/boost.hpp"
+#include "../json/lttypes.hpp"
 #include "../torrentclientdata.hpp"
 #include "../utils/hex.hpp"
 

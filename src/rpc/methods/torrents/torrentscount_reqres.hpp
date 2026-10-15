@@ -10,7 +10,7 @@ namespace porla::Rpc::Methods::Torrents
 {
     struct TorrentsCountReq
     {
-        int session_id;
+        std::optional<int> session_id;
     };
 
     struct TorrentsCountRes

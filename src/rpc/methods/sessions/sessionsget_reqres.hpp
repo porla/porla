@@ -9,11 +9,6 @@
 
 namespace porla::Rpc::Methods::Sessions
 {
-    struct SessionsGetReq
-    {
-        int id;
-    };
-
     struct SessionsGetRes
     {
         struct SessionState
@@ -34,8 +29,6 @@ namespace porla::Rpc::Methods::Sessions
 
         Session session;
     };
-
-    PORLA_JSON_REQUEST(SessionsGetReq, id)
 
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
         SessionsGetRes::SessionState,

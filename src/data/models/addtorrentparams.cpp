@@ -6,7 +6,6 @@
 #include <nlohmann/json.hpp>
 
 #include "../statement.hpp"
-#include "../../json/all.hpp"
 #include "../../torrentclientdata.hpp"
 
 using json = nlohmann::json;
@@ -67,7 +66,7 @@ namespace
 
             try
             {
-                client_data_json = json::parse(userdata_buffer);
+                client_data_json = json::parse(userdata_buffer, nullptr, false);
             }
             catch (const std::exception& e)
             {
@@ -75,24 +74,9 @@ namespace
                 client_data_json = json::object();
             }
 
-            if (client_data_json.contains("category") && client_data_json.at("category").is_string())
+            if (client_data_json.is_object())
             {
-                client_data->category = client_data_json["category"];
-            }
-
-            if (client_data_json.contains("completed_at") && client_data_json.at("completed_at").is_number_integer())
-            {
-                client_data->completed_at = client_data_json["completed_at"].get<std::int64_t>();
-            }
-
-            if (client_data_json.contains("metadata") && client_data_json.at("metadata").is_object())
-            {
-                client_data->metadata = client_data_json["metadata"];
-            }
-
-            if (client_data_json.contains("tags") && client_data_json.at("tags").is_array())
-            {
-                client_data->tags = client_data_json["tags"];
+                client_data_json.get_to(*client_data);
             }
         }
 
@@ -126,18 +110,6 @@ namespace
         std::stringstream ss;
         ss << hash;
         return ss.str();
-    }
-
-    std::string SerializeClientData(const TorrentClientData& client_data)
-    {
-        const std::map<std::string, json> userdata = {
-            {"category",     client_data.category.has_value()     ? json(client_data.category.value())     : json()},
-            {"completed_at", client_data.completed_at.has_value() ? json(client_data.completed_at.value()) : json()},
-            {"metadata",     client_data.metadata},
-            {"tags",         client_data.tags}
-        };
-
-        return json(userdata).dump();
     }
 
     std::vector<char> WriteCleanResumeData(const lt::add_torrent_params& params)
@@ -198,7 +170,7 @@ int AddTorrentParams::Count(sqlite3 *db, const int session_id)
 
 void AddTorrentParams::Insert(sqlite3 *db, const int session_id, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const TorrentClientData& client_data, const int queue_pos)
 {
-    const std::string userdata = SerializeClientData(client_data);
+    const std::string userdata = json(client_data).dump();
 
     const std::vector<char> buf = WriteCleanResumeData(params);
 
@@ -354,7 +326,7 @@ void AddTorrentParams::Remove(sqlite3 *db, const int session_id, const lt::info_
 void AddTorrentParams::Update(sqlite3 *db, const int session_id, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const TorrentClientData* client_data, const int queue_pos)
 {
     const std::optional<std::string> userdata = client_data != nullptr
-        ? std::optional(SerializeClientData(*client_data))
+        ? std::optional(json(*client_data).dump())
         : std::nullopt;
 
     const std::vector<char> buf = WriteCleanResumeData(params);
@@ -392,7 +364,7 @@ void AddTorrentParams::Update(sqlite3 *db, const int session_id, const lt::info_
 
 void AddTorrentParams::UpdateClientData(sqlite3 *db, const int session_id, const lt::info_hash_t& hash, const TorrentClientData& client_data)
 {
-    const std::string userdata_str = SerializeClientData(client_data);
+    const std::string userdata_str = json(client_data).dump();
 
     auto stmt = Statement::Prepare(
         db,

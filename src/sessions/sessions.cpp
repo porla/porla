@@ -100,16 +100,9 @@ std::vector<Sessions::Record> Sessions::List() const
     return Data::Models::Sessions::List(m_options.db);
 }
 
-std::optional<int> Sessions::ResolveId(std::optional<int> id) const
+std::optional<Sessions::Record> Sessions::Resolve(std::optional<int> id) const
 {
-    const auto record = id.has_value() ? Find(*id) : FindDefault();
-
-    if (!record)
-    {
-        return std::nullopt;
-    }
-
-    return record->id;
+    return id.has_value() ? Find(*id) : FindDefault();
 }
 
 int Sessions::Add(const Record& session)
