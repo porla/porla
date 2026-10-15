@@ -8,7 +8,7 @@ namespace porla::Rpc
     class TypedMethod : public Method
     {
     public:
-        void Invoke(const nlohmann::json& body, ResponseWriterHandle writer) override
+        void Invoke(const Auth::Context& caller, const nlohmann::json& body, ResponseWriterHandle writer) override
         {
             return Execute(body.get<TReq>(), std::move(writer));
         }

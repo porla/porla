@@ -279,6 +279,7 @@ add_library(
     src/lua/pluginsource.cpp
 
     src/rpc/jsonrpc.cpp
+    src/rpc/methods/kv.cpp
     src/rpc/methods/resolve.cpp
     src/rpc/methods/auth/authinit.cpp
     src/rpc/methods/auth/authkeyscreate.cpp
@@ -286,8 +287,6 @@ add_library(
     src/rpc/methods/auth/authkeysremove.cpp
     src/rpc/methods/auth/authlogin.cpp
     src/rpc/methods/fs/fsspace.cpp
-    src/rpc/methods/kv/keyvalueget.cpp
-    src/rpc/methods/kv/keyvalueset.cpp
     src/rpc/methods/mmdb/mmdblookup.cpp
     src/rpc/methods/plugins/pluginsadd.cpp
     src/rpc/methods/plugins/pluginsget.cpp

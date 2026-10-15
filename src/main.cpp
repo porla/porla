@@ -23,14 +23,14 @@
 #include "auth/authenticator.hpp"
 
 #include "rpc/jsonrpc.hpp"
+#include "rpc/methods/kv.hpp"
+
 #include "rpc/methods/auth/authinit.hpp"
 #include "rpc/methods/auth/authkeyscreate.hpp"
 #include "rpc/methods/auth/authkeyslist.hpp"
 #include "rpc/methods/auth/authkeysremove.hpp"
 #include "rpc/methods/auth/authlogin.hpp"
 #include "rpc/methods/fs/fsspace.hpp"
-#include "rpc/methods/kv/keyvalueget.hpp"
-#include "rpc/methods/kv/keyvalueset.hpp"
 #include "rpc/methods/mmdb/mmdblookup.hpp"
 #include "rpc/methods/plugins/pluginsget.hpp"
 #include "rpc/methods/plugins/pluginsadd.hpp"
@@ -206,14 +206,14 @@ int main(int argc, char* argv[])
             .torrents    = torrents
         });
 
+        porla::Rpc::Methods::Kv::Register(io, *jsonrpc, kv);
+
         jsonrpc->Register("auth.init",                 std::make_shared<M::Auth::AuthInit>(io, sodium_hash_pool, cfg->db));
         jsonrpc->Register("auth.keys.create",          std::make_shared<M::Auth::AuthKeysCreate>(cfg->db));
         jsonrpc->Register("auth.keys.list",            std::make_shared<M::Auth::AuthKeysList>(cfg->db));
         jsonrpc->Register("auth.keys.remove",          std::make_shared<M::Auth::AuthKeysRemove>(cfg->db));
         jsonrpc->Register("auth.login",                std::make_shared<M::Auth::AuthLogin>(io, sodium_hash_pool, cfg->db, cfg->secret_key));
         jsonrpc->Register("fs.space",                  std::make_shared<M::Fs::FsSpace>());
-        jsonrpc->Register("kv.get",                    std::make_shared<M::Kv::KeyValueGet>(kv));
-        jsonrpc->Register("kv.set",                    std::make_shared<M::Kv::KeyValueSet>(kv));
         jsonrpc->Register("mmdb.lookup",               std::make_shared<M::Mmdb::MmdbLookup>(kv, events));
         jsonrpc->Register("plugins.add",               std::make_shared<M::Plugins::PluginsAdd>(plugins));
         jsonrpc->Register("plugins.get",               std::make_shared<M::Plugins::PluginsGet>(plugins));
