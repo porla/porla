@@ -1,34 +1,27 @@
 #include "sessionsresume.hpp"
 
-#include "../../../data/models/sessions.hpp"
+#include "../resolve.hpp"
+
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
 
 using porla::Rpc::Methods::Sessions::SessionsResume;
-using porla::Rpc::Methods::Sessions::SessionsResumeReq;
 
 SessionsResume::SessionsResume(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
 }
 
-void SessionsResume::Execute(const SessionsResumeReq& req, ResponseWriterHandle cb)
+void SessionsResume::Execute(const SessionRef& req, ResponseWriterHandle cb)
 {
-    const auto session = m_sessions.Find(req.id);
+    const auto session = ResolveSession(m_sessions, req.id, cb);
 
     if (!session)
     {
-        return cb->Error(-1, "Session not found");
+        return;
     }
 
-    const auto& state = m_sessions.Get(session->id);
-
-    if (state == nullptr)
-    {
-        return cb->Error(-2, "Session not loaded");
-    }
-
-    state->Libtorrent().resume();
+    session->session->Libtorrent().resume();
 
     cb->Ok();
 }

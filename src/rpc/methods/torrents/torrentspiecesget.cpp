@@ -1,6 +1,6 @@
 #include "torrentspiecesget.hpp"
 
-#include "resolve.hpp"
+#include "../resolve.hpp"
 
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
@@ -13,7 +13,7 @@ TorrentsPiecesGet::TorrentsPiecesGet(porla::Sessions& sessions)
 {
 }
 
-void TorrentsPiecesGet::Execute(const TorrentsPiecesGetReq& req, ResponseWriterHandle cb)
+void TorrentsPiecesGet::Execute(const TorrentRef& req, ResponseWriterHandle cb)
 {
     const auto resolved = ResolveTorrent(m_sessions, req.session_id, req.info_hash, cb);
 
@@ -22,8 +22,8 @@ void TorrentsPiecesGet::Execute(const TorrentsPiecesGetReq& req, ResponseWriterH
         return;
     }
 
-    cb->Ok(TorrentsPiecesGetRes{
-        .pieces          = resolved->torrent->status.pieces,
-        .verified_pieces = resolved->torrent->status.verified_pieces
+    cb->Ok({
+        {"pieces", resolved->torrent->status.pieces},
+        {"verified_pieces", resolved->torrent->status.verified_pieces}
     });
 }

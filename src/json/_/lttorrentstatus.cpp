@@ -1,4 +1,5 @@
-#include "../all.hpp"
+#include "../lttypes.hpp"
+#include "../boost.hpp"
 
 #include <libtorrent/torrent_status.hpp>
 

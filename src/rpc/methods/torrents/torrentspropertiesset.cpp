@@ -1,6 +1,6 @@
 #include "torrentspropertiesset.hpp"
 
-#include "resolve.hpp"
+#include "../resolve.hpp"
 
 #include "../../../data/models/addtorrentparams.hpp"
 #include "../../../sessions/session.hpp"

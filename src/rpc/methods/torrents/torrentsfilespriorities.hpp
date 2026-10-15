@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../typedmethod.hpp"
-#include "torrentsfilespriorities_reqres.hpp"
+#include "torrentref.hpp"
 
 namespace porla
 {
@@ -10,13 +10,13 @@ namespace porla
 
 namespace porla::Rpc::Methods::Torrents
 {
-    class TorrentsFilesPriorities : public TypedMethod<TorrentsFilesPrioritiesReq>
+    class TorrentsFilesPriorities : public TypedMethod<TorrentRef>
     {
     public:
         explicit TorrentsFilesPriorities(porla::Sessions& sessions);
 
     protected:
-        void Execute(const TorrentsFilesPrioritiesReq& req, ResponseWriterHandle cb) override;
+        void Execute(const TorrentRef& req, ResponseWriterHandle cb) override;
 
     private:
         porla::Sessions& m_sessions;

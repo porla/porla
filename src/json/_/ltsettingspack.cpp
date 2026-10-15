@@ -1,4 +1,4 @@
-#include "../all.hpp"
+#include "../lttypes.hpp"
 
 #include <libtorrent/settings_pack.hpp>
 

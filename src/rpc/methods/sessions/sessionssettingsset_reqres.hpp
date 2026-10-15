@@ -2,6 +2,7 @@
 
 #include <libtorrent/settings_pack.hpp>
 
+#include "../../../json/lttypes.hpp"
 #include "../../../json/utils.hpp"
 
 namespace porla::Rpc::Methods::Sessions

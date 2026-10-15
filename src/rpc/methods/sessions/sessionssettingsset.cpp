@@ -2,6 +2,8 @@
 
 #include <boost/log/trivial.hpp>
 
+#include "../resolve.hpp"
+
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
@@ -18,28 +20,21 @@ SessionsSettingsSet::SessionsSettingsSet(porla::Sessions& sessions)
 
 void SessionsSettingsSet::Execute(const SessionsSettingsSetReq &req, ResponseWriterHandle cb)
 {
-    const auto session = m_sessions.Find(req.id);
+    const auto session = ResolveSession(m_sessions, req.id, cb);
 
     if (!session)
     {
-        return cb->Error(-1, "Session not found");
-    }
-
-    const auto& state = m_sessions.Get(session->id);
-
-    if (state == nullptr)
-    {
-        return cb->Error(-2, "Session not loaded");
+        return;
     }
 
     lt::settings_pack settings = req.settings;
 
     LibtorrentSettingsPack::UpdateStatic(settings);
 
-    state->Libtorrent().apply_settings(settings);
-    state->Persist();
+    session->session->Libtorrent().apply_settings(settings);
+    session->session->Persist();
 
-    BOOST_LOG_TRIVIAL(info) << "Session settings for " << session->name << " updated";
+    BOOST_LOG_TRIVIAL(info) << "Session settings for " << session->session->Name() << " updated";
 
     cb->Ok();
 }

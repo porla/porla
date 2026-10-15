@@ -56,7 +56,7 @@ namespace porla
         std::optional<nlohmann::json> id;
     };
 
-    NLOHMANN_JSONIFY_ALL_THINGS(
+    PORLA_JSON_REQUEST(
         RpcReq,
         jsonrpc,
         method,

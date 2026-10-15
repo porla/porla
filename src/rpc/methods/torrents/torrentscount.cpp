@@ -1,5 +1,6 @@
 #include "torrentscount.hpp"
 
+#include "../resolve.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
 #include "../../../sessions/torrent.hpp"
@@ -16,17 +17,17 @@ TorrentsCount::TorrentsCount(porla::Sessions& sessions)
 
 void TorrentsCount::Execute(const TorrentsCountReq& req, ResponseWriterHandle cb)
 {
-    const auto& session_state = m_sessions.Get(req.session_id);
+    auto resolved_session = ResolveSession(m_sessions, req.session_id, cb);
 
-    if (session_state == nullptr)
+    if (!resolved_session)
     {
-        return cb->Error(-1, "Session not found");
+        return;
     }
 
     TorrentsCountRes res{};
-    res.total = session_state->Count();
+    res.total = resolved_session->session->Count();
 
-    for (const auto& [ _, t ] : session_state->Torrents())
+    for (const auto& [ _, t ] : resolved_session->session->Torrents())
     {
         const auto& ts = t.status;
 

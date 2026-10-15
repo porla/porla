@@ -14,7 +14,9 @@
 #include "lua/pluginsource.hpp"
 #include "plugins.hpp"
 #include "presets.hpp"
+#include "sessions/session.hpp"
 #include "sessions/sessions.hpp"
+#include "sessions/torrent.hpp"
 #include "timer.hpp"
 #include "torrents.hpp"
 
@@ -54,6 +56,7 @@
 #include "rpc/methods/sessions/sessionsupdate.hpp"
 #include "rpc/methods/sys/sysstatus.hpp"
 #include "rpc/methods/sys/sysversions.hpp"
+#include "rpc/methods/torrents/torrentaction.hpp"
 #include "rpc/methods/torrents/torrentsadd.hpp"
 #include "rpc/methods/torrents/torrentscount.hpp"
 #include "rpc/methods/torrents/torrentsfileslist.hpp"
@@ -65,17 +68,13 @@
 #include "rpc/methods/torrents/torrentslist.hpp"
 #include "rpc/methods/torrents/torrentsmigrate.hpp"
 #include "rpc/methods/torrents/torrentsmove.hpp"
-#include "rpc/methods/torrents/torrentspause.hpp"
 #include "rpc/methods/torrents/torrentspeersadd.hpp"
 #include "rpc/methods/torrents/torrentspeerslist.hpp"
 #include "rpc/methods/torrents/torrentspiecesget.hpp"
 #include "rpc/methods/torrents/torrentspropertiesget.hpp"
 #include "rpc/methods/torrents/torrentspropertiesset.hpp"
-#include "rpc/methods/torrents/torrentsqueueany.hpp"
 #include "rpc/methods/torrents/torrentsqueueset.hpp"
-#include "rpc/methods/torrents/torrentsrecheck.hpp"
 #include "rpc/methods/torrents/torrentsremove.hpp"
-#include "rpc/methods/torrents/torrentsresume.hpp"
 #include "rpc/methods/torrents/torrentstrackersadd.hpp"
 #include "rpc/methods/torrents/torrentstrackerslist.hpp"
 
@@ -251,20 +250,20 @@ int main(int argc, char* argv[])
         jsonrpc->Register("torrents.list",             std::make_shared<M::Torrents::TorrentsList>(sessions));
         jsonrpc->Register("torrents.migrate",          std::make_shared<M::Torrents::TorrentsMigrate>(io, events, sessions));
         jsonrpc->Register("torrents.move",             std::make_shared<M::Torrents::TorrentsMove>(sessions));
-        jsonrpc->Register("torrents.pause",            std::make_shared<M::Torrents::TorrentsPause>(sessions));
+        jsonrpc->Register("torrents.pause",            std::make_shared<M::Torrents::TorrentAction>(sessions, [](const auto& r) { r.torrent->status.handle.unset_flags(lt::torrent_flags::auto_managed); r.torrent->status.handle.pause(); }));
         jsonrpc->Register("torrents.peers.add",        std::make_shared<M::Torrents::TorrentsPeersAdd>(sessions));
         jsonrpc->Register("torrents.peers.list",       std::make_shared<M::Torrents::TorrentsPeersList>(sessions));
         jsonrpc->Register("torrents.pieces.get",       std::make_shared<M::Torrents::TorrentsPiecesGet>(sessions));
         jsonrpc->Register("torrents.properties.get",   std::make_shared<M::Torrents::TorrentsPropertiesGet>(sessions));
         jsonrpc->Register("torrents.properties.set",   std::make_shared<M::Torrents::TorrentsPropertiesSet>(sessions, torrents));
-        jsonrpc->Register("torrents.queue.bottom",     std::make_shared<M::Torrents::TorrentsQueueBottom>(sessions));
-        jsonrpc->Register("torrents.queue.down",       std::make_shared<M::Torrents::TorrentsQueueDown>(sessions));
+        jsonrpc->Register("torrents.queue.bottom",     std::make_shared<M::Torrents::TorrentAction>(sessions, [](const auto& r) { r.torrent->status.handle.queue_position_bottom(); }));
+        jsonrpc->Register("torrents.queue.down",       std::make_shared<M::Torrents::TorrentAction>(sessions, [](const auto& r) { r.torrent->status.handle.queue_position_down(); }));
         jsonrpc->Register("torrents.queue.set",        std::make_shared<M::Torrents::TorrentsQueueSet>(sessions));
-        jsonrpc->Register("torrents.queue.top",        std::make_shared<M::Torrents::TorrentsQueueTop>(sessions));
-        jsonrpc->Register("torrents.queue.up",         std::make_shared<M::Torrents::TorrentsQueueUp>(sessions));
-        jsonrpc->Register("torrents.recheck",          std::make_shared<M::Torrents::TorrentsRecheck>(sessions));
+        jsonrpc->Register("torrents.queue.top",        std::make_shared<M::Torrents::TorrentAction>(sessions, [](const auto& r) { r.torrent->status.handle.queue_position_top(); }));
+        jsonrpc->Register("torrents.queue.up",         std::make_shared<M::Torrents::TorrentAction>(sessions, [](const auto& r) { r.torrent->status.handle.queue_position_up(); }));
+        jsonrpc->Register("torrents.recheck",          std::make_shared<M::Torrents::TorrentAction>(sessions, [](const auto& r) { r.session->Recheck(r.torrent->status.info_hashes); }));
         jsonrpc->Register("torrents.remove",           std::make_shared<M::Torrents::TorrentsRemove>(sessions));
-        jsonrpc->Register("torrents.resume",           std::make_shared<M::Torrents::TorrentsResume>(sessions));
+        jsonrpc->Register("torrents.resume",           std::make_shared<M::Torrents::TorrentAction>(sessions, [](const auto& r) { r.torrent->status.handle.resume(); }));
         jsonrpc->Register("torrents.trackers.add",     std::make_shared<M::Torrents::TorrentsTrackersAdd>(sessions));
         jsonrpc->Register("torrents.trackers.list",    std::make_shared<M::Torrents::TorrentsTrackersList>(sessions));
 

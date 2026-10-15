@@ -4,7 +4,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/signals2.hpp>
 
-#include "resolve.hpp"
+#include "../resolve.hpp"
 
 #include "../../../events.hpp"
 #include "../../../sessions/session.hpp"

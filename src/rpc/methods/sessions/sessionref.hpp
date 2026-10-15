@@ -1,16 +1,13 @@
 #pragma once
 
-#include <optional>
-#include <string>
-
 #include "../../../json/utils.hpp"
 
 namespace porla::Rpc::Methods::Sessions
 {
-    struct SessionsPauseReq
+    struct SessionRef
     {
         int id;
     };
 
-    PORLA_JSON_REQUEST(SessionsPauseReq, id)
+    PORLA_JSON_REQUEST(SessionRef, id)
 }

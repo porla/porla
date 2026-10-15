@@ -5,7 +5,8 @@
 
 #include <libtorrent/info_hash.hpp>
 
-#include "../../responsewriter.hpp"
+#include "../../data/models/sessions.hpp"
+#include "../responsewriter.hpp"
 
 namespace porla
 {
@@ -14,15 +15,26 @@ namespace porla
     struct Torrent;
 }
 
-namespace porla::Rpc::Methods::Torrents
+namespace porla::Rpc::Methods
 {
+    struct ResolvedSession
+    {
+        Data::Models::Sessions::Session record;
+        std::shared_ptr<porla::Session> session;
+    };
+
     struct ResolvedTorrent
     {
         std::shared_ptr<porla::Session> session;
         const porla::Torrent*           torrent;
     };
 
-    std::shared_ptr<porla::Session> ResolveSession(
+    std::optional<Data::Models::Sessions::Session> FindSession(
+        porla::Sessions& sessions,
+        std::optional<int> session_id,
+        const ResponseWriterHandle& cb);
+
+    std::optional<ResolvedSession> ResolveSession(
         porla::Sessions& sessions,
         std::optional<int> session_id,
         const ResponseWriterHandle& cb);

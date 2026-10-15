@@ -8,7 +8,7 @@
 
 namespace porla::Rpc
 {
-    template<typename TReq, typename TRes = void>
+    template<typename TReq>
     class TypedAsyncMethod : public Method
     {
     public:

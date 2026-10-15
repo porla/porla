@@ -2,6 +2,8 @@
 
 #include <boost/log/trivial.hpp>
 
+#include "../resolve.hpp"
+
 #include "../../../data/models/sessions.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
@@ -16,11 +18,11 @@ SessionsUpdate::SessionsUpdate(porla::Sessions& sessions)
 
 void SessionsUpdate::Execute(const SessionsUpdateReq& req, ResponseWriterHandle cb)
 {
-    auto session = m_sessions.Find(req.id);
+    auto session = FindSession(m_sessions, req.id, cb);
 
     if (!session)
     {
-        return cb->Error(-1, "Session not found");
+        return;
     }
 
     if (req.timer_dht_stats && *req.timer_dht_stats < 10)

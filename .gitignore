@@ -2,7 +2,6 @@
 .deps/
 .idea
 .vscode
-boost*
 build/
 cmake-build-*
 docs/build/

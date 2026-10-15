@@ -1,6 +1,6 @@
 #include "torrentspeerslist.hpp"
 
-#include "resolve.hpp"
+#include "../resolve.hpp"
 
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
@@ -13,7 +13,7 @@ TorrentsPeersList::TorrentsPeersList(porla::Sessions& sessions)
 {
 }
 
-void TorrentsPeersList::Execute(const TorrentsPeersListReq& req, ResponseWriterHandle cb)
+void TorrentsPeersList::Execute(const TorrentRef& req, ResponseWriterHandle cb)
 {
     const auto resolved = ResolveTorrent(m_sessions, req.session_id, req.info_hash, cb);
 
@@ -25,7 +25,7 @@ void TorrentsPeersList::Execute(const TorrentsPeersListReq& req, ResponseWriterH
     std::vector<lt::peer_info> peers;
     resolved->torrent->status.handle.get_peer_info(peers);
 
-    cb->Ok(TorrentsPeersListRes{
-        .peers = peers
+    cb->Ok({
+        {"peers", peers}
     });
 }

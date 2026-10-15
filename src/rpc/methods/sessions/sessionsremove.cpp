@@ -1,24 +1,23 @@
 #include "sessionsremove.hpp"
 
-#include "../../../data/models/sessions.hpp"
+#include "../resolve.hpp"
 #include "../../../sessions/session.hpp"
 #include "../../../sessions/sessions.hpp"
 
 using porla::Rpc::Methods::Sessions::SessionsRemove;
-using porla::Rpc::Methods::Sessions::SessionsRemoveReq;
 
 SessionsRemove::SessionsRemove(porla::Sessions& sessions)
     : m_sessions(sessions)
 {
 }
 
-void SessionsRemove::Execute(const SessionsRemoveReq& req, ResponseWriterHandle cb)
+void SessionsRemove::Execute(const SessionRef& req, ResponseWriterHandle cb)
 {
-    const auto session = m_sessions.Find(req.id);
+    const auto session = FindSession(m_sessions, req.id, cb);
 
     if (!session)
     {
-        return cb->Error(-1, "Session not found");
+        return;
     }
 
     if (session->is_default)

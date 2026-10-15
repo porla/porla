@@ -2,70 +2,38 @@
 
 #include <nlohmann/json.hpp>
 
-namespace porla
+namespace porla::Json
 {
-    template<class J, class T>
-    void optional_to_json(J& j, const char* name, const std::optional<T>& value)
-    {
-        if (value)
-        {
-            j[name] = *value;
-        }
-        else
-        {
-            j[name] = nlohmann::json();
-        }
-    }
-
-    template<class J, class T>
-    void optional_from_json(const J& j, const char* name, std::optional<T>& value)
-    {
-        const auto it = j.find(name);
-        if (it != j.end() && !it->is_null())
-        {
-            value = it->template get<T>();
-        }
-        else
-        {
-            value = std::nullopt;
-        }
-    }
-
-    template <typename>
+    template <typename T>
     constexpr bool is_optional = false;
+
     template <typename T>
     constexpr bool is_optional<std::optional<T>> = true;
 
+    // A missing or null key reads as std::nullopt; any other key is required.
     template <typename T>
-    void extended_to_json(const char *key, nlohmann::json &j, const T &value) {
+    void ReadField(const nlohmann::json& j, const char* key, T& value)
+    {
         if constexpr (is_optional<T>)
-            optional_to_json(j, key, value);
+        {
+            const auto it = j.find(key);
+
+            value = it != j.end() && !it->is_null()
+                ? std::optional(it->template get<typename T::value_type>())
+                : std::nullopt;
+        }
         else
-            j[key] = value;
-    }
-    template <typename T>
-    void extended_from_json(const char *key, const nlohmann::json &j, T &value) {
-        if constexpr (is_optional<T>)
-            optional_from_json(j, key, value);
-        else
+        {
             j.at(key).get_to(value);
+        }
     }
-
-#define EXTEND_JSON_TO(v1) extended_to_json(#v1, nlohmann_json_j, nlohmann_json_t.v1);
-#define EXTEND_JSON_FROM(v1) extended_from_json(#v1, nlohmann_json_j, nlohmann_json_t.v1);
-
-#define NLOHMANN_JSONIFY_ALL_THINGS(Type, ...)                                          \
-  void to_json(nlohmann::json &nlohmann_json_j, const Type &nlohmann_json_t) {   \
-      NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(EXTEND_JSON_TO, __VA_ARGS__))            \
-  }                                                                                     \
-  void from_json(const nlohmann::json &nlohmann_json_j, Type &nlohmann_json_t) { \
-      NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(EXTEND_JSON_FROM, __VA_ARGS__))          \
-  }
 }
+
+#define PORLA_JSON_READ_FIELD(field) ::porla::Json::ReadField(nlohmann_json_j, #field, nlohmann_json_t.field);
 
 #define PORLA_JSON_REQUEST(Type, ...) \
   inline void from_json(const nlohmann::json& nlohmann_json_j, Type& nlohmann_json_t) { \
-    NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(EXTEND_JSON_FROM, __VA_ARGS__)) }
+    NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(PORLA_JSON_READ_FIELD, __VA_ARGS__)) }
 
 #define PORLA_JSON_NO_PARAMS(Type) \
   inline void from_json(const nlohmann::json&, Type&) {}
