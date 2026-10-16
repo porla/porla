@@ -78,6 +78,8 @@ namespace porla::Rpc
                         return;
                     }
 
+                    nlohmann::json data = nullptr;
+
                     try
                     {
                         std::rethrow_exception(e);
@@ -85,13 +87,14 @@ namespace porla::Rpc
                     catch (const std::exception& ex)
                     {
                         BOOST_LOG_TRIVIAL(error) << "Unhandled exception in RPC method: " << ex.what();
+                        data = ex.what();
                     }
                     catch (...)
                     {
                         BOOST_LOG_TRIVIAL(error) << "Unhandled unknown exception in RPC method";
                     }
 
-                    writer->Error(-32603, "Internal error");
+                    writer->Error(-32603, "Internal error", data);
                 });
         }
 

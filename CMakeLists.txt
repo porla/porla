@@ -279,15 +279,14 @@ add_library(
     src/lua/pluginsource.cpp
 
     src/rpc/jsonrpc.cpp
+    src/rpc/methods/auth.cpp
+    src/rpc/methods/fs.cpp
     src/rpc/methods/kv.cpp
+    src/rpc/methods/mmdb.cpp
+    src/rpc/methods/presets.cpp
     src/rpc/methods/resolve.cpp
-    src/rpc/methods/auth/authinit.cpp
-    src/rpc/methods/auth/authkeyscreate.cpp
-    src/rpc/methods/auth/authkeyslist.cpp
-    src/rpc/methods/auth/authkeysremove.cpp
-    src/rpc/methods/auth/authlogin.cpp
-    src/rpc/methods/fs/fsspace.cpp
-    src/rpc/methods/mmdb/mmdblookup.cpp
+    src/rpc/methods/sys.cpp
+
     src/rpc/methods/plugins/pluginsadd.cpp
     src/rpc/methods/plugins/pluginsget.cpp
     src/rpc/methods/plugins/pluginsinstall.cpp
@@ -296,11 +295,6 @@ add_library(
     src/rpc/methods/plugins/pluginsremove.cpp
     src/rpc/methods/plugins/pluginsupdate.cpp
     src/rpc/methods/plugins/pluginsupgrade.cpp
-    src/rpc/methods/presets/presetsadd.cpp
-    src/rpc/methods/presets/presetsget.cpp
-    src/rpc/methods/presets/presetslist.cpp
-    src/rpc/methods/presets/presetsremove.cpp
-    src/rpc/methods/presets/presetsupdate.cpp
     src/rpc/methods/sessions/sessionsadd.cpp
     src/rpc/methods/sessions/sessionsget.cpp
     src/rpc/methods/sessions/sessionslist.cpp
@@ -310,8 +304,6 @@ add_library(
     src/rpc/methods/sessions/sessionssettingsget.cpp
     src/rpc/methods/sessions/sessionssettingsset.cpp
     src/rpc/methods/sessions/sessionsupdate.cpp
-    src/rpc/methods/sys/sysstatus.cpp
-    src/rpc/methods/sys/sysversions.cpp
     src/rpc/methods/torrents/torrentaction.cpp
     src/rpc/methods/torrents/torrentsadd.cpp
     src/rpc/methods/torrents/torrentscount.cpp
