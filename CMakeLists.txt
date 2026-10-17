@@ -283,18 +283,11 @@ add_library(
     src/rpc/methods/fs.cpp
     src/rpc/methods/kv.cpp
     src/rpc/methods/mmdb.cpp
+    src/rpc/methods/plugins.cpp
     src/rpc/methods/presets.cpp
     src/rpc/methods/resolve.cpp
     src/rpc/methods/sys.cpp
 
-    src/rpc/methods/plugins/pluginsadd.cpp
-    src/rpc/methods/plugins/pluginsget.cpp
-    src/rpc/methods/plugins/pluginsinstall.cpp
-    src/rpc/methods/plugins/pluginslist.cpp
-    src/rpc/methods/plugins/pluginsreload.cpp
-    src/rpc/methods/plugins/pluginsremove.cpp
-    src/rpc/methods/plugins/pluginsupdate.cpp
-    src/rpc/methods/plugins/pluginsupgrade.cpp
     src/rpc/methods/sessions/sessionsadd.cpp
     src/rpc/methods/sessions/sessionsget.cpp
     src/rpc/methods/sessions/sessionslist.cpp

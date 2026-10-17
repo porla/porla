@@ -27,17 +27,10 @@
 #include "rpc/methods/fs.hpp"
 #include "rpc/methods/kv.hpp"
 #include "rpc/methods/mmdb.hpp"
+#include "rpc/methods/plugins.hpp"
 #include "rpc/methods/presets.hpp"
 #include "rpc/methods/sys.hpp"
 
-#include "rpc/methods/plugins/pluginsget.hpp"
-#include "rpc/methods/plugins/pluginsadd.hpp"
-#include "rpc/methods/plugins/pluginsinstall.hpp"
-#include "rpc/methods/plugins/pluginslist.hpp"
-#include "rpc/methods/plugins/pluginsreload.hpp"
-#include "rpc/methods/plugins/pluginsremove.hpp"
-#include "rpc/methods/plugins/pluginsupdate.hpp"
-#include "rpc/methods/plugins/pluginsupgrade.hpp"
 #include "rpc/methods/sessions/sessionsadd.hpp"
 #include "rpc/methods/sessions/sessionsget.hpp"
 #include "rpc/methods/sessions/sessionslist.hpp"
@@ -201,17 +194,10 @@ int main(int argc, char* argv[])
         porla::Rpc::Methods::Fs::Register(io, *jsonrpc);
         porla::Rpc::Methods::Kv::Register(io, *jsonrpc, kv);
         porla::Rpc::Methods::Mmdb::Register(io, *jsonrpc, kv, events);
+        porla::Rpc::Methods::Plugins::Register(io, *curl_multi_instance, *jsonrpc, plugins, cfg->state_dir);
         porla::Rpc::Methods::Presets::Register(io, *jsonrpc, presets);
         porla::Rpc::Methods::Sys::Register(io, *jsonrpc, cfg->db);
 
-        jsonrpc->Register("plugins.add",               std::make_shared<M::Plugins::PluginsAdd>(plugins));
-        jsonrpc->Register("plugins.get",               std::make_shared<M::Plugins::PluginsGet>(plugins));
-        jsonrpc->Register("plugins.install",           std::make_shared<M::Plugins::PluginsInstall>(io, curl_multi_instance, plugins, cfg->state_dir));
-        jsonrpc->Register("plugins.list",              std::make_shared<M::Plugins::PluginsList>(plugins));
-        jsonrpc->Register("plugins.reload",            std::make_shared<M::Plugins::PluginsReload>(plugins));
-        jsonrpc->Register("plugins.remove",            std::make_shared<M::Plugins::PluginsRemove>(plugins));
-        jsonrpc->Register("plugins.update",            std::make_shared<M::Plugins::PluginsUpdate>(plugins));
-        jsonrpc->Register("plugins.upgrade",           std::make_shared<M::Plugins::PluginsUpgrade>(io, curl_multi_instance, plugins, cfg->state_dir));
         jsonrpc->Register("sessions.add",              std::make_shared<M::Sessions::SessionsAdd>(sessions));
         jsonrpc->Register("sessions.get",              std::make_shared<M::Sessions::SessionsGet>(sessions));
         jsonrpc->Register("sessions.list",             std::make_shared<M::Sessions::SessionsList>(sessions));
