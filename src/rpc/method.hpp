@@ -15,6 +15,7 @@ namespace porla::Rpc
         }
 
         virtual void Invoke(
+            const Auth::Context& caller,
             const nlohmann::json& body,
             ResponseWriterHandle writer) = 0;
     };

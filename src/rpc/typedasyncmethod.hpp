@@ -17,7 +17,7 @@ namespace porla::Rpc
         {
         }
 
-        void Invoke(const nlohmann::json& body, ResponseWriterHandle writer) final
+        void Invoke(const Auth::Context& caller, const nlohmann::json& body, ResponseWriterHandle writer) final
         {
             boost::asio::co_spawn(
                 m_executor,

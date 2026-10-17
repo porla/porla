@@ -17,17 +17,12 @@ TorrentsCount::TorrentsCount(porla::Sessions& sessions)
 
 void TorrentsCount::Execute(const TorrentsCountReq& req, ResponseWriterHandle cb)
 {
-    auto resolved_session = ResolveSession(m_sessions, req.session_id, cb);
-
-    if (!resolved_session)
-    {
-        return;
-    }
+    auto resolved_session = ResolveSession(m_sessions, req.session_id);
 
     TorrentsCountRes res{};
-    res.total = resolved_session->session->Count();
+    res.total = resolved_session.session->Count();
 
-    for (const auto& [ _, t ] : resolved_session->session->Torrents())
+    for (const auto& [ _, t ] : resolved_session.session->Torrents())
     {
         const auto& ts = t.status;
 

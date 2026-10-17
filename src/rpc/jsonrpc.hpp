@@ -24,9 +24,15 @@ namespace porla::Rpc
 
         std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> HttpHandler();
 
+        bool Register(const std::string& name, std::vector<Auth::Context::Kind> kinds, const std::shared_ptr<Method>& method)
+        {
+            return m_methods.try_emplace(name, Entry{ .kinds = std::move(kinds), .method = method }).second;
+        }
+
         bool Register(const std::string& name, const std::shared_ptr<Method>& method)
         {
-            return m_methods.try_emplace(name, method).second;
+            using Kind = Auth::Context::Kind;
+            return Register(name, { Kind::Anon, Kind::Machine, Kind::User }, method);
         }
 
         void Unregister(const std::string& name)
@@ -35,9 +41,20 @@ namespace porla::Rpc
         }
 
     private:
+        struct Entry
+        {
+            std::vector<Auth::Context::Kind> kinds;
+            std::shared_ptr<Method>          method;
+
+            bool Allows(const Auth::Context& ctx) const
+            {
+                return std::ranges::find(kinds, ctx.kind) != kinds.end();
+            }
+        };
+
         explicit JsonRpc(std::shared_ptr<Auth::Authenticator> authenticator);
 
-        std::shared_ptr<Auth::Authenticator>           m_authenticator;
-        std::map<std::string, std::shared_ptr<Method>> m_methods;
+        std::shared_ptr<Auth::Authenticator> m_authenticator;
+        std::map<std::string, Entry>         m_methods;
     };
 }

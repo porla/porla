@@ -132,20 +132,14 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
 
     const auto session_state = ResolveSession(
         m_sessions,
-        req.filters.has_value() ? req.filters->session_id : std::nullopt,
-        cb);
-
-    if (!session_state || !session_state->session)
-    {
-        return;
-    }
+        req.filters.has_value() ? req.filters->session_id : std::nullopt);
 
     std::vector<const lt::torrent_status*> torrents;
-    torrents.reserve(session_state->session->Count());
+    torrents.reserve(session_state.session->Count());
 
     const auto now = std::time(nullptr);
 
-    for (const auto& [_, t] : session_state->session->Torrents())
+    for (const auto& [_, t] : session_state.session->Torrents())
     {
         const auto& ts     = t.status;
         const auto& handle = ts.handle;
@@ -335,6 +329,6 @@ void TorrentsList::Execute(const TorrentsListReq& req, ResponseWriterHandle cb)
         .page_size                 = req.page_size.value_or(50),
         .torrents                  = std::move(page_items),
         .torrents_total            = static_cast<int>(torrents.size()),
-        .torrents_total_unfiltered = static_cast<int>(session_state->session->Count())
+        .torrents_total_unfiltered = static_cast<int>(session_state.session->Count())
     });
 }

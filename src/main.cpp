@@ -23,39 +23,15 @@
 #include "auth/authenticator.hpp"
 
 #include "rpc/jsonrpc.hpp"
-#include "rpc/methods/auth/authinit.hpp"
-#include "rpc/methods/auth/authkeyscreate.hpp"
-#include "rpc/methods/auth/authkeyslist.hpp"
-#include "rpc/methods/auth/authkeysremove.hpp"
-#include "rpc/methods/auth/authlogin.hpp"
-#include "rpc/methods/fs/fsspace.hpp"
-#include "rpc/methods/kv/keyvalueget.hpp"
-#include "rpc/methods/kv/keyvalueset.hpp"
-#include "rpc/methods/mmdb/mmdblookup.hpp"
-#include "rpc/methods/plugins/pluginsget.hpp"
-#include "rpc/methods/plugins/pluginsadd.hpp"
-#include "rpc/methods/plugins/pluginsinstall.hpp"
-#include "rpc/methods/plugins/pluginslist.hpp"
-#include "rpc/methods/plugins/pluginsreload.hpp"
-#include "rpc/methods/plugins/pluginsremove.hpp"
-#include "rpc/methods/plugins/pluginsupdate.hpp"
-#include "rpc/methods/plugins/pluginsupgrade.hpp"
-#include "rpc/methods/presets/presetsget.hpp"
-#include "rpc/methods/presets/presetslist.hpp"
-#include "rpc/methods/presets/presetsadd.hpp"
-#include "rpc/methods/presets/presetsremove.hpp"
-#include "rpc/methods/presets/presetsupdate.hpp"
-#include "rpc/methods/sessions/sessionsadd.hpp"
-#include "rpc/methods/sessions/sessionsget.hpp"
-#include "rpc/methods/sessions/sessionslist.hpp"
-#include "rpc/methods/sessions/sessionspause.hpp"
-#include "rpc/methods/sessions/sessionsremove.hpp"
-#include "rpc/methods/sessions/sessionsresume.hpp"
-#include "rpc/methods/sessions/sessionssettingsget.hpp"
-#include "rpc/methods/sessions/sessionssettingsset.hpp"
-#include "rpc/methods/sessions/sessionsupdate.hpp"
-#include "rpc/methods/sys/sysstatus.hpp"
-#include "rpc/methods/sys/sysversions.hpp"
+#include "rpc/methods/auth.hpp"
+#include "rpc/methods/fs.hpp"
+#include "rpc/methods/kv.hpp"
+#include "rpc/methods/mmdb.hpp"
+#include "rpc/methods/plugins.hpp"
+#include "rpc/methods/presets.hpp"
+#include "rpc/methods/sessions.hpp"
+#include "rpc/methods/sys.hpp"
+
 #include "rpc/methods/torrents/torrentaction.hpp"
 #include "rpc/methods/torrents/torrentsadd.hpp"
 #include "rpc/methods/torrents/torrentscount.hpp"
@@ -206,39 +182,15 @@ int main(int argc, char* argv[])
             .torrents    = torrents
         });
 
-        jsonrpc->Register("auth.init",                 std::make_shared<M::Auth::AuthInit>(io, sodium_hash_pool, cfg->db));
-        jsonrpc->Register("auth.keys.create",          std::make_shared<M::Auth::AuthKeysCreate>(cfg->db));
-        jsonrpc->Register("auth.keys.list",            std::make_shared<M::Auth::AuthKeysList>(cfg->db));
-        jsonrpc->Register("auth.keys.remove",          std::make_shared<M::Auth::AuthKeysRemove>(cfg->db));
-        jsonrpc->Register("auth.login",                std::make_shared<M::Auth::AuthLogin>(io, sodium_hash_pool, cfg->db, cfg->secret_key));
-        jsonrpc->Register("fs.space",                  std::make_shared<M::Fs::FsSpace>());
-        jsonrpc->Register("kv.get",                    std::make_shared<M::Kv::KeyValueGet>(kv));
-        jsonrpc->Register("kv.set",                    std::make_shared<M::Kv::KeyValueSet>(kv));
-        jsonrpc->Register("mmdb.lookup",               std::make_shared<M::Mmdb::MmdbLookup>(kv, events));
-        jsonrpc->Register("plugins.add",               std::make_shared<M::Plugins::PluginsAdd>(plugins));
-        jsonrpc->Register("plugins.get",               std::make_shared<M::Plugins::PluginsGet>(plugins));
-        jsonrpc->Register("plugins.install",           std::make_shared<M::Plugins::PluginsInstall>(io, curl_multi_instance, plugins, cfg->state_dir));
-        jsonrpc->Register("plugins.list",              std::make_shared<M::Plugins::PluginsList>(plugins));
-        jsonrpc->Register("plugins.reload",            std::make_shared<M::Plugins::PluginsReload>(plugins));
-        jsonrpc->Register("plugins.remove",            std::make_shared<M::Plugins::PluginsRemove>(plugins));
-        jsonrpc->Register("plugins.update",            std::make_shared<M::Plugins::PluginsUpdate>(plugins));
-        jsonrpc->Register("plugins.upgrade",           std::make_shared<M::Plugins::PluginsUpgrade>(io, curl_multi_instance, plugins, cfg->state_dir));
-        jsonrpc->Register("presets.add",               std::make_shared<M::Presets::PresetsAdd>(presets));
-        jsonrpc->Register("presets.get",               std::make_shared<M::Presets::PresetsGet>(presets));
-        jsonrpc->Register("presets.list",              std::make_shared<M::Presets::PresetsList>(presets));
-        jsonrpc->Register("presets.remove",            std::make_shared<M::Presets::PresetsRemove>(presets));
-        jsonrpc->Register("presets.update",            std::make_shared<M::Presets::PresetsUpdate>(presets));
-        jsonrpc->Register("sessions.add",              std::make_shared<M::Sessions::SessionsAdd>(sessions));
-        jsonrpc->Register("sessions.get",              std::make_shared<M::Sessions::SessionsGet>(sessions));
-        jsonrpc->Register("sessions.list",             std::make_shared<M::Sessions::SessionsList>(sessions));
-        jsonrpc->Register("sessions.pause",            std::make_shared<M::Sessions::SessionsPause>(sessions));
-        jsonrpc->Register("sessions.remove",           std::make_shared<M::Sessions::SessionsRemove>(sessions));
-        jsonrpc->Register("sessions.resume",           std::make_shared<M::Sessions::SessionsResume>(sessions));
-        jsonrpc->Register("sessions.settings.get",     std::make_shared<M::Sessions::SessionsSettingsGet>(sessions));
-        jsonrpc->Register("sessions.settings.set",     std::make_shared<M::Sessions::SessionsSettingsSet>(sessions));
-        jsonrpc->Register("sessions.update",           std::make_shared<M::Sessions::SessionsUpdate>(sessions));
-        jsonrpc->Register("sys.status",                std::make_shared<M::Sys::SysStatus>(cfg->db));
-        jsonrpc->Register("sys.versions",              std::make_shared<M::Sys::SysVersions>());
+        porla::Rpc::Methods::Auth::Register(io, *jsonrpc, sodium_hash_pool, cfg->db, cfg->secret_key);
+        porla::Rpc::Methods::Fs::Register(io, *jsonrpc);
+        porla::Rpc::Methods::Kv::Register(io, *jsonrpc, kv);
+        porla::Rpc::Methods::Mmdb::Register(io, *jsonrpc, kv, events);
+        porla::Rpc::Methods::Plugins::Register(io, *curl_multi_instance, *jsonrpc, plugins, cfg->state_dir);
+        porla::Rpc::Methods::Presets::Register(io, *jsonrpc, presets);
+        porla::Rpc::Methods::Sessions::Register(io, *jsonrpc, sessions);
+        porla::Rpc::Methods::Sys::Register(io, *jsonrpc, cfg->db);
+
         jsonrpc->Register("torrents.add",              std::make_shared<M::Torrents::TorrentsAdd>(torrents));
         jsonrpc->Register("torrents.count",            std::make_shared<M::Torrents::TorrentsCount>(sessions));
         jsonrpc->Register("torrents.files.list",       std::make_shared<M::Torrents::TorrentsFilesList>(sessions));

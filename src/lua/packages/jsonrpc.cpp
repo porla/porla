@@ -25,7 +25,7 @@ struct LuaMethod : public porla::Rpc::Method
 
         if (!m_can_invoke.has_value())
         {
-            return ctx.IsAuthenticated() && ctx.kind == porla::Auth::Context::Kind::User;
+            return true;
         }
 
         sol::protected_function_result result = m_can_invoke.value()(ctx);
@@ -48,7 +48,7 @@ struct LuaMethod : public porla::Rpc::Method
         return allowed.value();
     }
 
-    void Invoke(const nlohmann::json& body, porla::Rpc::ResponseWriterHandle writer) override
+    void Invoke(const porla::Auth::Context& caller, const nlohmann::json& body, porla::Rpc::ResponseWriterHandle writer) override
     {
         auto state = m_state.lock();
 
@@ -90,7 +90,14 @@ sol::object JsonRpc::Load(sol::this_state ts)
 
         const auto callback_id = state->RegisterCallback(callback, false);
 
-        if (!jsonrpc->Register(method, std::make_shared<LuaMethod>(callback_id, state, can_invoke)))
+        using Kind = porla::Auth::Context::Kind;
+
+        // Users only, unless the plugin passes can_invoke, which then decides alone.
+        std::vector<Kind> kinds = can_invoke.has_value()
+            ? std::vector<Kind>{ Kind::Anon, Kind::Machine, Kind::User }
+            : std::vector<Kind>{ Kind::User };
+
+        if (!jsonrpc->Register(method, std::move(kinds), std::make_shared<LuaMethod>(callback_id, state, can_invoke)))
         {
             state->RemoveCallback(callback_id);
             throw sol::error("jsonrpc method '" + method + "' is already registered");
