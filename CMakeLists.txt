@@ -286,17 +286,9 @@ add_library(
     src/rpc/methods/plugins.cpp
     src/rpc/methods/presets.cpp
     src/rpc/methods/resolve.cpp
+    src/rpc/methods/sessions.cpp
     src/rpc/methods/sys.cpp
 
-    src/rpc/methods/sessions/sessionsadd.cpp
-    src/rpc/methods/sessions/sessionsget.cpp
-    src/rpc/methods/sessions/sessionslist.cpp
-    src/rpc/methods/sessions/sessionspause.cpp
-    src/rpc/methods/sessions/sessionsremove.cpp
-    src/rpc/methods/sessions/sessionsresume.cpp
-    src/rpc/methods/sessions/sessionssettingsget.cpp
-    src/rpc/methods/sessions/sessionssettingsset.cpp
-    src/rpc/methods/sessions/sessionsupdate.cpp
     src/rpc/methods/torrents/torrentaction.cpp
     src/rpc/methods/torrents/torrentsadd.cpp
     src/rpc/methods/torrents/torrentscount.cpp

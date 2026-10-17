@@ -29,17 +29,9 @@
 #include "rpc/methods/mmdb.hpp"
 #include "rpc/methods/plugins.hpp"
 #include "rpc/methods/presets.hpp"
+#include "rpc/methods/sessions.hpp"
 #include "rpc/methods/sys.hpp"
 
-#include "rpc/methods/sessions/sessionsadd.hpp"
-#include "rpc/methods/sessions/sessionsget.hpp"
-#include "rpc/methods/sessions/sessionslist.hpp"
-#include "rpc/methods/sessions/sessionspause.hpp"
-#include "rpc/methods/sessions/sessionsremove.hpp"
-#include "rpc/methods/sessions/sessionsresume.hpp"
-#include "rpc/methods/sessions/sessionssettingsget.hpp"
-#include "rpc/methods/sessions/sessionssettingsset.hpp"
-#include "rpc/methods/sessions/sessionsupdate.hpp"
 #include "rpc/methods/torrents/torrentaction.hpp"
 #include "rpc/methods/torrents/torrentsadd.hpp"
 #include "rpc/methods/torrents/torrentscount.hpp"
@@ -196,17 +188,9 @@ int main(int argc, char* argv[])
         porla::Rpc::Methods::Mmdb::Register(io, *jsonrpc, kv, events);
         porla::Rpc::Methods::Plugins::Register(io, *curl_multi_instance, *jsonrpc, plugins, cfg->state_dir);
         porla::Rpc::Methods::Presets::Register(io, *jsonrpc, presets);
+        porla::Rpc::Methods::Sessions::Register(io, *jsonrpc, sessions);
         porla::Rpc::Methods::Sys::Register(io, *jsonrpc, cfg->db);
 
-        jsonrpc->Register("sessions.add",              std::make_shared<M::Sessions::SessionsAdd>(sessions));
-        jsonrpc->Register("sessions.get",              std::make_shared<M::Sessions::SessionsGet>(sessions));
-        jsonrpc->Register("sessions.list",             std::make_shared<M::Sessions::SessionsList>(sessions));
-        jsonrpc->Register("sessions.pause",            std::make_shared<M::Sessions::SessionsPause>(sessions));
-        jsonrpc->Register("sessions.remove",           std::make_shared<M::Sessions::SessionsRemove>(sessions));
-        jsonrpc->Register("sessions.resume",           std::make_shared<M::Sessions::SessionsResume>(sessions));
-        jsonrpc->Register("sessions.settings.get",     std::make_shared<M::Sessions::SessionsSettingsGet>(sessions));
-        jsonrpc->Register("sessions.settings.set",     std::make_shared<M::Sessions::SessionsSettingsSet>(sessions));
-        jsonrpc->Register("sessions.update",           std::make_shared<M::Sessions::SessionsUpdate>(sessions));
         jsonrpc->Register("torrents.add",              std::make_shared<M::Torrents::TorrentsAdd>(torrents));
         jsonrpc->Register("torrents.count",            std::make_shared<M::Torrents::TorrentsCount>(sessions));
         jsonrpc->Register("torrents.files.list",       std::make_shared<M::Torrents::TorrentsFilesList>(sessions));

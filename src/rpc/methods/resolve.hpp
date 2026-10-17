@@ -29,15 +29,13 @@ namespace porla::Rpc::Methods
         const porla::Torrent*           torrent;
     };
 
-    std::optional<Data::Models::Sessions::Session> FindSession(
+    Data::Models::Sessions::Session FindSession(
         porla::Sessions& sessions,
-        std::optional<int> session_id,
-        const ResponseWriterHandle& cb);
+        std::optional<int> session_id);
 
-    std::optional<ResolvedSession> ResolveSession(
+    ResolvedSession ResolveSession(
         porla::Sessions& sessions,
-        std::optional<int> session_id,
-        const ResponseWriterHandle& cb);
+        std::optional<int> session_id);
 
     std::optional<ResolvedTorrent> ResolveTorrent(
         porla::Sessions& sessions,
