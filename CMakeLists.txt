@@ -183,6 +183,7 @@ add_library(
     src/utils/string.cpp
 
     src/auth/authenticator.cpp
+    src/auth/jwt.cpp
     src/auth/password.cpp
 
     src/data/migrate.cpp
@@ -309,7 +310,6 @@ target_include_directories(
     ${PROJECT_NAME}_core
     PUBLIC
     vendor/croncpp/include
-    vendor/jwt-cpp/include
     vendor/nlohmann-json/include
     vendor/sol2/include
     vendor/tomlplusplus/include
