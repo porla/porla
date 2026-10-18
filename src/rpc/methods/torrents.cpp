@@ -1112,6 +1112,7 @@ namespace porla::Rpc::Methods::Torrents
         awaitable<void> Pause(porla::Sessions& sessions, const TorrentRef& req)
         {
             const auto resolved = ResolveTorrent(sessions, req.session_id, req.info_hash);
+            resolved.torrent->status.handle.unset_flags(lt::torrent_flags::auto_managed);
             resolved.torrent->status.handle.pause();
             co_return;
         }
@@ -1330,8 +1331,8 @@ namespace porla::Rpc::Methods::Torrents
         jsonrpc.Register("torrents.queue.bottom",     { Kind::User, Kind::Machine }, MakeMethod<TorrentRef>(ex, std::bind_front(QueueBottom, std::ref(sessions))));
         jsonrpc.Register("torrents.queue.down",       { Kind::User, Kind::Machine }, MakeMethod<TorrentRef>(ex, std::bind_front(QueueDown, std::ref(sessions))));
         jsonrpc.Register("torrents.queue.set",        { Kind::User, Kind::Machine }, MakeMethod<QueueSetReq>(ex, std::bind_front(QueueSet, std::ref(sessions))));
-        jsonrpc.Register("torrents.queue.top",        { Kind::User, Kind::Machine }, MakeMethod<TorrentRef>(ex, std::bind_front(QueueUp, std::ref(sessions))));
-        jsonrpc.Register("torrents.queue.up",         { Kind::User, Kind::Machine }, MakeMethod<TorrentRef>(ex, std::bind_front(QueueTop, std::ref(sessions))));
+        jsonrpc.Register("torrents.queue.top",        { Kind::User, Kind::Machine }, MakeMethod<TorrentRef>(ex, std::bind_front(QueueTop, std::ref(sessions))));
+        jsonrpc.Register("torrents.queue.up",         { Kind::User, Kind::Machine }, MakeMethod<TorrentRef>(ex, std::bind_front(QueueUp, std::ref(sessions))));
         jsonrpc.Register("torrents.recheck",          { Kind::User, Kind::Machine }, MakeMethod<TorrentRef>(ex, std::bind_front(Recheck, std::ref(sessions))));
         jsonrpc.Register("torrents.remove",           { Kind::User, Kind::Machine }, MakeMethod<RemoveReq>(ex, std::bind_front(Remove, std::ref(sessions))));
         jsonrpc.Register("torrents.resume",           { Kind::User, Kind::Machine }, MakeMethod<TorrentRef>(ex, std::bind_front(Resume, std::ref(sessions))));

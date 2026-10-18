@@ -140,7 +140,7 @@ namespace porla::Rpc::Methods::Plugins
 
             if (!plugin_path.is_absolute())
             {
-                throw Error(-1, "Plugin path must be absolute");
+                throw Error(-2, "Plugin path must be absolute");
             }
 
             if (!fs::exists(plugin_path))
