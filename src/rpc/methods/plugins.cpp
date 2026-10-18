@@ -162,7 +162,7 @@ namespace porla::Rpc::Methods::Plugins
             });
         }
 
-        awaitable<GetRes> Get(porla::Plugins& plugins, const GetReq& req)
+        awaitable<GetRes> Get(porla::Plugins& plugins, const GetReq& req, Call& call)
         {
             const auto plugin = plugins.Get(req.id);
 
@@ -195,7 +195,9 @@ namespace porla::Rpc::Methods::Plugins
                     .path      = plugin->path,
                     .name      = name,
                     .version   = version,
-                    .config    = plugin->config,
+                    .config    = call.Caller().kind == Auth::Context::Kind::User
+                        ? plugin->config
+                        : std::nullopt,
                     .metadata  = plugin->metadata,
                     .is_loaded = instance != nullptr
                 }
