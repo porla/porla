@@ -6,7 +6,6 @@
 #include <libtorrent/info_hash.hpp>
 
 #include "../../data/models/sessions.hpp"
-#include "../responsewriter.hpp"
 
 namespace porla
 {
@@ -29,19 +28,16 @@ namespace porla::Rpc::Methods
         const porla::Torrent*           torrent;
     };
 
-    std::optional<Data::Models::Sessions::Session> FindSession(
+    Data::Models::Sessions::Session FindSession(
         porla::Sessions& sessions,
-        std::optional<int> session_id,
-        const ResponseWriterHandle& cb);
+        std::optional<int> session_id);
 
-    std::optional<ResolvedSession> ResolveSession(
+    ResolvedSession ResolveSession(
         porla::Sessions& sessions,
-        std::optional<int> session_id,
-        const ResponseWriterHandle& cb);
+        std::optional<int> session_id);
 
-    std::optional<ResolvedTorrent> ResolveTorrent(
+    ResolvedTorrent ResolveTorrent(
         porla::Sessions& sessions,
         std::optional<int> session_id,
-        const lt::info_hash_t& hash,
-        const ResponseWriterHandle& cb);
+        const lt::info_hash_t& hash);
 }

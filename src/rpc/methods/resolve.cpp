@@ -1,46 +1,43 @@
 #include "resolve.hpp"
 
+#include "../error.hpp"
+
 #include "../../sessions/session.hpp"
 #include "../../sessions/sessions.hpp"
 #include "../../sessions/torrent.hpp"
 
 namespace porla::Rpc::Methods
 {
-    std::optional<Data::Models::Sessions::Session> FindSession(
+    Data::Models::Sessions::Session FindSession(
         porla::Sessions& sessions,
-        std::optional<int> session_id,
-        const ResponseWriterHandle& cb)
+        std::optional<int> session_id)
     {
         const auto record = sessions.Resolve(session_id);
 
         if (!record)
         {
-            cb->Error(-1, "Session not found");
-            return std::nullopt;
+            throw Error(-1, "Session not found");
         }
 
-        return record;
+        return record.value();
     }
 
-    std::optional<ResolvedSession> ResolveSession(
+    ResolvedSession ResolveSession(
         porla::Sessions& sessions,
-        std::optional<int> session_id,
-        const ResponseWriterHandle& cb)
+        std::optional<int> session_id)
     {
         auto record = sessions.Resolve(session_id);
 
         if (!record)
         {
-            cb->Error(-1, "Session not found");
-            return std::nullopt;
+            throw Error(-1, "Session not found");
         }
 
         auto session_state = sessions.Get(record->id);
 
         if (session_state == nullptr)
         {
-            cb->Error(-2, "Session not loaded");
-            return std::nullopt;
+            throw Error(-2, "Session not loaded");
         }
 
         return ResolvedSession{
@@ -49,35 +46,27 @@ namespace porla::Rpc::Methods
         };
     }
 
-    std::optional<ResolvedTorrent> ResolveTorrent(
+    ResolvedTorrent ResolveTorrent(
         porla::Sessions& sessions,
         std::optional<int> session_id,
-        const lt::info_hash_t& info_hash,
-        const ResponseWriterHandle& cb)
+        const lt::info_hash_t& info_hash)
     {
-        auto resolved_session = ResolveSession(sessions, session_id, cb);
+        auto resolved_session = ResolveSession(sessions, session_id);
 
-        if (!resolved_session)
-        {
-            return std::nullopt;
-        }
-
-        const auto* torrent = resolved_session->session->Find(info_hash);
+        const auto* torrent = resolved_session.session->Find(info_hash);
 
         if (torrent == nullptr)
         {
-            cb->Error(-3, "Torrent not found in session");
-            return std::nullopt;
+            throw Error(-3, "Torrent not found in session");
         }
 
         if (!torrent->status.handle.is_valid())
         {
-            cb->Error(-4, "Torrent not valid");
-            return std::nullopt;
+            throw Error(-4, "Torrent not valid");
         }
 
         return ResolvedTorrent{
-            std::move(resolved_session->session),
+            std::move(resolved_session.session),
             torrent
         };
     }

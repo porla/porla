@@ -256,13 +256,13 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
 
                 auto writer = std::make_shared<DefaultResponseWriter>(res, req.id.value_or(json()), aborted, gzip);
 
-                if (!method->second->CanInvoke(auth_context))
+                if (!method->second.Allows(auth_context) || !method->second.method->CanInvoke(auth_context))
                 {
                     writer->Error(1001, "Invocation not allowed");
                     return;
                 }
 
-                method->second->Invoke(req.params.value_or(json()), writer);
+                method->second.method->Invoke(auth_context, req.params.value_or(json()), writer);
             }
             catch (const std::exception& ex)
             {
