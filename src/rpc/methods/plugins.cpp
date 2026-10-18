@@ -136,6 +136,28 @@ namespace porla::Rpc::Methods::Plugins
 
         NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(ListRes, plugins)
 
+        std::optional<porla::Plugins::Plugin> FindByPath(const porla::Plugins& plugins, const fs::path& path, int except_id = -1)
+        {
+            const auto normalized = [](const fs::path& p)
+            {
+                std::error_code ec;
+                const auto canonical = fs::weakly_canonical(p, ec);
+                return ec ? p.lexically_normal() : canonical;
+            };
+
+            const auto wanted = normalized(path);
+
+            for (const auto& plugin : plugins.All())
+            {
+                if (plugin.id != except_id && normalized(plugin.path) == wanted)
+                {
+                    return plugin;
+                }
+            }
+
+            return std::nullopt;
+        }
+
         awaitable<nlohmann::json> Add(porla::Plugins& plugins, const AddReq& req)
         {
             fs::path plugin_path = req.path;
@@ -148,6 +170,11 @@ namespace porla::Rpc::Methods::Plugins
             if (!fs::exists(plugin_path))
             {
                 throw Error(-3, "Plugin path does not exist");
+            }
+
+            if (const auto existing = FindByPath(plugins, plugin_path))
+            {
+                throw Error(-4, "Plugin path is used by another plugin", {{"id", existing->id}});
             }
 
             const auto plugin_id = plugins.Add(porla::Plugins::Plugin{
@@ -236,6 +263,17 @@ namespace porla::Rpc::Methods::Plugins
                 throw Error(-4, "Release has no downloadable asset");
             }
 
+            std::stringstream zip_file_name;
+            zip_file_name << req.owner << "_" << req.repository << "_" << release.tag_name << ".zip";
+
+            const auto plugins_dir = fs::absolute(state_dir / "plugins").lexically_normal();
+            const auto plugin_zip  = plugins_dir / zip_file_name.str();
+
+            if (const auto existing = FindByPath(plugins, plugin_zip))
+            {
+                throw Error(-7, "Plugin path is used by another plugin", {{"id", existing->id}});
+            }
+
             BOOST_LOG_TRIVIAL(info)
                 << "Found version "
                 << release.tag_name
@@ -249,12 +287,6 @@ namespace porla::Rpc::Methods::Plugins
             {
                 throw Error(-5, "Failed to fetch release asset");
             }
-
-            std::stringstream zip_file_name;
-            zip_file_name << req.owner << "_" << req.repository << "_" << release.tag_name << ".zip";
-
-            const auto plugins_dir = fs::absolute(state_dir / "plugins").lexically_normal();
-            const auto plugin_zip  = plugins_dir / zip_file_name.str();
 
             if (!fs::exists(plugins_dir))
             {
@@ -445,6 +477,21 @@ namespace porla::Rpc::Methods::Plugins
                 throw Error(-6, "Release has no downloadable asset");
             }
 
+            std::stringstream zip_file_name;
+            zip_file_name
+                << owner.value()
+                << "_"
+                << repository.value()
+                << "_" << release.tag_name << ".zip";
+
+            const auto plugins_dir = fs::absolute(state_dir / "plugins").lexically_normal();
+            const auto plugin_zip  = plugins_dir / zip_file_name.str();
+
+            if (const auto existing = FindByPath(plugins, plugin_zip, plugin->id))
+            {
+                throw Error(-9, "Plugin path is used by another plugin", {{"id", existing->id}});
+            }
+
             BOOST_LOG_TRIVIAL(info)
                 << "Found version "
                 << release.tag_name
@@ -458,16 +505,6 @@ namespace porla::Rpc::Methods::Plugins
             {
                 throw Error(-7, "Failed to fetch release asset");
             }
-
-            std::stringstream zip_file_name;
-            zip_file_name
-                << owner.value()
-                << "_"
-                << repository.value()
-                << "_" << release.tag_name << ".zip";
-
-            const auto plugins_dir = fs::absolute(state_dir / "plugins").lexically_normal();
-            const auto plugin_zip  = plugins_dir / zip_file_name.str();
 
             if (!fs::exists(plugins_dir))
             {
@@ -502,7 +539,12 @@ namespace porla::Rpc::Methods::Plugins
             });
 
             std::error_code same_ec;
-            if (!fs::equivalent(old_path, plugin_zip, same_ec) && fs::exists(old_path))
+
+            if (const auto other = FindByPath(plugins, old_path, plugin->id))
+            {
+                BOOST_LOG_TRIVIAL(info) << "Keeping old plugin path " << old_path << ", used by plugin " << other->id;
+            }
+            else if (!fs::equivalent(old_path, plugin_zip, same_ec) && fs::exists(old_path))
             {
                 std::error_code ec;
 
