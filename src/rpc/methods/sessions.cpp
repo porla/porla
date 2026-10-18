@@ -317,15 +317,22 @@ namespace porla::Rpc::Methods::Sessions
             co_return;
         }
 
-        awaitable<nlohmann::json> SettingsGet(porla::Sessions& sessions, const SessionRef &req)
+        awaitable<nlohmann::json> SettingsGet(porla::Sessions& sessions, const SessionRef &req, Call& call)
         {
             const auto  session = FindSession(sessions, req.id);
             const auto& state   = sessions.Get(session.id);
 
+            nlohmann::json settings = state == nullptr
+                ? session.params.settings
+                : state->Libtorrent().get_settings();
+
+            if (call.Caller().kind != Auth::Context::Kind::User)
+            {
+                settings["proxy_password"] = nullptr;
+            }
+
             co_return nlohmann::json({
-                {"settings", state == nullptr
-                    ? session.params.settings
-                    : state->Libtorrent().get_settings()}
+                {"settings", settings}
             });
         }
 
