@@ -37,9 +37,8 @@ namespace porla::Rpc::Methods
         porla::Sessions& sessions,
         std::optional<int> session_id);
 
-    std::optional<ResolvedTorrent> ResolveTorrent(
+    ResolvedTorrent ResolveTorrent(
         porla::Sessions& sessions,
         std::optional<int> session_id,
-        const lt::info_hash_t& hash,
-        const ResponseWriterHandle& cb);
+        const lt::info_hash_t& hash);
 }

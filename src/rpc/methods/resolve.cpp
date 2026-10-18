@@ -46,11 +46,10 @@ namespace porla::Rpc::Methods
         };
     }
 
-    std::optional<ResolvedTorrent> ResolveTorrent(
+    ResolvedTorrent ResolveTorrent(
         porla::Sessions& sessions,
         std::optional<int> session_id,
-        const lt::info_hash_t& info_hash,
-        const ResponseWriterHandle& cb)
+        const lt::info_hash_t& info_hash)
     {
         auto resolved_session = ResolveSession(sessions, session_id);
 
@@ -58,14 +57,12 @@ namespace porla::Rpc::Methods
 
         if (torrent == nullptr)
         {
-            cb->Error(-3, "Torrent not found in session");
-            return std::nullopt;
+            throw Error(-3, "Torrent not found in session");
         }
 
         if (!torrent->status.handle.is_valid())
         {
-            cb->Error(-4, "Torrent not valid");
-            return std::nullopt;
+            throw Error(-4, "Torrent not valid");
         }
 
         return ResolvedTorrent{

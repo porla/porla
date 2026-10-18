@@ -31,28 +31,7 @@
 #include "rpc/methods/presets.hpp"
 #include "rpc/methods/sessions.hpp"
 #include "rpc/methods/sys.hpp"
-
-#include "rpc/methods/torrents/torrentaction.hpp"
-#include "rpc/methods/torrents/torrentsadd.hpp"
-#include "rpc/methods/torrents/torrentscount.hpp"
-#include "rpc/methods/torrents/torrentsfileslist.hpp"
-#include "rpc/methods/torrents/torrentsfilespriorities.hpp"
-#include "rpc/methods/torrents/torrentsfilesprioritize.hpp"
-#include "rpc/methods/torrents/torrentsfilesprogress.hpp"
-#include "rpc/methods/torrents/torrentsfilesrename.hpp"
-#include "rpc/methods/torrents/torrentsget.hpp"
-#include "rpc/methods/torrents/torrentslist.hpp"
-#include "rpc/methods/torrents/torrentsmigrate.hpp"
-#include "rpc/methods/torrents/torrentsmove.hpp"
-#include "rpc/methods/torrents/torrentspeersadd.hpp"
-#include "rpc/methods/torrents/torrentspeerslist.hpp"
-#include "rpc/methods/torrents/torrentspiecesget.hpp"
-#include "rpc/methods/torrents/torrentspropertiesget.hpp"
-#include "rpc/methods/torrents/torrentspropertiesset.hpp"
-#include "rpc/methods/torrents/torrentsqueueset.hpp"
-#include "rpc/methods/torrents/torrentsremove.hpp"
-#include "rpc/methods/torrents/torrentstrackersadd.hpp"
-#include "rpc/methods/torrents/torrentstrackerslist.hpp"
+#include "rpc/methods/torrents.hpp"
 
 CMRC_DECLARE(porla_lua);
 
@@ -190,34 +169,7 @@ int main(int argc, char* argv[])
         porla::Rpc::Methods::Presets::Register(io, *jsonrpc, presets);
         porla::Rpc::Methods::Sessions::Register(io, *jsonrpc, sessions);
         porla::Rpc::Methods::Sys::Register(io, *jsonrpc, cfg->db);
-
-        jsonrpc->Register("torrents.add",              std::make_shared<M::Torrents::TorrentsAdd>(torrents));
-        jsonrpc->Register("torrents.count",            std::make_shared<M::Torrents::TorrentsCount>(sessions));
-        jsonrpc->Register("torrents.files.list",       std::make_shared<M::Torrents::TorrentsFilesList>(sessions));
-        jsonrpc->Register("torrents.files.priorities", std::make_shared<M::Torrents::TorrentsFilesPriorities>(sessions));
-        jsonrpc->Register("torrents.files.prioritize", std::make_shared<M::Torrents::TorrentsFilesPrioritize>(sessions));
-        jsonrpc->Register("torrents.files.progress",   std::make_shared<M::Torrents::TorrentsFilesProgress>(sessions));
-        jsonrpc->Register("torrents.files.rename",     std::make_shared<M::Torrents::TorrentsFilesRename>(sessions));
-        jsonrpc->Register("torrents.get",              std::make_shared<M::Torrents::TorrentsGet>(sessions));
-        jsonrpc->Register("torrents.list",             std::make_shared<M::Torrents::TorrentsList>(sessions));
-        jsonrpc->Register("torrents.migrate",          std::make_shared<M::Torrents::TorrentsMigrate>(io, events, sessions));
-        jsonrpc->Register("torrents.move",             std::make_shared<M::Torrents::TorrentsMove>(sessions));
-        jsonrpc->Register("torrents.pause",            std::make_shared<M::Torrents::TorrentAction>(sessions, [](const auto& r) { r.torrent->status.handle.unset_flags(lt::torrent_flags::auto_managed); r.torrent->status.handle.pause(); }));
-        jsonrpc->Register("torrents.peers.add",        std::make_shared<M::Torrents::TorrentsPeersAdd>(sessions));
-        jsonrpc->Register("torrents.peers.list",       std::make_shared<M::Torrents::TorrentsPeersList>(sessions));
-        jsonrpc->Register("torrents.pieces.get",       std::make_shared<M::Torrents::TorrentsPiecesGet>(sessions));
-        jsonrpc->Register("torrents.properties.get",   std::make_shared<M::Torrents::TorrentsPropertiesGet>(sessions));
-        jsonrpc->Register("torrents.properties.set",   std::make_shared<M::Torrents::TorrentsPropertiesSet>(sessions, torrents));
-        jsonrpc->Register("torrents.queue.bottom",     std::make_shared<M::Torrents::TorrentAction>(sessions, [](const auto& r) { r.torrent->status.handle.queue_position_bottom(); }));
-        jsonrpc->Register("torrents.queue.down",       std::make_shared<M::Torrents::TorrentAction>(sessions, [](const auto& r) { r.torrent->status.handle.queue_position_down(); }));
-        jsonrpc->Register("torrents.queue.set",        std::make_shared<M::Torrents::TorrentsQueueSet>(sessions));
-        jsonrpc->Register("torrents.queue.top",        std::make_shared<M::Torrents::TorrentAction>(sessions, [](const auto& r) { r.torrent->status.handle.queue_position_top(); }));
-        jsonrpc->Register("torrents.queue.up",         std::make_shared<M::Torrents::TorrentAction>(sessions, [](const auto& r) { r.torrent->status.handle.queue_position_up(); }));
-        jsonrpc->Register("torrents.recheck",          std::make_shared<M::Torrents::TorrentAction>(sessions, [](const auto& r) { r.session->Recheck(r.torrent->status.info_hashes); }));
-        jsonrpc->Register("torrents.remove",           std::make_shared<M::Torrents::TorrentsRemove>(sessions));
-        jsonrpc->Register("torrents.resume",           std::make_shared<M::Torrents::TorrentAction>(sessions, [](const auto& r) { r.torrent->status.handle.resume(); }));
-        jsonrpc->Register("torrents.trackers.add",     std::make_shared<M::Torrents::TorrentsTrackersAdd>(sessions));
-        jsonrpc->Register("torrents.trackers.list",    std::make_shared<M::Torrents::TorrentsTrackersList>(sessions));
+        porla::Rpc::Methods::Torrents::Register(io, *jsonrpc, events, sessions, torrents);
 
               auto embedded_core       = porla::Lua::PluginSource{.entrypoint = "plugin.lua", .sources = {}};
         const auto embedded_core_files = cmrc::porla_lua::get_filesystem();

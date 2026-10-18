@@ -288,28 +288,7 @@ add_library(
     src/rpc/methods/resolve.cpp
     src/rpc/methods/sessions.cpp
     src/rpc/methods/sys.cpp
-
-    src/rpc/methods/torrents/torrentaction.cpp
-    src/rpc/methods/torrents/torrentsadd.cpp
-    src/rpc/methods/torrents/torrentscount.cpp
-    src/rpc/methods/torrents/torrentsfileslist.cpp
-    src/rpc/methods/torrents/torrentsfilespriorities.cpp
-    src/rpc/methods/torrents/torrentsfilesprioritize.cpp
-    src/rpc/methods/torrents/torrentsfilesprogress.cpp
-    src/rpc/methods/torrents/torrentsfilesrename.cpp
-    src/rpc/methods/torrents/torrentsget.cpp
-    src/rpc/methods/torrents/torrentslist.cpp
-    src/rpc/methods/torrents/torrentsmigrate.cpp
-    src/rpc/methods/torrents/torrentsmove.cpp
-    src/rpc/methods/torrents/torrentspeersadd.cpp
-    src/rpc/methods/torrents/torrentspeerslist.cpp
-    src/rpc/methods/torrents/torrentspiecesget.cpp
-    src/rpc/methods/torrents/torrentspropertiesget.cpp
-    src/rpc/methods/torrents/torrentsqueueset.cpp
-    src/rpc/methods/torrents/torrentsremove.cpp
-    src/rpc/methods/torrents/torrentspropertiesset.cpp
-    src/rpc/methods/torrents/torrentstrackersadd.cpp
-    src/rpc/methods/torrents/torrentstrackerslist.cpp
+    src/rpc/methods/torrents.cpp
 
     src/query/_aux/PqlLexer.cpp
     src/query/_aux/PqlParser.cpp
