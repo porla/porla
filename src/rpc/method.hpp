@@ -9,9 +9,11 @@ namespace porla::Rpc
 {
     struct Method
     {
-        virtual bool CanInvoke(const Auth::Context& auth_ctx)
+        virtual ~Method() = default;
+
+        virtual bool CanInvoke(const Auth::Context&)
         {
-            return auth_ctx.IsAuthenticated();
+            return true;
         }
 
         virtual void Invoke(

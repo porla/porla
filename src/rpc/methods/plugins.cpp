@@ -1,7 +1,9 @@
 #include "plugins.hpp"
 
 #include <filesystem>
+#include <fstream>
 #include <optional>
+#include <sstream>
 #include <string>
 
 #include <boost/asio/awaitable.hpp>
@@ -213,7 +215,7 @@ namespace porla::Rpc::Methods::Plugins
 
             if (release_status != 200)
             {
-                throw Error(-2, "Release not found", {{"http_status", release_status}});
+                throw Error(-2, "Release not found - HTTP status: " + std::to_string(release_status));
             }
 
             porla::Json::GitHubRelease release;

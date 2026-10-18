@@ -57,12 +57,6 @@ namespace porla::Rpc
         {
         }
 
-        // Who may call is decided by the kinds passed to JsonRpc::Register.
-        bool CanInvoke(const Auth::Context&) override
-        {
-            return true;
-        }
-
         void Invoke(const Auth::Context& caller, const nlohmann::json& body, ResponseWriterHandle writer) override
         {
             // Decode before starting the coroutine, so bad params fail exactly as before.
@@ -78,8 +72,6 @@ namespace porla::Rpc
                         return;
                     }
 
-                    nlohmann::json data = nullptr;
-
                     try
                     {
                         std::rethrow_exception(e);
@@ -87,14 +79,13 @@ namespace porla::Rpc
                     catch (const std::exception& ex)
                     {
                         BOOST_LOG_TRIVIAL(error) << "Unhandled exception in RPC method: " << ex.what();
-                        data = ex.what();
                     }
                     catch (...)
                     {
                         BOOST_LOG_TRIVIAL(error) << "Unhandled unknown exception in RPC method";
                     }
 
-                    writer->Error(-32603, "Internal error", data);
+                    writer->Error(-32603, "Internal error");
                 });
         }
 

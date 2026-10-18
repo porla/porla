@@ -6,7 +6,6 @@
 #include <libtorrent/info_hash.hpp>
 
 #include "../../data/models/sessions.hpp"
-#include "../responsewriter.hpp"
 
 namespace porla
 {

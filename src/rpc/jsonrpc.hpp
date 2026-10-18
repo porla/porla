@@ -1,8 +1,11 @@
 #pragma once
 
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <optional>
+#include <string>
+#include <vector>
 
 #include <uWebSockets/App.h>
 
@@ -27,12 +30,6 @@ namespace porla::Rpc
         bool Register(const std::string& name, std::vector<Auth::Context::Kind> kinds, const std::shared_ptr<Method>& method)
         {
             return m_methods.try_emplace(name, Entry{ .kinds = std::move(kinds), .method = method }).second;
-        }
-
-        bool Register(const std::string& name, const std::shared_ptr<Method>& method)
-        {
-            using Kind = Auth::Context::Kind;
-            return Register(name, { Kind::Anon, Kind::Machine, Kind::User }, method);
         }
 
         void Unregister(const std::string& name)

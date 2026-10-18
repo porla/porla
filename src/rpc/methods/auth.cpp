@@ -114,7 +114,7 @@ namespace porla::Rpc::Methods::Auth
             BOOST_LOG_TRIVIAL(info) << "User " << req.username << " created";
         }
 
-        awaitable<nlohmann::json> Login(boost::asio::thread_pool& hash_pool, sqlite3* db, const std::string& secret_key, const LoginReq req, Call& call)
+        awaitable<nlohmann::json> Login(boost::asio::thread_pool& hash_pool, sqlite3* db, const std::string& secret_key, const LoginReq& req, Call& call)
         {
             const auto user = porla::Data::Models::Users::GetByUsername(db, req.username);
 

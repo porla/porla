@@ -71,6 +71,7 @@ namespace porla::Rpc::Methods::Fs
             if (fd < 0)
             {
                 BOOST_LOG_TRIVIAL(debug) << "Could not open " << path << " for quota lookup: " << std::strerror(errno);
+                return std::nullopt;
             }
 
             dqblk blk = {};
