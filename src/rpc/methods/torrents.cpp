@@ -1335,7 +1335,7 @@ namespace porla::Rpc::Methods::Torrents
         jsonrpc.Register("torrents.recheck",          { Kind::User, Kind::Machine }, MakeMethod<TorrentRef>(ex, std::bind_front(Recheck, std::ref(sessions))));
         jsonrpc.Register("torrents.remove",           { Kind::User, Kind::Machine }, MakeMethod<RemoveReq>(ex, std::bind_front(Remove, std::ref(sessions))));
         jsonrpc.Register("torrents.resume",           { Kind::User, Kind::Machine }, MakeMethod<TorrentRef>(ex, std::bind_front(Resume, std::ref(sessions))));
-        jsonrpc.Register("torrents.trackers.add ",    { Kind::User, Kind::Machine }, MakeMethod<TrackersAddReq>(ex, std::bind_front(TrackersAdd, std::ref(sessions))));
+        jsonrpc.Register("torrents.trackers.add",     { Kind::User, Kind::Machine }, MakeMethod<TrackersAddReq>(ex, std::bind_front(TrackersAdd, std::ref(sessions))));
         jsonrpc.Register("torrents.trackers.list",    { Kind::User, Kind::Machine }, MakeMethod<TorrentRef>(ex, std::bind_front(TrackersList, std::ref(sessions))));
     }
 }
