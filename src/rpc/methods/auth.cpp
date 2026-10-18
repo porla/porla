@@ -1,15 +1,13 @@
 #include "auth.hpp"
 
 #include <boost/asio/awaitable.hpp>
-#include <jwt-cpp/traits/nlohmann-json/defaults.h>
-#include <jwt-cpp/traits/nlohmann-json/traits.h>
-#include <jwt-cpp/jwt.h>
 #include <sodium.h>
 
 #include "../functionmethod.hpp"
 #include "../jsonrpc.hpp"
 
 #include "../../auth/context.hpp"
+#include "../../auth/jwt.hpp"
 #include "../../auth/password.hpp"
 #include "../../data/models/apikeys.hpp"
 #include "../../data/models/users.hpp"
@@ -149,14 +147,7 @@ namespace porla::Rpc::Methods::Auth
                 }
             }
 
-            const auto token = jwt::create()
-                .set_expires_at(std::chrono::system_clock::now() + std::chrono::days{1})
-                .set_issuer("porla")
-                .set_issued_at(std::chrono::system_clock::now())
-                .set_subject(user->username)
-                .set_type("JWS")
-                .set_payload_claim("scope", "*")
-                .sign(jwt::algorithm::hs256(secret_key));
+            const auto token = porla::Auth::Jwt::Sign(secret_key, user->username, std::chrono::days{1});
 
             call.Header("Set-Cookie", CreateAuthCookie("porla-auth-token", token, 86400, false));
 

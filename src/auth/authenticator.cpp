@@ -2,10 +2,10 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/log/trivial.hpp>
-#include <jwt-cpp/traits/nlohmann-json/defaults.h>
-#include <jwt-cpp/jwt.h>
 #include <nlohmann/json.hpp>
 #include <sodium.h>
+
+#include "jwt.hpp"
 
 #include "../data/models/apikeys.hpp"
 #include "../utils/string.hpp"
@@ -180,26 +180,15 @@ Context Authenticator::DecodeApiKey(const std::string& key) const
 
 Context Authenticator::DecodeJwt(const std::string& encoded_token) const
 {
-    const auto algo   = jwt::algorithm::hs256(m_secret_key);
-    const auto issuer = "porla";
+    const auto subject = Jwt::Verify(m_secret_key, encoded_token);
 
-    const auto verifier = jwt::verify()
-        .allow_algorithm(algo)
-        .with_issuer(issuer);
-
-    try
-    {
-        const auto decoded_token = jwt::decode(encoded_token);
-
-        verifier.verify(decoded_token);
-
-        return Context{
-            .kind    = Context::Kind::User,
-            .subject = decoded_token.get_subject()
-        };
-    }
-    catch (...)
+    if (!subject.has_value())
     {
         return {};
     }
+
+    return Context{
+        .kind    = Context::Kind::User,
+        .subject = subject.value()
+    };
 }

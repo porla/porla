@@ -15,6 +15,7 @@ add_executable(
     porla_tests
     events.cpp
     logging.cpp
+    auth/jwt.cpp
     query/pql.cpp
     utils/string.cpp
 )
