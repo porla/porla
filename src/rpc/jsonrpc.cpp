@@ -79,9 +79,8 @@ public:
     void Error(int code, const std::string& message, const nlohmann::json& data = {}) override
     {
         if (*m_aborted || m_responded) { return; }
-        m_responded = true;
 
-        m_res->end(json({
+        const std::string body = json({
             {"jsonrpc", "2.0"},
             {"id", m_id},
             {"error", {
@@ -89,7 +88,11 @@ public:
                 {"message", message},
                 {"data", data}
             }}
-        }).dump());
+        }).dump();
+
+        m_responded = true;
+
+        m_res->end(body);
     }
 
     void Header(const std::string& key, const std::string& value) override
@@ -102,13 +105,14 @@ public:
     void Ok(const nlohmann::json& result) override
     {
         if (*m_aborted || m_responded) { return; }
-        m_responded = true;
 
         const std::string body = json({
             {"jsonrpc", "2.0"},
             {"id", m_id},
             {"result", result}
         }).dump();
+
+        m_responded = true;
 
         if (m_gzip && body.size() >= kMinGzipSize)
         {
