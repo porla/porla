@@ -129,32 +129,6 @@ namespace
     }
 }
 
-struct PoCancellableConnection : public porla::Lua::Types::PoCancellable
-{
-    explicit PoCancellableConnection(std::size_t callback_id, std::size_t connection_id)
-        : m_callback_id(callback_id)
-        , m_connection_id(connection_id)
-    {
-    }
-
-    void Cancel(sol::this_state ts) override
-    {
-        auto state = LuaState::From(ts);
-
-        if (state == nullptr)
-        {
-            return;
-        }
-
-        state->CancelScopedConnection(m_connection_id);
-        state->RemoveCallback(m_callback_id);
-    }
-
-private:
-    std::size_t m_callback_id;
-    std::size_t m_connection_id;
-};
-
 sol::object porla::Lua::Packages::Events::Load(sol::this_state ts)
 {
     sol::state_view lua(ts);
@@ -198,7 +172,11 @@ sol::object porla::Lua::Packages::Events::Load(sol::this_state ts)
 
         const auto connection_id = state->RegisterScopedConnection(std::move(connection));
 
-        return std::make_shared<PoCancellableConnection>(callback_id, connection_id);
+        return std::make_shared<Types::PoCancellable>([callback_id, connection_id](LuaState& s)
+        {
+            s.CancelScopedConnection(connection_id);
+            s.RemoveCallback(callback_id);
+        });
     });
 
     return tbl;
