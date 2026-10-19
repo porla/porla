@@ -44,6 +44,13 @@ namespace
 
         return output;
     }
+
+    // Every reply goes through here. Invalid UTF-8 (from a tracker message, or from the request
+    // itself, quoted in a parse error) becomes U+FFFD instead of making dump() throw.
+    std::string SerializeJson(const nlohmann::json& reply)
+    {
+        return reply.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
+    }
 }
 
 namespace porla
@@ -80,7 +87,7 @@ public:
     {
         if (*m_aborted || m_responded) { return; }
 
-        const std::string body = json({
+        const std::string body = SerializeJson(json({
             {"jsonrpc", "2.0"},
             {"id", m_id},
             {"error", {
@@ -88,7 +95,7 @@ public:
                 {"message", message},
                 {"data", data}
             }}
-        }).dump();
+        }));
 
         m_responded = true;
 
@@ -106,11 +113,11 @@ public:
     {
         if (*m_aborted || m_responded) { return; }
 
-        const std::string body = json({
+        const std::string body = SerializeJson(json({
             {"jsonrpc", "2.0"},
             {"id", m_id},
             {"result", result}
-        }).dump();
+        }));
 
         m_responded = true;
 
@@ -214,7 +221,7 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
                     }}
                 };
 
-                res->end(error.dump());
+                res->end(SerializeJson(error));
 
                 return;
             }
@@ -223,13 +230,13 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
                 && !req.id->is_string()
                 && !req.id->is_number())
             {
-                res->end(json({
+                res->end(SerializeJson(json({
                     {"error", {
                         {"code", -32600},
                         {"message", "Invalid Request"},
                         {"data", "Id is not a string, number or null"}
                     }}
-                }).dump());
+                })));
 
                 return;
             }
@@ -240,12 +247,12 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
             {
                 BOOST_LOG_TRIVIAL(debug) << "Failed to find JSONRPC method '" << req.method << "'";
 
-                res->end(json({
+                res->end(SerializeJson(json({
                     {"error", {
                         {"code", -32601},
                         {"message", "Method not found"}
                     }}
-                }).dump());
+                })));
 
                 return;
             }
@@ -272,13 +279,13 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
             {
                 BOOST_LOG_TRIVIAL(error) << "Error when executing JSONRPC method '" << req.method << "': " << ex.what();
 
-                res->end(json({
+                res->end(SerializeJson(json({
                     {"error", {
                         {"code", -32603},
                         {"message", "Internal error"},
                         {"data", ex.what()}
                     }}
-                }).dump());
+                })));
             }
         });
     };
