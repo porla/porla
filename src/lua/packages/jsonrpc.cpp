@@ -78,10 +78,7 @@ sol::object JsonRpc::Load(sol::this_state ts)
 
     tbl.set_function("register", [](sol::this_state ts, const std::string& method, sol::main_protected_function callback,  std::optional<sol::main_protected_function> can_invoke)
     {
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-        auto state = weak.lock();
+        auto state = LuaState::From(ts);
 
         if (state == nullptr) { return; }
 

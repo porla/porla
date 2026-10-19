@@ -16,10 +16,7 @@ struct PoCancellableCronSchedule : public porla::Lua::Types::PoCancellable
 
     void Cancel(sol::this_state ts) override
     {
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-        auto state = weak.lock();
+        auto state = LuaState::From(ts);
 
         if (state == nullptr)
         {
@@ -42,10 +39,7 @@ struct PoCancellableTimer : public porla::Lua::Types::PoCancellable
 
     void Cancel(sol::this_state ts) override
     {
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-        auto state = weak.lock();
+        auto state = LuaState::From(ts);
 
         if (state == nullptr)
         {
@@ -67,10 +61,7 @@ sol::object Timers::Load(sol::this_state ts)
 
     tbl.set_function("cron", [](sol::this_state ts, std::string expression, sol::protected_function callback) -> std::shared_ptr<Types::PoCancellable>
     {
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-        auto state = weak.lock();
+        auto state = LuaState::From(ts);
 
         if (state == nullptr)
         {
@@ -90,10 +81,7 @@ sol::object Timers::Load(sol::this_state ts)
 
     tbl.set_function("interval", [](sol::this_state ts, int interval, sol::protected_function callback) -> std::shared_ptr<Types::PoCancellable>
     {
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-        auto state = weak.lock();
+        auto state = LuaState::From(ts);
 
         if (state == nullptr)
         {
@@ -107,10 +95,7 @@ sol::object Timers::Load(sol::this_state ts)
 
     tbl.set_function("timeout", [](sol::this_state ts, int interval, sol::protected_function callback) -> std::shared_ptr<Types::PoCancellable>
     {
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-        auto state = weak.lock();
+        auto state = LuaState::From(ts);
 
         if (state == nullptr)
         {

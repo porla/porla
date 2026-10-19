@@ -35,6 +35,23 @@ namespace porla::Lua
 {
     struct LuaState : public std::enable_shared_from_this<LuaState>
     {
+        static constexpr const char* RegistryKey = "state";
+
+        static std::weak_ptr<LuaState> WeakFrom(sol::this_state ts)
+        {
+            return sol::state_view(ts).registry()[RegistryKey].get<std::weak_ptr<LuaState>>();
+        }
+
+        static std::shared_ptr<LuaState> From(sol::this_state ts)
+        {
+            return WeakFrom(ts).lock();
+        }
+
+        static void Attach(sol::state_view lua, const std::shared_ptr<LuaState>& state)
+        {
+            lua.registry()[RegistryKey] = std::weak_ptr(state);
+        }
+
         explicit LuaState(boost::asio::io_context& io, boost::asio::thread_pool& hash_pool, porla::Config& cfg, porla::Events& events, porla::KeyValue& kv, porla::Presets& presets, porla::Sessions& sessions, porla::Torrents& torrents, sol::state_view lua)
             : io(io)
             , cfg(cfg)

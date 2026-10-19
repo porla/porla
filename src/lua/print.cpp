@@ -6,10 +6,7 @@
 
 void porla::Lua::Print(sol::this_state ts, sol::variadic_args args)
 {
-    sol::state_view lua(ts);
-
-    auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-    auto state = weak.lock();
+    auto state = LuaState::From(ts);
 
     std::string line;
 

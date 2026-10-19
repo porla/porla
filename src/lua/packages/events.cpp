@@ -139,10 +139,7 @@ struct PoCancellableConnection : public porla::Lua::Types::PoCancellable
 
     void Cancel(sol::this_state ts) override
     {
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-        auto state = weak.lock();
+        auto state = LuaState::From(ts);
 
         if (state == nullptr)
         {
@@ -171,9 +168,7 @@ sol::object porla::Lua::Packages::Events::Load(sol::this_state ts)
             throw sol::error("invalid event name: " + event);
         }
 
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
+        auto weak = LuaState::WeakFrom(ts);
         auto state = weak.lock();
 
         if (state == nullptr)

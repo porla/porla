@@ -14,11 +14,7 @@ sol::object Kv::Load(sol::this_state ts)
 
     tbl.set_function("get", [](sol::this_state ts, const std::string& key) -> std::optional<sol::object>
     {
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-        auto state = weak.lock();
-
+        auto state = LuaState::From(ts);
         if (state == nullptr) { return std::nullopt; }
 
         const auto value = state->kv.Get(key);
@@ -33,11 +29,7 @@ sol::object Kv::Load(sol::this_state ts)
 
     tbl.set_function("set", [](sol::this_state ts, const std::string& key, sol::object value)
     {
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-        auto state = weak.lock();
-
+        auto state = LuaState::From(ts);
         if (state == nullptr) { return; }
 
         const auto json_value = Types::PoJson::ToJson(ts, value, 0);

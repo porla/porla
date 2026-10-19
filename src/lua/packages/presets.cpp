@@ -13,11 +13,7 @@ sol::object Presets::Load(sol::this_state ts)
 
     tbl.set_function("default", [](sol::this_state ts) -> std::optional<Data::Models::Presets::Preset>
     {
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-        auto state = weak.lock();
-
+        auto state = LuaState::From(ts);
         if (state == nullptr) { return std::nullopt; }
 
         return state->presets.GetDefault();
@@ -26,22 +22,14 @@ sol::object Presets::Load(sol::this_state ts)
     tbl.set_function("get", sol::overload(
         [](sol::this_state ts, int id) -> std::optional<Data::Models::Presets::Preset>
         {
-            sol::state_view lua(ts);
-
-            auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-            auto state = weak.lock();
-
+            auto state = LuaState::From(ts);
             if (state == nullptr) { return std::nullopt; }
 
             return state->presets.Get(id);
         },
         [](sol::this_state ts, const std::string& name) -> std::optional<Data::Models::Presets::Preset>
         {
-            sol::state_view lua(ts);
-
-            auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-            auto state = weak.lock();
-
+            auto state = LuaState::From(ts);
             if (state == nullptr) { return std::nullopt; }
 
             return state->presets.GetByName(name);

@@ -20,27 +20,21 @@ sol::object porla::Lua::Packages::Sessions::Load(sol::this_state ts)
 
     sol::table tbl = lua.create_table();
 
-    tbl.set_function("count", [](sol::this_state ts) -> sol::object
+    tbl.set_function("count", [](sol::this_state ts) -> std::optional<std::size_t>
     {
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-        auto state = weak.lock();
+        auto state = LuaState::From(ts);
 
         if (state == nullptr)
         {
-            return sol::lua_nil;
+            return std::nullopt;
         }
 
-        return sol::make_object(lua, state->sessions.All().size());
+        return state->sessions.All().size();
     });
 
     tbl.set_function("default", [](sol::this_state ts) -> std::shared_ptr<PoSessionHandle>
     {
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-        auto state = weak.lock();
+        auto state = LuaState::From(ts);
 
         if (state == nullptr)
         {
@@ -67,10 +61,7 @@ sol::object porla::Lua::Packages::Sessions::Load(sol::this_state ts)
     tbl.set_function("get", sol::overload(
         [](sol::this_state ts, int id) -> std::shared_ptr<PoSessionHandle>
         {
-            sol::state_view lua(ts);
-
-            auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-            auto state = weak.lock();
+            auto state = LuaState::From(ts);
 
             if (state == nullptr)
             {
@@ -88,10 +79,7 @@ sol::object porla::Lua::Packages::Sessions::Load(sol::this_state ts)
         },
         [](sol::this_state ts, const std::string name) -> std::shared_ptr<PoSessionHandle>
         {
-            sol::state_view lua(ts);
-
-            auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-            auto state = weak.lock();
+            auto state = LuaState::From(ts);
 
             if (state == nullptr)
             {
@@ -115,19 +103,16 @@ sol::object porla::Lua::Packages::Sessions::Load(sol::this_state ts)
             return std::make_shared<PoSessionHandle>(session_ptr);
         }));
 
-    tbl.set_function("list", [](sol::this_state ts) -> sol::object
+    tbl.set_function("list", [](sol::this_state ts) -> std::optional<PoSessionsIterator>
     {
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-        auto state = weak.lock();
+        auto state = LuaState::From(ts);
 
         if (state == nullptr)
         {
-            return sol::lua_nil;
+            return std::nullopt;
         }
 
-        return sol::make_object(lua, PoSessionsIterator(state->sessions.All()));
+        return PoSessionsIterator(state->sessions.All());
     });
 
     tbl.set_function("metrics", [](sol::this_state ts)

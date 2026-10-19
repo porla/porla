@@ -98,7 +98,7 @@ sol::object HttpClient::Load(sol::this_state ts)
     {
         sol::state_view lua(ts);
 
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
+        auto weak = LuaState::WeakFrom(ts);
         auto state = weak.lock();
 
         if (state == nullptr)

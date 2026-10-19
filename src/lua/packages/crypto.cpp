@@ -143,9 +143,7 @@ sol::object Crypto::Load(sol::this_state ts)
 
     tbl.set_function("pwhash", [](sol::this_state ts, std::string input, sol::main_protected_function callback)
     {
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
+        auto weak = LuaState::WeakFrom(ts);
         auto state = weak.lock();
 
         if (state == nullptr)
@@ -194,9 +192,7 @@ sol::object Crypto::Load(sol::this_state ts)
 
     tbl.set_function("pwhash_verify", [](sol::this_state ts, const std::string& hash, const std::string& input, sol::main_protected_function callback)
     {
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
+        auto weak = LuaState::WeakFrom(ts);
         auto state = weak.lock();
 
         if (state == nullptr)

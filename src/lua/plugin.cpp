@@ -201,7 +201,7 @@ struct Plugin::State
         lua_state->lua       = lua;
         lua_state->plugin_id = load_options.plugin_id;
 
-        lua.registry()["state"] = std::weak_ptr(lua_state);
+        LuaState::Attach(lua, lua_state);
 
         lua.globals()["print"] = &Print;
 

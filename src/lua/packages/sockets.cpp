@@ -4,6 +4,7 @@
 
 #include <boost/asio/ssl.hpp>
 
+#include "../pluginstate.hpp"
 #include "../types/potcpclient.hpp"
 
 using porla::Lua::Packages::Sockets;
@@ -16,10 +17,7 @@ sol::object Sockets::Load(sol::this_state ts)
 
     tbl.set_function("tcp_client", [](sol::this_state ts, std::optional<sol::table> options) -> std::shared_ptr<Types::PoTcpClient>
     {
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-        auto state = weak.lock();
+        auto state = LuaState::From(ts);
 
         if (state == nullptr)
         {
