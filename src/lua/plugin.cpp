@@ -8,7 +8,6 @@
 #include <boost/asio/post.hpp>
 #include <boost/log/trivial.hpp>
 #include <sol/sol.hpp>
-#include <sqlite3.h>
 
 #include "packages.hpp"
 #include "pluginsource.hpp"
@@ -35,12 +34,12 @@
 
 #include "../config.hpp"
 #include "../curlmulti.hpp"
+#include "../plugins.hpp"
 #include "../sessions/sessions.hpp"
 
 namespace fs = std::filesystem;
 
 using porla::Lua::Plugin;
-using porla::Lua::PluginLoadOptions;
 using porla::Lua::PluginSource;
 
 namespace
@@ -60,19 +59,17 @@ namespace
 
 struct Plugin::State
 {
-    PluginLoadOptions           load_options;
     PluginSource                source;
     sol::state                  lua;
     std::shared_ptr<LuaState>   lua_state;
     sol::table                  tbl;
 
-    State(const PluginLoadOptions& opts)
-        : load_options(opts)
+    State(const PluginsOptions& opts, int plugin_id)
     {
-        ConfigureLuaState();
+        ConfigureLuaState(opts, plugin_id);
     }
 
-    void ConfigureLuaState()
+    void ConfigureLuaState(const PluginsOptions& opts, int plugin_id)
     {
         lua.open_libraries(
             sol::lib::base,
@@ -183,25 +180,11 @@ struct Plugin::State
         sol::protected_function table_insert = lua["table"]["insert"];
         table_insert(searchers, 2, sol::make_object(lua, searcher));
 
-        lua_state = std::make_shared<LuaState>(
-            load_options.io,
-            load_options.hash_pool,
-            load_options.cfg,
-            load_options.events,
-            load_options.kv,
-            load_options.presets,
-            load_options.sessions,
-            load_options.torrents,
-            lua);
+        lua_state = std::make_shared<LuaState>(opts, plugin_id, lua);
 
-        lua_state->app       = load_options.http_server;
-        lua_state->curl      = load_options.curl_multi;
-        lua_state->db        = load_options.db;
-        lua_state->jsonrpc   = load_options.jsonrpc;
-        lua_state->lua       = lua;
-        lua_state->plugin_id = load_options.plugin_id;
-
-        LuaState::Attach(lua, lua_state);
+        LuaState::Attach(
+            lua,
+            lua_state);
 
         lua.globals()["print"] = &Print;
 
@@ -215,11 +198,19 @@ struct Plugin::State
 
 std::unique_ptr<Plugin> Plugin::Load(
     const PluginSource& source,
-    const PluginLoadOptions& opts)
+    const std::optional<std::string>& config,
+    const PluginsOptions& opts,
+    int plugin_id)
 {
+    if (source.sources.find(source.entrypoint) == source.sources.end())
+    {
+        BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Plugin entry point (" << source.entrypoint << ") not found";
+        return nullptr;
+    }
+
     try
     {
-        auto state = std::make_unique<State>(opts);
+        auto state = std::make_unique<State>(opts, plugin_id);
         state->source = source;
 
         sol::load_result chunk = state->lua.load_buffer(
@@ -230,99 +221,23 @@ std::unique_ptr<Plugin> Plugin::Load(
         if (!chunk.valid())
         {
             sol::error err = chunk;
-            BOOST_LOG_TRIVIAL(error) << "plugin[" << opts.plugin_id << "] Failed to load plugin: " << err.what();
+            BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Failed to load plugin: " << err.what();
             return nullptr;
         }
+
         sol::protected_function_result result = chunk.get<sol::protected_function>()();
 
         if (!result.valid())
         {
             BOOST_LOG_TRIVIAL(error)
-                << "plugin[" << opts.plugin_id << "] Failed to run plugin: " << DescribeError(result);
+                << "plugin[" << plugin_id << "] Failed to run plugin: " << DescribeError(result);
             return nullptr;
         }
 
         if (result.return_count() < 1 || result.get_type() != sol::type::table)
         {
             BOOST_LOG_TRIVIAL(error)
-                << "plugin[" << opts.plugin_id << "] Plugin did not return a table (got "
-                << sol::type_name(state->lua.lua_state(), result.get_type()) << ")";
-            return nullptr;
-        }
-
-        state->tbl = result.get<sol::table>();
-
-        sol::optional<sol::protected_function> init = state->tbl["init"];
-
-        if (init && init->valid())
-        {
-            sol::protected_function_result init_result = (*init)();
-
-            if (!init_result.valid())
-            {
-                BOOST_LOG_TRIVIAL(error) << "plugin[" << opts.plugin_id << "] Failed to run plugin initializer: " << DescribeError(init_result);
-                return nullptr;
-            }
-        }
-
-        return std::unique_ptr<Plugin>(new Plugin(std::move(state)));
-    }
-    catch (const std::exception& err)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Failed to load plugin: " << err.what();
-    }
-
-    return nullptr;
-}
-
-std::unique_ptr<Plugin> Plugin::Load(
-    const std::filesystem::path& path,
-    const std::optional<std::string>& config,
-    const PluginLoadOptions& opts)
-{
-    auto source = PluginSource::Load(path);
-
-    if (!source.has_value())
-    {
-        BOOST_LOG_TRIVIAL(error) << "plugin[" << opts.plugin_id << "] Failed to load plugin source from " << path;
-        return nullptr;
-    }
-
-    if (source->sources.find(source->entrypoint) == source->sources.end())
-    {
-        BOOST_LOG_TRIVIAL(error) << "plugin[" << opts.plugin_id << "] Plugin entry point (plugin.lua) not found for " << path;
-        return nullptr;
-    }
-
-    try
-    {
-        auto state = std::make_unique<State>(opts);
-        state->source = *source;
-
-        sol::load_result chunk = state->lua.load_buffer(
-            state->source.sources.at(state->source.entrypoint).data(),
-            state->source.sources.at(state->source.entrypoint).size(),
-            "@" + state->source.entrypoint);
-
-        if (!chunk.valid())
-        {
-            sol::error err = chunk;
-            BOOST_LOG_TRIVIAL(error) << "plugin[" << opts.plugin_id << "] Failed to load plugin: " << err.what();
-            return nullptr;
-        }
-        sol::protected_function_result result = chunk.get<sol::protected_function>()();
-
-        if (!result.valid())
-        {
-            BOOST_LOG_TRIVIAL(error)
-                << "plugin[" << opts.plugin_id << "] Failed to run plugin: " << DescribeError(result);
-            return nullptr;
-        }
-
-        if (result.return_count() < 1 || result.get_type() != sol::type::table)
-        {
-            BOOST_LOG_TRIVIAL(error)
-                << "plugin[" << opts.plugin_id << "] Plugin did not return a table (got "
+                << "plugin[" << plugin_id << "] Plugin did not return a table (got "
                 << sol::type_name(state->lua.lua_state(), result.get_type()) << ")";
             return nullptr;
         }
@@ -352,14 +267,14 @@ std::unique_ptr<Plugin> Plugin::Load(
                     }
                     else
                     {
-                        BOOST_LOG_TRIVIAL(error) << "plugin[" << opts.plugin_id << "] Failed to evaluate plugin config: " << DescribeError(config_value);
+                        BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Failed to evaluate plugin config: " << DescribeError(config_value);
                         return nullptr;
                     }
                 }
                 else
                 {
                     sol::error err = config_result;
-                    BOOST_LOG_TRIVIAL(error) << "plugin[" << opts.plugin_id << "] Failed to parse plugin config: " << err.what();
+                    BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Failed to parse plugin config: " << err.what();
                     return nullptr;
                 }
             }
@@ -368,7 +283,7 @@ std::unique_ptr<Plugin> Plugin::Load(
 
             if (!init_result.valid())
             {
-                BOOST_LOG_TRIVIAL(error) << "plugin[" << opts.plugin_id << "] Failed to run plugin initializer: " << DescribeError(init_result);
+                BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Failed to run plugin initializer: " << DescribeError(init_result);
                 return nullptr;
             }
         }
@@ -381,6 +296,29 @@ std::unique_ptr<Plugin> Plugin::Load(
     }
 
     return nullptr;
+}
+
+std::unique_ptr<Plugin> Plugin::Load(
+    const std::filesystem::path& path,
+    const std::optional<std::string>& config,
+    const PluginsOptions& opts,
+    int plugin_id)
+{
+    auto source = PluginSource::Load(path);
+
+    if (!source.has_value())
+    {
+        BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Failed to load plugin source from " << path;
+        return nullptr;
+    }
+
+    if (source->sources.find(source->entrypoint) == source->sources.end())
+    {
+        BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Plugin entry point (plugin.lua) not found for " << path;
+        return nullptr;
+    }
+
+    return Load(*source, config, opts, plugin_id);
 }
 
 Plugin::Plugin(std::unique_ptr<State> state)
@@ -406,7 +344,7 @@ Plugin::~Plugin()
             if (!result.valid())
             {
                 BOOST_LOG_TRIVIAL(error)
-                    << "plugin[" << m_state->load_options.plugin_id << "] Error in destroy: " << DescribeError(result);
+                    << "plugin[" << m_state->lua_state->plugin_id << "] Error in destroy: " << DescribeError(result);
             }
         }
     }

@@ -27,7 +27,6 @@ namespace porla
 namespace porla::Lua
 {
     class Plugin;
-    struct PluginLoadOptions;
     struct PluginSource;
 }
 
@@ -78,7 +77,6 @@ namespace porla
 
     private:
         void Load(int id);
-        Lua::PluginLoadOptions LoadOptions(int id) const;
         void Publish(const std::string& name, int id);
         void Unload(int id);
 
