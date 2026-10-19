@@ -405,6 +405,11 @@ namespace porla::Rpc::Methods::Plugins
                 throw Error(-3, "Plugin path does not exist");
             }
 
+            if (const auto existing = FindByPath(plugins, plugin_path, plugin->id))
+            {
+                throw Error(-4, "Plugin path is used by another plugin", {{"id", existing->id}});
+            }
+
             plugin->config   = req.config;
             plugin->path     = plugin_path.lexically_normal();
 
