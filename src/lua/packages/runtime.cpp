@@ -8,16 +8,10 @@ using porla::Lua::Packages::Runtime;
 
 sol::object Runtime::Load(sol::this_state ts)
 {
+    auto state = LuaState::From(ts);
+    if (state == nullptr) { return sol::lua_nil; }
+    
     sol::state_view lua(ts);
-
-    auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
-    auto state = weak.lock();
-
-    if (state == nullptr)
-    {
-        return sol::lua_nil;
-    }
-
     sol::table tbl = lua.create_table();
 
     sol::table args = lua.create_table();

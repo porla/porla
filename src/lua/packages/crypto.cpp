@@ -1,7 +1,9 @@
 #include "../packages.hpp"
 
+#include <boost/asio/co_spawn.hpp>
 #include <sodium.h>
 
+#include "../../auth/password.hpp"
 #include "../pluginstate.hpp"
 #include "../types/sohashstate.hpp"
 
@@ -11,12 +13,6 @@ namespace
 {
     constexpr unsigned char kSecretboxV1     = 0x01;
     constexpr std::size_t kSecretboxOverhead = 1 + crypto_secretbox_NONCEBYTES + crypto_secretbox_MACBYTES;
-
-    struct Zero
-    {
-        std::string value;
-        ~Zero() { if (!value.empty()) sodium_memzero(value.data(), value.size()); }
-    };
 }
 
 sol::object Crypto::Load(sol::this_state ts)
@@ -143,9 +139,7 @@ sol::object Crypto::Load(sol::this_state ts)
 
     tbl.set_function("pwhash", [](sol::this_state ts, std::string input, sol::main_protected_function callback)
     {
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
+        auto weak = LuaState::WeakFrom(ts);
         auto state = weak.lock();
 
         if (state == nullptr)
@@ -155,48 +149,27 @@ sol::object Crypto::Load(sol::this_state ts)
 
         const auto callback_id = state->RegisterCallback(callback, true);
 
-        boost::asio::post(
-            state->sodium_hash_pool,
-            [weak, work = boost::asio::make_work_guard(state->IoExecutor()), callback_id, password = Zero{std::move(input)}]() mutable
+        boost::asio::co_spawn(
+            state->IoExecutor(),
+            porla::Auth::Password::Hash(state->sodium_hash_pool, std::move(input)),
+            [weak, callback_id](std::exception_ptr e, std::optional<std::string> hashed)
             {
-                std::string password_hashed;
-                password_hashed.resize(crypto_pwhash_STRBYTES);
+                auto state = weak.lock();
+                if (state == nullptr) { return; }
 
-                int result = crypto_pwhash_str(
-                    password_hashed.data(),
-                    password.value.c_str(),
-                    password.value.size(),
-                    crypto_pwhash_OPSLIMIT_INTERACTIVE,
-                    crypto_pwhash_MEMLIMIT_INTERACTIVE);
+                if (e || !hashed.has_value())
+                {
+                    state->InvokeCallback(callback_id, "failed to hash password", sol::lua_nil);
+                    return;
+                }
 
-                password_hashed.resize(std::strlen(password_hashed.c_str()));
-
-                boost::asio::post(
-                    work.get_executor(),
-                    [weak, callback_id, password_hashed, result]()
-                    {
-                        auto state = weak.lock();
-                        if (state == nullptr) { return; }
-
-                        if (result != 0)
-                        {
-                            state->InvokeCallback(callback_id, "failed to hash password", sol::lua_nil);
-                        }
-                        else
-                        {
-                            state->InvokeCallback(callback_id, sol::lua_nil, password_hashed);
-                        }
-                    });
-
-                work.reset();
+                state->InvokeCallback(callback_id, sol::lua_nil, *hashed);
             });
     });
 
     tbl.set_function("pwhash_verify", [](sol::this_state ts, const std::string& hash, const std::string& input, sol::main_protected_function callback)
     {
-        sol::state_view lua(ts);
-
-        auto weak = lua.registry()["state"].get<std::weak_ptr<LuaState>>();
+        auto weak = LuaState::WeakFrom(ts);
         auto state = weak.lock();
 
         if (state == nullptr)
@@ -206,25 +179,21 @@ sol::object Crypto::Load(sol::this_state ts)
 
         const auto callback_id = state->RegisterCallback(callback, true);
 
-        boost::asio::post(
-            state->sodium_hash_pool,
-            [weak, work = boost::asio::make_work_guard(state->IoExecutor()), callback_id, hash = std::string(hash), password = std::string(input)]() mutable
+        boost::asio::co_spawn(
+            state->IoExecutor(),
+            porla::Auth::Password::Verify(state->sodium_hash_pool, hash, input),
+            [weak, callback_id](std::exception_ptr e, std::tuple<bool, bool> result)
             {
-                int result = crypto_pwhash_str_verify(
-                    hash.c_str(),
-                    password.c_str(),
-                    password.size());
+                auto state = weak.lock();
+                if (state == nullptr) { return; }
 
-                boost::asio::post(
-                    work.get_executor(),
-                    [weak, callback_id, result]()
-                    {
-                        auto state = weak.lock();
-                        if (state == nullptr) { return; }
-                        state->InvokeCallback(callback_id, sol::lua_nil, result == 0);
-                    });
+                if (e)
+                {
+                    state->InvokeCallback(callback_id, "failed to verify password", sol::lua_nil);
+                    return;
+                }
 
-                work.reset();
+                state->InvokeCallback(callback_id, sol::lua_nil, std::get<0>(result));
             });
     });
 

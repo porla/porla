@@ -89,7 +89,7 @@ void Plugins::Remove(int id)
 
 void Plugins::SetCore(const Lua::PluginSource& source)
 {
-    std::unique_ptr<Lua::Plugin> core_plugin = Lua::Plugin::Load(source, LoadOptions(0));
+    std::unique_ptr<Lua::Plugin> core_plugin = Lua::Plugin::Load(source, std::nullopt, m_options, 0);
 
     if (core_plugin == nullptr)
     {
@@ -127,7 +127,8 @@ void Plugins::Load(int id)
     std::unique_ptr<Lua::Plugin> loaded_plugin = Lua::Plugin::Load(
         plugin->path,
         plugin->config,
-        LoadOptions(id));
+        m_options,
+        id);
 
     if (loaded_plugin == nullptr)
     {
@@ -140,25 +141,6 @@ void Plugins::Load(int id)
     BOOST_LOG_TRIVIAL(info) << "plugin[" << id << "] Loaded from " << plugin->path;
 
     Publish("plugin.loaded", id);
-}
-
-porla::Lua::PluginLoadOptions Plugins::LoadOptions(int id) const
-{
-    return Lua::PluginLoadOptions{
-        .cfg         = m_options.cfg,
-        .curl_multi  = m_options.curl_multi,
-        .db          = m_options.db,
-        .events      = m_options.events,
-        .kv          = m_options.kv,
-        .hash_pool   = m_options.hash_pool,
-        .http_server = m_options.http_server,
-        .jsonrpc     = m_options.jsonrpc,
-        .io          = m_options.io,
-        .plugin_id   = id,
-        .presets     = m_options.presets,
-        .sessions    = m_options.sessions,
-        .torrents    = m_options.torrents
-    };
 }
 
 void Plugins::Publish(const std::string& name, int id)

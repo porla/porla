@@ -37,7 +37,7 @@ std::tuple<sol::object, sol::object> PoTorrentsHandle::Add(sol::this_state ts, c
     sol::state_view lua(ts);
 
     auto session   = m_weak_session.lock();
-    auto lua_state = lua.registry()["state"].get<std::weak_ptr<porla::Lua::LuaState>>().lock();
+    auto lua_state = LuaState::From(ts);
 
     if (session == nullptr || lua_state == nullptr)
     {

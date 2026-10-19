@@ -237,10 +237,7 @@ void LtTorrentHandle::Register(sol::state& lua)
                 return nullptr;
             }
 
-            sol::state_view lua(ts);
-
-            auto weak = lua.registry()["state"].get<std::weak_ptr<porla::Lua::LuaState>>();
-            auto state = weak.lock();
+            auto state = LuaState::From(ts);
 
             if (state == nullptr)
             {

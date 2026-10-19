@@ -1,6 +1,13 @@
 #pragma once
 
+#include <functional>
+
 #include <sol/sol.hpp>
+
+namespace porla::Lua
+{
+    struct LuaState;
+}
 
 namespace porla::Lua::Types
 {
@@ -8,7 +15,10 @@ namespace porla::Lua::Types
     {
         static void Register(sol::state& lua);
 
-        virtual ~PoCancellable() {}
-        virtual void Cancel(sol::this_state ts) = 0;
+        explicit PoCancellable(std::function<void(LuaState&)> cancel);
+        void Cancel(sol::this_state ts);
+
+    private:
+        std::function<void(LuaState&)> m_cancel;
     };
 }
