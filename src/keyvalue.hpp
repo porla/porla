@@ -6,8 +6,6 @@
 #include <nlohmann/json.hpp>
 #include <sqlite3.h>
 
-#include "keyvalueevent.hpp"
-
 namespace porla
 {
     class Events;

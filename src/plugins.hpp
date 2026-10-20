@@ -11,7 +11,6 @@
 #include <uWebSockets/App.h>
 
 #include "data/models/plugins.hpp"
-#include "pluginevent.hpp"
 
 namespace porla
 {

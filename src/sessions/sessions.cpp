@@ -9,7 +9,6 @@
 #include "../data/models/presets.hpp"
 #include "../data/transaction.hpp"
 #include "../events.hpp"
-#include "../presetevent.hpp"
 
 using porla::Data::Transaction;
 using porla::Session;
@@ -150,9 +149,7 @@ void Sessions::Remove(int id)
 
     for (const auto preset_id : preset_ids)
     {
-        PresetEvent preset_updated("preset.updated");
-        preset_updated.preset_id = preset_id;
-
+        Event preset_updated("preset.updated", {{ "preset_id", preset_id }});
         m_options.events.Publish(std::move(preset_updated));
     }
 
