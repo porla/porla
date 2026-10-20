@@ -15,6 +15,30 @@ using porla::TorrentClientData;
 
 namespace
 {
+    template<typename T>
+    static std::string ToString(const T &hash)
+    {
+        std::stringstream ss;
+        ss << hash;
+        return ss.str();
+    }
+
+    const std::string kMatchTorrent = R"sql(
+        (session_id = $session_id AND info_hash_v1 = $info_hash_v1
+            AND (info_hash_v2 IS NULL OR info_hash_v2 = $info_hash_v2))
+        OR
+        (session_id = $session_id AND info_hash_v2 = $info_hash_v2
+            AND (info_hash_v1 IS NULL OR info_hash_v1 = $info_hash_v1))
+    )sql";
+
+    Statement& BindTorrent(Statement& stmt, const int session_id, const lt::info_hash_t& hash)
+    {
+        return stmt
+            .Bind("$info_hash_v1", hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
+            .Bind("$info_hash_v2", hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
+            .Bind("$session_id",   session_id);
+    }
+
     std::shared_ptr<lt::torrent_info> ReadInfo(const std::vector<char>& buffer, const lt::info_hash_t& expected)
     {
         const lt::load_torrent_limits cfg{};
@@ -104,14 +128,6 @@ namespace
         return params;
     }
 
-    template<typename T>
-    static std::string ToString(const T &hash)
-    {
-        std::stringstream ss;
-        ss << hash;
-        return ss.str();
-    }
-
     std::vector<char> WriteCleanResumeData(const lt::add_torrent_params& params)
     {
         lt::entry rd = lt::write_resume_data(params);
@@ -135,18 +151,10 @@ namespace
             SELECT id, $info
             FROM addtorrentparams
             WHERE
-                (session_id = $session_id AND info_hash_v1 = $info_hash_v1
-                    AND (info_hash_v2 IS NULL OR info_hash_v2 = $info_hash_v2))
-                OR
-                (session_id = $session_id AND info_hash_v2 = $info_hash_v2
-                    AND (info_hash_v1 IS NULL OR info_hash_v1 = $info_hash_v1))
-            )sql");
+            )sql" + kMatchTorrent);
 
-        stmt
-            .Bind("$info",         info)
-            .Bind("$info_hash_v1", hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
-            .Bind("$info_hash_v2", hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
-            .Bind("$session_id",   session_id)
+        BindTorrent(stmt, session_id, hash)
+            .Bind("$info", info)
             .Execute();
     }
 
@@ -194,10 +202,8 @@ void AddTorrentParams::Insert(sqlite3 *db, const int session_id, const lt::info_
             $userdata
         );
         )sql");
-    stmt
-        .Bind("$info_hash_v1", hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
-        .Bind("$info_hash_v2", hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
-        .Bind("$session_id", session_id)
+
+    BindTorrent(stmt, session_id, hash)
         .Bind("$queue_position", queue_pos)
         .Bind("$params", buf)
         .Bind("$userdata", userdata)
@@ -290,18 +296,9 @@ void AddTorrentParams::Remove(sqlite3 *db, const int session_id, const lt::info_
         WHERE id IN (
             SELECT id FROM addtorrentparams
             WHERE
-                (session_id = $session_id AND info_hash_v1 = $info_hash_v1
-                    AND (info_hash_v2 IS NULL OR info_hash_v2 = $info_hash_v2))
-                OR
-                (session_id = $session_id AND info_hash_v2 = $info_hash_v2
-                    AND (info_hash_v1 IS NULL OR info_hash_v1 = $info_hash_v1))
-        )
-        )sql");
+        )sql" + kMatchTorrent + ")");
 
-    info_stmt
-        .Bind("$info_hash_v1", hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
-        .Bind("$info_hash_v2", hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
-        .Bind("$session_id",   session_id)
+    BindTorrent(info_stmt, session_id, hash)
         .Execute();
 
     auto stmt = Statement::Prepare(
@@ -309,17 +306,9 @@ void AddTorrentParams::Remove(sqlite3 *db, const int session_id, const lt::info_
         R"sql(
         DELETE FROM addtorrentparams
         WHERE
-            (session_id = $session_id AND info_hash_v1 = $info_hash_v1
-                AND (info_hash_v2 IS NULL OR info_hash_v2 = $info_hash_v2))
-            OR
-            (session_id = $session_id AND info_hash_v2 = $info_hash_v2
-                AND (info_hash_v1 IS NULL OR info_hash_v1 = $info_hash_v1))
-        )sql");
+        )sql" + kMatchTorrent);
 
-    stmt
-        .Bind("$info_hash_v1", hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
-        .Bind("$info_hash_v2", hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
-        .Bind("$session_id",   session_id)
+    BindTorrent(stmt, session_id, hash)
         .Execute();
 }
 
@@ -340,19 +329,11 @@ void AddTorrentParams::Update(sqlite3 *db, const int session_id, const lt::info_
             params         = $params,
             userdata       = COALESCE($userdata, userdata)
         WHERE
-            (session_id = $session_id AND info_hash_v1 = $info_hash_v1
-                AND (info_hash_v2 IS NULL OR info_hash_v2 = $info_hash_v2))
-            OR
-            (session_id = $session_id AND info_hash_v2 = $info_hash_v2
-                AND (info_hash_v1 IS NULL OR info_hash_v1 = $info_hash_v1))
-        )sql");
+        )sql" + kMatchTorrent);
 
-    stmt
+    BindTorrent(stmt, session_id, hash)
         .Bind("$queue_position", queue_pos)
         .Bind("$params",         buf)
-        .Bind("$info_hash_v1",   hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
-        .Bind("$info_hash_v2",   hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
-        .Bind("$session_id",     session_id)
         .Bind("$userdata",       userdata)
         .Execute();
 
@@ -373,17 +354,9 @@ void AddTorrentParams::UpdateClientData(sqlite3 *db, const int session_id, const
         SET
             userdata       = $userdata
         WHERE
-            (session_id = $session_id AND info_hash_v1 = $info_hash_v1
-                AND (info_hash_v2 IS NULL OR info_hash_v2 = $info_hash_v2))
-            OR
-            (session_id = $session_id AND info_hash_v2 = $info_hash_v2
-                AND (info_hash_v1 IS NULL OR info_hash_v1 = $info_hash_v1))
-        )sql");
+        )sql" + kMatchTorrent);
 
-    stmt
-        .Bind("$userdata",       userdata_str)
-        .Bind("$info_hash_v1",   hash.has_v1() ? std::optional(ToString(hash.v1)) : std::nullopt)
-        .Bind("$info_hash_v2",   hash.has_v2() ? std::optional(ToString(hash.v2)) : std::nullopt)
-        .Bind("$session_id",     session_id)
+    BindTorrent(stmt, session_id, hash)
+        .Bind("$userdata", userdata_str)
         .Execute();
 }
