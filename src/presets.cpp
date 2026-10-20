@@ -3,7 +3,6 @@
 #include "events.hpp"
 
 using porla::Presets;
-using porla::PresetEvent;
 
 using Model = porla::Data::Models::Presets;
 
@@ -16,8 +15,7 @@ int Presets::Add(const std::string& name)
 {
     const int id = Model::Insert(m_options.db, name);
 
-    PresetEvent event("preset.added");
-    event.preset_id = id;
+    Event event("preset.added", {{ "preset_id", id }});
     m_options.events.Publish(std::move(event));
 
     return id;
@@ -63,8 +61,10 @@ void Presets::Remove(int id)
 
     Model::Remove(m_options.db, id);
 
-    PresetEvent event("preset.removed", { { "preset_name", preset->name } });
-    event.preset_id = id;
+    Event event("preset.removed", {
+        { "preset_id", id },
+        { "preset_name", preset->name }
+    });
 
     m_options.events.Publish(std::move(event));
 }
@@ -86,8 +86,6 @@ void Presets::Update(const Presets::Preset& preset)
 
 void Presets::PublishUpdated(int id)
 {
-    PresetEvent event("preset.updated");
-    event.preset_id = id;
-
+    Event event("preset.updated", {{ "preset_id", id }});
     m_options.events.Publish(std::move(event));
 }

@@ -5,9 +5,6 @@
 #include <boost/signals2.hpp>
 
 #include "../../events.hpp"
-#include "../../keyvalueevent.hpp"
-#include "../../pluginevent.hpp"
-#include "../../presetevent.hpp"
 #include "../../sessions/sessionevent.hpp"
 #include "../../sessions/torrentevent.hpp"
 
@@ -93,21 +90,6 @@ namespace
             }
         }
 
-        if (const auto* kv_event = dynamic_cast<const porla::KeyValueEvent*>(&event))
-        {
-            tbl["keys"] = sol::as_table(kv_event->keys);
-        }
-
-        if (const auto* plugin_event = dynamic_cast<const porla::PluginEvent*>(&event))
-        {
-            tbl["plugin_id"] = plugin_event->plugin_id;
-        }
-
-        if (const auto* preset_event = dynamic_cast<const porla::PresetEvent*>(&event))
-        {
-            tbl["preset_id"] = preset_event->preset_id;
-        }
-
         return tbl;
     }
 
@@ -159,12 +141,10 @@ sol::object porla::Lua::Packages::Events::Load(sol::this_state ts)
                 if (state == nullptr) { return; }
 
                 // a plugin never receives plugin events about itself
-                if (const auto* plugin_event = dynamic_cast<const porla::PluginEvent*>(&event))
+                if (event.name.starts_with("plugin.")
+                    && event.data.value("plugin_id", -1) == state->plugin_id)
                 {
-                    if (plugin_event->plugin_id == state->plugin_id)
-                    {
-                        return;
-                    }
+                    return;
                 }
 
                 state->InvokeCallback(callback_id, EventCache(*state, event));

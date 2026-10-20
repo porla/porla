@@ -92,7 +92,7 @@ namespace porla::Rpc::Methods::Mmdb
         auto state = std::make_shared<State>(kv);
         state->reload = events.On("kv.updated", [weak = std::weak_ptr(state)](const Event& event)
         {
-            const auto& keys = static_cast<const KeyValueEvent&>(event).keys;
+            const auto& keys = event.data.at("keys");
 
             if (auto s = weak.lock(); s && std::ranges::find(keys, "porla.mmdb.path") != keys.end())
             {

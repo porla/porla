@@ -8,7 +8,6 @@
 #include "events.hpp"
 #include "lua/plugin.hpp"
 
-using porla::PluginEvent;
 using porla::Plugins;
 using porla::PluginsOptions;
 
@@ -81,8 +80,10 @@ void Plugins::Remove(int id)
 
     Model::Remove(m_options.db, id);
 
-    PluginEvent event("plugin.removed", {{ "plugin_path", plugin->path }});
-    event.plugin_id = id;
+    Event event("plugin.removed", {
+        { "plugin_id", id },
+        { "plugin_path", plugin->path }
+    });
 
     m_options.events.Publish(std::move(event));
 }
@@ -145,9 +146,7 @@ void Plugins::Load(int id)
 
 void Plugins::Publish(const std::string& name, int id)
 {
-    PluginEvent event(name);
-    event.plugin_id = id;
-
+    Event event(name, {{ "plugin_id", id }});
     m_options.events.Publish(std::move(event));
 }
 

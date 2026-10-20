@@ -7,7 +7,6 @@
 #include <sqlite3.h>
 
 #include "data/models/presets.hpp"
-#include "presetevent.hpp"
 
 namespace porla
 {
