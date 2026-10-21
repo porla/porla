@@ -234,7 +234,12 @@ void Statement::Execute()
     throw std::runtime_error("Unexpected SQLite return code for Execute: " + std::to_string(res));
 }
 
-void Statement::Step(const std::function<int(const Statement::IRow&)>& cb)
+void Statement::Step(const std::function<void(const Statement::IRow&)>& cb)
+{
+    Run(cb, false);
+}
+
+void Statement::Run(const std::function<void(const Statement::IRow&)>& cb, bool first_only)
 {
     std::map<std::string, int> cols;
 
@@ -253,6 +258,12 @@ void Statement::Step(const std::function<int(const Statement::IRow&)>& cb)
         {
             InternalRow r(m_stmt, cols);
             cb(r);
+
+            if (first_only)
+            {
+                return;
+            }
+
             break;
         }
         default:

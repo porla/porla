@@ -73,75 +73,35 @@ static Presets::Preset LoadFromRow(const porla::Data::Statement::IRow &row)
 
 std::vector<int> Presets::ClearSessions(sqlite3* db, int session_id)
 {
-    std::vector<int> preset_ids;
-
-    Statement::Prepare(db, "UPDATE presets SET session_id = NULL WHERE session_id = $session_id RETURNING id")
+    return Statement::Prepare(db, "UPDATE presets SET session_id = NULL WHERE session_id = $session_id RETURNING id")
         .Bind("$session_id", session_id)
-        .Step([&preset_ids](const auto& row)
-        {
-            preset_ids.push_back(row.GetInt32("id"));
-            return SQLITE_OK;
-        });
-
-    return preset_ids;
+        .All([](const auto& row) { return row.GetInt32("id"); });
 }
 
 void Presets::ForEach(sqlite3 *db, const std::function<void(const Presets::Preset &)> &cb)
 {
     Statement::Prepare(db, PresetSelectPrefix + " ORDER BY name ASC")
-        .Step(
-            [&cb](auto const &row)
-            {
-                cb(LoadFromRow(row));
-                return SQLITE_OK;
-            });
+        .Step([&cb](auto const &row) { cb(LoadFromRow(row)); });
 }
 
 std::optional<Presets::Preset> Presets::GetById(sqlite3 *db, int id)
 {
-    std::optional<Preset> preset;
-
-    Statement::Prepare(db, PresetSelectPrefix + " WHERE id = $id")
+    return Statement::Prepare(db, PresetSelectPrefix + " WHERE id = $id")
         .Bind("$id", id)
-        .Step(
-            [&preset](auto const &row)
-            {
-                preset = LoadFromRow(row);
-                return SQLITE_OK;
-            });
-
-    return preset;
+        .One(LoadFromRow);
 }
 
 std::optional<Presets::Preset> Presets::GetByName(sqlite3 *db, const std::string& name)
 {
-    std::optional<Preset> preset;
-
-    Statement::Prepare(db, PresetSelectPrefix + " WHERE name = $name")
+    return Statement::Prepare(db, PresetSelectPrefix + " WHERE name = $name")
         .Bind("$name", name)
-        .Step(
-            [&preset](auto const &row)
-            {
-                preset = LoadFromRow(row);
-                return SQLITE_OK;
-            });
-
-    return preset;
+        .One(LoadFromRow);
 }
 
 std::optional<Presets::Preset> Presets::GetDefault(sqlite3 *db)
 {
-    std::optional<Preset> preset;
-
-    Statement::Prepare(db, PresetSelectPrefix + " WHERE is_default = 1")
-        .Step(
-            [&preset](auto const &row)
-            {
-                preset = LoadFromRow(row);
-                return SQLITE_OK;
-            });
-
-    return preset;
+    return Statement::Prepare(db, PresetSelectPrefix + " WHERE is_default = 1")
+        .One(LoadFromRow);
 }
 
 int Presets::Insert(sqlite3 *db, const std::string& name)

@@ -14,16 +14,9 @@
 
 int GetUserVersion(sqlite3* db)
 {
-    int version = 0;
-
-    porla::Data::Statement::Prepare(db, "PRAGMA user_version;")
-        .Step([&version](const auto& row)
-        {
-            version = row.GetInt32("user_version");
-            return SQLITE_OK;
-        });
-
-    return version;
+    return porla::Data::Statement::Prepare(db, "PRAGMA user_version;")
+        .One([](const auto& row) { return row.GetInt32("user_version"); })
+        .value_or(0);
 }
 
 int SetUserVersion(sqlite3* db, int version)

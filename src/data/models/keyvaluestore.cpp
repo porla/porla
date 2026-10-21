@@ -7,18 +7,10 @@ using porla::Data::Statement;
 
 nlohmann::json KeyValueStore::Get(sqlite3* db, const std::string& key)
 {
-    nlohmann::json value;
-
-    auto stmt = Statement::Prepare(db, "SELECT value FROM kvs WHERE key = $key");
-    stmt.Bind("$key", key);
-    stmt.Step(
-        [&value](const auto& row)
-        {
-            value = nlohmann::json::parse(row.GetBuffer("value"));
-            return SQLITE_OK;
-        });
-
-    return value;
+    return Statement::Prepare(db, "SELECT value FROM kvs WHERE key = $key")
+        .Bind("$key", key)
+        .One([](const auto& row) { return nlohmann::json::parse(row.GetBuffer("value")); })
+        .value_or(nlohmann::json());
 }
 
 bool KeyValueStore::Set(sqlite3* db, const std::string& key, const nlohmann::json& value)
