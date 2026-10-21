@@ -21,17 +21,9 @@ namespace
 
 std::optional<ApiKeys::ApiKey> ApiKeys::GetById(sqlite3* db, std::string_view id)
 {
-    std::optional<ApiKey> result;
-
-    Statement::Prepare(db, "SELECT id,name,secret_hash,created_at,expires_at FROM apikeys WHERE id = $id")
+    return Statement::Prepare(db, "SELECT id,name,secret_hash,created_at,expires_at FROM apikeys WHERE id = $id")
         .Bind("$id", id)
-        .Step([&result](const Statement::IRow& row)
-        {
-            result = LoadFromRow(row);
-            return SQLITE_OK;
-        });
-
-    return result;
+        .One(LoadFromRow);
 }
 
 void ApiKeys::Insert(
@@ -69,21 +61,11 @@ void ApiKeys::Insert(
 
 std::vector<ApiKeys::ApiKey> ApiKeys::List(sqlite3* db)
 {
-    std::vector<ApiKey> result;
-
-    auto stmt = Statement::Prepare(
+    return Statement::Prepare(
         db,
         R"sql(
         SELECT id,name,secret_hash,created_at,expires_at FROM apikeys ORDER BY name ASC
-        )sql");
-
-    stmt.Step([&result](const auto& row)
-    {
-        result.emplace_back(LoadFromRow(row));
-        return SQLITE_OK;
-    });
-
-    return result;
+        )sql").All(LoadFromRow);
 }
 
 void ApiKeys::Remove(sqlite3* db, std::string_view id)

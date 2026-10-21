@@ -28,17 +28,9 @@ static Plugins::Plugin LoadFromRow(const porla::Data::Statement::IRow &row)
 
 std::optional<Plugins::Plugin> Plugins::GetById(sqlite3* db, int id)
 {
-    std::optional<Plugin> plugin = std::nullopt;
-
-    Statement::Prepare(db, PluginsSelectPrefix + "WHERE id = $id")
+    return Statement::Prepare(db, PluginsSelectPrefix + "WHERE id = $id")
         .Bind("$id", id)
-        .Step([&plugin](const auto& row)
-        {
-            plugin = LoadFromRow(row);
-            return SQLITE_OK;
-        });
-
-    return plugin;
+        .One(LoadFromRow);
 }
 
 int Plugins::Insert(sqlite3* db, const Plugins::Plugin& plugin)
@@ -61,16 +53,8 @@ int Plugins::Insert(sqlite3* db, const Plugins::Plugin& plugin)
 
 std::vector<Plugins::Plugin> Plugins::List(sqlite3* db)
 {
-    std::vector<Plugin> plugins;
-
-    Statement::Prepare(db, PluginsSelectPrefix + " ORDER BY id ASC")
-        .Step([&plugins](const auto& row)
-        {
-            plugins.emplace_back(LoadFromRow(row));
-            return SQLITE_OK;
-        });
-
-    return plugins;
+    return Statement::Prepare(db, PluginsSelectPrefix + " ORDER BY id ASC")
+        .All(LoadFromRow);
 }
 
 void Plugins::Remove(sqlite3* db, int id)

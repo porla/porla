@@ -6,38 +6,24 @@ using porla::Data::Models::Users;
 
 bool Users::Any(sqlite3* db)
 {
-    bool any = false;
-
-    Statement::Prepare(db, "SELECT COUNT(*) AS count FROM users")
-        .Step(
-            [&any](auto const& row)
-            {
-                any = row.GetInt32("count") > 0;
-                return SQLITE_OK;
-            });
-
-    return any;
+    return Statement::Prepare(db, "SELECT COUNT(*) AS count FROM users")
+        .One([](auto const& row) { return row.GetInt32("count") > 0; })
+        .value_or(false);
 }
 
 std::optional<Users::User> Users::GetByUsername(sqlite3* db, const std::string& username)
 {
-    std::optional<User> user;
-
-    Statement::Prepare(db, "SELECT id,username,password FROM users WHERE username = $username")
+    return Statement::Prepare(db, "SELECT id,username,password FROM users WHERE username = $username")
         .Bind("$username", username)
-        .Step(
-            [&user](auto const& row)
+        .One(
+            [](auto const& row)
             {
-                user = User{
+                return User{
                     .id              = row.GetInt32("id"),
                     .username        = row.GetStdString("username"),
                     .password_hashed = row.GetStdString("password")
                 };
-
-                return SQLITE_OK;
             });
-
-    return user;
 }
 
 void Users::Insert(sqlite3* db, const porla::Data::Models::Users::User &user)

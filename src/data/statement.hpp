@@ -5,6 +5,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <sqlite3.h>
@@ -49,10 +50,29 @@ namespace porla::Data
         }
 
         void Execute();
-        void Step(const std::function<int(const IRow&)>& cb);
+        void Step(const std::function<void(const IRow&)>& cb);
+
+        // Maps the first row, if any, without stepping further.
+        template <typename F>
+        auto One(F&& map) -> std::optional<std::invoke_result_t<F&, const IRow&>>
+        {
+            std::optional<std::invoke_result_t<F&, const IRow&>> result;
+            Run([&](const IRow& row) { result.emplace(map(row)); }, true);
+            return result;
+        }
+
+        template <typename F>
+        auto All(F&& map) -> std::vector<std::invoke_result_t<F&, const IRow&>>
+        {
+            std::vector<std::invoke_result_t<F&, const IRow&>> result;
+            Run([&](const IRow& row) { result.push_back(map(row)); }, false);
+            return result;
+        }
 
     private:
         explicit Statement(sqlite3_stmt* stmt);
+
+        void Run(const std::function<void(const IRow&)>& cb, bool first_only);
 
         Statement& Check(int res, const std::string& param);
         int Index(const std::string& param) const;

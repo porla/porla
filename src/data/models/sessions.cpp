@@ -58,49 +58,22 @@ static Sessions::Session LoadSessionFromRow(const Statement::IRow& row)
 
 std::optional<Sessions::Session> Sessions::GetDefault(sqlite3* db)
 {
-    std::optional<Sessions::Session> session;
-
-    Statement::Prepare(db, SessionsSelectPrefix + " WHERE is_default = 1")
-        .Step(
-            [&session](auto const& row)
-            {
-                session = LoadSessionFromRow(row);
-                return SQLITE_OK;
-            });
-
-    return session;
+    return Statement::Prepare(db, SessionsSelectPrefix + " WHERE is_default = 1")
+        .One(LoadSessionFromRow);
 }
 
 std::optional<Sessions::Session> Sessions::GetById(sqlite3* db, int id)
 {
-    std::optional<Sessions::Session> session;
-
-    Statement::Prepare(db, SessionsSelectPrefix + " WHERE id = $id")
+    return Statement::Prepare(db, SessionsSelectPrefix + " WHERE id = $id")
         .Bind("$id", id)
-        .Step(
-            [&session](auto const& row)
-            {
-                session = LoadSessionFromRow(row);
-                return SQLITE_OK;
-            });
-
-    return session;
+        .One(LoadSessionFromRow);
 }
 
 std::optional<Sessions::Session> Sessions::GetByName(sqlite3* db, const std::string& name)
 {
-    std::optional<Sessions::Session> session;
-
-    Statement::Prepare(db, SessionsSelectPrefix + " WHERE name = $name")
+    return Statement::Prepare(db, SessionsSelectPrefix + " WHERE name = $name")
         .Bind("$name", name)
-        .Step(
-            [&session](auto const& row)
-            {
-                session = LoadSessionFromRow(row);
-                return SQLITE_OK;
-            });
-
-    return session;
+        .One(LoadSessionFromRow);
 }
 
 int Sessions::Insert(sqlite3* db, const Sessions::Session& session)
@@ -145,17 +118,8 @@ int Sessions::Insert(sqlite3* db, const Sessions::Session& session)
 
 std::vector<Sessions::Session> Sessions::List(sqlite3* db)
 {
-    std::vector<Sessions::Session> sessions;
-
-    Statement::Prepare(db, SessionsSelectPrefix + " ORDER BY name ASC")
-        .Step(
-            [&sessions](const auto& row)
-            {
-                sessions.emplace_back(LoadSessionFromRow(row));
-                return SQLITE_OK;
-            });
-
-    return sessions;
+    return Statement::Prepare(db, SessionsSelectPrefix + " ORDER BY name ASC")
+        .All(LoadSessionFromRow);
 }
 
 void Sessions::Remove(sqlite3* db, int id)

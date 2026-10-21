@@ -162,18 +162,10 @@ namespace
 
 int AddTorrentParams::Count(sqlite3 *db, const int session_id)
 {
-    int count = 0;
-
-    auto stmt = Statement::Prepare(db, "SELECT COUNT(*) AS count FROM addtorrentparams WHERE session_id = $session_id");
-    stmt.Bind("$session_id", session_id);
-    stmt.Step(
-        [&](const Statement::IRow& row)
-        {
-            count = row.GetInt32("count");
-            return SQLITE_OK;
-        });
-
-    return count;
+    return Statement::Prepare(db, "SELECT COUNT(*) AS count FROM addtorrentparams WHERE session_id = $session_id")
+        .Bind("$session_id", session_id)
+        .One([](const Statement::IRow& row) { return row.GetInt32("count"); })
+        .value_or(0);
 }
 
 void AddTorrentParams::Insert(sqlite3 *db, const int session_id, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const TorrentClientData& client_data, const int queue_pos)
@@ -266,8 +258,6 @@ bool AddTorrentParams::Next(
         {
             cb(params.value());
         }
-
-        return SQLITE_OK;
     });
 
     if (rows > 0)
