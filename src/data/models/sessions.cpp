@@ -39,6 +39,7 @@ static Sessions::Session LoadSessionFromRow(const Statement::IRow& row)
         ? lt::read_session_params(params_buffer)
         : lt::session_params();
 
+    LibtorrentSettingsPack::Sanitize(params.settings);
     LibtorrentSettingsPack::UpdateStatic(params.settings);
 
     return Sessions::Session{

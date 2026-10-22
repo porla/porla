@@ -21,6 +21,11 @@ void PoSessionHandle::Register(sol::state& lua)
         },
         "apply_settings", [](const PoSessionHandle& session, lt::settings_pack& sp)
         {
+            if (const auto invalid = Utils::LibtorrentSettingsPack::Validate(sp))
+            {
+                throw sol::error("invalid value for setting '" + *invalid + "'");
+            }
+
             Utils::LibtorrentSettingsPack::UpdateStatic(sp);
 
             auto s = session.Lock();

@@ -213,6 +213,11 @@ namespace porla::Rpc::Methods::Sessions
                 settings,
                 req.settings.value_or(std::map<std::string, nlohmann::json>()));
 
+            if (const auto invalid = Utils::LibtorrentSettingsPack::Validate(settings))
+            {
+                throw Error(-32602, "Invalid setting value", {{"field", "settings." + *invalid}});
+            }
+
             const auto session = porla::Sessions::Record{
                 .id                    = -1,
                 .name                  = req.name,
@@ -341,6 +346,11 @@ namespace porla::Rpc::Methods::Sessions
             const auto resolved = ResolveSession(sessions, req.id);
 
             lt::settings_pack settings = req.settings;
+
+            if (const auto invalid = Utils::LibtorrentSettingsPack::Validate(settings))
+            {
+                throw Error(-32602, "Invalid setting value", {{"field", "settings." + *invalid}});
+            }
 
             Utils::LibtorrentSettingsPack::UpdateStatic(settings);
 
