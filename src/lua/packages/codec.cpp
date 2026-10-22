@@ -5,6 +5,8 @@
 
 #include "../types/pojson.hpp"
 
+#include "../../json/utils.hpp"
+
 using porla::Lua::Packages::Codec;
 
 namespace
@@ -105,7 +107,7 @@ sol::object Codec::Load(sol::this_state ts)
 
         try
         {
-            parsed_json = nlohmann::json::parse(data);
+            parsed_json = Json::Parse(data);
             return std::make_tuple(Types::PoJson::ToLua(ts, parsed_json, 0), std::nullopt);
         }
         catch (const std::exception& ex)
