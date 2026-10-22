@@ -7,6 +7,7 @@
 #include <string>
 
 #include <boost/asio/io_context.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <libtorrent/session.hpp>
 #include <nlohmann/json.hpp>
 #include <sqlite3.h>
@@ -99,6 +100,10 @@ namespace porla
         // takes ownership of the userdata even on fail.
         bool Add(lt::add_torrent_params params, Torrent::State state = Torrent::State::Adding);
 
+        // marks the torrent as dirty and starts a debounced timer for saving state for marked torrents.
+        // force saves even when libtorrent tracks no change, e.g. after a queue move.
+        void MarkDirty(const lt::info_hash_t& hash, bool force = false);
+
         // process pending libtorrent alerts
         void ReadAlerts();
 
@@ -115,6 +120,7 @@ namespace porla
         void OnAddTorrentAlert(const lt::add_torrent_alert* alert);
         void OnAlertsDroppedAlert(const lt::alerts_dropped_alert* alert);
         void OnDhtStatsAlert(const lt::dht_stats_alert* alert);
+        void OnFileRenamedAlert(const lt::file_renamed_alert* alert);
         void OnListenFailedAlert(const lt::listen_failed_alert* alert);
         void OnListenSucceededAlert(const lt::listen_succeeded_alert* alert);
         void OnMetadataReceivedAlert(const lt::metadata_received_alert* alert);
@@ -132,6 +138,8 @@ namespace porla
         void OnTrackerErrorAlert(const lt::tracker_error_alert* alert);
 
         void MetadataReceived(const lt::torrent_handle& th, Torrent* torrent);
+
+        void SaveDirty();
 
         bool Track(const lt::torrent_status& status);
 
@@ -156,5 +164,10 @@ namespace porla
         std::map<lt::info_hash_t, Torrent> m_torrents;
         std::unique_ptr<AlertDispatcher>   m_alert_dispatcher;
         std::unique_ptr<Scheduler>         m_jobs;
+
+        // hash -> force, see MarkDirty
+        std::map<lt::info_hash_t, bool>    m_dirty;
+        boost::asio::steady_timer          m_dirty_timer;
+        bool                               m_dirty_armed = false;
     };
 }

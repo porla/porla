@@ -6,6 +6,8 @@
 #include "potorrentdata.hpp"
 
 #include "../pluginstate.hpp"
+
+#include "../../sessions/session.hpp"
 #include "../../torrentclientdata.hpp"
 #include "../../utils/limits.hpp"
 
@@ -26,6 +28,18 @@ namespace
         if (val) { return *val; }
         throw sol::error("Invalid value");
     }
+
+    // saves the torrent's resume data shortly after a change made from Lua (Session::MarkDirty)
+    void Changed(const lt::torrent_handle& th, bool force = false)
+    {
+        const auto* data    = th.userdata().get<porla::TorrentClientData>();
+        const auto  session = data != nullptr ? data->session.lock() : nullptr;
+
+        if (session != nullptr)
+        {
+            session->MarkDirty(th.info_hashes(), force);
+        }
+    }
 }
 
 void LtTorrentHandle::Register(sol::state& lua)
@@ -35,7 +49,7 @@ void LtTorrentHandle::Register(sol::state& lua)
         sol::no_constructor,
         // add_piece
         // add_tracker
-        "add_url_seed",               &lt::torrent_handle::add_url_seed,
+        "add_url_seed",               [](const lt::torrent_handle& th, const std::string& url) { th.add_url_seed(url); Changed(th); },
         "clear_error",                &lt::torrent_handle::clear_error,
         "clear_peers",                &lt::torrent_handle::clear_peers,
         "clear_piece_deadlines",      &lt::torrent_handle::clear_piece_deadlines,
@@ -129,7 +143,7 @@ void LtTorrentHandle::Register(sol::state& lua)
             th.move_storage(save_path, move_flags);
         },
         // "need_save_resume_data"
-        "pause", [](const lt::torrent_handle& th) { th.pause(); },
+        "pause", [](const lt::torrent_handle& th) { th.pause(); Changed(th); },
         // piece_availability
         //"piece_layers",               &lt::torrent_handle::piece_layers,
         // piece_priority
@@ -171,17 +185,19 @@ void LtTorrentHandle::Register(sol::state& lua)
             }
 
             th.prioritize_files(file_priorities);
+
+            Changed(th);
         },
         // prioritize_pieces
         "queue_position",             [](const lt::torrent_handle& th) { return static_cast<int>(th.queue_position()); },
-        "queue_position_bottom",      &lt::torrent_handle::queue_position_bottom,
-        "queue_position_down",        &lt::torrent_handle::queue_position_down,
-        "queue_position_set",         [](const lt::torrent_handle& th, int pos) { th.queue_position_set(lt::queue_position_t{pos}); },
-        "queue_position_top",         &lt::torrent_handle::queue_position_top,
-        "queue_position_up",          &lt::torrent_handle::queue_position_up,
+        "queue_position_bottom",      [](const lt::torrent_handle& th) { th.queue_position_bottom(); Changed(th, true); },
+        "queue_position_down",        [](const lt::torrent_handle& th) { th.queue_position_down(); Changed(th, true); },
+        "queue_position_set",         [](const lt::torrent_handle& th, int pos) { th.queue_position_set(lt::queue_position_t{pos}); Changed(th, true); },
+        "queue_position_top",         [](const lt::torrent_handle& th) { th.queue_position_top(); Changed(th, true); },
+        "queue_position_up",          [](const lt::torrent_handle& th) { th.queue_position_up(); Changed(th, true); },
         "read_piece",                 [](const lt::torrent_handle& th, int piece_index)
                                         { th.read_piece(lt::piece_index_t{piece_index}); },
-        "remove_url_seed",            &lt::torrent_handle::remove_url_seed,
+        "remove_url_seed",            [](const lt::torrent_handle& th, const std::string& url) { th.remove_url_seed(url); Changed(th); },
         "rename_file",                [](const lt::torrent_handle& th, int index, const std::string& name)
         {
             const auto ti = th.torrent_file();
@@ -196,7 +212,7 @@ void LtTorrentHandle::Register(sol::state& lua)
         },
         // replace_trackers
         // reset_piece_deadline
-        "resume",                     &lt::torrent_handle::resume,
+        "resume",                     [](const lt::torrent_handle& th) { th.resume(); Changed(th); },
         "save_resume_data",           [](const lt::torrent_handle& th)
         {
             th.save_resume_data(
@@ -205,16 +221,17 @@ void LtTorrentHandle::Register(sol::state& lua)
         },
         // save_resume_data
         // scrape_tracker
-        "set_download_limit",         [](const lt::torrent_handle& th, int value) { th.set_download_limit(AssertRateLimit(value)); },
+        "set_download_limit",         [](const lt::torrent_handle& th, int value) { th.set_download_limit(AssertRateLimit(value)); Changed(th); },
         "set_flags",                  sol::overload(
-            [](const lt::torrent_handle& th, const lt::torrent_flags_t& flags) { th.set_flags(flags); },
+            [](const lt::torrent_handle& th, const lt::torrent_flags_t& flags) { th.set_flags(flags); Changed(th); },
             [](const lt::torrent_handle& th, const lt::torrent_flags_t& flags, const lt::torrent_flags_t& mask)
             {
                 th.set_flags(flags, mask);
+                Changed(th);
             }
         ),
-        "set_max_connections",        [](const lt::torrent_handle& th, int value) { th.set_max_connections(AssertPeerLimit(value)); },
-        "set_max_uploads",            [](const lt::torrent_handle& th, int value) { th.set_max_uploads(AssertPeerLimit(value)); },
+        "set_max_connections",        [](const lt::torrent_handle& th, int value) { th.set_max_connections(AssertPeerLimit(value)); Changed(th); },
+        "set_max_uploads",            [](const lt::torrent_handle& th, int value) { th.set_max_uploads(AssertPeerLimit(value)); Changed(th); },
         // set_metadata
         // set_piece_deadline
         // set_sequential_range
@@ -223,11 +240,11 @@ void LtTorrentHandle::Register(sol::state& lua)
             th.set_ssl_certificate(certificate, private_key, dh_params, passphrase.value_or(""));
         },
         "set_ssl_certificate_buffer", &lt::torrent_handle::set_ssl_certificate_buffer,
-        "set_upload_limit",           [](const lt::torrent_handle& th, int value) { th.set_upload_limit(AssertRateLimit(value)); },
+        "set_upload_limit",           [](const lt::torrent_handle& th, int value) { th.set_upload_limit(AssertRateLimit(value)); Changed(th); },
         "status",                     [](const lt::torrent_handle& th) { return th.status(); },
         "torrent_file",               &lt::torrent_handle::torrent_file,
         "trackers",                   [](const lt::torrent_handle& th) { return sol::as_table(th.trackers()); },
-        "unset_flags",                [](const lt::torrent_handle& th, const lt::torrent_flags_t& flags) { th.unset_flags(flags); },
+        "unset_flags",                [](const lt::torrent_handle& th, const lt::torrent_flags_t& flags) { th.unset_flags(flags); Changed(th); },
         "upload_limit",               &lt::torrent_handle::upload_limit,
         "url_seeds",                  [](const lt::torrent_handle& th) { return sol::as_table(th.url_seeds()); },
         "userdata", [](const lt::torrent_handle& th, sol::this_state ts) -> std::shared_ptr<PoTorrentData>

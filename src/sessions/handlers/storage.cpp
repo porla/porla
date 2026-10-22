@@ -72,6 +72,15 @@ void Session::OnStorageMovedAlert(const lt::storage_moved_alert* alert)
     EmitTorrentEvent("torrent.storage_moved", *alert);
 }
 
+void Session::OnFileRenamedAlert(const lt::file_renamed_alert* alert)
+{
+    // the rename is done on disk now - save it, or a restart would download the old name again
+    if (alert->handle.is_valid())
+    {
+        MarkDirty(alert->handle.info_hashes());
+    }
+}
+
 void Session::OnStorageMovedFailedAlert(const lt::storage_moved_failed_alert* alert)
 {
     if (!alert->handle.is_valid())
