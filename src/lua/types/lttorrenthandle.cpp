@@ -80,7 +80,14 @@ void LtTorrentHandle::Register(sol::state& lua)
                 flags |= lt::torrent_handle::high_priority;
             }
 
-            th.force_reannounce(seconds.value_or(0), index.value_or(-1), flags);
+            const int tracker = index.value_or(-1);
+
+            if (tracker < -1 || tracker >= static_cast<int>(th.trackers().size()))
+            {
+                throw sol::error("tracker index out of range");
+            }
+
+            th.force_reannounce(seconds.value_or(0), tracker, flags);
         },
         "force_recheck",              &lt::torrent_handle::force_recheck,
         //"get_download_queue",       &lt::torrent_handle::get_download_queue,
@@ -192,7 +199,12 @@ void LtTorrentHandle::Register(sol::state& lua)
         "queue_position",             [](const lt::torrent_handle& th) { return static_cast<int>(th.queue_position()); },
         "queue_position_bottom",      [](const lt::torrent_handle& th) { th.queue_position_bottom(); Changed(th, true); },
         "queue_position_down",        [](const lt::torrent_handle& th) { th.queue_position_down(); Changed(th, true); },
-        "queue_position_set",         [](const lt::torrent_handle& th, int pos) { th.queue_position_set(lt::queue_position_t{pos}); Changed(th, true); },
+        "queue_position_set",         [](const lt::torrent_handle& th, int pos)
+        {
+            if (pos < 0) { throw sol::error("queue position must be >= 0"); }
+            th.queue_position_set(lt::queue_position_t{pos});
+            Changed(th, true);
+        },
         "queue_position_top",         [](const lt::torrent_handle& th) { th.queue_position_top(); Changed(th, true); },
         "queue_position_up",          [](const lt::torrent_handle& th) { th.queue_position_up(); Changed(th, true); },
         "read_piece",                 [](const lt::torrent_handle& th, int piece_index)
@@ -207,6 +219,8 @@ void LtTorrentHandle::Register(sol::state& lua)
             {
                 throw sol::error("file index out of range");
             }
+
+            if (name.empty()) { throw sol::error("file name must not be empty"); }
 
             th.rename_file(lt::file_index_t{index}, name);
         },
