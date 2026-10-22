@@ -209,7 +209,10 @@ int main(int argc, char* argv[])
                     });
             });
 
-        const auto sweep_timer = porla::Timer::Create(io, 1000, [http_loop]() { us_internal_free_closed_sockets(http_loop); });
+        const auto sweep_timer = porla::Timer::Interval(
+            io,
+            std::chrono::seconds(1),
+            [http_loop]() { us_internal_free_closed_sockets(http_loop); });
 
         for (;;)
         {

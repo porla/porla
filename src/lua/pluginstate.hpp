@@ -9,7 +9,6 @@
 #include <sol/sol.hpp>
 #include <uWebSockets/App.h>
 
-#include "../cron.hpp"
 #include "../plugins.hpp"
 #include "../timer.hpp"
 
@@ -71,11 +70,6 @@ namespace porla::Lua
 
         ~LuaState()
         {
-            for (auto& [ _, cron_schedule ] : m_cron_schedules)
-            {
-                cron_schedule.handle->Cancel();
-            }
-
             for (auto& [ _, signal ] : m_signals)
             {
                 signal.disconnect();
@@ -92,11 +86,6 @@ namespace porla::Lua
             }
         }
 
-        void CancelCronSchedule(std::size_t cron_schedule_id)
-        {
-            CancelEntry(m_cron_schedules, cron_schedule_id);
-        }
-
         void CancelScopedConnection(std::size_t connection_id)
         {
             const auto entry = m_signals.find(connection_id);
@@ -109,10 +98,18 @@ namespace porla::Lua
             connection.disconnect();
         }
 
-
         void CancelTimer(std::size_t timer_id)
         {
-            CancelEntry(m_timers, timer_id);
+            const auto entry = m_timers.find(timer_id);
+            if (entry == m_timers.end()) { return; }
+
+            const auto callback_id = entry->second.callback_id;
+            const auto handle      = entry->second.handle;
+
+            m_timers.erase(entry);
+            m_callbacks.erase(callback_id);
+
+            handle->Cancel();
         }
 
         template <typename... Args>
@@ -154,28 +151,11 @@ namespace porla::Lua
             return id;
         }
 
-        std::size_t RegisterCronSchedule(const std::string& expression, sol::main_protected_function func)
+        std::size_t RegisterCron(const std::string& expression, sol::main_protected_function func)
         {
-            const auto cron_schedule_id = NextId();
-            const auto callback_id      = RegisterCallback(std::move(func), false);
-
-            auto cron_schedule = CronSchedule::Create(
-                io,
-                expression,
-                [w = weak_from_this(), cron_schedule_id]()
-                {
-                    if (auto self = w.lock())
-                    {
-                        self->TriggerCronSchedule(cron_schedule_id);
-                    }
-                });
-
-            m_cron_schedules.emplace(cron_schedule_id, CronScheduleRef{
-                .handle      = cron_schedule,
-                .callback_id = callback_id
-            });
-
-            return cron_schedule_id;
+            const auto timer_id = NextId();
+            auto timer = Timer::Cron(io, expression, Trigger(timer_id));
+            return AddTimer(timer_id, std::move(timer), std::move(func), false);
         }
 
         std::size_t RegisterScopedConnection(boost::signals2::scoped_connection connection)
@@ -192,27 +172,9 @@ namespace porla::Lua
                 throw sol::error("timer interval must be more than 10ms");
             }
 
-            const auto timer_id    = NextId();
-            const auto callback_id = RegisterCallback(std::move(func), one_shot);
-
-            auto timer = Timer::Create(
-                io,
-                interval,
-                [w = weak_from_this(), timer_id]()
-                {
-                    if (auto self = w.lock())
-                    {
-                        self->TriggerTimer(timer_id);
-                    }
-                });
-
-            m_timers.emplace(timer_id, TimerRef{
-                .handle      = timer,
-                .callback_id = callback_id,
-                .one_shot    = one_shot
-            });
-
-            return timer_id;
+            const auto timer_id = NextId();
+            auto timer = Timer::Interval(io, std::chrono::milliseconds(interval), Trigger(timer_id));
+            return AddTimer(timer_id, std::move(timer), std::move(func), one_shot);
         }
 
         void RemoveCallback(std::size_t callback_id)
@@ -251,12 +213,6 @@ namespace porla::Lua
             bool                         one_shot;
         };
 
-        struct CronScheduleRef
-        {
-            std::shared_ptr<CronSchedule> handle;
-            std::size_t                   callback_id;
-        };
-
         struct TimerRef
         {
             std::shared_ptr<Timer> handle;
@@ -269,33 +225,26 @@ namespace porla::Lua
             return m_next_id++;
         }
 
-        template <typename Map>
-        void CancelEntry(Map& registry, std::size_t id)
+        std::size_t AddTimer(std::size_t timer_id, std::shared_ptr<Timer> timer, sol::main_protected_function func, bool one_shot)
         {
-            const auto entry = registry.find(id);
-            if (entry == registry.end()) { return; }
+            m_timers.emplace(timer_id, TimerRef{
+                .handle      = std::move(timer),
+                .callback_id = RegisterCallback(std::move(func), one_shot),
+                .one_shot    = one_shot
+            });
 
-            const auto callback_id = entry->second.callback_id;
-            const auto handle      = entry->second.handle;
-
-            registry.erase(entry);
-            m_callbacks.erase(callback_id);
-
-            handle->Cancel();
+            return timer_id;
         }
 
-        void TriggerCronSchedule(std::size_t cron_schedule_id)
+        std::function<void()> Trigger(std::size_t timer_id)
         {
-            const auto entry = m_cron_schedules.find(cron_schedule_id);
-
-            if (entry == m_cron_schedules.end())
+            return [w = weak_from_this(), timer_id]()
             {
-                return;
-            }
-
-            [[maybe_unused]] const auto keep = entry->second.handle;
-
-            InvokeCallback(entry->second.callback_id);
+                if (auto self = w.lock())
+                {
+                    self->TriggerTimer(timer_id);
+                }
+            };
         }
 
         void TriggerTimer(std::size_t timer_id)
@@ -320,7 +269,6 @@ namespace porla::Lua
         }
 
         std::map<std::size_t, CallbackRef>                        m_callbacks;
-        std::map<std::size_t, CronScheduleRef>                    m_cron_schedules;
         std::size_t                                               m_next_id = 1;
         std::map<std::size_t, boost::signals2::scoped_connection> m_signals;
         std::map<std::size_t, TimerRef>                           m_timers;
