@@ -657,7 +657,7 @@ namespace porla::Rpc::Methods::Torrents
                 req.session_id,
                 req.info_hash);
 
-            if (auto tf = resolved.torrent->status.torrent_file.lock())
+            if (auto tf = resolved.torrent->status.torrent_file.lock(); tf && tf->is_valid())
             {
                 co_return FilesListRes{
                     .file_storage  = tf->layout(),
@@ -719,6 +719,17 @@ namespace porla::Rpc::Methods::Torrents
         awaitable<void> FilesRename(porla::Sessions& sessions, const FilesRenameReq& req)
         {
             const auto resolved = ResolveTorrent(sessions, req.session_id, req.info_hash);
+            const auto tf       = resolved.torrent->status.torrent_file.lock();
+
+            if (!tf || !tf->is_valid())
+            {
+                throw Error(-5, "Torrent has no metadata");
+            }
+
+            if (req.file_index < 0 || req.file_index >= tf->num_files())
+            {
+                throw Error(-6, "File index out of range");
+            }
 
             resolved.torrent->status.handle.rename_file(
                 lt::file_index_t{req.file_index},

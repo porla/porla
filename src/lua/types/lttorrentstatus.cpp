@@ -106,7 +106,12 @@ void LtTorrentStatus::Register(sol::state& lua)
             {
                 return ts.storage_mode == lt::storage_mode_allocate ? "allocate" : "sparse";
             }),
-        "torrent_file",           sol::property([](const lt::torrent_status& ts) { return ts.torrent_file.lock(); }),
+        "torrent_file",           sol::property(
+            [](const lt::torrent_status& ts) -> std::shared_ptr<const lt::torrent_info>
+            {
+                auto ti = ts.torrent_file.lock();
+                return ti && ti->is_valid() ? ti : nullptr;
+            }),
         "total",                  sol::readonly(&lt::torrent_status::total),
         "total_done",             sol::readonly(&lt::torrent_status::total_done),
         "total_download",         sol::readonly(&lt::torrent_status::total_download),

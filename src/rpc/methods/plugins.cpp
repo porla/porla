@@ -365,6 +365,11 @@ namespace porla::Rpc::Methods::Plugins
 
         awaitable<void> Reload(porla::Plugins& plugins, const ReloadReq& req)
         {
+            if (!plugins.Get(req.id).has_value())
+            {
+                throw Error(-1, "Plugin not found");
+            }
+
             plugins.Reload(req.id);
             co_return;
         }

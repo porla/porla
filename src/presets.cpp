@@ -1,5 +1,6 @@
 #include "presets.hpp"
 
+#include "data/transaction.hpp"
 #include "events.hpp"
 
 using porla::Presets;
@@ -73,7 +74,15 @@ void Presets::Update(const Presets::Preset& preset)
 {
     const auto previous_default = Model::GetDefault(m_options.db);
 
+    // clearing the old default and updating the row must fail together
+    Data::Transaction tx(m_options.db);
+
     Model::Update(m_options.db, preset);
+
+    if (!tx.Commit())
+    {
+        throw std::runtime_error("Failed to commit preset update");
+    }
 
     PublishUpdated(preset.id);
 
