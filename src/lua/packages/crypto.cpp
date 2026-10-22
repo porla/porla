@@ -111,12 +111,12 @@ sol::object Crypto::Load(sol::this_state ts)
         }
     ));
 
-    tbl.set_function("hash_init", [](const std::string& key) -> std::shared_ptr<crypto_generichash_state>
+    tbl.set_function("hash_init", [](const std::string& key) -> std::shared_ptr<Types::SoHashState>
     {
-        auto state = std::make_shared<crypto_generichash_state>();
+        crypto_generichash_state state;
 
         int result = crypto_generichash_init(
-            state.get(),
+            &state,
             reinterpret_cast<const unsigned char*>(key.c_str()),
             key.size(),
             crypto_generichash_BYTES);
@@ -126,7 +126,7 @@ sol::object Crypto::Load(sol::this_state ts)
             return nullptr;
         }
 
-        return state;
+        return std::make_shared<Types::SoHashState>(state);
     });
 
     tbl.set_function("memcmp", [](const std::string& left, const std::string& right)

@@ -733,6 +733,11 @@ namespace porla::Rpc::Methods::Torrents
                 throw Error(-6, "File index out of range");
             }
 
+            if (req.file_path.empty())
+            {
+                throw Error(-32602, "file_path must not be empty", {{"field", "file_path"}});
+            }
+
             resolved.torrent->status.handle.rename_file(
                 lt::file_index_t{req.file_index},
                 req.file_path);
@@ -830,11 +835,11 @@ namespace porla::Rpc::Methods::Torrents
                     }
                 }
 
-                if (client_data && req.filters->category.has_value() && req.filters->category.value() != client_data->category)
+                // no client data means no category and no tags
+                if (req.filters->category.has_value() && (!client_data || req.filters->category.value() != client_data->category))
                 {
                     continue;
                 }
-
 
                 if (req.filters->save_path.has_value() && req.filters->save_path.value() != ts.save_path)
                 {
@@ -931,12 +936,12 @@ namespace porla::Rpc::Methods::Torrents
                     }
                 }
 
-                if (client_data && req.filters->tags.has_value())
+                if (req.filters->tags.has_value())
                 {
                     const auto has_all_tags = std::all_of(
                         req.filters->tags->begin(),
                         req.filters->tags->end(),
-                        [&client_data](const auto& tag) { return client_data->tags.contains(tag); });
+                        [&client_data](const auto& tag) { return client_data && client_data->tags.contains(tag); });
 
                     if (!has_all_tags)
                     {
@@ -1259,6 +1264,11 @@ namespace porla::Rpc::Methods::Torrents
 
         awaitable<void> QueueSet(porla::Sessions& sessions, const QueueSetReq& req)
         {
+            if (static_cast<int>(req.queue_position) < 0)
+            {
+                throw Error(-32602, "queue_position must be >= 0", {{"field", "queue_position"}});
+            }
+
             const auto resolved = ResolveTorrent(sessions, req.session_id, req.info_hash);
             resolved.torrent->status.handle.queue_position_set(req.queue_position);
             resolved.session->MarkDirty(resolved.torrent->status.info_hashes, true);
