@@ -1013,7 +1013,7 @@ namespace porla::Rpc::Methods::Torrents
             }
 
             const auto handle = resolved.torrent->status.handle;
-            auto       params = handle.get_resume_data();
+            auto       params = handle.get_resume_data(lt::torrent_handle::save_info_dict);
 
             TorrentClientData client_data;
 

@@ -173,10 +173,11 @@ void Session::Stop()
     m_session->pause();
 
     auto torrents = m_session->get_torrent_status(
-        [](const lt::torrent_status& ts) { return ts.has_metadata; });
+        [](const lt::torrent_status&) { return true; });
 
     const auto missing_ti = [&](const lt::torrent_status& ts)
     {
+        if (!ts.has_metadata) { return false; }
         const auto it = m_torrents.find(ts.info_hashes);
         return it != m_torrents.end() && !it->second.metadata_saved;
     };

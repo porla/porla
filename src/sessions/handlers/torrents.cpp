@@ -95,8 +95,10 @@ void Session::OnAddTorrentAlert(const lt::add_torrent_alert* alert)
             << Log(hash) << "Failed to insert: " << e.what();
     }
 
-    alert->handle.save_resume_data(
-        lt::torrent_handle::only_if_modified);
+    // add_torrent_alert::params is a stripped copy without the resume fields (added time, limits,
+    // priorities, ...), so the row above is incomplete - save the full state now. only_if_modified
+    // would skip a torrent added from complete resume data (a migrated one) and keep the stripped row.
+    alert->handle.save_resume_data(lt::torrent_handle::save_info_dict);
 
     EmitTorrentEvent("torrent.added", *alert);
 }
