@@ -87,6 +87,11 @@ namespace porla::Rpc::Methods::Auth
                 throw Error(-1, "Already initialized");
             }
 
+            if (req.username.empty() || req.password.empty())
+            {
+                throw Error(-3, "Username and password must not be empty");
+            }
+
             const auto hashed_password = co_await porla::Auth::Password::Hash(
                 hash_pool,
                 std::move(req.password));
@@ -254,6 +259,11 @@ namespace porla::Rpc::Methods::Auth
 
         awaitable<void> KeysRemove(sqlite3* db, const KeysRemoveReq& req)
         {
+            if (!Data::Models::ApiKeys::GetById(db, req.id).has_value())
+            {
+                throw Error(-1, "API key not found");
+            }
+
             Data::Models::ApiKeys::Remove(db, req.id);
             BOOST_LOG_TRIVIAL(info) << "API key " << req.id << " removed";
             co_return;

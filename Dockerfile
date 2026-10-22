@@ -57,7 +57,12 @@ RUN --mount=type=secret,id=ccache_url \
 FROM base AS runtime
 
 ENV PORLA_HTTP_HOST=0.0.0.0
+ENV PORLA_STATE_DIR=/var/lib/porla
+
 EXPOSE 1337
+
+RUN mkdir -p /var/lib/porla
+VOLUME /var/lib/porla
 
 WORKDIR /
 COPY --from=build-porla /src/build/alpine-static/porla /usr/bin/porla

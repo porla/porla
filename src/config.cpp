@@ -324,7 +324,27 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     // If no db_file is set, default to a file in state_dir.
     if (!cfg->db_file.has_value())
     {
-        cfg->db_file = cfg->state_dir / "porla.sqlite";
+        const auto db_path = cfg->state_dir / "porla.sqlite";
+
+        // Older Docker images kept their state in the working directory. Don't start over with an
+        // empty database (and auth.init open to anyone) while the old one is still there.
+        const auto old_db_path = fs::current_path() / "porla.sqlite";
+
+        std::error_code ec;
+
+        if (!fs::exists(db_path, ec)
+            && fs::exists(old_db_path, ec)
+            && fs::weakly_canonical(cfg->state_dir, ec) != fs::weakly_canonical(fs::current_path(), ec))
+        {
+            BOOST_LOG_TRIVIAL(fatal)
+                << "Found a database at " << old_db_path << " but none in the state directory "
+                << cfg->state_dir << ". Move porla.sqlite (and any porla.sqlite-wal/-shm next to it) into "
+                << cfg->state_dir << ", or set --state-dir/PORLA_STATE_DIR to " << fs::current_path();
+
+            throw std::runtime_error("Database not found in the state directory");
+        }
+
+        cfg->db_file = db_path;
     }
 
     if (sqlite3_open(cfg->db_file.value_or("porla.sqlite").c_str(), &cfg->db) != SQLITE_OK)
@@ -361,8 +381,9 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
     if (cfg->secret_key.empty())
     {
-        BOOST_LOG_TRIVIAL(warning) << "No secret key set. Porla will generate one";
-        BOOST_LOG_TRIVIAL(warning) << "Use './porla key:generate' to generate a secret key";
+        BOOST_LOG_TRIVIAL(warning)
+            << "No secret key set - generated a temporary one. User logins will not survive a restart;"
+            << " set --secret-key or PORLA_SECRET_KEY (API keys are not affected)";
 
         cfg->secret_key = porla::Utils::SecretKey::New();
     }

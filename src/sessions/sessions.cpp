@@ -158,18 +158,28 @@ void Sessions::Remove(int id)
 
 void Sessions::Update(const Record& session)
 {
-    if (session.is_default)
-    {
-        const auto current = Find(session.id);
+    const auto current     = Find(session.id);
+    const bool new_default = session.is_default && current && !current->is_default;
 
-        if (current && !current->is_default)
-        {
-            Data::Models::Sessions::SetDefault(m_options.db, session.id);
-            BOOST_LOG_TRIVIAL(info) << "session[" << session.name << "] Now the default session";
-        }
+    // moving the default and updating the row must fail together
+    Transaction tx(m_options.db);
+
+    if (new_default)
+    {
+        Data::Models::Sessions::SetDefault(m_options.db, session.id);
     }
 
     Data::Models::Sessions::Update(m_options.db, session);
+
+    if (!tx.Commit())
+    {
+        throw std::runtime_error("Failed to commit session update");
+    }
+
+    if (new_default)
+    {
+        BOOST_LOG_TRIVIAL(info) << "session[" << session.name << "] Now the default session";
+    }
 
     if (const auto instance = Get(session.id))
     {
