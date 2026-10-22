@@ -1,6 +1,8 @@
 #include "session.hpp"
 
 #include <algorithm>
+#include <set>
+#include <utility>
 
 #include <boost/asio/post.hpp>
 #include <boost/log/trivial.hpp>
@@ -39,6 +41,7 @@ Session::Session(const SessionOptions& options)
     , m_options(options)
     , m_alert_dispatcher(std::make_unique<AlertDispatcher>())
     , m_jobs(std::make_unique<Scheduler>(options.io, *this))
+    , m_dirty_timer(options.io)
 {
     m_session = std::make_unique<lt::session>(std::move(m_options.record.params));
     m_session->add_extension(&lt::create_smart_ban_plugin);
@@ -162,6 +165,9 @@ void Session::Stop()
 {
     m_jobs->Stop();
 
+    m_dirty_timer.cancel();
+    m_dirty_armed = false;
+
     // reconcile torrents whose add alert was lost, otherwise they
     // will be gone
     ReconcileTorrents();
@@ -182,12 +188,20 @@ void Session::Stop()
         return it != m_torrents.end() && !it->second.metadata_saved;
     };
 
+    const auto forced = [&](const lt::torrent_status& ts)
+    {
+        const auto it = m_dirty.find(ts.info_hashes);
+        return it != m_dirty.end() && it->second;
+    };
+
     std::erase_if(
         torrents,
         [&](const lt::torrent_status& ts)
         {
-            return !ts.need_save_resume_data && !missing_ti(ts);
+            return !ts.need_save_resume_data && !missing_ti(ts) && !forced(ts);
         });
+
+    m_dirty.clear();
 
     const auto current_settings = m_session->get_settings();
     const int  alert_queue_size = current_settings.get_int(lt::settings_pack::alert_queue_size);
@@ -206,7 +220,9 @@ void Session::Stop()
             chunk_size,
             static_cast<int>(std::distance(current, torrents.end())));
 
-        int outstanding = 0;
+        // wait for these torrents' alerts by hash - a count would also be met by alerts from saves
+        // requested before shutdown, and stop waiting too early
+        std::set<lt::info_hash_t> outstanding;
 
         for (int j = 0; j < chunk_items; j++)
         {
@@ -218,12 +234,14 @@ void Session::Stop()
 
             const auto flags = missing_ti(*current)
                 ? lt::torrent_handle::flush_disk_cache | lt::torrent_handle::save_info_dict
-                : lt::torrent_handle::flush_disk_cache | lt::torrent_handle::only_if_modified;
+                : !current->need_save_resume_data
+                    ? lt::torrent_handle::flush_disk_cache
+                    : lt::torrent_handle::flush_disk_cache | lt::torrent_handle::only_if_modified;
 
             try
             {
                 current->handle.save_resume_data(flags);
-                outstanding++;
+                outstanding.insert(current->info_hashes);
             }
             catch(const std::exception& e)
             {
@@ -236,15 +254,15 @@ void Session::Stop()
 
         BOOST_LOG_TRIVIAL(info)
             << Log() << "Chunk " << i + 1 << " - Saving state for "
-            << outstanding << " torrent(s) (out of " << chunk_items << ")";
+            << outstanding.size() << " torrent(s) (out of " << chunk_items << ")";
 
-        while (outstanding > 0) {
+        while (!outstanding.empty()) {
             const auto found_alert = m_session->wait_for_alert(lt::seconds(10));
 
             if (!found_alert)
             {
                 BOOST_LOG_TRIVIAL(warning)
-                    << Log() << "Gave up waiting for " << outstanding << " resume data alerts "
+                    << Log() << "Gave up waiting for " << outstanding.size() << " resume data alerts "
                     << "in chunk " << i + 1;
 
                 break;
@@ -259,7 +277,7 @@ void Session::Stop()
             {
                 if (auto fail = lt::alert_cast<lt::save_resume_data_failed_alert>(a))
                 {
-                    outstanding--;
+                    outstanding.erase(fail->handle.info_hashes());
 
                     BOOST_LOG_TRIVIAL(error)
                         << Log(fail->handle.info_hashes())
@@ -268,9 +286,9 @@ void Session::Stop()
                     continue;
                 }
 
-                if (lt::alert_cast<lt::save_resume_data_alert>(a))
+                if (auto saved = lt::alert_cast<lt::save_resume_data_alert>(a))
                 {
-                    outstanding--;
+                    outstanding.erase(saved->handle.info_hashes());
                     m_alert_dispatcher->Dispatch(a);
                     continue;
                 }
@@ -295,6 +313,48 @@ void Session::Persist()
         m_options.db,
         m_id,
         m_session->session_state());
+}
+
+void Session::MarkDirty(const lt::info_hash_t& hash, bool force)
+{
+    m_dirty[hash] = m_dirty[hash] || force;
+
+    if (m_dirty_armed)
+    {
+        return;
+    }
+
+    m_dirty_armed = true;
+    m_dirty_timer.expires_after(std::chrono::milliseconds(500));
+    m_dirty_timer.async_wait(
+        [weak = weak_from_this()](const boost::system::error_code& ec)
+        {
+            if (ec) { return; }
+            if (auto self = weak.lock()) { self->SaveDirty(); }
+        });
+}
+
+void Session::SaveDirty()
+{
+    m_dirty_armed = false;
+
+    // the changes porla and plugins make. counters and download progress are left to the
+    // SaveState job, since they change all the time
+    constexpr auto changed = lt::torrent_handle::if_config_changed
+        | lt::torrent_handle::if_state_changed
+        | lt::torrent_handle::if_metadata_changed;
+
+    for (const auto& [ hash, force ] : std::exchange(m_dirty, {}))
+    {
+        const auto it = m_torrents.find(hash);
+
+        if (it == m_torrents.end() || !it->second.status.handle.is_valid())
+        {
+            continue;
+        }
+
+        it->second.status.handle.save_resume_data(force ? lt::resume_data_flags_t{} : changed);
+    }
 }
 
 void Session::Recheck(const lt::info_hash_t& hash)
@@ -379,6 +439,7 @@ void Session::RegisterAlertHandlers()
     m_alert_dispatcher->On<lt::add_torrent_alert>([this](auto* a)          { OnAddTorrentAlert(a); });
     m_alert_dispatcher->On<lt::alerts_dropped_alert>([this](auto* a)       { OnAlertsDroppedAlert(a); });
     m_alert_dispatcher->On<lt::dht_stats_alert>([this](auto* a)            { OnDhtStatsAlert(a); });
+    m_alert_dispatcher->On<lt::file_renamed_alert>([this](auto* a)         { OnFileRenamedAlert(a); });
     m_alert_dispatcher->On<lt::listen_failed_alert>([this](auto* a)        { OnListenFailedAlert(a); });
     m_alert_dispatcher->On<lt::listen_succeeded_alert>([this](auto* a)     { OnListenSucceededAlert(a); });
     m_alert_dispatcher->On<lt::metadata_received_alert>([this](auto* a)    { OnMetadataReceivedAlert(a); });
