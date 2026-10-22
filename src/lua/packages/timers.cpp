@@ -1,6 +1,5 @@
 #include "../packages.hpp"
 
-#include "../../cron.hpp"
 #include "../pluginstate.hpp"
 #include "../types/pocancellable.hpp"
 
@@ -22,10 +21,10 @@ sol::object Timers::Load(sol::this_state ts)
             return nullptr;
         }
 
-        auto cron_schedule_id = state->RegisterCronSchedule(expression, callback);
+        const auto timer_id = state->RegisterCron(expression, callback);
 
         return std::make_shared<Types::PoCancellable>(
-            [cron_schedule_id](LuaState& s) { s.CancelCronSchedule(cron_schedule_id); });
+            [timer_id](LuaState& s) { s.CancelTimer(timer_id); });
     });
 
     tbl.set_function("epoch", []()
