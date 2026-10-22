@@ -25,10 +25,11 @@ namespace porla::Lua::Types
         explicit PoTcpClient(const std::shared_ptr<LuaState>& lua_state);
         ~PoTcpClient();
 
+        void Close();
+
     private:
         struct WriteOp { std::string data; std::optional<std::size_t> callback_id; };
 
-        void Close();
         void Connect(const std::string& host, int port, sol::main_protected_function callback);
         void ConnectComplete(std::size_t callback_id, const boost::system::error_code& ec2, const tcp::endpoint& endpoint);
         void HandshakeComplete(std::size_t callback_id, const boost::system::error_code& ec);

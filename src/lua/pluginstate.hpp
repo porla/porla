@@ -13,6 +13,7 @@
 #include "../timer.hpp"
 
 #include "types/pohttpserverresponse.hpp"
+#include "types/potcpclient.hpp"
 
 namespace porla
 {
@@ -83,6 +84,15 @@ namespace porla::Lua
             for (auto& dtor : destructors)
             {
                 dtor();
+            }
+
+            // pending reads/connects hold their client, so close them or the sockets outlive the plugin
+            for (const auto& weak : m_tcp_clients)
+            {
+                if (auto client = weak.lock())
+                {
+                    client->Close();
+                }
             }
         }
 
@@ -163,6 +173,12 @@ namespace porla::Lua
             const auto connection_id = NextId();
             m_signals.emplace(connection_id, std::move(connection));
             return connection_id;
+        }
+
+        void RegisterTcpClient(const std::shared_ptr<Types::PoTcpClient>& client)
+        {
+            std::erase_if(m_tcp_clients, [](const auto& weak) { return weak.expired(); });
+            m_tcp_clients.emplace_back(client);
         }
 
         std::size_t RegisterTimer(int interval, sol::main_protected_function func, bool one_shot)
@@ -271,6 +287,7 @@ namespace porla::Lua
         std::map<std::size_t, CallbackRef>                        m_callbacks;
         std::size_t                                               m_next_id = 1;
         std::map<std::size_t, boost::signals2::scoped_connection> m_signals;
+        std::vector<std::weak_ptr<Types::PoTcpClient>>            m_tcp_clients;
         std::map<std::size_t, TimerRef>                           m_timers;
     };
 }

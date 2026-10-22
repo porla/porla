@@ -24,7 +24,10 @@ sol::object Sockets::Load(sol::this_state ts)
             return nullptr;
         }
 
-        return std::make_shared<Types::PoTcpClient>(state);
+        auto client = std::make_shared<Types::PoTcpClient>(state);
+        state->RegisterTcpClient(client);
+
+        return client;
     });
 
     return tbl;
