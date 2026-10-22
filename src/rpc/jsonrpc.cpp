@@ -207,7 +207,7 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
 
             try
             {
-                req = json::parse(*buffer).get<RpcReq>();
+                req = Json::Parse(*buffer).get<RpcReq>();
             }
             catch (const std::exception& ex)
             {

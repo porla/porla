@@ -4,6 +4,27 @@
 
 namespace porla::Json
 {
+    constexpr int kMaxDepth = 256;
+
+    // Parses untrusted JSON, rejecting values nested deeper than max_depth. Deeper values would
+    // later overflow the stack in code that walks them recursively (conversions, copies).
+    inline nlohmann::json Parse(std::string_view text, int max_depth = kMaxDepth)
+    {
+        return nlohmann::json::parse(
+            text,
+            [max_depth](int depth, nlohmann::json::parse_event_t event, nlohmann::json&)
+            {
+                if (depth >= max_depth
+                    && (event == nlohmann::json::parse_event_t::object_start
+                        || event == nlohmann::json::parse_event_t::array_start))
+                {
+                    throw std::runtime_error("JSON nested deeper than " + std::to_string(max_depth) + " levels");
+                }
+
+                return true;
+            });
+    }
+
     template <typename T>
     constexpr bool is_optional = false;
 

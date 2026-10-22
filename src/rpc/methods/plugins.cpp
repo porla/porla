@@ -251,7 +251,7 @@ namespace porla::Rpc::Methods::Plugins
 
             try
             {
-                release = nlohmann::json::parse(release_body).get<porla::Json::GitHubRelease>();
+                release = Json::Parse(release_body).get<porla::Json::GitHubRelease>();
             }
             catch (const std::exception& e)
             {
@@ -475,7 +475,7 @@ namespace porla::Rpc::Methods::Plugins
 
             try
             {
-                release = nlohmann::json::parse(release_body).get<porla::Json::GitHubRelease>();
+                release = Json::Parse(release_body).get<porla::Json::GitHubRelease>();
             }
             catch (const std::exception& e)
             {
