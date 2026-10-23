@@ -9,7 +9,7 @@
 #include "data/migrate.hpp"
 #include "httphostguard.hpp"
 #include "utils/string.hpp"
- 
+
 namespace fs = std::filesystem;
 
 using porla::Config;
@@ -173,7 +173,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
         cfg->db_file = db_path;
     }
-
 
     cfg->http_host_guard = std::make_shared<HttpHostGuard>(cfg->http_host.value_or("127.0.0.1"), cfg->http_allowed_hosts);
 

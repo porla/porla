@@ -217,7 +217,7 @@ int main(int argc, char* argv[])
                     http_base_path + "/api/v1/jsonrpc",
                     [guard = cfg->http_host_guard, handler = jsonrpc->HttpHandler()](auto* res, auto* req)
                     {
-                        if (guard->Reject(res, req)) { return; };
+                        if (guard->Reject(res, req)) { return; }
                         handler(res, req);
                     });
 
