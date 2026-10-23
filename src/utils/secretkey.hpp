@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <string>
 
 namespace porla::Utils
@@ -7,6 +8,6 @@ namespace porla::Utils
     class SecretKey
     {
     public:
-        static std::string New(int length = 32);
+        static std::string Load(const std::filesystem::path& file, int length = 32);
     };
 }
