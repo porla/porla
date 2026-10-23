@@ -1,32 +1,16 @@
 #include "config.hpp"
 
 #include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <sstream>
 
 #include <boost/log/trivial.hpp>
 #include <boost/program_options.hpp>
-#include <libtorrent/extensions/ut_metadata.hpp>
-#include <libtorrent/extensions/ut_pex.hpp>
-#include <libtorrent/extensions/smart_ban.hpp>
-#include <libtorrent/fingerprint.hpp>
-#include <libtorrent/session.hpp>
-#include <libtorrent/version.hpp>
-#include <sodium.h>
-#include <toml++/toml.hpp>
 
-#include "buildinfo.hpp"
 #include "data/migrate.hpp"
 #include "utils/secretkey.hpp"
 
 namespace fs = std::filesystem;
-namespace lt = libtorrent;
-namespace po = boost::program_options;
 
 using porla::Config;
-
-static void ApplySettings(const toml::table& tbl, lt::settings_pack& settings);
 
 std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map& cmd)
 {
@@ -54,7 +38,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     };
 
     auto cfg = std::unique_ptr<Config>(new Config());
-    cfg->sessions.insert({ "default", lt::default_settings() });
     cfg->state_dir = fs::absolute(fs::current_path());
 
     // Check default locations for a config file.
@@ -87,239 +70,27 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (cmd.count("config-file"))
     {
         cfg->config_file = cmd["config-file"].as<std::string>();
-
-        if (!fs::is_regular_file(cfg->config_file.value()))
-        {
-            BOOST_LOG_TRIVIAL(warning)
-                << "User-specified config file does not exist: "
-                << fs::absolute(cfg->config_file.value());
-        }
     }
 
-    // Apply configuration from the config file before we apply the command line args.
-    if (cfg->config_file && fs::is_regular_file(cfg->config_file.value()))
+    bool config_file_found = false;
+
+    if (cfg->config_file)
     {
-        BOOST_LOG_TRIVIAL(debug) << "Reading config file at " << cfg->config_file.value();
+        std::error_code ec;
+        config_file_found = fs::is_regular_file(*cfg->config_file, ec);
 
-        std::ifstream config_file_data(cfg->config_file.value(), std::ios::binary);
-
-        try
-        {
-            const toml::table config_file_tbl = toml::parse(config_file_data);
-            cfg->config_tbl = config_file_tbl;
-
-            if (auto val = config_file_tbl["session_settings"]["base"].value<std::string>())
-            {
-                if (*val == "default")               cfg->sessions.at("default") = lt::default_settings();
-                if (*val == "high_performance_seed") cfg->sessions.at("default") = lt::high_performance_seed();
-                if (*val == "min_memory_usage")      cfg->sessions.at("default") = lt::min_memory_usage();
-            }
-
-            if (auto val = config_file_tbl["db"].value<std::string>())
-                cfg->db_file = *val;
-
-            if (const auto listen_interfaces_array = config_file_tbl["listen_interfaces"].as_array())
-            {
-                std::stringstream listen;
-                std::stringstream outbound;
-
-                for (const auto& listen_interface_item : *listen_interfaces_array)
-                {
-                    if (!listen_interface_item.is_array())
-                    {
-                        BOOST_LOG_TRIVIAL(warning) << "Listen interface item is not an array";
-                        continue;
-                    }
-
-                    const auto& item_array = listen_interface_item.as_array();
-
-                    if (item_array->size() != 2)
-                    {
-                        BOOST_LOG_TRIVIAL(warning) << "Listen interface item of wrong size";
-                        continue;
-                    }
-
-                    const auto& item_dev = item_array->at(0);
-                    const auto& item_port = item_array->at(1);
-
-                    if (item_dev.type() != toml::node_type::string)
-                    {
-                        BOOST_LOG_TRIVIAL(warning) << "Listen interface device is not a string";
-                        continue;
-                    }
-
-                    if (item_port.type() != toml::node_type::integer)
-                    {
-                        BOOST_LOG_TRIVIAL(warning) << "Listen interface port is not an integer";
-                        continue;
-                    }
-
-                    listen << "," << *item_dev.value<std::string>() << ":" << *item_port.value<int>();
-                    outbound << "," << *item_dev.value<std::string>();
-                }
-
-                const std::string listen_val = listen.str();
-                const std::string outbound_val = outbound.str();
-
-                if (!listen_val.empty())
-                {
-                    cfg->sessions.at("default").set_str(lt::settings_pack::listen_interfaces, listen_val.substr(1));
-                }
-
-                if (!outbound_val.empty())
-                {
-                    cfg->sessions.at("default").set_str(lt::settings_pack::outgoing_interfaces, outbound_val.substr(1));
-                }
-            }
-
-            if (auto val = config_file_tbl["http"]["base_path"].value<std::string>())
-                cfg->http_base_path = *val;
-
-            if (auto val = config_file_tbl["http"]["host"].value<std::string>())
-                cfg->http_host = *val;
-
-            if (auto val = config_file_tbl["http"]["port"].value<uint16_t>())
-                cfg->http_port = *val;
-
-            // Load presets
-            if (auto const* presets_tbl = config_file_tbl["presets"].as_table())
-            {
-                for (auto const [key,value] : *presets_tbl)
-                {
-                    if (!value.is_table())
-                    {
-                        BOOST_LOG_TRIVIAL(warning) << "Preset '" << key << "' is not a TOML table";
-                        continue;
-                    }
-
-                    const toml::table value_tbl = *value.as_table();
-
-                    Preset p = {};
-
-                    if (auto val = value_tbl["category"].value<std::string>())
-                        p.category = *val;
-
-                    if (auto val = value_tbl["download_limit"].value<int>())
-                        p.download_limit = *val;
-
-                    if (auto val = value_tbl["max_connections"].value<int>())
-                        p.max_connections = *val;
-
-                    if (auto val = value_tbl["max_uploads"].value<int>())
-                        p.max_uploads = *val;
-
-                    if (auto val = value_tbl["save_path"].value<std::string>())
-                        p.save_path = *val;
-
-                    if (auto val = value_tbl["session"].value<std::string>())
-                        p.session = *val;
-
-                    if (auto val = value_tbl["storage_mode"].value<std::string>())
-                    {
-                        if (strcmp(val->c_str(), "allocate") == 0) p.storage_mode = lt::storage_mode_allocate;
-                        if (strcmp(val->c_str(), "sparse") == 0)   p.storage_mode = lt::storage_mode_sparse;
-                    }
-
-                    if (auto const tags_val = value_tbl["tags"].as_array())
-                    {
-                        for (auto const& tag_item : *tags_val)
-                        {
-                            if (auto const tag_value = tag_item.value<std::string>())
-                            {
-                                p.tags.insert(*tag_value);
-                            }
-                        }
-                    }
-
-                    if (auto val = value_tbl["upload_limit"].value<int>())
-                        p.upload_limit = *val;
-
-                    if (auto dollar_hidden = value_tbl["$hidden"].value<bool>())
-                        p.dollar_hidden = *dollar_hidden;
-
-                    cfg->presets.insert({ key.data(), std::move(p) });
-                }
-            }
-
-            if (const auto proxy_tbl = config_file_tbl["proxy"].as_table())
-            {
-                BOOST_LOG_TRIVIAL(info) << "Configuring session proxy";
-
-                if (const auto val = (*proxy_tbl)["host"].value<std::string>())
-                    cfg->sessions.at("default").set_str(lt::settings_pack::proxy_hostname, *val);
-
-                if (const auto val = (*proxy_tbl)["port"].value<int>())
-                    cfg->sessions.at("default").set_int(lt::settings_pack::proxy_port, *val);
-
-                if (const auto val = (*proxy_tbl)["type"].value<std::string>())
-                {
-                    if (strcmp(val->c_str(), "socks4") == 0 || strcmp(val->c_str(), "SOCKS4") == 0)
-                        cfg->sessions.at("default").set_int(lt::settings_pack::proxy_type, lt::settings_pack::socks4);
-
-                    if (strcmp(val->c_str(), "socks5") == 0 || strcmp(val->c_str(), "SOCKS5") == 0)
-                        cfg->sessions.at("default").set_int(lt::settings_pack::proxy_type, lt::settings_pack::socks5);
-                }
-
-                if (const auto val = (*proxy_tbl)["hostnames"].value<bool>())
-                    cfg->sessions.at("default").set_bool(lt::settings_pack::proxy_hostnames, *val);
-
-                if (const auto val = (*proxy_tbl)["peer_connections"].value<bool>())
-                    cfg->sessions.at("default").set_bool(lt::settings_pack::proxy_peer_connections, *val);
-
-                if (const auto val = (*proxy_tbl)["tracker_connections"].value<bool>())
-                    cfg->sessions.at("default").set_bool(lt::settings_pack::proxy_tracker_connections, *val);
-            }
-
-            if (auto val = config_file_tbl["secret_key"].value<std::string>())
-                cfg->secret_key = *val;
-
-            if (auto session_settings_tbl = config_file_tbl["session_settings"].as_table())
-                ApplySettings(*session_settings_tbl, cfg->sessions.at("default"));
-
-            // Load all sessions
-            if (const auto* sessions_tbl = config_file_tbl["sessions"].as_table())
-            {
-                for (const auto& [key, value] : *sessions_tbl)
-                {
-                    BOOST_LOG_TRIVIAL(debug) << "Loading configuration for session " << key;
-
-                    cfg->sessions.insert({ key.data(), lt::default_settings() });
-
-                    if (const auto* value_tbl = value.as_table())
-                    {
-                        if (const auto settings_tbl = (*value_tbl)["settings"].as_table())
-                        {
-                            BOOST_LOG_TRIVIAL(debug) << "Applying session settings for " << key;
-                            ApplySettings(*settings_tbl, cfg->sessions.at(key.data()));
-                        }
-                    }
-                }
-            }
-
-            if (auto val = config_file_tbl["state_dir"].value<std::string>())
-                cfg->state_dir = *val;
-        }
-        catch (const toml::parse_error& err)
-        {
-            BOOST_LOG_TRIVIAL(error) << "Failed to parse config file '" << cfg->config_file.value() << "': " << err;
-            throw;
-        }
+        BOOST_LOG_TRIVIAL(warning)
+            << "Config file " << fs::absolute(*cfg->config_file, ec)
+            << (config_file_found ? " is ignored" : " does not exist")
+            << " - Porla no longer reads config files. Use flags or PORLA_* environment variables instead.";
     }
 
-    if (cmd.count("db"))                    cfg->db_file               = cmd["db"].as<std::string>();
-    if (cmd.count("http-base-path"))        cfg->http_base_path        = cmd["http-base-path"].as<std::string>();
-    if (cmd.count("http-host"))             cfg->http_host             = cmd["http-host"].as<std::string>();
-    if (cmd.count("http-port"))             cfg->http_port             = cmd["http-port"].as<uint16_t>();
-    if (cmd.count("secret-key"))            cfg->secret_key            = cmd["secret-key"].as<std::string>();
-    if (cmd.count("session-settings-base"))
-    {
-        auto val = cmd["session-settings-base"].as<std::string>();
-
-        if (val == "default")               cfg->sessions.at("default") = lt::default_settings();
-        if (val == "high_performance_seed") cfg->sessions.at("default") = lt::high_performance_seed();
-        if (val == "min_memory_usage")      cfg->sessions.at("default") = lt::min_memory_usage();
-    }
-    if (cmd.count("state-dir"))             cfg->state_dir             = cmd["state-dir"].as<std::string>();
+    if (cmd.count("db"))                    cfg->db_file        = cmd["db"].as<std::string>();
+    if (cmd.count("http-base-path"))        cfg->http_base_path = cmd["http-base-path"].as<std::string>();
+    if (cmd.count("http-host"))             cfg->http_host      = cmd["http-host"].as<std::string>();
+    if (cmd.count("http-port"))             cfg->http_port      = cmd["http-port"].as<uint16_t>();
+    if (cmd.count("secret-key"))            cfg->secret_key     = cmd["secret-key"].as<std::string>();
+    if (cmd.count("state-dir"))             cfg->state_dir      = cmd["state-dir"].as<std::string>();
 
     // If no db_file is set, default to a file in state_dir.
     if (!cfg->db_file.has_value())
@@ -342,6 +113,18 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
                 << cfg->state_dir << ", or set --state-dir/PORLA_STATE_DIR to " << fs::current_path();
 
             throw std::runtime_error("Database not found in the state directory");
+        }
+
+        // The config file may have pointed db or state_dir somewhere else. Don't start over with an
+        // empty database (and auth.init open to anyone) because it isn't read anymore.
+        if (config_file_found && !fs::exists(db_path, ec) && !ec)
+        {
+            BOOST_LOG_TRIVIAL(fatal)
+                << "Config file " << *cfg->config_file << " is no longer read, and the database " << db_path
+                << " does not exist. Pass --db/--state-dir (or PORLA_DB/PORLA_STATE_DIR) to point at your"
+                << " existing database, or remove the config file for a fresh install.";
+
+            throw std::runtime_error("Refusing to create a new database while a config file is present");
         }
 
         cfg->db_file = db_path;
@@ -370,7 +153,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
             << "Failed to set SQLite busy timeout: " << sqlite3_errmsg(cfg->db);
     }
 
-    if (!porla::Data::Migrate(cfg->db, cfg))
+    if (!porla::Data::Migrate(cfg->db))
     {
         BOOST_LOG_TRIVIAL(error) << "Failed to run migrations";
         throw std::runtime_error("Failed to apply migrations");
@@ -403,50 +186,6 @@ Config::~Config()
         if (sqlite3_close(db) != SQLITE_OK)
         {
             BOOST_LOG_TRIVIAL(error) << "Failed to close SQLite connection: " << sqlite3_errmsg(db);
-        }
-    }
-}
-
-static void ApplySettings(const toml::table& tbl, lt::settings_pack& settings)
-{
-    for (auto const& [key,value] : tbl)
-    {
-        const int type = lt::setting_by_name(key.data());
-
-        if (type == -1)
-        {
-            continue;
-        }
-
-        if ((type & lt::settings_pack::type_mask) == lt::settings_pack::bool_type_base)
-        {
-            if (!value.is_boolean())
-            {
-                BOOST_LOG_TRIVIAL(warning) << "Value for setting " << key << " is not a boolean";
-                continue;
-            }
-
-            settings.set_bool(type, *value.value<bool>());
-        }
-        else if((type & lt::settings_pack::type_mask) == lt::settings_pack::int_type_base)
-        {
-            if (!value.is_integer())
-            {
-                BOOST_LOG_TRIVIAL(warning) << "Value for setting " << key << " is not an integer";
-                continue;
-            }
-
-            settings.set_int(type, *value.value<int>());
-        }
-        else if((type & lt::settings_pack::type_mask) == lt::settings_pack::string_type_base)
-        {
-            if (!value.is_string())
-            {
-                BOOST_LOG_TRIVIAL(warning) << "Value for setting " << key << " is not a string";
-                continue;
-            }
-
-            settings.set_str(type, *value.value<std::string>());
         }
     }
 }

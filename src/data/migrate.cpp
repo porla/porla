@@ -6,8 +6,6 @@
 
 #include <boost/log/trivial.hpp>
 
-#include "../config.hpp"
-
 #include "migrations.hpp"
 #include "statement.hpp"
 #include "transaction.hpp"
@@ -25,7 +23,7 @@ int SetUserVersion(sqlite3* db, int version)
     return sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
 }
 
-bool porla::Data::Migrate(sqlite3* db, const std::unique_ptr<porla::Config>& cfg)
+bool porla::Data::Migrate(sqlite3* db)
 {
     static std::vector<std::function<int(sqlite3*)>> Migrations =
     {
@@ -38,8 +36,8 @@ bool porla::Data::Migrate(sqlite3* db, const std::unique_ptr<porla::Config>& cfg
         &porla::Data::Migrations::RemoveSessionSettings,
         &porla::Data::Migrations::Plugins,
         &porla::Data::Migrations::MultiSessions,
-        [&cfg](sqlite3* db) { return porla::Data::Migrations::Sessions(db, cfg); },
-        [&cfg](sqlite3* db) { return porla::Data::Migrations::Presets(db, cfg); },
+        &porla::Data::Migrations::Sessions,
+        &porla::Data::Migrations::Presets,
         &porla::Data::Migrations::AlterPlugins,
         &porla::Data::Migrations::AddKeyValueStore,
         &porla::Data::Migrations::MorePresets,

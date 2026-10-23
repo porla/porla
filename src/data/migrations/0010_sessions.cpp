@@ -5,12 +5,11 @@
 #include <libtorrent/session_params.hpp>
 #include <libtorrent/settings_pack.hpp>
 
-#include "../../config.hpp"
 #include "../statement.hpp"
 
 namespace lt = libtorrent;
 
-int porla::Data::Migrations::Sessions(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
+int porla::Data::Migrations::Sessions(sqlite3 *db)
 {
     BOOST_LOG_TRIVIAL(info) << "Adding 'sessions' table";
 
@@ -43,20 +42,17 @@ int porla::Data::Migrations::Sessions(sqlite3 *db, const std::unique_ptr<porla::
         return res;
     }
 
-    for (const auto& [name, settings] : cfg->sessions)
-    {
-        BOOST_LOG_TRIVIAL(info) << "Inserting session " << name;
-    
-        lt::session_params params;
-        params.settings = settings;
+    BOOST_LOG_TRIVIAL(info) << "Inserting default session";
 
-        std::vector params_buffer = lt::write_session_params_buf(params);
+    lt::session_params params;
+    params.settings = lt::default_settings();
 
-        auto stmt = Statement::Prepare(db, "INSERT INTO sessions (name, params) VALUES ($name, $params);");
-        stmt.Bind("$name",   name);
-        stmt.Bind("$params", params_buffer);
-        stmt.Execute();
-    }
+    std::vector params_buffer = lt::write_session_params_buf(params);
+
+    auto stmt = Statement::Prepare(db, "INSERT INTO sessions (name, params) VALUES ($name, $params);");
+    stmt.Bind("$name",   std::string("default"));
+    stmt.Bind("$params", params_buffer);
+    stmt.Execute();
 
     res = sqlite3_exec(
         db,
