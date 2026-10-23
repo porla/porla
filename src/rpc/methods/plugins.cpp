@@ -7,7 +7,7 @@
 #include <string>
 
 #include <boost/asio/awaitable.hpp>
-#include <toml++/toml.hpp>
+#include <boost/log/trivial.hpp>
 
 #include "../functionmethod.hpp"
 #include "../jsonrpc.hpp"
@@ -136,6 +136,58 @@ namespace porla::Rpc::Methods::Plugins
 
         NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(ListRes, plugins)
 
+        struct Manifest
+        {
+            std::optional<std::string> name;
+            std::optional<std::string> version;
+        };
+
+        Manifest ReadManifest(const Lua::Plugin* instance, const fs::path& plugin_path)
+        {
+            const auto base = plugin_path.has_filename()
+                ? plugin_path
+                : plugin_path.parent_path();
+
+            Manifest manifest{.name = base.filename().string()};
+
+            if (instance == nullptr)
+            {
+                return manifest;
+            }
+
+            const auto& sources = instance->Source().sources;
+            const auto  file    = sources.find("plugin.json");
+
+            if (file == sources.end())
+            {
+                return manifest;
+            }
+
+            try
+            {
+                const auto json = Json::Parse(std::string_view(file->second.data(), file->second.size()));
+
+                const auto name    = json.find("name");
+                const auto version = json.find("version");
+
+                if (name != json.end() && name->is_string() && !name->get_ref<const std::string&>().empty())
+                {
+                    manifest.name = name->get<std::string>();
+                }
+
+                if (version != json.end() && version->is_string())
+                {
+                    manifest.version = version->get<std::string>();
+                }
+            }
+            catch(const std::exception& e)
+            {
+                BOOST_LOG_TRIVIAL(warning) << "Invalid plugin.json in " << plugin_path << ": " << e.what();
+            }
+
+            return manifest;
+        }
+
         std::optional<porla::Plugins::Plugin> FindByPath(const porla::Plugins& plugins, const fs::path& path, int except_id = -1)
         {
             const auto normalized = [](const fs::path& p)
@@ -199,29 +251,14 @@ namespace porla::Rpc::Methods::Plugins
             }
 
             const auto instance = plugins.Instance(req.id);
-
-            auto name     = std::optional<std::string>();
-            auto version = std::optional<std::string>();
-
-            if (instance != nullptr)
-            {
-                const auto& source      = instance->Source();
-                const auto& plugin_toml = source.sources.find("plugin.toml");
-
-                if (plugin_toml != source.sources.end())
-                {
-                    const auto parsed_toml = toml::parse(plugin_toml->second.data());
-                    if (const auto parsed_name    = parsed_toml["name"].value<std::string>())    name    = parsed_name.value();
-                    if (const auto parsed_version = parsed_toml["version"].value<std::string>()) version = parsed_version.value();
-                }
-            }
+            const auto manifest = ReadManifest(instance, plugin->path);
 
             co_return GetRes{
                 .plugin = GetRes::Plugin{
                     .id        = plugin->id,
                     .path      = plugin->path,
-                    .name      = name,
-                    .version   = version,
+                    .name      = manifest.name,
+                    .version   = manifest.version,
                     .config    = call.Caller().kind == Auth::Context::Kind::User
                         ? plugin->config
                         : std::nullopt,
@@ -332,29 +369,13 @@ namespace porla::Rpc::Methods::Plugins
             for (const auto& plugin : plugins.All())
             {
                 const auto instance    = plugins.Instance(plugin.id);
-                const auto plugin_path = fs::path(plugin.path);
-
-                auto name    = std::optional<std::string>(plugin_path.filename());
-                auto version = std::optional<std::string>();
-
-                if (instance != nullptr)
-                {
-                    const auto& source      = instance->Source();
-                    const auto& plugin_toml = source.sources.find("plugin.toml");
-
-                    if (plugin_toml != source.sources.end())
-                    {
-                        const auto parsed_toml = toml::parse(plugin_toml->second.data());
-                        if (const auto parsed_name    = parsed_toml["name"].value<std::string>())    name    = parsed_name.value();
-                        if (const auto parsed_version = parsed_toml["version"].value<std::string>()) version = parsed_version.value();
-                    }
-                }
+                const auto manifest    = ReadManifest(instance, plugin.path);
 
                 res.plugins.emplace_back(ListRes::Plugin{
                     .id        = plugin.id,
                     .path      = plugin.path,
-                    .name      = name,
-                    .version   = version,
+                    .name      = manifest.name,
+                    .version   = manifest.version,
                     .metadata  = plugin.metadata,
                     .is_loaded = instance != nullptr
                 });
