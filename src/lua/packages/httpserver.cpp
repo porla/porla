@@ -3,6 +3,9 @@
 #include "../pluginstate.hpp"
 #include "../types/pohttpserverresponse.hpp"
 
+#include "../../config.hpp"
+#include "../../httphostguard.hpp"
+
 using porla::Lua::LuaState;
 using porla::Lua::Packages::HttpServer;
 namespace
@@ -32,8 +35,13 @@ namespace
 
         auto callback_id = state->RegisterCallback(callback, false);
 
-        Route(state->app, method, path, [weak, callback_id](uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
+        Route(state->app, method, path, [weak, callback_id, guard = state->cfg.http_host_guard](uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
         {
+            if (guard->Reject(res, req))
+            {
+                return;
+            }
+
             auto state = weak.lock();
 
             if (state == nullptr)

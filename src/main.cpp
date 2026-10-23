@@ -9,6 +9,7 @@
 #include "config.hpp"
 #include "curlmulti.hpp"
 #include "events.hpp"
+#include "httphostguard.hpp"
 #include "keyvalue.hpp"
 #include "logger.hpp"
 #include "lua/pluginsource.hpp"
@@ -212,7 +213,13 @@ int main(int argc, char* argv[])
                 if (http_base_path[0] != '/')      http_base_path = "/" + http_base_path;
                 if (http_base_path.ends_with("/")) http_base_path = http_base_path.substr(0, http_base_path.size() - 1);
 
-                http_server.post(http_base_path + "/api/v1/jsonrpc", jsonrpc->HttpHandler());
+                http_server.post(
+                    http_base_path + "/api/v1/jsonrpc",
+                    [guard = cfg->http_host_guard, handler = jsonrpc->HttpHandler()](auto* res, auto* req)
+                    {
+                        if (guard->Reject(res, req)) { return; }
+                        handler(res, req);
+                    });
 
                 http_server.listen(
                     cfg->http_host.value_or("127.0.0.1"),
