@@ -1,13 +1,6 @@
 #pragma once
 
-#include <memory>
-
 #include <sqlite3.h>
-
-namespace porla
-{
-    class Config;
-}
 
 namespace porla::Data::Migrations
 {
@@ -39,10 +32,10 @@ namespace porla::Data::Migrations
     int MultiSessions(sqlite3* db);
 
     // 0010
-    int Sessions(sqlite3* db, const std::unique_ptr<Config>& config);
+    int Sessions(sqlite3* db);
 
     // 0011
-    int Presets(sqlite3* db, const std::unique_ptr<Config>& config);
+    int Presets(sqlite3* db);
 
     // 0012
     int AlterPlugins(sqlite3* db);

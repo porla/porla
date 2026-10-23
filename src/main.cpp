@@ -80,7 +80,21 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    const boost::program_options::variables_map cmd = porla::CmdArgs::Parse(argc, argv);
+    boost::program_options::variables_map cmd;
+
+    try
+    {
+        cmd = porla::CmdArgs::Parse(argc, argv);
+    }
+    catch(const boost::program_options::error& ex)
+    {
+        std::cerr
+            << ex.what()
+            << " (run porla --help to see available options)"
+            << std::endl;
+
+        return 1;
+    }
 
     if (cmd.count("help"))
     {

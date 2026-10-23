@@ -1,39 +1,12 @@
 #include "../migrations.hpp"
 
 #include <boost/log/trivial.hpp>
-#include <nlohmann/json.hpp>
 
-#include "../../config.hpp"
-#include "../statement.hpp"
-
-using json = nlohmann::json;
-
-namespace lt = libtorrent;
-
-std::optional<int> GetSessionId(sqlite3* db, std::string session_name)
-{
-    std::optional<int> session_id;
-
-    porla::Data::Statement::Prepare(
-        db,
-        R"sql(
-        SELECT id AS session_id FROM sessions WHERE name = $name
-        )sql")
-        .Bind("$name", session_name)
-        .Step([&session_id](const auto& row)
-        {
-            session_id = row.GetOptionalInt32("session_id");
-            return SQLITE_OK;
-        });
-
-    return session_id;
-}
-
-int porla::Data::Migrations::Presets(sqlite3 *db, const std::unique_ptr<porla::Config> &cfg)
+int porla::Data::Migrations::Presets(sqlite3 *db)
 {
     BOOST_LOG_TRIVIAL(info) << "Adding 'presets' table";
 
-    int res = sqlite3_exec(
+    return sqlite3_exec(
         db,
         R"sql(
         CREATE TABLE presets (
@@ -59,85 +32,4 @@ int porla::Data::Migrations::Presets(sqlite3 *db, const std::unique_ptr<porla::C
         nullptr,
         nullptr,
         nullptr);
-
-    if (res != SQLITE_OK)
-    {
-        return res;
-    }
-
-    for (const auto& [name, preset] : cfg->presets)
-    {
-        BOOST_LOG_TRIVIAL(info) << "Inserting preset " << name;
-
-        std::optional<std::string> storage_mode = preset.storage_mode.has_value()
-            ? preset.storage_mode.value() == lt::storage_mode_allocate ? "allocate" : "sparse"
-            : std::optional<std::string>();
-
-        json metadata;
-
-        if (preset.dollar_hidden.has_value())
-        {
-            metadata["$hidden"] = preset.dollar_hidden.value();
-        }
-
-        const auto session_id = preset.session.has_value()
-            ? GetSessionId(db, preset.session.value())
-            : std::optional<int>();
-
-        auto stmt = Statement::Prepare(
-            db,
-            R"sql(
-            INSERT INTO presets (
-                name,
-                category,
-                download_limit,
-                max_connections,
-                max_uploads,
-                metadata,
-                session_id,
-                save_path,
-                storage_mode,
-                tags,
-                upload_limit
-            )
-            VALUES (
-                $name,
-                $category,
-                $download_limit,
-                $max_connections,
-                $max_uploads,
-                $metadata,
-                $session_id,
-                $save_path,
-                $storage_mode,
-                $tags,
-                $upload_limit
-            );
-            )sql");
-
-        const auto metadata_dump = metadata.dump();
-        const auto tags_dump     = json(preset.tags).dump();
-
-        stmt.Bind("$name",            name);
-        stmt.Bind("$category",        preset.category);
-        stmt.Bind("$download_limit",  preset.download_limit);
-        stmt.Bind("$max_connections", preset.max_connections);
-        stmt.Bind("$max_uploads",     preset.max_uploads);
-        stmt.Bind("$metadata",        metadata_dump);
-        stmt.Bind("$save_path",       preset.save_path);
-        stmt.Bind("$session_id",      session_id);
-        stmt.Bind("$storage_mode",    storage_mode);
-        stmt.Bind("$tags",            tags_dump);
-        stmt.Bind("$upload_limit",    preset.upload_limit);
-        stmt.Execute();
-    }
-
-    res = sqlite3_exec(
-        db,
-        "UPDATE presets SET is_default = 1 WHERE name = 'default'",
-        nullptr,
-        nullptr,
-        nullptr);
-
-    return res;
 }

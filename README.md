@@ -81,8 +81,6 @@ sensible defaults instead.
 
 ### Environment variables and command line args
 
-- `PORLA_CONFIG_FILE` or `--config-file` - path to a TOML config file with
-  additional configuration.
 - `PORLA_DB` or `--db` - path a file (which does not need to exist) that `porla`
   will use to store its state.
 - `PORLA_HTTP_BASE_PATH` or `--http-base-path` - set to a path where the HTTP parts

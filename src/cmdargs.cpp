@@ -9,7 +9,7 @@ static po::options_description Options()
 {
     po::options_description desc("Allowed options");
     desc.add_options()
-        ("config-file",           po::value<std::string>(), "Path to a porla.toml config file.")
+        ("config-file",           po::value<std::string>(), "(Deprecated) Path to a porla.toml config file.")
         ("db",                    po::value<std::string>(), "Path to where the database will be stored.")
         ("help",                                            "Show usage")
         ("http-base-path",        po::value<std::string>(), "The base path for HTTP routes")
@@ -17,7 +17,6 @@ static po::options_description Options()
         ("http-port",             po::value<uint16_t>(),    "The port to listen on for HTTP traffic.")
         ("log-level",             po::value<std::string>(), "The minimum log level to print.")
         ("secret-key",            po::value<std::string>(), "The secret key to use when protecting various pieces of data.")
-        ("session-settings-base", po::value<std::string>(), "The libtorrent base settings to use")
         ("state-dir",             po::value<std::string>(), "The path to a directory where Porla state will be saved.")
         ;
 
