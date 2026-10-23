@@ -83,6 +83,12 @@ sensible defaults instead.
 
 - `PORLA_DB` or `--db` - path a file (which does not need to exist) that `porla`
   will use to store its state.
+- `PORLA_HTTP_ALLOWED_HOSTS` or `--http-allowed-hosts` - comma-separated host
+  names Porla answers to besides `localhost`. When Porla listens on a loopback
+  address it only answers requests for `localhost` names, which stops DNS
+  rebinding attacks; behind a reverse proxy that forwards the public host name,
+  add that name here. Setting it also turns the check on for other listen
+  addresses, and `*` turns it off.
 - `PORLA_HTTP_BASE_PATH` or `--http-base-path` - set to a path where the HTTP parts
   of Porla will be served. Defaults to `/`.
 - `PORLA_HTTP_HOST` or `--http-host` - set to an IP address which to bind the HTTP

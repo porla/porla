@@ -7,7 +7,9 @@
 #include <boost/program_options.hpp>
 
 #include "data/migrate.hpp"
-
+#include "httphostguard.hpp"
+#include "utils/string.hpp"
+ 
 namespace fs = std::filesystem;
 
 using porla::Config;
@@ -26,6 +28,25 @@ namespace
         }
 
         return port;
+    }
+
+    // "a.example, b.example" -> {"a.example", "b.example"}
+    std::vector<std::string> ParseHosts(const std::string& value)
+    {
+        std::vector<std::string> hosts;
+
+        for (auto host : porla::Utils::String::Split(value, ","))
+        {
+            host.erase(0, host.find_first_not_of(" \t"));
+            host.erase(host.find_last_not_of(" \t") + 1);
+
+            if (!host.empty())
+            {
+                hosts.push_back(std::move(host));
+            }
+        }
+
+        return hosts;
     }
 }
 
@@ -76,12 +97,13 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         break;
     }
 
-    if (auto val = std::getenv("PORLA_CONFIG_FILE"))           cfg->config_file     = val;
-    if (auto val = std::getenv("PORLA_DB"))                    cfg->db_file         = val;
-    if (auto val = std::getenv("PORLA_HTTP_BASE_PATH"))        cfg->http_base_path  = val;
-    if (auto val = std::getenv("PORLA_HTTP_HOST"))             cfg->http_host       = val;
-    if (auto val = std::getenv("PORLA_HTTP_PORT"))             cfg->http_port       = ParsePort("PORLA_HTTP_PORT", val);
-    if (auto val = std::getenv("PORLA_STATE_DIR"))             cfg->state_dir       = val;
+    if (auto val = std::getenv("PORLA_CONFIG_FILE"))           cfg->config_file        = val;
+    if (auto val = std::getenv("PORLA_DB"))                    cfg->db_file            = val;
+    if (auto val = std::getenv("PORLA_HTTP_ALLOWED_HOSTS"))    cfg->http_allowed_hosts = ParseHosts(val);
+    if (auto val = std::getenv("PORLA_HTTP_BASE_PATH"))        cfg->http_base_path     = val;
+    if (auto val = std::getenv("PORLA_HTTP_HOST"))             cfg->http_host          = val;
+    if (auto val = std::getenv("PORLA_HTTP_PORT"))             cfg->http_port          = ParsePort("PORLA_HTTP_PORT", val);
+    if (auto val = std::getenv("PORLA_STATE_DIR"))             cfg->state_dir          = val;
 
     // Logins are server-side sessions now - nothing is signed, so there is no secret key.
     if (std::getenv("PORLA_SECRET_KEY") != nullptr)
@@ -107,11 +129,12 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
             << " - Porla no longer reads config files. Use flags or PORLA_* environment variables instead.";
     }
 
-    if (cmd.count("db"))                    cfg->db_file        = cmd["db"].as<std::string>();
-    if (cmd.count("http-base-path"))        cfg->http_base_path = cmd["http-base-path"].as<std::string>();
-    if (cmd.count("http-host"))             cfg->http_host      = cmd["http-host"].as<std::string>();
-    if (cmd.count("http-port"))             cfg->http_port      = ParsePort("--http-port", cmd["http-port"].as<std::string>());
-    if (cmd.count("state-dir"))             cfg->state_dir      = cmd["state-dir"].as<std::string>();
+    if (cmd.count("db"))                    cfg->db_file            = cmd["db"].as<std::string>();
+    if (cmd.count("http-allowed-hosts"))    cfg->http_allowed_hosts = ParseHosts(cmd["http-allowed-hosts"].as<std::string>());
+    if (cmd.count("http-base-path"))        cfg->http_base_path     = cmd["http-base-path"].as<std::string>();
+    if (cmd.count("http-host"))             cfg->http_host          = cmd["http-host"].as<std::string>();
+    if (cmd.count("http-port"))             cfg->http_port          = ParsePort("--http-port", cmd["http-port"].as<std::string>());
+    if (cmd.count("state-dir"))             cfg->state_dir          = cmd["state-dir"].as<std::string>();
 
     // If no db_file is set, default to a file in state_dir.
     if (!cfg->db_file.has_value())
@@ -149,6 +172,15 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         }
 
         cfg->db_file = db_path;
+    }
+
+
+    cfg->http_host_guard = std::make_shared<HttpHostGuard>(cfg->http_host.value_or("127.0.0.1"), cfg->http_allowed_hosts);
+
+    if (cfg->http_host_guard->Enabled())
+    {
+        BOOST_LOG_TRIVIAL(info) << "HTTP requests are only answered for localhost names"
+            << (cfg->http_allowed_hosts.empty() ? "" : " and the allowed hosts");
     }
 
     if (std::error_code ec; !fs::create_directories(cfg->state_dir, ec) && ec)
