@@ -7,7 +7,6 @@
 #include <boost/program_options.hpp>
 
 #include "data/migrate.hpp"
-#include "utils/secretkey.hpp"
 
 namespace fs = std::filesystem;
 
@@ -82,8 +81,13 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (auto val = std::getenv("PORLA_HTTP_BASE_PATH"))        cfg->http_base_path  = val;
     if (auto val = std::getenv("PORLA_HTTP_HOST"))             cfg->http_host       = val;
     if (auto val = std::getenv("PORLA_HTTP_PORT"))             cfg->http_port       = ParsePort("PORLA_HTTP_PORT", val);
-    if (auto val = std::getenv("PORLA_SECRET_KEY"))            cfg->secret_key      = val;
     if (auto val = std::getenv("PORLA_STATE_DIR"))             cfg->state_dir       = val;
+
+    // Logins are server-side sessions now - nothing is signed, so there is no secret key.
+    if (std::getenv("PORLA_SECRET_KEY") != nullptr)
+    {
+        BOOST_LOG_TRIVIAL(warning) << "PORLA_SECRET_KEY is no longer used and can be removed";
+    }
 
     if (cmd.count("config-file"))
     {
@@ -107,7 +111,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (cmd.count("http-base-path"))        cfg->http_base_path = cmd["http-base-path"].as<std::string>();
     if (cmd.count("http-host"))             cfg->http_host      = cmd["http-host"].as<std::string>();
     if (cmd.count("http-port"))             cfg->http_port      = ParsePort("--http-port", cmd["http-port"].as<std::string>());
-    if (cmd.count("secret-key"))            cfg->secret_key     = cmd["secret-key"].as<std::string>();
     if (cmd.count("state-dir"))             cfg->state_dir      = cmd["state-dir"].as<std::string>();
 
     // If no db_file is set, default to a file in state_dir.
@@ -186,13 +189,6 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     {
         BOOST_LOG_TRIVIAL(error) << "Failed to run migrations";
         throw std::runtime_error("Failed to apply migrations");
-    }
-
-    // A flag or env key wins. Otherwise use the one stored in the state dir, so logins survive restarts.
-
-    if (cfg->secret_key.empty())
-    {
-        cfg->secret_key = porla::Utils::SecretKey::Load(cfg->state_dir / "secret.key");
     }
 
     return std::move(cfg);

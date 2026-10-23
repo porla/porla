@@ -60,4 +60,7 @@ namespace porla::Data::Migrations
 
     // 0019
     int AddAutoIncrementIds(sqlite3* db);
+
+    // 0020
+    int Tokens(sqlite3* db);
 }

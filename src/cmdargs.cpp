@@ -16,7 +16,6 @@ static po::options_description Options()
         ("http-host",             po::value<std::string>(), "The host to listen on for HTTP traffic.")
         ("http-port",             po::value<std::string>(), "The port to listen on for HTTP traffic.")
         ("log-level",             po::value<std::string>(), "The minimum log level to print.")
-        ("secret-key",            po::value<std::string>(), "The secret key to use when protecting various pieces of data.")
         ("state-dir",             po::value<std::string>(), "The path to a directory where Porla state will be saved.")
         ;
 

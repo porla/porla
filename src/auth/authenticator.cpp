@@ -5,15 +5,15 @@
 #include <nlohmann/json.hpp>
 #include <sodium.h>
 
-#include "jwt.hpp"
+#include "tokens.hpp"
 
-#include "../data/models/apikeys.hpp"
 #include "../utils/string.hpp"
 
 using porla::Auth::Authenticator;
 using porla::Auth::Context;
-using porla::Data::Models::ApiKeys;
 using porla::Utils::String;
+
+namespace Tokens = porla::Auth::Tokens;
 
 namespace
 {
@@ -68,9 +68,8 @@ namespace
 
 }
 
-Authenticator::Authenticator(sqlite3* db, std::string secret_key)
+Authenticator::Authenticator(sqlite3* db)
     : m_db(db)
-    , m_secret_key(std::move(secret_key))
 {
 }
 
@@ -96,99 +95,40 @@ Context Authenticator::Authenticate(uWS::HttpRequest* req) const
         return {};
     }
 
-    if (bearer_token->size() >= 2
-        && (*bearer_token)[0] == 'e'
-        && (*bearer_token)[1] == 'y')
+    std::optional<porla::Data::Models::Tokens::Token> token;
+
+    try
     {
-        return DecodeJwt(bearer_token.value());
+        token = Tokens::Verify(m_db, bearer_token.value());
+    }
+    catch(const std::exception& e)
+    {
+        BOOST_LOG_TRIVIAL(error) << "Failed to verify token: " << e.what();
     }
 
-    if (bearer_token->starts_with("porla_"))
+    if (!token.has_value())
     {
-        try
+        return {};
+    }
+
+    if (token->kind == "session")
+    {
+        // session token from a user that has been removed
+        if (!token->username.has_value())
         {
-            return DecodeApiKey(bearer_token.value());
+            return {};
         }
-        catch(const std::exception& e)
-        {
-            BOOST_LOG_TRIVIAL(error) << "Failed to decode API key: " << e.what();
-        }
-    }
 
-    return {};
-}
-
-Context Authenticator::DecodeApiKey(const std::string& key) const
-{
-    // porla_<16 hex>_<43 base64url
-    constexpr size_t kIdLen = 16, kSecretLen = 43;
-
-    if (key.size() != 6 + kIdLen + 1 + kSecretLen
-        || key[6 + kIdLen] != '_')
-    {
-        return {};
-    }
-
-    const auto key_id         = key.substr(6, kIdLen);
-    const auto key_secret_b64 = key.substr(6 + kIdLen + 1);
-
-    unsigned char secret[32];
-    size_t        secret_len = 0;
-
-    const auto decode_result = sodium_base642bin(
-        secret,
-        sizeof(secret),
-        key_secret_b64.c_str(),
-        key_secret_b64.size(),
-        nullptr,
-        &secret_len,
-        nullptr,
-        sodium_base64_VARIANT_URLSAFE_NO_PADDING);
-
-    if (decode_result != 0 || secret_len != sizeof(secret))
-    {
-        return {};
-    }
-
-    unsigned char hashed_secret[crypto_generichash_BYTES];
-
-    crypto_generichash(
-        hashed_secret,
-        sizeof(hashed_secret),
-        secret,
-        sizeof(secret),
-        nullptr,
-        0);
-
-    sodium_memzero(secret, sizeof(secret));
-
-    const auto candidate = ApiKeys::GetById(m_db, key_id);
-
-    if (!candidate.has_value()
-        || (candidate->expires_at.has_value() && candidate->expires_at.value() < std::time(nullptr))
-        || candidate->secret_hash.size() != sizeof(hashed_secret)
-        || sodium_memcmp(candidate->secret_hash.data(), hashed_secret, sizeof(hashed_secret)) != 0)
-    {
-        return {};
+        return Context{
+            .kind     = Context::Kind::User,
+            .subject  = token->username,
+            .token_id = token->id
+        };
     }
 
     return Context{
-        .kind    = Context::Kind::Machine,
-        .subject = key_id
-    };
-}
-
-Context Authenticator::DecodeJwt(const std::string& encoded_token) const
-{
-    const auto subject = Jwt::Verify(m_secret_key, encoded_token);
-
-    if (!subject.has_value())
-    {
-        return {};
-    }
-
-    return Context{
-        .kind    = Context::Kind::User,
-        .subject = subject.value()
+        .kind     = Context::Kind::Machine,
+        .subject  = token->id,
+        .token_id = token->id
     };
 }

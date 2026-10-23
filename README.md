@@ -91,10 +91,6 @@ sensible defaults instead.
   Defaults to _1337_.
 - `PORLA_LOG_LEVEL` or `--log-level` - the minimum log level to use. Valid values
   are _trace_, _debug_, _info_, _warning_, _error_, _fatal_. Defaults to _info_.
-- `PORLA_SECRET_KEY` or `--secret-key` - the key that signs login tokens. If
-  it's not set, Porla generates one on first start and keeps it in
-  `secret.key` in the state directory. Delete that file to rotate the key (this
-  logs everyone out; API keys aren't affected).
 - `PORLA_STATE_DIR` or `--state-dir` - a path to a directory where Porla will
   store its state.
 

@@ -46,6 +46,7 @@ bool porla::Data::Migrate(sqlite3* db)
         &porla::Data::Migrations::TorrentInfos,
         &porla::Data::Migrations::AddCompletedAt,
         &porla::Data::Migrations::AddAutoIncrementIds,
+        &porla::Data::Migrations::Tokens,
     };
 
     int user_version = GetUserVersion(db);
