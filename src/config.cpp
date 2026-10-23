@@ -1,5 +1,6 @@
 #include "config.hpp"
 
+#include <charconv>
 #include <filesystem>
 
 #include <boost/log/trivial.hpp>
@@ -11,6 +12,23 @@
 namespace fs = std::filesystem;
 
 using porla::Config;
+
+namespace
+{
+    uint16_t ParsePort(const char* name, std::string_view value)
+    {
+        uint16_t   port = 0;
+        const auto end  = value.data() + value.size();
+        const auto res  = std::from_chars(value.data(), end, port);
+
+        if (value.empty() || res.ec != std::errc() || res.ptr != end || port == 0)
+        {
+            throw std::runtime_error(std::string(name) + " must be a port number (1-65535), got '" + std::string(value) + "'");
+        }
+
+        return port;
+    }
+}
 
 std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map& cmd)
 {
@@ -63,7 +81,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (auto val = std::getenv("PORLA_DB"))                    cfg->db_file         = val;
     if (auto val = std::getenv("PORLA_HTTP_BASE_PATH"))        cfg->http_base_path  = val;
     if (auto val = std::getenv("PORLA_HTTP_HOST"))             cfg->http_host       = val;
-    if (auto val = std::getenv("PORLA_HTTP_PORT"))             cfg->http_port       = std::stoi(val);
+    if (auto val = std::getenv("PORLA_HTTP_PORT"))             cfg->http_port       = ParsePort("PORLA_HTTP_PORT", val);
     if (auto val = std::getenv("PORLA_SECRET_KEY"))            cfg->secret_key      = val;
     if (auto val = std::getenv("PORLA_STATE_DIR"))             cfg->state_dir       = val;
 
@@ -88,7 +106,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (cmd.count("db"))                    cfg->db_file        = cmd["db"].as<std::string>();
     if (cmd.count("http-base-path"))        cfg->http_base_path = cmd["http-base-path"].as<std::string>();
     if (cmd.count("http-host"))             cfg->http_host      = cmd["http-host"].as<std::string>();
-    if (cmd.count("http-port"))             cfg->http_port      = cmd["http-port"].as<uint16_t>();
+    if (cmd.count("http-port"))             cfg->http_port      = ParsePort("--http-port", cmd["http-port"].as<std::string>());
     if (cmd.count("secret-key"))            cfg->secret_key     = cmd["secret-key"].as<std::string>();
     if (cmd.count("state-dir"))             cfg->state_dir      = cmd["state-dir"].as<std::string>();
 
