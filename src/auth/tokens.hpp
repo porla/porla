@@ -11,6 +11,9 @@
 
 namespace porla::Auth::Tokens
 {
+    // a user keeps at most this many sessions
+    constexpr int kMaxSessionsPerUser = 50;
+
     // a user session expires after this long without use.
     constexpr std::chrono::seconds kSessionIdleTimeout = std::chrono::days{30};
 

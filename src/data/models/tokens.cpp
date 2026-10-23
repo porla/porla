@@ -87,6 +87,26 @@ int Tokens::RemoveExpiredSessions(sqlite3* db, std::int64_t now)
     return sqlite3_changes(db);
 }
 
+int Tokens::RemoveLeastRecentlyUsedSessions(sqlite3* db, int user_id, int keep)
+{
+    Statement::Prepare(
+        db,
+        R"sql(
+        DELETE FROM tokens
+        WHERE kind = 'session' AND user_id = $user_id AND id NOT IN (
+            SELECT id FROM tokens
+            WHERE kind = 'session' AND user_id = $user_id
+            ORDER BY COALESCE(last_used_at, created_at) DESC, created_at DESC
+            LIMIT $keep
+        )
+        )sql")
+        .Bind("$user_id", user_id)
+        .Bind("$keep", keep)
+        .Execute();
+
+    return sqlite3_changes(db);
+}
+
 void Tokens::Touch(sqlite3* db, std::string_view id, std::int64_t now, std::optional<std::int64_t> expires_at)
 {
     Statement::Prepare(db, "UPDATE tokens SET last_used_at = $now, expires_at = COALESCE($expires_at, expires_at) WHERE id = $id")

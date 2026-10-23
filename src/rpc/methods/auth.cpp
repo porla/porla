@@ -191,6 +191,15 @@ namespace porla::Rpc::Methods::Auth
                 BOOST_LOG_TRIVIAL(debug) << "Removed " << removed << " expired session(s)";
             }
 
+            // Make room for the new session.
+            if (const int removed = Data::Models::Tokens::RemoveLeastRecentlyUsedSessions(db, user->id, porla::Auth::Tokens::kMaxSessionsPerUser - 1); removed > 0)
+            {
+                BOOST_LOG_TRIVIAL(info)
+                    << "User " << user->username << " has more than "
+                    << porla::Auth::Tokens::kMaxSessionsPerUser
+                    << " sessions - ended the " << removed << " least recently used";
+            }
+
             const auto& caller = call.Caller();
 
             const auto session = porla::Auth::Tokens::Issue(

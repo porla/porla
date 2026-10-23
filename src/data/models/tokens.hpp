@@ -33,6 +33,7 @@ namespace porla::Data::Models
         static std::vector<Token> List(sqlite3* db, std::string_view kind);
         static void Remove(sqlite3* db, std::string_view id);
         static int RemoveExpiredSessions(sqlite3* db, std::int64_t now);
+        static int RemoveLeastRecentlyUsedSessions(sqlite3* db, int user_id, int keep);
         static void Touch(sqlite3* db, std::string_view id, std::int64_t now, std::optional<std::int64_t> expires_at);
     };
 }
