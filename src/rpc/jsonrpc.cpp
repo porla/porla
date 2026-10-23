@@ -167,7 +167,18 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
             return;
         }
 
-        auto auth_context           = jsonrpc->m_authenticator->Authenticate(req);
+        // Browsers say where a request comes from. porla answers no CORS preflight, so a browser
+        // request from another site - or another port or subdomain of this one ("same-site") - can
+        // only be a "simple" request a page sends to act with the user's cookie (or to run
+        // auth.init on a fresh install). The web UI is same-origin; scripts send no such header.
+        if (const auto fetch_site = req->getHeader("sec-fetch-site");
+            boost::algorithm::iequals(fetch_site, "cross-site") || boost::algorithm::iequals(fetch_site, "same-site"))
+        {
+            res->writeStatus("403 Forbidden")->end("Forbidden", true);
+            return;
+        }
+
+        auto auth_context = jsonrpc->m_authenticator->Authenticate(req);
 
         auto user_agent = req->getHeader("user-agent").substr(0, 512);
 
