@@ -7,7 +7,6 @@
 #include <maxminddb.h>
 #include <openssl/opensslv.h>
 #include <sqlite3.h>
-#include <toml++/toml.hpp>
 #include <zip.h>
 
 #include "../functionmethod.hpp"
@@ -43,11 +42,6 @@ namespace porla::Rpc::Methods::Sys
                 << NLOHMANN_JSON_VERSION_MINOR << "."
                 << NLOHMANN_JSON_VERSION_PATCH;
 
-            std::stringstream toml_version;
-            toml_version << TOML_LIB_MAJOR << "."
-                << TOML_LIB_MINOR << "."
-                << TOML_LIB_PATCH;
-
             co_return nlohmann::json({
                 {"porla", {
                     {"branch", porla::BuildInfo::Branch()},
@@ -81,9 +75,6 @@ namespace porla::Rpc::Methods::Sys
                 {"sqlite", {
                     {"source_id", SQLITE_SOURCE_ID},
                     {"version", SQLITE_VERSION}
-                }},
-                {"tomlplusplus", {
-                    {"version", toml_version.str()}
                 }}
             });
         }

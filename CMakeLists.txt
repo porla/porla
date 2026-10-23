@@ -312,7 +312,6 @@ target_include_directories(
     vendor/croncpp/include
     vendor/nlohmann-json/include
     vendor/sol2/include
-    vendor/tomlplusplus/include
 )
 
 target_link_libraries(
