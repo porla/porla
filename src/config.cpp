@@ -130,9 +130,20 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         cfg->db_file = db_path;
     }
 
+    if (std::error_code ec; !fs::create_directories(cfg->state_dir, ec) && ec)
+    {
+        BOOST_LOG_TRIVIAL(fatal) << "Failed to create state directory " << cfg->state_dir << ": " << ec.message();
+        throw std::runtime_error("Failed to create state directory");
+    }
+
     if (sqlite3_open(cfg->db_file.value_or("porla.sqlite").c_str(), &cfg->db) != SQLITE_OK)
     {
         BOOST_LOG_TRIVIAL(fatal) << "Failed to open SQLite connection: " << sqlite3_errmsg(cfg->db);
+
+        // sqlite3_open returns a handle even when it fails - close it so ~Config doesn't use it
+        sqlite3_close(cfg->db);
+        cfg->db = nullptr;
+
         throw std::runtime_error("Failed to open SQLite connection");
     }
 
@@ -159,16 +170,11 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         throw std::runtime_error("Failed to apply migrations");
     }
 
-    // If we get here without having a secret key, we must generate one. Also log a warning because
-    // if the secret key changes, JWT's will not work if restarting.
+    // A flag or env key wins. Otherwise use the one stored in the state dir, so logins survive restarts.
 
     if (cfg->secret_key.empty())
     {
-        BOOST_LOG_TRIVIAL(warning)
-            << "No secret key set - generated a temporary one. User logins will not survive a restart;"
-            << " set --secret-key or PORLA_SECRET_KEY (API keys are not affected)";
-
-        cfg->secret_key = porla::Utils::SecretKey::New();
+        cfg->secret_key = porla::Utils::SecretKey::Load(cfg->state_dir / "secret.key");
     }
 
     return std::move(cfg);
