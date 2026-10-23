@@ -21,7 +21,6 @@ namespace porla
         std::optional<std::string> http_base_path;
         std::optional<std::string> http_host;
         std::optional<uint16_t>    http_port;
-        std::string                secret_key;
         fs::path                   state_dir;
 
         static std::unique_ptr<Config> Load(const boost::program_options::variables_map& cmd);

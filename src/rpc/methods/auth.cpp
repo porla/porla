@@ -7,9 +7,9 @@
 #include "../jsonrpc.hpp"
 
 #include "../../auth/context.hpp"
-#include "../../auth/jwt.hpp"
 #include "../../auth/password.hpp"
-#include "../../data/models/apikeys.hpp"
+#include "../../auth/tokens.hpp"
+#include "../../data/models/tokens.hpp"
 #include "../../data/models/users.hpp"
 #include "../../json/utils.hpp"
 
@@ -41,6 +41,7 @@ namespace porla::Rpc::Methods::Auth
                 std::string                 name;
                 std::int64_t                created_at;
                 std::optional<std::int64_t> expires_at;
+                std::optional<std::int64_t> last_used_at;
             };
 
             std::vector<Key> keys;
@@ -57,14 +58,45 @@ namespace porla::Rpc::Methods::Auth
             std::string password;
         };
 
+        struct LogoutReq {};
+
+        struct SessionsListReq {};
+
+        struct SessionsListRes
+        {
+            struct Session
+            {
+                std::string                 id;
+                std::int64_t                created_at;
+                std::optional<std::int64_t> last_used_at;
+                std::optional<std::int64_t> expires_at;
+                std::optional<std::string>  user_agent;
+                std::optional<std::string>  remote_address;
+                bool                        current;
+            };
+
+            std::vector<Session> sessions;
+        };
+
+        struct SessionsRemoveReq
+        {
+            std::string id;
+        };
+
         PORLA_JSON_REQUEST(InitReq, username, password)
         PORLA_JSON_REQUEST(KeysCreateReq, name, expires_at)
         PORLA_JSON_NO_PARAMS(KeysListReq)
         PORLA_JSON_REQUEST(KeysRemoveReq, id)
         PORLA_JSON_REQUEST(LoginReq, username, password)
-        NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(KeysListRes::Key, id, name, created_at, expires_at)
+        PORLA_JSON_NO_PARAMS(LogoutReq)
+        PORLA_JSON_NO_PARAMS(SessionsListReq)
+        PORLA_JSON_REQUEST(SessionsRemoveReq, id)
+        NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(KeysListRes::Key, id, name, created_at, expires_at, last_used_at)
         NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(KeysListRes, keys)
+        NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(SessionsListRes::Session, id, created_at, last_used_at, expires_at, user_agent, remote_address, current)
+        NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(SessionsListRes, sessions)
 
+        constexpr int kCookieMaxAge = 400 * 24 * 60 * 60;
         constexpr auto kDummyHash = "$argon2id$v=19$m=65536,t=2,p=1$Po8JYTODUsewD1r3zg1XsQ$icZxLXBcZRDPKybU+9MkOIdrATTmhENNG7EfckW5zvg";
 
         std::string CreateAuthCookie(const std::string& name, const std::string& token, int max_age_seconds, bool secure)
@@ -117,7 +149,7 @@ namespace porla::Rpc::Methods::Auth
             BOOST_LOG_TRIVIAL(info) << "User " << req.username << " created";
         }
 
-        awaitable<nlohmann::json> Login(boost::asio::thread_pool& hash_pool, sqlite3* db, const std::string& secret_key, const LoginReq& req, Call& call)
+        awaitable<nlohmann::json> Login(boost::asio::thread_pool& hash_pool, sqlite3* db, const LoginReq& req, Call& call)
         {
             const auto user = porla::Data::Models::Users::GetByUsername(db, req.username);
 
@@ -152,13 +184,46 @@ namespace porla::Rpc::Methods::Auth
                 }
             }
 
-            const auto token = porla::Auth::Jwt::Sign(secret_key, user->username, std::chrono::days{1});
+            const auto now = static_cast<std::int64_t>(std::time(nullptr));
 
-            call.Header("Set-Cookie", CreateAuthCookie("porla-auth-token", token, 86400, false));
+            if (const int removed = Data::Models::Tokens::RemoveExpiredSessions(db, now); removed > 0)
+            {
+                BOOST_LOG_TRIVIAL(debug) << "Removed " << removed << " expired session(s)";
+            }
+
+            const auto& caller = call.Caller();
+
+            const auto session = porla::Auth::Tokens::Issue(
+                db,
+                Data::Models::Tokens::Token{
+                    .kind           = "session",
+                    .user_id        = user->id,
+                    .expires_at     = now + porla::Auth::Tokens::kSessionIdleTimeout.count(),
+                    .last_used_at   = now,
+                    .user_agent     = caller.user_agent.empty() ? std::nullopt : std::optional(caller.user_agent),
+                    .remote_address = caller.remote_address.empty() ? std::nullopt : std::optional(caller.remote_address)
+                });
+
+            BOOST_LOG_TRIVIAL(info) << "User " << user->username << " logged in (session " << session.id << ")";
+
+            call.Header("Set-Cookie", CreateAuthCookie("porla-auth-token", session.token, kCookieMaxAge, false));
 
             co_return nlohmann::json({
-                {"token", token}
+                {"token", session.token}
             });
+        }
+
+        awaitable<void> Logout(sqlite3* db, const LogoutReq& req, Call& call)
+        {
+            if (const auto& id = call.Caller().token_id)
+            {
+                Data::Models::Tokens::Remove(db, *id);
+                BOOST_LOG_TRIVIAL(info) << "Session " << *id << " logged out";
+            }
+
+            call.Header("Set-Cookie", CreateAuthCookie("porla-auth-token", "", 0, false));
+
+            co_return;
         }
 
         awaitable<nlohmann::json> KeysCreate(sqlite3* db, const KeysCreateReq& req)
@@ -173,67 +238,25 @@ namespace porla::Rpc::Methods::Auth
                 throw Error(-2, "Invalid expires_at - must be in the future");
             }
 
-            unsigned char key_id_bin[8];
-            char          key_id[sizeof(key_id_bin) * 2 + 1];
-            unsigned char key_secret[32];
-
-            randombytes_buf(key_id_bin, sizeof(key_id_bin));
-            randombytes_buf(key_secret, sizeof(key_secret));
-
-            sodium_bin2hex(
-                key_id,
-                sizeof(key_id),
-                key_id_bin,
-                sizeof(key_id_bin));
-
-            const auto secret_encoded_len = sodium_base64_ENCODED_LEN(
-                sizeof(key_secret),
-                sodium_base64_VARIANT_URLSAFE_NO_PADDING);
-
-            std::string secret_encoded;
-            secret_encoded.resize(secret_encoded_len);
-
-            sodium_bin2base64(
-                secret_encoded.data(),
-                secret_encoded.size(),
-                key_secret,
-                sizeof(key_secret),
-                sodium_base64_VARIANT_URLSAFE_NO_PADDING);
-
-            secret_encoded.resize(secret_encoded_len - 1);
-
-            unsigned char secret_hashed[crypto_generichash_BYTES];
-
-            crypto_generichash(
-                secret_hashed,
-                sizeof(secret_hashed),
-                key_secret,
-                sizeof(key_secret),
-                nullptr,
-                0);
-
-            sodium_memzero(key_secret, sizeof(key_secret));
-
-            Data::Models::ApiKeys::Insert(
+            const auto key = porla::Auth::Tokens::Issue(
                 db,
-                key_id,
-                req.name,
-                std::vector<char>(
-                    reinterpret_cast<char*>(secret_hashed),
-                    reinterpret_cast<char*>(secret_hashed) + sizeof(secret_hashed)),
-                req.expires_at);
+                Data::Models::Tokens::Token{
+                    .kind       = "api_key",
+                    .name       = req.name,
+                    .expires_at = req.expires_at
+                });
 
-            BOOST_LOG_TRIVIAL(info) << "API key " << req.name << " created with ID " << key_id;
+            BOOST_LOG_TRIVIAL(info) << "API key " << req.name << " created with ID " << key.id;
 
             co_return nlohmann::json({
-                {"id", key_id},
-                {"key", "porla_" + std::string(key_id) + "_" + secret_encoded}
+                {"id", key.id},
+                {"key", key.token}
             });
         }
 
         awaitable<nlohmann::json> KeysList(sqlite3* db, const KeysListReq& req)
         {
-            const auto keys = Data::Models::ApiKeys::List(db);
+            const auto keys = Data::Models::Tokens::List(db, "api_key");
 
             std::vector<KeysListRes::Key> output_keys;
             output_keys.reserve(keys.size());
@@ -242,13 +265,14 @@ namespace porla::Rpc::Methods::Auth
                 keys.begin(),
                 keys.end(),
                 std::back_inserter(output_keys),
-                [](const Data::Models::ApiKeys::ApiKey& model)
+                [](const Data::Models::Tokens::Token& model)
                 {
                     return KeysListRes::Key{
-                        .id         = model.id,
-                        .name       = model.name,
-                        .created_at = model.created_at,
-                        .expires_at = model.expires_at
+                        .id           = model.id,
+                        .name         = model.name.value_or(""),
+                        .created_at   = model.created_at,
+                        .expires_at   = model.expires_at,
+                        .last_used_at = model.last_used_at
                     };
                 });
 
@@ -259,13 +283,49 @@ namespace porla::Rpc::Methods::Auth
 
         awaitable<void> KeysRemove(sqlite3* db, const KeysRemoveReq& req)
         {
-            if (!Data::Models::ApiKeys::GetById(db, req.id).has_value())
+            const auto token = Data::Models::Tokens::GetById(db, req.id);
+
+            if (!token.has_value() || token->kind != "api_key")
             {
                 throw Error(-1, "API key not found");
             }
 
-            Data::Models::ApiKeys::Remove(db, req.id);
+            Data::Models::Tokens::Remove(db, req.id);
             BOOST_LOG_TRIVIAL(info) << "API key " << req.id << " removed";
+            co_return;
+        }
+
+        awaitable<nlohmann::json> SessionsList(sqlite3* db, const SessionsListReq& req, Call& call)
+        {
+            SessionsListRes res;
+
+            for (const auto& token : Data::Models::Tokens::List(db, "session"))
+            {
+                res.sessions.push_back(SessionsListRes::Session{
+                    .id             = token.id,
+                    .created_at     = token.created_at,
+                    .last_used_at   = token.last_used_at,
+                    .expires_at     = token.expires_at,
+                    .user_agent     = token.user_agent,
+                    .remote_address = token.remote_address,
+                    .current        = token.id == call.Caller().token_id
+                });
+            }
+
+            co_return res;
+        }
+
+        awaitable<void> SessionsRemove(sqlite3* db, const SessionsRemoveReq& req)
+        {
+            const auto token = Data::Models::Tokens::GetById(db, req.id);
+
+            if (!token.has_value() || token->kind != "session")
+            {
+                throw Error(-1, "Session not found");
+            }
+
+            Data::Models::Tokens::Remove(db, req.id);
+            BOOST_LOG_TRIVIAL(info) << "Session " << req.id << " removed";
             co_return;
         }
     }
@@ -274,18 +334,21 @@ namespace porla::Rpc::Methods::Auth
         boost::asio::io_context& io,
         JsonRpc& jsonrpc,
         boost::asio::thread_pool& hash_pool,
-        sqlite3* db,
-        const std::string& secret_key)
+        sqlite3* db)
     {
         using Kind = porla::Auth::Context::Kind;
 
         const auto ex = io.get_executor();
 
         jsonrpc.Register("auth.init",  { Kind::Anon, Kind::Machine, Kind::User }, MakeMethod<InitReq>(ex, std::bind_front(Init, std::ref(hash_pool), db)));
-        jsonrpc.Register("auth.login", { Kind::Anon, Kind::Machine, Kind::User }, MakeMethod<LoginReq>(ex, std::bind_front(Login, std::ref(hash_pool), db, std::cref(secret_key))));
+        jsonrpc.Register("auth.login", { Kind::Anon, Kind::Machine, Kind::User }, MakeMethod<LoginReq>(ex, std::bind_front(Login, std::ref(hash_pool), db)));
+        jsonrpc.Register("auth.logout", { Kind::User }, MakeMethod<LogoutReq>(ex, std::bind_front(Logout, db)));
 
         jsonrpc.Register("auth.keys.create", { Kind::User }, MakeMethod<KeysCreateReq>(ex, std::bind_front(KeysCreate, db)));
         jsonrpc.Register("auth.keys.list",   { Kind::User }, MakeMethod<KeysListReq>(ex, std::bind_front(KeysList, db)));
         jsonrpc.Register("auth.keys.remove", { Kind::User }, MakeMethod<KeysRemoveReq>(ex, std::bind_front(KeysRemove, db)));
+
+        jsonrpc.Register("auth.sessions.list",   { Kind::User }, MakeMethod<SessionsListReq>(ex, std::bind_front(SessionsList, db)));
+        jsonrpc.Register("auth.sessions.remove", { Kind::User }, MakeMethod<SessionsRemoveReq>(ex, std::bind_front(SessionsRemove, db)));
     }
 }

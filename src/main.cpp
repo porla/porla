@@ -143,7 +143,7 @@ int main(int argc, char* argv[])
             .events = events
         });
 
-        auto authenticator       = std::make_shared<porla::Auth::Authenticator>(cfg->db, cfg->secret_key);
+        auto authenticator       = std::make_shared<porla::Auth::Authenticator>(cfg->db);
         auto curl_multi_instance = porla::CurlMulti::Create(io);
         auto jsonrpc             = porla::Rpc::JsonRpc::Create(authenticator);
 
@@ -175,7 +175,7 @@ int main(int argc, char* argv[])
             .torrents    = torrents
         });
 
-        porla::Rpc::Methods::Auth::Register(io, *jsonrpc, sodium_hash_pool, cfg->db, cfg->secret_key);
+        porla::Rpc::Methods::Auth::Register(io, *jsonrpc, sodium_hash_pool, cfg->db);
         porla::Rpc::Methods::Fs::Register(io, *jsonrpc);
         porla::Rpc::Methods::Kv::Register(io, *jsonrpc, kv);
         porla::Rpc::Methods::Mmdb::Register(io, *jsonrpc, kv, events);

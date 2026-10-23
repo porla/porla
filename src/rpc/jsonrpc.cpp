@@ -167,7 +167,25 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
             return;
         }
 
-        const auto auth_context = jsonrpc->m_authenticator->Authenticate(req);
+        auto auth_context           = jsonrpc->m_authenticator->Authenticate(req);
+
+        auto user_agent = req->getHeader("user-agent").substr(0, 512);
+
+        if (user_agent.size() == 512)
+        {
+            while (!user_agent.empty() && (static_cast<unsigned char>(user_agent.back()) & 0xC0) == 0x80)
+            {
+                user_agent.remove_suffix(1); // continuation bytes
+            }
+
+            if (!user_agent.empty() && static_cast<unsigned char>(user_agent.back()) >= 0xC0)
+            {
+                user_agent.remove_suffix(1); // dangling lead byte
+            }
+        }
+
+        auth_context.remote_address = std::string(res->getRemoteAddressAsText());
+        auth_context.user_agent = std::string(user_agent);
 
         const bool accepts_gzip = boost::algorithm::icontains(req->getHeader("accept-encoding"), "gzip");
 

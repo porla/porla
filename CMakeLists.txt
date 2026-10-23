@@ -179,12 +179,11 @@ add_library(
     src/torrents.cpp
     src/zip.cpp
     src/utils/eta.cpp
-    src/utils/secretkey.cpp
     src/utils/string.cpp
 
     src/auth/authenticator.cpp
-    src/auth/jwt.cpp
     src/auth/password.cpp
+    src/auth/tokens.cpp
 
     src/data/migrate.cpp
     src/data/migrations/0001_initialsetup.cpp
@@ -206,12 +205,13 @@ add_library(
     src/data/migrations/0017_torrentinfos.cpp
     src/data/migrations/0018_addcompletedat.cpp
     src/data/migrations/0019_addautoincrementids.cpp
+    src/data/migrations/0020_tokens.cpp
     src/data/models/addtorrentparams.cpp
-    src/data/models/apikeys.cpp
     src/data/models/keyvaluestore.cpp
     src/data/models/plugins.cpp
     src/data/models/presets.cpp
     src/data/models/sessions.cpp
+    src/data/models/tokens.cpp
     src/data/models/users.cpp
     src/data/statement.cpp
     src/data/transaction.cpp

@@ -17,6 +17,5 @@ namespace porla::Rpc::Methods::Auth
         boost::asio::io_context& io,
         JsonRpc& jsonrpc,
         boost::asio::thread_pool& hash_pool,
-        sqlite3* db,
-        const std::string& secret_key);
+        sqlite3* db);
 }
