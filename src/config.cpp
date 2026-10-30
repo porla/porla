@@ -1,7 +1,9 @@
 #include "config.hpp"
 
+#include <algorithm>
 #include <charconv>
 #include <filesystem>
+#include <string>
 
 #include <boost/log/trivial.hpp>
 #include <boost/program_options.hpp>
@@ -16,6 +18,25 @@ using porla::Config;
 
 namespace
 {
+    // the base path goes into URLs and, unescaped, into the web UI's index.html (a JS string and
+    // src/href attributes), so only unreserved URL characters are allowed. a path with anything else
+    // couldn't match a request anyway, since request paths arrive percent-encoded.
+    std::string ParseBasePath(const char* name, std::string value)
+    {
+        const auto allowed = [](char c)
+        {
+            return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
+                || c == '.' || c == '_' || c == '~' || c == '/' || c == '-';
+        };
+
+        if (!std::all_of(value.begin(), value.end(), allowed))
+        {
+            throw std::runtime_error(std::string(name) + " may only contain letters, digits and . _ ~ / -, got '" + value + "'");
+        }
+
+        return value;
+    }
+
     uint16_t ParsePort(const char* name, std::string_view value)
     {
         uint16_t   port = 0;
@@ -100,7 +121,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     if (auto val = std::getenv("PORLA_CONFIG_FILE"))           cfg->config_file        = val;
     if (auto val = std::getenv("PORLA_DB"))                    cfg->db_file            = val;
     if (auto val = std::getenv("PORLA_HTTP_ALLOWED_HOSTS"))    cfg->http_allowed_hosts = ParseHosts(val);
-    if (auto val = std::getenv("PORLA_HTTP_BASE_PATH"))        cfg->http_base_path     = val;
+    if (auto val = std::getenv("PORLA_HTTP_BASE_PATH"))        cfg->http_base_path     = ParseBasePath("PORLA_HTTP_BASE_PATH", val);
     if (auto val = std::getenv("PORLA_HTTP_HOST"))             cfg->http_host          = val;
     if (auto val = std::getenv("PORLA_HTTP_PORT"))             cfg->http_port          = ParsePort("PORLA_HTTP_PORT", val);
     if (auto val = std::getenv("PORLA_STATE_DIR"))             cfg->state_dir          = val;
@@ -131,7 +152,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
     if (cmd.count("db"))                    cfg->db_file            = cmd["db"].as<std::string>();
     if (cmd.count("http-allowed-hosts"))    cfg->http_allowed_hosts = ParseHosts(cmd["http-allowed-hosts"].as<std::string>());
-    if (cmd.count("http-base-path"))        cfg->http_base_path     = cmd["http-base-path"].as<std::string>();
+    if (cmd.count("http-base-path"))        cfg->http_base_path     = ParseBasePath("--http-base-path", cmd["http-base-path"].as<std::string>());
     if (cmd.count("http-host"))             cfg->http_host          = cmd["http-host"].as<std::string>();
     if (cmd.count("http-port"))             cfg->http_port          = ParsePort("--http-port", cmd["http-port"].as<std::string>());
     if (cmd.count("state-dir"))             cfg->state_dir          = cmd["state-dir"].as<std::string>();
