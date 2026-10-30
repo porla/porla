@@ -1,6 +1,5 @@
 #pragma once
 
-#include <filesystem>
 #include <memory>
 #include <optional>
 #include <string>
@@ -28,12 +27,6 @@ namespace porla::Lua
 
         static std::unique_ptr<Plugin> Load(
             const PluginSource& source,
-            const std::optional<std::string>& config,
-            const PluginsOptions& opts,
-            int plugin_id);
-
-        static std::unique_ptr<Plugin> Load(
-            const std::filesystem::path& path,
             const std::optional<std::string>& config,
             const PluginsOptions& opts,
             int plugin_id);

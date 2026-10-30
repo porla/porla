@@ -57,6 +57,14 @@ namespace porla
     public:
         using Plugin = Data::Models::Plugins::Plugin;
 
+        // "slug" in the source's plugin.json, else the plugin's file name without extension or
+        // its directory name; lowercased, with "-" for anything outside a-z and 0-9. source can
+        // be null (unreadable), which leaves the name
+        static std::string SlugOf(const Plugin& plugin, const Lua::PluginSource* source);
+
+        // what SlugOf can't fix: a slug starts with a letter and has 2-32 characters
+        static bool IsValidSlug(std::string_view slug);
+
         explicit Plugins(const PluginsOptions& options);
 
         Plugins(const Plugins&)            = delete;
@@ -72,6 +80,13 @@ namespace porla
         void Reload(int id);
         void Remove(int id);
         void SetCore(const Lua::PluginSource& source);
+
+        // a stored plugin's slug, from the loaded plugin's source or else from the one on disk
+        std::string Slug(const Plugin& plugin) const;
+
+        // the id of the plugin with this slug (0 for the core plugin, "porla"), if any
+        std::optional<int> SlugOwner(const std::string& slug, int except_id, bool loaded_only = false) const;
+
         void Update(const Plugin& plugin);
 
     private:
