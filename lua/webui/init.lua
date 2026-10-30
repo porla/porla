@@ -253,6 +253,9 @@ function webui.load()
 
         res:writeStatus("200 OK")
         res:writeHeader("Content-Type", mime_type)
+        -- only Porla's own pages may frame the web UI (clickjacking)
+        res:writeHeader("Content-Security-Policy", "frame-ancestors 'self'")
+        res:writeHeader("X-Frame-Options", "SAMEORIGIN")
         res:finish(content)
     end)
 end
