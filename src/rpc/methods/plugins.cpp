@@ -212,14 +212,14 @@ namespace porla::Rpc::Methods::Plugins
             }
         }
 
-        // GitHub installs are kept as plugins/gh/<owner>_<repo>.zip - no tag, so the file and a
+        // GitHub installs are kept as plugins/github/<owner>_<repo>.zip - no tag, so the file and a
         // slug derived from its name stay the same across versions
         fs::path ReleaseZip(const fs::path& state_dir, const std::string& owner, const std::string& repository)
         {
-            return fs::absolute(state_dir / "plugins" / "gh" / (owner + "_" + repository + ".zip")).lexically_normal();
+            return fs::absolute(state_dir / "plugins" / "github" / (owner + "_" + repository + ".zip")).lexically_normal();
         }
 
-        // writes a downloaded release next to where it goes (gh/.download/, same file name), so a
+        // writes a downloaded release next to where it goes (github/.download/, same file name), so a
         // failed or refused download never touches an installed zip
         fs::path WriteDownload(const fs::path& plugin_zip, std::string_view body, int code)
         {
