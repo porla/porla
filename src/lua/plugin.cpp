@@ -298,29 +298,6 @@ std::unique_ptr<Plugin> Plugin::Load(
     return nullptr;
 }
 
-std::unique_ptr<Plugin> Plugin::Load(
-    const std::filesystem::path& path,
-    const std::optional<std::string>& config,
-    const PluginsOptions& opts,
-    int plugin_id)
-{
-    auto source = PluginSource::Load(path);
-
-    if (!source.has_value())
-    {
-        BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Failed to load plugin source from " << path;
-        return nullptr;
-    }
-
-    if (source->sources.find(source->entrypoint) == source->sources.end())
-    {
-        BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Plugin entry point (plugin.lua) not found for " << path;
-        return nullptr;
-    }
-
-    return Load(*source, config, opts, plugin_id);
-}
-
 Plugin::Plugin(std::unique_ptr<State> state)
     : m_state(std::move(state))
 {

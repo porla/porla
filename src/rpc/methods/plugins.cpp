@@ -44,6 +44,7 @@ namespace porla::Rpc::Methods::Plugins
             {
                 int                                   id;
                 std::string                           path;
+                std::string                           slug;
                 std::optional<std::string>            name;
                 std::optional<std::string>            version;
                 std::optional<std::string>            config;
@@ -72,6 +73,7 @@ namespace porla::Rpc::Methods::Plugins
             {
                 int                                   id;
                 std::string                           path;
+                std::string                           slug;
                 std::optional<std::string>            name;
                 std::optional<std::string>            version;
                 std::map<std::string, nlohmann::json> metadata;
@@ -117,6 +119,7 @@ namespace porla::Rpc::Methods::Plugins
             GetRes::Plugin,
             id,
             path,
+            slug,
             name,
             version,
             config,
@@ -129,6 +132,7 @@ namespace porla::Rpc::Methods::Plugins
             ListRes::Plugin,
             id,
             path,
+            slug,
             name,
             version,
             metadata,
@@ -188,6 +192,82 @@ namespace porla::Rpc::Methods::Plugins
             return manifest;
         }
 
+        // refuses a plugin whose slug is invalid or another plugin's, with this method's code
+        void CheckSlug(const porla::Plugins& plugins, const porla::Plugins::Plugin& plugin, int code)
+        {
+            const auto source = Lua::PluginSource::Load(plugin.path);
+            const auto slug   = porla::Plugins::SlugOf(plugin, source ? &*source : nullptr);
+
+            if (!porla::Plugins::IsValidSlug(slug))
+            {
+                throw Error(code, "Slug '" + slug + "' is invalid - the name must start with a letter and be 2-32 characters", {{"slug", slug}});
+            }
+
+            if (const auto owner = plugins.SlugOwner(slug, plugin.id))
+            {
+                throw Error(
+                    code,
+                    "Slug '" + slug + "' is used by " + (*owner == 0 ? "the core plugin" : "another plugin"),
+                    {{"slug", slug}, {"id", *owner}});
+            }
+        }
+
+        // GitHub installs are kept as plugins/gh/<owner>_<repo>.zip - no tag, so the file and a
+        // slug derived from its name stay the same across versions
+        fs::path ReleaseZip(const fs::path& state_dir, const std::string& owner, const std::string& repository)
+        {
+            return fs::absolute(state_dir / "plugins" / "gh" / (owner + "_" + repository + ".zip")).lexically_normal();
+        }
+
+        // writes a downloaded release next to where it goes (gh/.download/, same file name), so a
+        // failed or refused download never touches an installed zip
+        fs::path WriteDownload(const fs::path& plugin_zip, std::string_view body, int code)
+        {
+            const auto download = plugin_zip.parent_path() / ".download" / plugin_zip.filename();
+
+            std::error_code ec;
+            fs::create_directories(download.parent_path(), ec);
+
+            std::ofstream out(download, std::ios::binary);
+            out.write(body.data(), static_cast<std::streamsize>(body.size()));
+
+            if (!out)
+            {
+                throw Error(code, "Failed to write plugin archive to " + download.string());
+            }
+
+            BOOST_LOG_TRIVIAL(debug) << "Wrote plugin to " << download;
+
+            return download;
+        }
+
+        // checks the downloaded release's slug, then moves it in place. the zip it replaces may be
+        // the running version's: a loaded plugin holds its sources in memory
+        void InstallDownload(const porla::Plugins& plugins, porla::Plugins::Plugin& plugin, const fs::path& plugin_zip, int code)
+        {
+            std::error_code ec;
+
+            try
+            {
+                CheckSlug(plugins, plugin, code);
+            }
+            catch (const Error&)
+            {
+                fs::remove(plugin.path, ec);
+                throw;
+            }
+
+            fs::rename(plugin.path, plugin_zip, ec);
+
+            if (ec)
+            {
+                fs::remove(plugin.path, ec);
+                throw Error(code, "Failed to move plugin archive to " + plugin_zip.string());
+            }
+
+            plugin.path = plugin_zip;
+        }
+
         std::optional<porla::Plugins::Plugin> FindByPath(const porla::Plugins& plugins, const fs::path& path, int except_id = -1)
         {
             const auto normalized = [](const fs::path& p)
@@ -229,12 +309,16 @@ namespace porla::Rpc::Methods::Plugins
                 throw Error(-4, "Plugin path is used by another plugin", {{"id", existing->id}});
             }
 
-            const auto plugin_id = plugins.Add(porla::Plugins::Plugin{
+            const porla::Plugins::Plugin plugin{
                 .id       = -1,
                 .path     = plugin_path,
                 .config   = req.config,
                 .metadata = {}
-            });
+            };
+
+            CheckSlug(plugins, plugin, -5);
+
+            const auto plugin_id = plugins.Add(plugin);
 
             co_return nlohmann::json({
                 {"id", plugin_id}
@@ -257,6 +341,7 @@ namespace porla::Rpc::Methods::Plugins
                 .plugin = GetRes::Plugin{
                     .id        = plugin->id,
                     .path      = plugin->path,
+                    .slug      = plugins.Slug(*plugin),
                     .name      = manifest.name,
                     .version   = manifest.version,
                     .config    = call.Caller().kind == Auth::Context::Kind::User
@@ -300,11 +385,7 @@ namespace porla::Rpc::Methods::Plugins
                 throw Error(-4, "Release has no downloadable asset");
             }
 
-            std::stringstream zip_file_name;
-            zip_file_name << req.owner << "_" << req.repository << "_" << release.tag_name << ".zip";
-
-            const auto plugins_dir = fs::absolute(state_dir / "plugins").lexically_normal();
-            const auto plugin_zip  = plugins_dir / zip_file_name.str();
+            const auto plugin_zip = ReleaseZip(state_dir, req.owner, req.repository);
 
             if (const auto existing = FindByPath(plugins, plugin_zip))
             {
@@ -325,29 +406,9 @@ namespace porla::Rpc::Methods::Plugins
                 throw Error(-5, "Failed to fetch release asset");
             }
 
-            if (!fs::exists(plugins_dir))
-            {
-                fs::create_directories(plugins_dir);
-            }
-
-            {
-                std::ofstream out(plugin_zip, std::ios::binary);
-
-                out.write(
-                    asset_body.data(),
-                    asset_body.size());
-
-                if (!out)
-                {
-                    throw Error(-6, "Failed to write plugin archive to " + plugin_zip.string());
-                }
-
-                BOOST_LOG_TRIVIAL(debug) << "Wrote plugin to " << plugin_zip;
-            }
-
-            const auto plugin_id = plugins.Add(porla::Plugins::Plugin{
+            porla::Plugins::Plugin plugin{
                 .id       = -1,
-                .path     = plugin_zip,
+                .path     = WriteDownload(plugin_zip, std::string_view(asset_body.data(), asset_body.size()), -6),
                 .config   = req.config,
                 .metadata = {
                     {"source", "github"},
@@ -355,7 +416,11 @@ namespace porla::Rpc::Methods::Plugins
                     {"repository", req.repository},
                     {"version", release.tag_name}
                 }
-            });
+            };
+
+            InstallDownload(plugins, plugin, plugin_zip, -8);
+
+            const auto plugin_id = plugins.Add(plugin);
 
             co_return nlohmann::json({
                 {"id", plugin_id}
@@ -374,6 +439,7 @@ namespace porla::Rpc::Methods::Plugins
                 res.plugins.emplace_back(ListRes::Plugin{
                     .id        = plugin.id,
                     .path      = plugin.path,
+                    .slug      = plugins.Slug(plugin),
                     .name      = manifest.name,
                     .version   = manifest.version,
                     .metadata  = plugin.metadata,
@@ -438,6 +504,8 @@ namespace porla::Rpc::Methods::Plugins
 
             plugin->config   = req.config;
             plugin->path     = plugin_path.lexically_normal();
+
+            CheckSlug(plugins, *plugin, -5);
 
             plugins.Update(*plugin);
 
@@ -508,15 +576,7 @@ namespace porla::Rpc::Methods::Plugins
                 throw Error(-6, "Release has no downloadable asset");
             }
 
-            std::stringstream zip_file_name;
-            zip_file_name
-                << owner.value()
-                << "_"
-                << repository.value()
-                << "_" << release.tag_name << ".zip";
-
-            const auto plugins_dir = fs::absolute(state_dir / "plugins").lexically_normal();
-            const auto plugin_zip  = plugins_dir / zip_file_name.str();
+            const auto plugin_zip = ReleaseZip(state_dir, *owner, *repository);
 
             if (const auto existing = FindByPath(plugins, plugin_zip, plugin->id))
             {
@@ -537,53 +597,20 @@ namespace porla::Rpc::Methods::Plugins
                 throw Error(-7, "Failed to fetch release asset");
             }
 
-            if (!fs::exists(plugins_dir))
-            {
-                fs::create_directories(plugins_dir);
-            }
-
-            {
-                std::ofstream out(plugin_zip, std::ios::binary);
-
-                out.write(
-                    asset_body.data(),
-                    asset_body.size());
-
-                if (!out)
-                {
-                    throw Error(-8, "Failed to write plugin archive to " + plugin_zip.string());
-                }
-
-                BOOST_LOG_TRIVIAL(debug) << "Wrote plugin to " << plugin_zip;
-            }
-
-            const auto old_path = plugin->path;
-
             auto metadata = plugin->metadata;
             metadata["version"] = release.tag_name;
 
-            plugins.Update(porla::Plugins::Plugin{
+            porla::Plugins::Plugin upgraded{
                 .id       = plugin->id,
-                .path     = plugin_zip,
+                .path     = WriteDownload(plugin_zip, std::string_view(asset_body.data(), asset_body.size()), -8),
                 .config   = plugin->config,
                 .metadata = metadata
-            });
+            };
 
-            std::error_code same_ec;
+            // a refused slug leaves the old version installed and loaded
+            InstallDownload(plugins, upgraded, plugin_zip, -10);
 
-            if (const auto other = FindByPath(plugins, old_path, plugin->id))
-            {
-                BOOST_LOG_TRIVIAL(info) << "Keeping old plugin path " << old_path << ", used by plugin " << other->id;
-            }
-            else if (!fs::equivalent(old_path, plugin_zip, same_ec) && fs::exists(old_path))
-            {
-                std::error_code ec;
-
-                if (!fs::remove(old_path, ec))
-                {
-                    BOOST_LOG_TRIVIAL(warning) << "Failed to remove old plugin path " << old_path << ": " << ec;
-                }
-            }
+            plugins.Update(upgraded);
 
             co_return;
         }
