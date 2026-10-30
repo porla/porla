@@ -108,7 +108,8 @@ void Session::OnStateUpdateAlert(const lt::state_update_alert* alert)
             continue;
         }
 
-        it->second.status = status;
+        it->second.status            = status;
+        it->second.time_refreshed_at = alert->timestamp();
 
         if (status.has_metadata && (!it->second.metadata_announced || !it->second.metadata_saved))
         {

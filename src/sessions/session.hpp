@@ -36,6 +36,18 @@ namespace porla
         return entry.second.state == Torrent::State::Current;
     };
 
+    struct Refreshed
+    {
+        lt::time_point now;
+        bool           session_paused;
+
+        auto& operator()(auto& entry) const
+        {
+            entry.second.RefreshTimestamps(now, session_paused);
+            return entry;
+        }
+    };
+
     // maps 1-1 with a libtorrent session
     class Session : public std::enable_shared_from_this<Session>
     {
@@ -55,7 +67,7 @@ namespace porla
         void SetTimers(const Data::Models::Sessions::Session& updated);
 
         // Torrent lookup functions since we only want to return current torrents
-        const Torrent* Find(const lt::info_hash_t& hash) const;
+        const Torrent* Find(const lt::info_hash_t& hash);
 
         // check if the current hash exists in the session (in any state)
         bool Contains(const lt::info_hash_t& hash) const { return m_torrents.contains(hash); }
@@ -64,12 +76,18 @@ namespace porla
 
         bool Empty() const { return m_torrents.empty(); }
 
-        auto Torrents() const { return m_torrents | std::views::filter(IsCurrent); }
+        auto Torrents()
+        {
+            return m_torrents
+                | std::views::filter(IsCurrent)
+                | std::views::transform(RefreshCurrent());
+        }
 
-        auto TorrentsAfter(const lt::info_hash_t& hash) const
+        auto TorrentsAfter(const lt::info_hash_t& hash)
         {
             return std::ranges::subrange(m_torrents.upper_bound(hash), m_torrents.end())
-                | std::views::filter(IsCurrent);
+                | std::views::filter(IsCurrent)
+                | std::views::transform(RefreshCurrent());
         }
 
         // starts/loads the session. async, load_callback will be called
@@ -108,6 +126,8 @@ namespace porla
         void ReadAlerts();
 
     private:
+        Refreshed RefreshCurrent() const;
+
         void ProcessAlert(const lt::alert* alert);
 
         // publishes alerts of type A as the torrent event `name`, nothing more

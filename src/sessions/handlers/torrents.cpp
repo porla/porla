@@ -74,8 +74,9 @@ void Session::OnAddTorrentAlert(const lt::add_torrent_alert* alert)
 
     const auto status = alert->handle.status();
 
-    torrent.state  = Torrent::State::Current;
-    torrent.status = status;
+    torrent.state             = Torrent::State::Current;
+    torrent.status            = status;
+    torrent.time_refreshed_at = lt::clock_type::now();
 
     const TorrentClientData fallback;
 

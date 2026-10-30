@@ -101,7 +101,7 @@ void Session::SetTimers(const Data::Models::Sessions::Session& updated)
     apply(m_options.record.timer_torrent_updates, updated.timer_torrent_updates, std::type_identity<Jobs::PostTorrentUpdates>{});
 }
 
-const porla::Torrent* Session::Find(const lt::info_hash_t& hash) const
+const porla::Torrent* Session::Find(const lt::info_hash_t& hash)
 {
     const auto it = m_torrents.find(hash);
 
@@ -110,12 +110,22 @@ const porla::Torrent* Session::Find(const lt::info_hash_t& hash) const
         return nullptr;
     }
 
+    RefreshCurrent()(*it);
+
     return &it->second;
 }
 
 std::size_t Session::Count() const
 {
-    return static_cast<std::size_t>(std::ranges::distance(Torrents()));
+    return static_cast<std::size_t>(std::ranges::count_if(m_torrents, IsCurrent));
+}
+
+porla::Refreshed Session::RefreshCurrent() const
+{
+    return Refreshed{
+        .now            = lt::clock_type::now(),
+        .session_paused = m_session->is_paused()
+    };
 }
 
 bool Session::Add(lt::add_torrent_params params, Torrent::State state)
@@ -560,8 +570,9 @@ void Session::ReconcileTorrents()
 
             const bool from_db = it->second.state == Torrent::State::Loading;
 
-            it->second.state  = Torrent::State::Current;
-            it->second.status = th.status();
+            it->second.state             = Torrent::State::Current;
+            it->second.status            = th.status();
+            it->second.time_refreshed_at = lt::clock_type::now();
 
             if (from_db)
             {
@@ -663,8 +674,9 @@ bool Session::Track(const lt::torrent_status& status)
 {
     const auto [ it, inserted ] = m_torrents.try_emplace(status.info_hashes);
 
-    it->second.state  = Torrent::State::Current;
-    it->second.status = status;
+    it->second.state             = Torrent::State::Current;
+    it->second.status            = status;
+    it->second.time_refreshed_at = lt::clock_type::now();
 
     if (inserted)
     {
