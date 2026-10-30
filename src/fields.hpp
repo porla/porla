@@ -1,5 +1,11 @@
 #pragma once
 
+#include <compare>
+#include <optional>
+#include <string_view>
+#include <variant>
+#include <vector>
+
 #include <libtorrent/torrent_status.hpp>
 
 namespace porla
@@ -43,10 +49,18 @@ namespace porla
             NumberGetter     number  = nullptr;
             TextGetter       text    = nullptr;
             BoolGetter       boolean = nullptr;
+
+            bool Sortable() const { return number || text || boolean; }
         };
+
+        using SortKey = std::variant<std::monostate, double, std::string_view, bool>;
 
         static const std::vector<Field>& All();
 
         static const Field* Find(std::string_view name);
+
+        static SortKey Key(const Field& field, const Context& ctx);
+
+        static std::weak_ordering Compare(const SortKey& lhs, const SortKey& rhs, bool ascending);
     };
 }
