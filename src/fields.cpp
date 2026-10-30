@@ -1,5 +1,7 @@
 #include "fields.hpp"
 
+#include <algorithm>
+
 #include "torrentclientdata.hpp"
 #include "utils/eta.hpp"
 #include "utils/ratio.hpp"
@@ -23,6 +25,23 @@ namespace
     {
         if (t <= 0) { return std::nullopt; }
         return static_cast<double>(t);
+    }
+
+    unsigned char FoldAscii(char c)
+    {
+        const auto u = static_cast<unsigned char>(c);
+        return u >= 'A' && u <= 'Z' ? u + ('a' - 'A') : u;
+    }
+
+    std::weak_ordering CompareText(std::string_view lhs, std::string_view rhs)
+    {
+        const auto folded = std::lexicographical_compare_three_way(
+            lhs.begin(), lhs.end(),
+            rhs.begin(), rhs.end(),
+            [](char l, char r) { return FoldAscii(l) <=> FoldAscii(r); });
+
+        if (folded != 0) { return folded; }
+        return lhs <=> rhs;
     }
 }
 
@@ -74,6 +93,8 @@ const std::vector<Fields::Field>& Fields::All()
         { "num_incomplete",         Kind::Number, [](const Context& ctx) -> std::optional<double> { if (ctx.status.num_incomplete < 0) { return std::nullopt; } return ctx.status.num_incomplete; } },
         { "list_seeds",             Kind::Number, [](const Context& ctx) { return std::optional<double>(ctx.status.list_seeds); } },
         { "list_peers",             Kind::Number, [](const Context& ctx) { return std::optional<double>(ctx.status.list_peers); } },
+        { "num_leechers",           Kind::Number, [](const Context& ctx) { return std::optional<double>(ctx.status.num_peers - ctx.status.num_seeds); } },
+        { "list_leechers",          Kind::Number, [](const Context& ctx) { return std::optional<double>(ctx.status.list_peers - ctx.status.list_seeds); } },
         { "connect_candidates",     Kind::Number, [](const Context& ctx) { return std::optional<double>(ctx.status.connect_candidates); } },
         { "num_pieces",             Kind::Number, [](const Context& ctx) { return std::optional<double>(ctx.status.num_pieces); } },
         // distributed full copies
@@ -152,4 +173,46 @@ const Fields::Field* Fields::Find(std::string_view name)
     }
 
     return nullptr;
+}
+
+Fields::SortKey Fields::Key(const Field& field, const Context& ctx)
+{
+    const auto key = [](const auto& value) -> SortKey
+    {
+        if (!value.has_value()) { return std::monostate{}; }
+        return *value;
+    };
+
+    if (field.number)  { return key(field.number(ctx)); }
+    if (field.text)    { return key(field.text(ctx)); }
+    if (field.boolean) { return key(field.boolean(ctx)); }
+
+    return std::monostate{};
+}
+
+std::weak_ordering Fields::Compare(const SortKey& lhs, const SortKey& rhs, bool ascending)
+{
+    const bool lhs_empty = std::holds_alternative<std::monostate>(lhs);
+    const bool rhs_empty = std::holds_alternative<std::monostate>(rhs);
+
+    if (lhs_empty || rhs_empty)
+    {
+        return lhs_empty <=> rhs_empty;
+    }
+
+    const auto order = std::visit(
+        [](const auto& l, const auto& r) -> std::weak_ordering
+        {
+            using L = std::decay_t<decltype(l)>;
+            using R = std::decay_t<decltype(r)>;
+
+            if constexpr (!std::is_same_v<L, R>)                    { return std::weak_ordering::equivalent; }
+            else if constexpr (std::is_same_v<L, double>)           { return std::weak_order(l, r); }
+            else if constexpr (std::is_same_v<L, std::string_view>) { return CompareText(l, r); }
+            else                                                    { return l <=> r; }
+        },
+        lhs,
+        rhs);
+
+    return ascending ? order : 0 <=> order;
 }

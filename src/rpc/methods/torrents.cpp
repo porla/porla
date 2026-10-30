@@ -17,6 +17,7 @@
 #include "../jsonrpc.hpp"
 
 #include "../../events.hpp"
+#include "../../fields.hpp"
 #include "../../json/lttypes.hpp"
 #include "../../json/utils.hpp"
 #include "../../query/pql.hpp"
@@ -26,9 +27,7 @@
 #include "../../sessions/torrentevent.hpp"
 #include "../../torrentclientdata.hpp"
 #include "../../torrents.hpp"
-#include "../../utils/eta.hpp"
 #include "../../utils/limits.hpp"
-#include "../../utils/ratio.hpp"
 
 using boost::asio::awaitable;
 
@@ -379,74 +378,6 @@ namespace porla::Rpc::Methods::Torrents
             };
         }
 
-        static const std::map<std::pair<std::string, bool>, std::function<bool(const lt::torrent_status&, const lt::torrent_status&)>> TorrentSort =
-        {
-            {{"download_rate", false},  [](auto const& lhs, auto const& rhs) { return lhs.download_rate > rhs.download_rate; }},
-            {{"download_rate", true},   [](auto const& lhs, auto const& rhs) { return lhs.download_rate < rhs.download_rate; }},
-            {
-                {"eta", false},
-                [](auto const& lhs, auto const& rhs)
-                {
-                    const auto lhs_eta = porla::Utils::ETA(lhs).count();
-                    const auto rhs_eta = porla::Utils::ETA(rhs).count();
-                    if (lhs_eta < 0) return false;
-                    if (rhs_eta < 0) return true;
-                    return lhs_eta > rhs_eta;
-                }
-            },
-            {
-                {"eta", true},
-                [](auto const& lhs, auto const& rhs)
-                {
-                    const auto lhs_eta = porla::Utils::ETA(lhs).count();
-                    const auto rhs_eta = porla::Utils::ETA(rhs).count();
-                    if (lhs_eta < 0) return false;
-                    if (rhs_eta < 0) return true;
-                    return lhs_eta < rhs_eta;
-                }
-            },
-            {{"list_peers", false},     [](auto const& lhs, auto const& rhs) { return lhs.list_peers > rhs.list_peers; }},
-            {{"list_peers", true},      [](auto const& lhs, auto const& rhs) { return lhs.list_peers < rhs.list_peers; }},
-            {{"list_seeds", false},     [](auto const& lhs, auto const& rhs) { return lhs.list_seeds > rhs.list_seeds; }},
-            {{"list_seeds", true},      [](auto const& lhs, auto const& rhs) { return lhs.list_seeds < rhs.list_seeds; }},
-            {{"name", false},           [](auto const& lhs, auto const& rhs) { return strcmp(lhs.name.c_str(), rhs.name.c_str()) > 0; }},
-            {{"name", true},            [](auto const& lhs, auto const& rhs) { return strcmp(lhs.name.c_str(), rhs.name.c_str()) < 0; }},
-            {{"num_peers", false},      [](auto const& lhs, auto const& rhs) { return lhs.num_peers > rhs.num_peers; }},
-            {{"num_peers", true},       [](auto const& lhs, auto const& rhs) { return lhs.num_peers < rhs.num_peers; }},
-            {{"num_seeds", false},      [](auto const& lhs, auto const& rhs) { return lhs.num_seeds > rhs.num_seeds; }},
-            {{"num_seeds", true},       [](auto const& lhs, auto const& rhs) { return lhs.num_seeds < rhs.num_seeds; }},
-            {{"progress", false},       [](auto const& lhs, auto const& rhs) { return lhs.progress > rhs.progress; }},
-            {{"progress", true},        [](auto const& lhs, auto const& rhs) { return lhs.progress < rhs.progress; }},
-            {
-                {"queue_position", false},
-                [](auto const& lhs, auto const& rhs)
-                {
-                    if (static_cast<int>(lhs.queue_position) < 0) return false;
-                    if (static_cast<int>(rhs.queue_position) < 0) return true;
-                    return lhs.queue_position > rhs.queue_position;
-                }
-            },
-            {
-                {"queue_position", true},
-                [](auto const& lhs, auto const& rhs)
-                {
-                    if (static_cast<int>(lhs.queue_position) < 0) return false;
-                    if (static_cast<int>(rhs.queue_position) < 0) return true;
-                    return lhs.queue_position < rhs.queue_position;
-                }
-            },
-            {{"ratio", false},          [](auto const& lhs, auto const& rhs) { return porla::Utils::Ratio(lhs) > porla::Utils::Ratio(rhs); }},
-            {{"ratio", true},           [](auto const& lhs, auto const& rhs) { return porla::Utils::Ratio(lhs) < porla::Utils::Ratio(rhs); }},
-            {{"save_path", false},      [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) > 0; }},
-            {{"save_path", true},       [](auto const& lhs, auto const& rhs) { return strcmp(lhs.save_path.c_str(), rhs.save_path.c_str()) < 0; }},
-            {{"total", false},          [](auto const& lhs, auto const& rhs) { return lhs.total > rhs.total; }},
-            {{"total", true},           [](auto const& lhs, auto const& rhs) { return lhs.total < rhs.total; }},
-            {{"total_done", false},     [](auto const& lhs, auto const& rhs) { return lhs.total_done > rhs.total_done; }},
-            {{"total_done", true},      [](auto const& lhs, auto const& rhs) { return lhs.total_done < rhs.total_done; }},
-            {{"upload_rate", false},    [](auto const& lhs, auto const& rhs) { return lhs.upload_rate > rhs.upload_rate; }},
-            {{"upload_rate", true},     [](auto const& lhs, auto const& rhs) { return lhs.upload_rate < rhs.upload_rate; }},
-        };
-
         void ThrowError(const porla::TorrentsAddResult& result)
         {
             using AddError = porla::TorrentsAddResult::Error;
@@ -771,9 +702,9 @@ namespace porla::Rpc::Methods::Torrents
                 throw Error(-1, "'page_size' must be between 1 and 1000");
             }
 
-            const auto& sorter = TorrentSort.find({ order_by, order_by_asc });
+            const auto* sort_field = Fields::Find(order_by);
 
-            if (sorter == TorrentSort.end())
+            if (sort_field == nullptr || !sort_field->Sortable())
             {
                 throw Error(-2, "Invalid field in 'order_by'", {{"field", order_by }});
             }
@@ -797,7 +728,13 @@ namespace porla::Rpc::Methods::Torrents
                 sessions,
                 req.filters.has_value() ? req.filters->session_id : std::nullopt);
 
-            std::vector<const lt::torrent_status*> torrents;
+            struct SortEntry
+            {
+                const lt::torrent_status* status;
+                Fields::SortKey           key;
+            };
+
+            std::vector<SortEntry> torrents;
             torrents.reserve(session_state.session->Count());
 
             const auto now = std::time(nullptr);
@@ -812,27 +749,24 @@ namespace porla::Rpc::Methods::Torrents
                     continue;
                 }
 
+                const auto client_data = handle.userdata().get<porla::TorrentClientData>();
+
+                const Fields::Context ctx{
+                    .status      = ts,
+                    .client_data = client_data,
+                    .now         = now
+                };
+
                 // If we have no filters, just add
                 if (!req.filters.has_value())
                 {
-                    torrents.push_back(&ts);
+                    torrents.push_back({ &ts, Fields::Key(*sort_field, ctx) });
                     continue;
                 }
 
-                const auto client_data = handle.userdata().get<porla::TorrentClientData>();
-
-                if (filter_query.has_value())
+                if (filter_query.has_value() && !filter_query.value()(ctx))
                 {
-                    const Fields::Context ctx{
-                        .status      = ts,
-                        .client_data = client_data,
-                        .now         = now
-                    };
-
-                    if (!filter_query.value()(ctx))
-                    {
-                        continue;
-                    }
+                    continue;
                 }
 
                 // no client data means no category and no tags
@@ -949,7 +883,7 @@ namespace porla::Rpc::Methods::Torrents
                     }
                 }
 
-                torrents.push_back(&ts);
+                torrents.push_back({ &ts, Fields::Key(*sort_field, ctx) });
             }
 
             const auto total    = static_cast<std::int64_t>(torrents.size());
@@ -957,11 +891,14 @@ namespace porla::Rpc::Methods::Torrents
                 static_cast<std::int64_t>(page) * page_size, total);
             const auto page_end = std::min<std::int64_t>(page_beg + page_size, total);
 
-            const auto cmp = [&sorter](const lt::torrent_status* lhs, const lt::torrent_status* rhs)
+            const auto cmp = [order_by_asc](const SortEntry& lhs, const SortEntry& rhs)
             {
-                if (sorter->second(*lhs, *rhs)) return true;
-                if (sorter->second(*rhs, *lhs)) return false;
-                return lhs->info_hashes < rhs->info_hashes;
+                if (const auto order = Fields::Compare(lhs.key, rhs.key, order_by_asc); order != 0)
+                {
+                    return order < 0;
+                }
+
+                return lhs.status->info_hashes < rhs.status->info_hashes;
             };
 
             if (page_end >= total / 2)
@@ -982,7 +919,7 @@ namespace porla::Rpc::Methods::Torrents
 
             for (auto i = page_beg; i < page_end; i++)
             {
-                page_items.push_back(*torrents[i]);
+                page_items.push_back(*torrents[i].status);
             }
 
             co_return ListRes{
