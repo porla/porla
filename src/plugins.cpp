@@ -185,6 +185,32 @@ std::optional<int> Plugins::SlugOwner(const std::string& slug, int except_id, bo
     return std::nullopt;
 }
 
+std::optional<std::string_view> Plugins::File(const std::string& prefix, std::string_view slug, const std::string& path) const
+{
+    for (const auto& [ id, instance ] : m_plugins)
+    {
+        const auto last = m_loads.find(id);
+
+        if (last == m_loads.end() || last->second.slug != slug)
+        {
+            continue;
+        }
+
+        // a lookup in the plugin's own files, so a path can't leave <prefix>
+        const auto& sources = instance->Source().sources;
+        const auto  file    = sources.find(prefix + path);
+
+        if (file == sources.end())
+        {
+            return std::nullopt;
+        }
+
+        return std::string_view(file->second.data(), file->second.size());
+    }
+
+    return std::nullopt;
+}
+
 void Plugins::Update(const Plugin& plugin)
 {
     Model::Update(m_options.db, plugin);
@@ -225,7 +251,7 @@ void Plugins::Load(int id)
         last.manifest = Lua::PluginManifest::FromSource(*source);
 
         // plugins added before slugs aren't checked yet: the first one loaded keeps a slug
-        const auto slug = SlugOf(*plugin, last.manifest);
+        const auto slug = last.slug = SlugOf(*plugin, last.manifest);
 
         if (!IsValidSlug(slug))
         {
