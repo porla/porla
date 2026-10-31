@@ -204,98 +204,90 @@ std::unique_ptr<Plugin> Plugin::Load(
 {
     if (source.sources.find(source.entrypoint) == source.sources.end())
     {
-        BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Plugin entry point (" << source.entrypoint << ") not found";
-        return nullptr;
+        throw std::runtime_error("Plugin entry point (" + source.entrypoint + ") not found");
     }
 
-    try
+    auto state = std::make_unique<State>(opts, plugin_id);
+    state->source = source;
+
+    sol::load_result chunk = state->lua.load_buffer(
+        state->source.sources.at(state->source.entrypoint).data(),
+        state->source.sources.at(state->source.entrypoint).size(),
+        "@" + state->source.entrypoint);
+
+    if (!chunk.valid())
     {
-        auto state = std::make_unique<State>(opts, plugin_id);
-        state->source = source;
+        sol::error err = chunk;
+        throw std::runtime_error(std::string("Failed to load plugin: ") + err.what());
+    }
 
-        sol::load_result chunk = state->lua.load_buffer(
-            state->source.sources.at(state->source.entrypoint).data(),
-            state->source.sources.at(state->source.entrypoint).size(),
-            "@" + state->source.entrypoint);
+    sol::protected_function_result result = chunk.get<sol::protected_function>()();
 
-        if (!chunk.valid())
+    if (!result.valid())
+    {
+        throw std::runtime_error("Failed to run plugin: " + DescribeError(result));
+    }
+
+    if (result.return_count() < 1 || result.get_type() != sol::type::table)
+    {
+        throw std::runtime_error(
+            std::string("Plugin did not return a table (got ")
+            + sol::type_name(state->lua.lua_state(), result.get_type()) + ")");
+    }
+
+    state->tbl = result.get<sol::table>();
+
+    sol::optional<sol::protected_function> init = state->tbl["init"];
+
+    if (init && init->valid())
+    {
+        sol::object cfg = sol::lua_nil;
+
+        if (config.has_value())
         {
-            sol::error err = chunk;
-            BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Failed to load plugin: " << err.what();
-            return nullptr;
-        }
+            sol::load_result config_result = state->lua.load_buffer(
+                config->data(),
+                config->size(),
+                "=config",
+                sol::load_mode::text);
 
-        sol::protected_function_result result = chunk.get<sol::protected_function>()();
-
-        if (!result.valid())
-        {
-            BOOST_LOG_TRIVIAL(error)
-                << "plugin[" << plugin_id << "] Failed to run plugin: " << DescribeError(result);
-            return nullptr;
-        }
-
-        if (result.return_count() < 1 || result.get_type() != sol::type::table)
-        {
-            BOOST_LOG_TRIVIAL(error)
-                << "plugin[" << plugin_id << "] Plugin did not return a table (got "
-                << sol::type_name(state->lua.lua_state(), result.get_type()) << ")";
-            return nullptr;
-        }
-
-        state->tbl = result.get<sol::table>();
-
-        sol::optional<sol::protected_function> init = state->tbl["init"];
-
-        if (init && init->valid())
-        {
-            sol::object cfg = sol::lua_nil;
-
-            if (config.has_value())
+            if (!config_result.valid())
             {
-                sol::load_result config_result = state->lua.load_buffer(
-                    config->data(),
-                    config->size());
-
-                if (config_result.valid())
-                {
-                    sol::protected_function config_fn = config_result;
-                    sol::protected_function_result config_value = config_fn();
-
-                    if (config_value.valid())
-                    {
-                        cfg = config_value.get<sol::object>();
-                    }
-                    else
-                    {
-                        BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Failed to evaluate plugin config: " << DescribeError(config_value);
-                        return nullptr;
-                    }
-                }
-                else
-                {
-                    sol::error err = config_result;
-                    BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Failed to parse plugin config: " << err.what();
-                    return nullptr;
-                }
+                sol::error err = config_result;
+                throw std::runtime_error(std::string("Failed to parse plugin config: ") + err.what());
             }
 
-            sol::protected_function_result init_result = (*init)(cfg);
+            sol::protected_function config_fn = config_result;
+            sol::protected_function_result config_value = config_fn();
 
-            if (!init_result.valid())
+            if (!config_value.valid())
             {
-                BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Failed to run plugin initializer: " << DescribeError(init_result);
-                return nullptr;
+                throw std::runtime_error("Failed to evaluate plugin config: " + DescribeError(config_value));
+            }
+
+            // a config that returns nothing (say, only comments) counts as none
+            if (config_value.return_count() > 0 && config_value.get_type() != sol::type::lua_nil)
+            {
+                if (config_value.get_type() != sol::type::table)
+                {
+                    throw std::runtime_error(
+                        std::string("Plugin config did not return a table (got ")
+                        + sol::type_name(state->lua.lua_state(), config_value.get_type()) + ")");
+                }
+
+                cfg = config_value.get<sol::object>();
             }
         }
 
-        return std::unique_ptr<Plugin>(new Plugin(std::move(state)));
-    }
-    catch (const std::exception& err)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Failed to load plugin: " << err.what();
+        sol::protected_function_result init_result = (*init)(cfg);
+
+        if (!init_result.valid())
+        {
+            throw std::runtime_error("Failed to run plugin initializer: " + DescribeError(init_result));
+        }
     }
 
-    return nullptr;
+    return std::unique_ptr<Plugin>(new Plugin(std::move(state)));
 }
 
 Plugin::Plugin(std::unique_ptr<State> state)

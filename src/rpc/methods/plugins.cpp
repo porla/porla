@@ -16,6 +16,7 @@
 #include "../../json/github.hpp"
 #include "../../json/utils.hpp"
 #include "../../lua/plugin.hpp"
+#include "../../lua/pluginmanifest.hpp"
 #include "../../lua/pluginsource.hpp"
 #include "../../plugins.hpp"
 
@@ -27,6 +28,18 @@ namespace porla::Rpc::Methods::Plugins
 {
     namespace
     {
+        struct PluginDto
+        {
+            int                                   id;
+            std::string                           path;
+            std::string                           slug;
+            std::optional<std::string>            config;
+            std::map<std::string, nlohmann::json> metadata;
+            std::optional<Lua::PluginManifest>    manifest;
+            std::string                           status;
+            std::optional<std::string>            error;
+        };
+
         struct AddReq
         {
             std::string                path;
@@ -40,19 +53,7 @@ namespace porla::Rpc::Methods::Plugins
 
         struct GetRes
         {
-            struct Plugin
-            {
-                int                                   id;
-                std::string                           path;
-                std::string                           slug;
-                std::optional<std::string>            name;
-                std::optional<std::string>            version;
-                std::optional<std::string>            config;
-                std::map<std::string, nlohmann::json> metadata;
-                bool                                  is_loaded;
-            };
-
-            Plugin plugin;
+            PluginDto plugin;
         };
 
         struct InstallReq
@@ -69,18 +70,7 @@ namespace porla::Rpc::Methods::Plugins
 
         struct ListRes
         {
-            struct Plugin
-            {
-                int                                   id;
-                std::string                           path;
-                std::string                           slug;
-                std::optional<std::string>            name;
-                std::optional<std::string>            version;
-                std::map<std::string, nlohmann::json> metadata;
-                bool                                  is_loaded;
-            };
-
-            std::vector<Plugin> plugins;
+            std::vector<PluginDto> plugins;
         };
 
         struct ReloadReq
@@ -96,8 +86,8 @@ namespace porla::Rpc::Methods::Plugins
         struct UpdateReq
         {
             int                        id;
-            std::string                path;
-            std::optional<std::string> config;
+            std::optional<std::string> path;
+            Json::Patch<std::string>   config;
         };
 
         struct UpgradeReq
@@ -116,87 +106,58 @@ namespace porla::Rpc::Methods::Plugins
         PORLA_JSON_REQUEST(UpgradeReq, id, version)
 
         NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
-            GetRes::Plugin,
+            PluginDto,
             id,
             path,
             slug,
-            name,
-            version,
             config,
             metadata,
-            is_loaded)
+            manifest,
+            status,
+            error)
 
         NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(GetRes, plugin)
 
-        NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(
-            ListRes::Plugin,
-            id,
-            path,
-            slug,
-            name,
-            version,
-            metadata,
-            is_loaded)
-
         NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(ListRes, plugins)
 
-        struct Manifest
+        PluginDto ToDto(const porla::Plugins& plugins, const porla::Plugins::Plugin& plugin, Call& call)
         {
-            std::optional<std::string> name;
-            std::optional<std::string> version;
-        };
+            const auto error   = plugins.Error(plugin.id);
+            const auto is_user = call.Caller().kind == Auth::Context::Kind::User;
 
-        Manifest ReadManifest(const Lua::Plugin* instance, const fs::path& plugin_path)
-        {
-            const auto base = plugin_path.has_filename()
-                ? plugin_path
-                : plugin_path.parent_path();
-
-            Manifest manifest{.name = base.filename().string()};
-
-            if (instance == nullptr)
-            {
-                return manifest;
-            }
-
-            const auto& sources = instance->Source().sources;
-            const auto  file    = sources.find("plugin.json");
-
-            if (file == sources.end())
-            {
-                return manifest;
-            }
-
-            try
-            {
-                const auto json = Json::Parse(std::string_view(file->second.data(), file->second.size()));
-
-                const auto name    = json.find("name");
-                const auto version = json.find("version");
-
-                if (name != json.end() && name->is_string() && !name->get_ref<const std::string&>().empty())
-                {
-                    manifest.name = name->get<std::string>();
-                }
-
-                if (version != json.end() && version->is_string())
-                {
-                    manifest.version = version->get<std::string>();
-                }
-            }
-            catch(const std::exception& e)
-            {
-                BOOST_LOG_TRIVIAL(warning) << "Invalid plugin.json in " << plugin_path << ": " << e.what();
-            }
-
-            return manifest;
+            return PluginDto{
+                .id       = plugin.id,
+                .path     = plugin.path,
+                .slug     = plugins.Slug(plugin),
+                .config   = is_user ? plugin.config : std::nullopt,
+                .metadata = plugin.metadata,
+                .manifest = plugins.Manifest(plugin.id),
+                .status   = plugins.Instance(plugin.id) != nullptr ? "running" : "error",
+                .error    = is_user ? error : std::nullopt
+            };
         }
 
-        // refuses a plugin whose slug is invalid or another plugin's, with this method's code
-        void CheckSlug(const porla::Plugins& plugins, const porla::Plugins::Plugin& plugin, int code)
+        // refuses a plugin whose plugin.json is invalid, or whose slug is invalid or another
+        // plugin's, with this method's code
+        void CheckPlugin(const porla::Plugins& plugins, const porla::Plugins::Plugin& plugin, int code)
         {
             const auto source = Lua::PluginSource::Load(plugin.path);
-            const auto slug   = porla::Plugins::SlugOf(plugin, source ? &*source : nullptr);
+
+            std::optional<Lua::PluginManifest> manifest;
+
+            if (source.has_value())
+            {
+                try
+                {
+                    manifest = Lua::PluginManifest::FromSource(*source);
+                }
+                catch(const std::exception& e)
+                {
+                    throw Error(code, e.what());
+                }
+            }
+
+            const auto slug = porla::Plugins::SlugOf(plugin, manifest);
 
             if (!porla::Plugins::IsValidSlug(slug))
             {
@@ -249,7 +210,7 @@ namespace porla::Rpc::Methods::Plugins
 
             try
             {
-                CheckSlug(plugins, plugin, code);
+                CheckPlugin(plugins, plugin, code);
             }
             catch (const Error&)
             {
@@ -316,7 +277,7 @@ namespace porla::Rpc::Methods::Plugins
                 .metadata = {}
             };
 
-            CheckSlug(plugins, plugin, -5);
+            CheckPlugin(plugins, plugin, -5);
 
             const auto plugin_id = plugins.Add(plugin);
 
@@ -334,22 +295,8 @@ namespace porla::Rpc::Methods::Plugins
                 throw Error(-1, "Plugin not found");
             }
 
-            const auto instance = plugins.Instance(req.id);
-            const auto manifest = ReadManifest(instance, plugin->path);
-
             co_return GetRes{
-                .plugin = GetRes::Plugin{
-                    .id        = plugin->id,
-                    .path      = plugin->path,
-                    .slug      = plugins.Slug(*plugin),
-                    .name      = manifest.name,
-                    .version   = manifest.version,
-                    .config    = call.Caller().kind == Auth::Context::Kind::User
-                        ? plugin->config
-                        : std::nullopt,
-                    .metadata  = plugin->metadata,
-                    .is_loaded = instance != nullptr
-                }
+                .plugin = ToDto(plugins, *plugin, call)
             };
         }
 
@@ -427,24 +374,13 @@ namespace porla::Rpc::Methods::Plugins
             });
         }
 
-        awaitable<ListRes> List(porla::Plugins& plugins, const ListReq& req)
+        awaitable<ListRes> List(porla::Plugins& plugins, const ListReq& req, Call& call)
         {
             ListRes res = {};
 
             for (const auto& plugin : plugins.All())
             {
-                const auto instance    = plugins.Instance(plugin.id);
-                const auto manifest    = ReadManifest(instance, plugin.path);
-
-                res.plugins.emplace_back(ListRes::Plugin{
-                    .id        = plugin.id,
-                    .path      = plugin.path,
-                    .slug      = plugins.Slug(plugin),
-                    .name      = manifest.name,
-                    .version   = manifest.version,
-                    .metadata  = plugin.metadata,
-                    .is_loaded = instance != nullptr
-                });
+                res.plugins.emplace_back(ToDto(plugins, plugin, call));
             }
 
             co_return res;
@@ -458,6 +394,12 @@ namespace porla::Rpc::Methods::Plugins
             }
 
             plugins.Reload(req.id);
+
+            if (const auto error = plugins.Error(req.id))
+            {
+                throw Error(-2, "Plugin failed to load: " + *error);
+            }
+
             co_return;
         }
 
@@ -485,27 +427,34 @@ namespace porla::Rpc::Methods::Plugins
                 throw Error(-1, "Plugin not found");
             }
 
-            const fs::path plugin_path = req.path;
-
-            if (!plugin_path.is_absolute())
+            if (req.path.has_value())
             {
-                throw Error(-2, "Plugin path must be absolute");
+                const fs::path plugin_path = req.path.value();
+
+                if (!plugin_path.is_absolute())
+                {
+                    throw Error(-2, "Plugin path must be absolute");
+                }
+
+                if (!fs::exists(plugin_path))
+                {
+                    throw Error(-3, "Plugin path does not exist");
+                }
+
+                if (const auto existing = FindByPath(plugins, plugin_path, plugin->id))
+                {
+                    throw Error(-4, "Plugin path is used by another plugin", {{"id", existing->id}});
+                }
+
+                plugin->path     = plugin_path.lexically_normal();
             }
 
-            if (!fs::exists(plugin_path))
+            if (req.config.present)
             {
-                throw Error(-3, "Plugin path does not exist");
+                plugin->config = req.config.value;
             }
 
-            if (const auto existing = FindByPath(plugins, plugin_path, plugin->id))
-            {
-                throw Error(-4, "Plugin path is used by another plugin", {{"id", existing->id}});
-            }
-
-            plugin->config   = req.config;
-            plugin->path     = plugin_path.lexically_normal();
-
-            CheckSlug(plugins, *plugin, -5);
+            CheckPlugin(plugins, *plugin, -5);
 
             plugins.Update(*plugin);
 

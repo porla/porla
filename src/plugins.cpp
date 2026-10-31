@@ -8,7 +8,6 @@
 #include <boost/log/trivial.hpp>
 
 #include "events.hpp"
-#include "json/utils.hpp"
 #include "lua/plugin.hpp"
 #include "lua/pluginsource.hpp"
 
@@ -17,44 +16,13 @@ using porla::PluginsOptions;
 
 using Model = porla::Data::Models::Plugins;
 
-namespace
-{
-    // "slug" in the source's plugin.json. a broken plugin.json falls back to the name like a
-    // missing one; plugins.get/list warn about it
-    std::optional<std::string> DeclaredSlug(const porla::Lua::PluginSource& source)
-    {
-        const auto file = source.sources.find("plugin.json");
-
-        if (file == source.sources.end())
-        {
-            return std::nullopt;
-        }
-
-        try
-        {
-            const auto json = porla::Json::Parse(std::string_view(file->second.data(), file->second.size()));
-            const auto slug = json.find("slug");
-
-            if (slug != json.end() && slug->is_string())
-            {
-                return slug->get<std::string>();
-            }
-        }
-        catch (const std::exception&)
-        {
-        }
-
-        return std::nullopt;
-    }
-}
-
-std::string Plugins::SlugOf(const Plugin& plugin, const Lua::PluginSource* source)
+std::string Plugins::SlugOf(const Plugin& plugin, const std::optional<Lua::PluginManifest>& manifest)
 {
     std::string name;
 
-    if (const auto declared = source != nullptr ? DeclaredSlug(*source) : std::nullopt)
+    if (manifest.has_value() && manifest->slug.has_value())
     {
-        name = *declared;
+        name = *manifest->slug;
     }
     else
     {
@@ -83,6 +51,18 @@ std::string Plugins::SlugOf(const Plugin& plugin, const Lua::PluginSource* sourc
         });
 
     return name;
+}
+
+std::optional<std::string> Plugins::Error(int id) const
+{
+    const auto it = m_loads.find(id);
+    return it == m_loads.end() ? std::nullopt : it->second.error;
+}
+
+std::optional<porla::Lua::PluginManifest> Plugins::Manifest(int id) const
+{
+    const auto it = m_loads.find(id);
+    return it == m_loads.end() ? std::nullopt : it->second.manifest;
 }
 
 bool Plugins::IsValidSlug(std::string_view slug)
@@ -158,6 +138,8 @@ void Plugins::Remove(int id)
 
     Unload(id);
 
+    m_loads.erase(id);
+
     Model::Remove(m_options.db, id);
 
     Event event("plugin.removed", {
@@ -170,25 +152,19 @@ void Plugins::Remove(int id)
 
 void Plugins::SetCore(const Lua::PluginSource& source)
 {
-    std::unique_ptr<Lua::Plugin> core_plugin = Lua::Plugin::Load(source, std::nullopt, m_options, 0);
-
-    if (core_plugin == nullptr)
+    try
     {
-        throw std::runtime_error("Failed to load core Lua plugin");
+        m_core_plugin = Lua::Plugin::Load(source, std::nullopt, m_options, 0);
     }
-
-    m_core_plugin = std::move(core_plugin);
+    catch (const std::exception& e)
+    {
+        throw std::runtime_error(std::string("Failed to load core Lua plugin: ") + e.what());
+    }
 }
 
 std::string Plugins::Slug(const Plugin& plugin) const
 {
-    if (const auto* instance = Instance(plugin.id))
-    {
-        return SlugOf(plugin, &instance->Source());
-    }
-
-    const auto source = Lua::PluginSource::Load(plugin.path);
-    return SlugOf(plugin, source ? &*source : nullptr);
+    return SlugOf(plugin, Manifest(plugin.id));
 }
 
 std::optional<int> Plugins::SlugOwner(const std::string& slug, int except_id, bool loaded_only) const
@@ -234,42 +210,46 @@ void Plugins::Load(int id)
         return;
     }
 
-    const auto source = Lua::PluginSource::Load(plugin->path);
+    auto& last = m_loads[id];
+    last = {};
 
-    if (!source.has_value())
+    try
     {
-        BOOST_LOG_TRIVIAL(error) << "plugin[" << id << "] Failed to load plugin source from " << plugin->path;
+        const auto source = Lua::PluginSource::Load(plugin->path);
+
+        if (!source.has_value())
+        {
+            throw std::runtime_error("Failed to load plugin source from " + plugin->path);
+        }
+
+        last.manifest = Lua::PluginManifest::FromSource(*source);
+
+        // plugins added before slugs aren't checked yet: the first one loaded keeps a slug
+        const auto slug = SlugOf(*plugin, last.manifest);
+
+        if (!IsValidSlug(slug))
+        {
+            throw std::runtime_error("Slug '" + slug + "' is invalid - the name must start with a letter and be 2-32 characters");
+        }
+
+        if (const auto owner = SlugOwner(slug, id, true))
+        {
+            throw std::runtime_error(
+                "Slug '" + slug + "' is used by " + (*owner == 0 ? "the core plugin" : "plugin " + std::to_string(*owner)));
+        }
+
+        m_plugins.emplace(id, Lua::Plugin::Load(*source, plugin->config, m_options, id));
+    }
+    catch(const std::exception& e)
+    {
+        BOOST_LOG_TRIVIAL(error) << "plugin[" << id << "] Not loaded: " << e.what();
+
+        // the reason without Lua's stack traceback, which stays in the log
+        const std::string_view error = e.what();
+        last.error = error.substr(0, error.find("\nstack traceback:"));
+
         return;
     }
-
-    // plugins added before slugs aren't checked yet: the first one loaded keeps a slug
-    const auto slug = SlugOf(*plugin, &*source);
-
-    if (!IsValidSlug(slug))
-    {
-        BOOST_LOG_TRIVIAL(error) << "plugin[" << id << "] Not loaded: invalid slug '" << slug << "'";
-        return;
-    }
-
-    if (const auto owner = SlugOwner(slug, id, true))
-    {
-        BOOST_LOG_TRIVIAL(error) << "plugin[" << id << "] Not loaded: slug '" << slug << "' is used by plugin[" << *owner << "]";
-        return;
-    }
-
-    std::unique_ptr<Lua::Plugin> loaded_plugin = Lua::Plugin::Load(
-        *source,
-        plugin->config,
-        m_options,
-        id);
-
-    if (loaded_plugin == nullptr)
-    {
-        BOOST_LOG_TRIVIAL(warning) << "plugin[" << id << "] Failed to load";
-        return;
-    }
-
-    m_plugins.emplace(id, std::move(loaded_plugin));
 
     BOOST_LOG_TRIVIAL(info) << "plugin[" << id << "] Loaded from " << plugin->path;
 

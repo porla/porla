@@ -278,6 +278,7 @@ add_library(
 
     src/lua/print.cpp
     src/lua/plugin.cpp
+    src/lua/pluginmanifest.cpp
     src/lua/pluginsource.cpp
 
     src/rpc/jsonrpc.cpp
