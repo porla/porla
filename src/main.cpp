@@ -42,6 +42,24 @@ extern "C"
     void us_internal_free_closed_sockets(struct us_loop_t* loop);
 }
 
+static std::string_view MimeType(std::string_view path)
+{
+    static const std::map<std::string_view, std::string_view> types = {
+        {".css",   "text/css"},
+        {".html",  "text/html"},
+        {".js",    "text/javascript"},
+        {".json",  "application/json"},
+        {".png",   "image/png"},
+        {".svg",   "image/svg+xml"},
+        {".woff2", "font/woff2"}
+    };
+
+    const auto dot  = path.rfind('.');
+    const auto type = dot == std::string_view::npos ? types.end() : types.find(path.substr(dot));
+
+    return type == types.end() ? "application/octet-stream" : type->second;
+}
+
 static void Traverse(
     const cmrc::embedded_filesystem& fs,
     const std::string& dir,
@@ -219,6 +237,33 @@ int main(int argc, char* argv[])
                     {
                         if (guard->Reject(res, req)) { return; }
                         handler(res, req);
+                    });
+
+                // plugin UI files, public like the web UI's. the web UI frames them sandboxed, so
+                // their own requests come from an opaque origin and module scripts and fonts need
+                // CORS. no-cache: relative asset URLs don't carry the entry's ?v=<version>
+                http_server.get(
+                    http_base_path + "/x/:slug/ui/*",
+                    [guard = cfg->http_host_guard, &plugins, http_base_path](auto* res, auto* req)
+                    {
+                        if (guard->Reject(res, req)) { return; }
+
+                        const auto slug = req->getParameter(0);
+                        const auto path = std::string(req->getUrl().substr(http_base_path.size() + slug.size() + 7));
+                        const auto file = plugins.File("ui/", slug, path);
+
+                        if (!file.has_value())
+                        {
+                            res->writeStatus("404 Not Found")->end("Not found");
+                            return;
+                        }
+
+                        res->writeHeader("Content-Type", MimeType(path))
+                            ->writeHeader("X-Content-Type-Options", "nosniff")
+                            ->writeHeader("Content-Security-Policy", "frame-ancestors 'self'")
+                            ->writeHeader("Cache-Control", "no-cache")
+                            ->writeHeader("Access-Control-Allow-Origin", "*")
+                            ->end(*file);
                     });
 
                 http_server.listen(

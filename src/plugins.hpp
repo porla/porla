@@ -84,6 +84,8 @@ namespace porla
         // the manifest the plugin's last load read; nullopt when it has none or it's invalid
         std::optional<Lua::PluginManifest> Manifest(int id) const;
 
+        std::optional<std::string_view> File(const std::string& prefix, std::string_view slug, const std::string& path) const;
+
         void LoadAll();
         void Reload(int id);
         void Remove(int id);
@@ -101,6 +103,7 @@ namespace porla
         struct LastLoad
         {
             std::optional<Lua::PluginManifest> manifest;
+            std::string                        slug;
             std::optional<std::string>         error;
         };
 
