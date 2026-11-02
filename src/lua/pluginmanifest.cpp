@@ -21,10 +21,18 @@ std::optional<PluginManifest> PluginManifest::FromSource(const PluginSource& sou
 
         if (manifest.ui.has_value())
         {
-            // exact: a path leaving ui/ or starting with / is never a key in the plugin's sources
-            if (!source.sources.contains("ui/" + manifest.ui->entry))
+            if (!manifest.ui->entry.has_value() && !manifest.ui->settings.has_value())
             {
-                throw std::invalid_argument("ui.entry must be a file in the plugin's ui/ folder");
+                throw std::invalid_argument("ui needs an entry or a settings page");
+            }
+
+            // exact: a path leaving ui/ or starting with / is never a key in the plugin's sources
+            for (const auto& [key, page] : { std::pair{ "entry", manifest.ui->entry }, std::pair{ "settings", manifest.ui->settings } })
+            {
+                if (page.has_value() && !source.sources.contains("ui/" + *page))
+                {
+                    throw std::invalid_argument(std::string("ui.") + key + " must be a file in the plugin's ui/ folder");
+                }
             }
 
             // the plugin's own x.<slug>.* need no listing, and other plugins' aren't allowed
