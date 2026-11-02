@@ -16,8 +16,9 @@ namespace porla::Lua
     {
         struct Ui
         {
-            std::string                             entry;
+            std::optional<std::string>              entry;
             std::optional<std::vector<std::string>> rpc;
+            std::optional<std::string>              settings;
         };
 
         std::optional<std::string> name;
@@ -31,9 +32,9 @@ namespace porla::Lua
         static std::optional<PluginManifest> FromSource(const PluginSource& source);
     };
 
-    PORLA_JSON_REQUEST(PluginManifest::Ui, entry, rpc)
+    PORLA_JSON_REQUEST(PluginManifest::Ui, entry, rpc, settings)
     PORLA_JSON_REQUEST(PluginManifest, name, slug, version, ui)
 
-    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(PluginManifest::Ui, entry, rpc)
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(PluginManifest::Ui, entry, rpc, settings)
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE(PluginManifest, name, slug, version, ui)
 }
