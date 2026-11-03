@@ -428,6 +428,45 @@ void Session::ReadAlerts()
     }
 }
 
+void Session::Refresh(const lt::info_hash_t& hash)
+{
+    const auto it = m_torrents.find(hash);
+
+    if (it == m_torrents.end() || it->second.state != Torrent::State::Current)
+    {
+        return;
+    }
+
+    // a handle's calls run in order on libtorrent's thread, so this sees the change before it
+    auto status = it->second.status.handle.status();
+
+    // metadata turned it hybrid: the alert handlers move it to its new key first
+    if (status.info_hashes != hash)
+    {
+        return;
+    }
+
+    it->second.status            = std::move(status);
+    it->second.time_refreshed_at = lt::clock_type::now();
+}
+
+void Session::RefreshQueuePositions()
+{
+    const auto statuses = m_session->get_torrent_status(
+        [](const lt::torrent_status&) { return true; },
+        lt::status_flags_t{});
+
+    for (const auto& status : statuses)
+    {
+        const auto it = m_torrents.find(status.info_hashes);
+
+        if (it != m_torrents.end() && it->second.state == Torrent::State::Current)
+        {
+            it->second.status.queue_position = status.queue_position;
+        }
+    }
+}
+
 void Session::ProcessAlert(const lt::alert* alert)
 {
     BOOST_LOG_TRIVIAL(trace) << Log() << alert->what() << ": " << alert->message();
