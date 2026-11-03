@@ -263,8 +263,24 @@ void Session::OnTorrentPausedAlert(const lt::torrent_paused_alert* alert)
     EmitTorrentEvent("torrent.paused", *alert);
 }
 
+// libtorrent schedules the next announce without posting a status update for it, so the cached
+// status' next_announce would count down to zero and stay there. It reschedules when it sends an
+// announce, and on every reply, error and skipped announce.
+void Session::OnTrackerAnnounceAlert(const lt::tracker_announce_alert* alert)
+{
+    if (alert->handle.is_valid())
+    {
+        Refresh(alert->handle.info_hashes());
+    }
+}
+
 void Session::OnTrackerErrorAlert(const lt::tracker_error_alert* alert)
 {
+    if (alert->handle.is_valid())
+    {
+        Refresh(alert->handle.info_hashes());
+    }
+
     if (alert->error == lt::errors::announce_skipped)
     {
         return;
@@ -273,3 +289,12 @@ void Session::OnTrackerErrorAlert(const lt::tracker_error_alert* alert)
     EmitTorrentEvent("torrent.tracker_error", *alert);
 }
 
+void Session::OnTrackerReplyAlert(const lt::tracker_reply_alert* alert)
+{
+    if (alert->handle.is_valid())
+    {
+        Refresh(alert->handle.info_hashes());
+    }
+
+    EmitTorrentEvent("torrent.tracker_reply", *alert);
+}

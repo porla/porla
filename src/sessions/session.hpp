@@ -162,7 +162,9 @@ namespace porla
         void OnTorrentPausedAlert(const lt::torrent_paused_alert* alert);
         void OnTorrentRemovedAlert(const lt::torrent_removed_alert* alert);
         void OnTorrentResumedAlert(const lt::torrent_resumed_alert* alert);
+        void OnTrackerAnnounceAlert(const lt::tracker_announce_alert* alert);
         void OnTrackerErrorAlert(const lt::tracker_error_alert* alert);
+        void OnTrackerReplyAlert(const lt::tracker_reply_alert* alert);
 
         void MetadataReceived(const lt::torrent_handle& th, Torrent* torrent);
 
