@@ -636,6 +636,7 @@ namespace porla::Rpc::Methods::Torrents
             }
 
             resolved.session->MarkDirty(resolved.torrent->status.info_hashes);
+            resolved.session->Refresh(resolved.torrent->status.info_hashes);
 
             co_return;
         }
@@ -1060,6 +1061,7 @@ namespace porla::Rpc::Methods::Torrents
             }
 
             resolved.torrent->status.handle.move_storage(req.path, flags);
+            resolved.session->Refresh(resolved.torrent->status.info_hashes);
 
             co_return;
         }
@@ -1070,6 +1072,7 @@ namespace porla::Rpc::Methods::Torrents
             resolved.torrent->status.handle.unset_flags(lt::torrent_flags::auto_managed);
             resolved.torrent->status.handle.pause();
             resolved.session->MarkDirty(resolved.torrent->status.info_hashes);
+            resolved.session->Refresh(resolved.torrent->status.info_hashes);
             co_return;
         }
 
@@ -1179,6 +1182,7 @@ namespace porla::Rpc::Methods::Torrents
             if (upload_limit)    resolved.torrent->status.handle.set_upload_limit(*upload_limit);
 
             resolved.session->MarkDirty(resolved.torrent->status.info_hashes);
+            resolved.session->Refresh(resolved.torrent->status.info_hashes);
 
             co_return;
         }
@@ -1188,6 +1192,7 @@ namespace porla::Rpc::Methods::Torrents
             const auto resolved = ResolveTorrent(sessions, req.session_id, req.info_hash);
             resolved.torrent->status.handle.queue_position_bottom();
             resolved.session->MarkDirty(resolved.torrent->status.info_hashes, true);
+            resolved.session->RefreshQueuePositions();
             co_return;
         }
 
@@ -1196,6 +1201,7 @@ namespace porla::Rpc::Methods::Torrents
             const auto resolved = ResolveTorrent(sessions, req.session_id, req.info_hash);
             resolved.torrent->status.handle.queue_position_down();
             resolved.session->MarkDirty(resolved.torrent->status.info_hashes, true);
+            resolved.session->RefreshQueuePositions();
             co_return;
         }
 
@@ -1209,6 +1215,7 @@ namespace porla::Rpc::Methods::Torrents
             const auto resolved = ResolveTorrent(sessions, req.session_id, req.info_hash);
             resolved.torrent->status.handle.queue_position_set(req.queue_position);
             resolved.session->MarkDirty(resolved.torrent->status.info_hashes, true);
+            resolved.session->RefreshQueuePositions();
             co_return;
         }
 
@@ -1217,6 +1224,7 @@ namespace porla::Rpc::Methods::Torrents
             const auto resolved = ResolveTorrent(sessions, req.session_id, req.info_hash);
             resolved.torrent->status.handle.queue_position_top();
             resolved.session->MarkDirty(resolved.torrent->status.info_hashes, true);
+            resolved.session->RefreshQueuePositions();
             co_return;
         }
 
@@ -1225,6 +1233,7 @@ namespace porla::Rpc::Methods::Torrents
             const auto resolved = ResolveTorrent(sessions, req.session_id, req.info_hash);
             resolved.torrent->status.handle.queue_position_up();
             resolved.session->MarkDirty(resolved.torrent->status.info_hashes, true);
+            resolved.session->RefreshQueuePositions();
             co_return;
         }
 
@@ -1232,6 +1241,7 @@ namespace porla::Rpc::Methods::Torrents
         {
             const auto resolved = ResolveTorrent(sessions, req.session_id, req.info_hash);
             resolved.session->Recheck(resolved.torrent->status.info_hashes);
+            resolved.session->Refresh(resolved.torrent->status.info_hashes);
             co_return;
         }
 
@@ -1253,6 +1263,7 @@ namespace porla::Rpc::Methods::Torrents
             const auto resolved = ResolveTorrent(sessions, req.session_id, req.info_hash);
             resolved.torrent->status.handle.resume();
             resolved.session->MarkDirty(resolved.torrent->status.info_hashes);
+            resolved.session->Refresh(resolved.torrent->status.info_hashes);
             co_return;
         }
 

@@ -125,6 +125,13 @@ namespace porla
         // process pending libtorrent alerts
         void ReadAlerts();
 
+        // re-reads the torrent's status from libtorrent. a change made through its handle
+        // otherwise shows with the next state update, up to timer_torrent_updates later
+        void Refresh(const lt::info_hash_t& hash);
+
+        // the same for every torrent's queue position, since a queue move shifts the others too
+        void RefreshQueuePositions();
+
     private:
         Refreshed RefreshCurrent() const;
 
