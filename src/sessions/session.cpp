@@ -503,12 +503,13 @@ void Session::RegisterAlertHandlers()
     m_alert_dispatcher->On<lt::torrent_paused_alert>([this](auto* a)       { OnTorrentPausedAlert(a); });
     m_alert_dispatcher->On<lt::torrent_removed_alert>([this](auto* a)      { OnTorrentRemovedAlert(a); });
     m_alert_dispatcher->On<lt::torrent_resumed_alert>([this](auto* a)      { OnTorrentResumedAlert(a); });
+    m_alert_dispatcher->On<lt::tracker_announce_alert>([this](auto* a)     { OnTrackerAnnounceAlert(a); });
     m_alert_dispatcher->On<lt::tracker_error_alert>([this](auto* a)        { OnTrackerErrorAlert(a); });
+    m_alert_dispatcher->On<lt::tracker_reply_alert>([this](auto* a)        { OnTrackerReplyAlert(a); });
 
     Forward<lt::file_error_alert>("torrent.file_error");
     Forward<lt::state_changed_alert>("torrent.state_changed");
     Forward<lt::torrent_need_cert_alert>("torrent.need_cert");
-    Forward<lt::tracker_reply_alert>("torrent.tracker_reply");
     Forward<lt::tracker_warning_alert>("torrent.tracker_warning");
 }
 
