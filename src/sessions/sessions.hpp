@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <boost/asio/io_context.hpp>
+#include <libtorrent/add_torrent_params.hpp>
 #include <sqlite3.h>
 
 #include "../data/models/sessions.hpp"
@@ -16,6 +17,7 @@ namespace porla
 {
     class Events;
     class Session;
+    struct TorrentClientData;
 
     struct SessionsOptions
     {
@@ -48,6 +50,13 @@ namespace porla
         std::vector<Record> List() const;
 
         std::optional<Record> Resolve(std::optional<int> id) const;
+
+        void MoveParams(
+            int from_id,
+            int to_id,
+            const lt::info_hash_t& hash,
+            const lt::add_torrent_params& params,
+            const TorrentClientData& client_data);
 
         int Add(const Record& session);
         void Remove(int id);

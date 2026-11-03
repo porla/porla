@@ -936,6 +936,8 @@ namespace porla::Rpc::Methods::Torrents
 
         // Removes the torrent from its session and, once torrent.removed arrives, adds it to the
         // target. If the target is gone or refuses it, the torrent is added back to the source.
+        // The stored row moves first, so a shutdown or crash at any point leaves the torrent stored
+        // in one of the sessions - it loads there on the next start.
         awaitable<MigrateRes> Migrate(porla::Events& events, porla::Sessions& sessions, const MigrateReq& req)
         {
             auto resolved = ResolveTorrent(sessions, req.session_id, req.info_hash);
@@ -958,6 +960,7 @@ namespace porla::Rpc::Methods::Torrents
             }
 
             const auto handle = resolved.torrent->status.handle;
+            const auto hash   = resolved.torrent->status.info_hashes;
             auto       params = handle.get_resume_data(lt::torrent_handle::save_info_dict);
 
             TorrentClientData client_data;
@@ -972,6 +975,7 @@ namespace porla::Rpc::Methods::Torrents
 
             // Hold only weak references while waiting, so either session can still be unloaded.
             const int                     source_id      = resolved.session->Id();
+            const int                     target_id      = target->Id();
             std::weak_ptr<porla::Session> source_session = resolved.session;
             std::weak_ptr<porla::Session> target_session = target;
 
@@ -993,6 +997,8 @@ namespace porla::Rpc::Methods::Torrents
                     }
                 });
 
+            sessions.MoveParams(source_id, target_id, hash, params, client_data);
+
             resolved.session->Libtorrent().remove_torrent(handle);
             resolved = {};
 
@@ -1003,21 +1009,27 @@ namespace porla::Rpc::Methods::Torrents
             {
                 BOOST_LOG_TRIVIAL(error) << "Timed out waiting for removal of " << params.info_hashes << " at " << params.save_path;
 
+                // still in the source session (as far as we know) - its row goes back too
+                sessions.MoveParams(target_id, source_id, hash, params, client_data);
+
                 throw Error(-32603, "Timed out waiting for removal");
             }
 
-            // Best case, target session exists and accepts the torrent
-            if (auto session = target_session.lock())
+            // Best case, target session exists and accepts the torrent. It keeps the moved row,
+            // and the save after the add updates it.
+            auto target_locked = target_session.lock();
+
+            if (target_locked)
             {
                 params.userdata = lt::client_data_t(new TorrentClientData(client_data));
 
-                if (session->Add(params))
+                if (target_locked->Add(params))
                 {
-                    BOOST_LOG_TRIVIAL(info) << "Torrent " << params.info_hashes << " migrated to session " << session->Name();
+                    BOOST_LOG_TRIVIAL(info) << "Torrent " << params.info_hashes << " migrated to session " << target_locked->Name();
 
                     co_return MigrateRes{
                         .info_hash  = params.info_hashes,
-                        .session_id = session->Id()
+                        .session_id = target_locked->Id()
                     };
                 }
             }
@@ -1025,6 +1037,17 @@ namespace porla::Rpc::Methods::Torrents
             // Target session did not exist, or it did not accept the torrent
             if (auto session = source_session.lock())
             {
+                // The row goes back with the torrent - unless the torrent was added to the target
+                // while we waited, then that row belongs to it (source to source just rewrites ours).
+                if (target_locked && target_locked->Contains(hash))
+                {
+                    sessions.MoveParams(source_id, source_id, hash, params, client_data);
+                }
+                else
+                {
+                    sessions.MoveParams(target_id, source_id, hash, params, client_data);
+                }
+
                 params.userdata = lt::client_data_t(new TorrentClientData(client_data));
 
                 if (session->Add(params))
@@ -1035,9 +1058,12 @@ namespace porla::Rpc::Methods::Torrents
                 }
             }
 
-            // We now have a failure on our hand, a torrent is missing.
+            // Neither session took it. The row stays where it is, so the torrent loads with that
+            // session on the next start.
+
             BOOST_LOG_TRIVIAL(error)
-                << "Failed to migrate torrent and source did not accept it back - lost torrent " << params.info_hashes << " at " << params.save_path;
+                << "Failed to migrate torrent and source did not accept it back - " << params.info_hashes << " at " << params.save_path
+                << " is stored but not loaded";
 
             throw Error(-7, "Migration failed - neither target nor source accepted the torrent");
         }
