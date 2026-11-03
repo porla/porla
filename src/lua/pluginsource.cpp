@@ -8,18 +8,38 @@
 
 using porla::Lua::PluginSource;
 
-static std::optional<std::vector<char>> ReadFile(const fs::path& path)
+namespace
 {
-    std::ifstream file(path, std::ios::binary);
-
-    if (!file)
+    static std::optional<std::vector<char>> ReadFile(const fs::path& path)
     {
-        return std::nullopt;
+        std::ifstream file(path, std::ios::binary);
+
+        if (!file)
+        {
+            return std::nullopt;
+        }
+
+        return std::vector<char>(
+            std::istreambuf_iterator<char>(file),
+            std::istreambuf_iterator<char>());
     }
 
-    return std::vector<char>(
-        std::istreambuf_iterator<char>(file),
-        std::istreambuf_iterator<char>());
+    // porla only loads plugin.json, any .lua file or all files under ui/
+    static bool IsPluginFile(const fs::path& relative)
+    {
+        return relative == "plugin.json"
+            || relative.extension() == ".lua"
+            || *relative.begin() == "ui";
+    }
+
+    // some directories we know we can skip - this helps local plugin
+    // development speed since a reload otherwise takes pretty much
+    // forever
+    static bool IsSkippedDirectory(const fs::path& relative)
+    {
+        const auto name = relative.filename().string();
+        return name.starts_with(".") || name == "node_modules";
+    }
 }
 
 std::optional<PluginSource> PluginSource::Load(const fs::path& path)
@@ -73,23 +93,30 @@ std::optional<PluginSource> PluginSource::Load(const fs::path& path)
             .sources    = {}
         };
 
-        for (const auto entry : fs::recursive_directory_iterator(path))
+        for (auto it = fs::recursive_directory_iterator(path); it != fs::recursive_directory_iterator(); ++it)
         {
-            if (!entry.is_regular_file())
+            const fs::path relative = it->path().lexically_relative(path);
+
+            if (it->is_directory() && IsSkippedDirectory(relative))
+            {
+                it.disable_recursion_pending();
+                continue;
+            }
+
+            if (!it->is_regular_file() || !IsPluginFile(relative))
             {
                 continue;
             }
 
-            const fs::path relative = fs::relative(entry.path(), path);
-            const auto     contents = ReadFile(entry.path());
+            auto contents = ReadFile(it->path());
 
             if (!contents.has_value())
             {
-                BOOST_LOG_TRIVIAL(error) << "Failed to read file " << entry.path();
+                BOOST_LOG_TRIVIAL(error) << "Failed to read file " << it->path();
                 continue;
             }
 
-            source.sources.insert_or_assign(relative, contents.value());
+            source.sources.insert_or_assign(relative, std::move(*contents));
         }
 
         return source;
