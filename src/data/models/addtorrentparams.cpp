@@ -158,6 +158,70 @@ namespace
             .Execute();
     }
 
+    void DeleteRows(sqlite3* db, const int session_id, const lt::info_hash_t& hash)
+    {
+        auto info_stmt = Statement::Prepare(
+            db,
+            R"sql(
+            DELETE FROM torrentinfos
+            WHERE id IN (
+                SELECT id FROM addtorrentparams
+                WHERE
+            )sql" + kMatchTorrent + ")");
+
+        BindTorrent(info_stmt, session_id, hash)
+            .Execute();
+
+        auto stmt = Statement::Prepare(
+            db,
+            R"sql(
+            DELETE FROM addtorrentparams
+            WHERE
+            )sql" + kMatchTorrent);
+
+        BindTorrent(stmt, session_id, hash)
+            .Execute();
+    }
+
+    void InsertRow(sqlite3* db, const int session_id, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const TorrentClientData& client_data, const int queue_pos)
+    {
+        const std::string userdata = json(client_data).dump();
+
+        const std::vector<char> buf = WriteCleanResumeData(params);
+
+        auto stmt = Statement::Prepare(
+            db,
+            R"sql(
+            INSERT INTO addtorrentparams (
+                info_hash_v1,
+                info_hash_v2,
+                session_id,
+                queue_position,
+                params,
+                userdata
+            )
+            VALUES (
+                $info_hash_v1,
+                $info_hash_v2,
+                $session_id,
+                $queue_position,
+                $params,
+                $userdata
+            )
+            ON CONFLICT DO NOTHING;
+            )sql");
+
+        BindTorrent(stmt, session_id, hash)
+            .Bind("$queue_position", queue_pos)
+            .Bind("$params", buf)
+            .Bind("$userdata", userdata)
+            .Execute();
+
+        if (params.ti)
+        {
+            WriteTorrentInfo(db, session_id, hash, *params.ti);
+        }
+    }
 }
 
 int AddTorrentParams::Count(sqlite3 *db, const int session_id)
@@ -170,41 +234,14 @@ int AddTorrentParams::Count(sqlite3 *db, const int session_id)
 
 void AddTorrentParams::Insert(sqlite3 *db, const int session_id, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const TorrentClientData& client_data, const int queue_pos)
 {
-    const std::string userdata = json(client_data).dump();
+    InsertRow(db, session_id, hash, params, client_data, queue_pos);
+}
 
-    const std::vector<char> buf = WriteCleanResumeData(params);
-
-    auto stmt = Statement::Prepare(
-        db,
-        R"sql(
-        INSERT INTO addtorrentparams (
-            info_hash_v1,
-            info_hash_v2,
-            session_id,
-            queue_position,
-            params,
-            userdata
-        )
-        VALUES (
-            $info_hash_v1,
-            $info_hash_v2,
-            $session_id,
-            $queue_position,
-            $params,
-            $userdata
-        );
-        )sql");
-
-    BindTorrent(stmt, session_id, hash)
-        .Bind("$queue_position", queue_pos)
-        .Bind("$params", buf)
-        .Bind("$userdata", userdata)
-        .Execute();
-
-    if (params.ti)
-    {
-        WriteTorrentInfo(db, session_id, hash, *params.ti);
-    }
+void AddTorrentParams::Move(sqlite3 *db, const int from_session_id, const int to_session_id, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const TorrentClientData& client_data)
+{
+    DeleteRows(db, from_session_id, hash);
+    DeleteRows(db, to_session_id, hash);
+    InsertRow(db, to_session_id, hash, params, client_data, -1);
 }
 
 bool AddTorrentParams::Next(
@@ -279,27 +316,7 @@ bool AddTorrentParams::Next(
 
 void AddTorrentParams::Remove(sqlite3 *db, const int session_id, const lt::info_hash_t& hash)
 {
-    auto info_stmt = Statement::Prepare(
-        db,
-        R"sql(
-        DELETE FROM torrentinfos
-        WHERE id IN (
-            SELECT id FROM addtorrentparams
-            WHERE
-        )sql" + kMatchTorrent + ")");
-
-    BindTorrent(info_stmt, session_id, hash)
-        .Execute();
-
-    auto stmt = Statement::Prepare(
-        db,
-        R"sql(
-        DELETE FROM addtorrentparams
-        WHERE
-        )sql" + kMatchTorrent);
-
-    BindTorrent(stmt, session_id, hash)
-        .Execute();
+    DeleteRows(db, session_id, hash);
 }
 
 void AddTorrentParams::Update(sqlite3 *db, const int session_id, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const TorrentClientData* client_data, const int queue_pos)

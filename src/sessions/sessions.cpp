@@ -79,6 +79,19 @@ std::size_t Sessions::CountParams(int id) const
     return Data::Models::AddTorrentParams::Count(m_options.db, id);
 }
 
+void Sessions::MoveParams(int from_id, int to_id, const lt::info_hash_t& hash, const lt::add_torrent_params& params, const TorrentClientData& client_data)
+{
+    // one transaction, so the torrent is stored in exactly one of the sessions at every point
+    Transaction tx(m_options.db);
+
+    Data::Models::AddTorrentParams::Move(m_options.db, from_id, to_id, hash, params, client_data);
+
+    if (!tx.Commit())
+    {
+        throw std::runtime_error("Failed to commit torrent move");
+    }
+}
+
 std::optional<Sessions::Record> Sessions::Find(int id) const
 {
     return Data::Models::Sessions::GetById(m_options.db, id);
