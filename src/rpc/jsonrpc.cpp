@@ -62,13 +62,6 @@ namespace porla
         std::optional<nlohmann::json> params;
         std::optional<nlohmann::json> id;
     };
-
-    PORLA_JSON_REQUEST(
-        RpcReq,
-        jsonrpc,
-        method,
-        params,
-        id)
 }
 
 class DefaultResponseWriter : public porla::Rpc::ResponseWriter
@@ -232,69 +225,65 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
             res->writeStatus("200 OK")
                 ->writeHeader("Content-Type", "application/json");
 
-            RpcReq req;
+            // every reply, errors included, goes through a writer so it carries jsonrpc and id
+            const auto fail = [&](const json& id, int code, const std::string& message, const json& data = {})
+            {
+                std::make_shared<DefaultResponseWriter>(res, id, aborted, false)->Error(code, message, data);
+            };
+
+            json body;
 
             try
             {
-                req = Json::Parse(*buffer).get<RpcReq>();
+                body = Json::Parse(*buffer);
             }
             catch (const std::exception& ex)
             {
                 BOOST_LOG_TRIVIAL(warning) << "Failed to parse JSONRPC request: " << ex.what();
-
-                json error = {
-                    {"error", {
-                        {"code", -32700},
-                        {"message", "Parse error"},
-                        {"data", ex.what()}
-                    }}
-                };
-
-                res->end(SerializeJson(error));
-
+                fail(nullptr, -32700, "Parse error", ex.what());
                 return;
             }
 
-            if (req.id.has_value()
-                && !req.id->is_string()
-                && !req.id->is_number())
+            const auto id_it = body.is_object() ? body.find("id") : body.end();
+            const bool id_ok = !body.is_object() || id_it == body.end() || id_it->is_null() || id_it->is_string() || id_it->is_number();
+            const json id    = body.is_object() && id_it != body.end() && id_ok ? *id_it : json();
+
+            if (!body.is_object()
+                || !id_ok
+                || !body.contains("jsonrpc") || !body["jsonrpc"].is_string()
+                || !body.contains("method")  || !body["method"].is_string())
             {
-                res->end(SerializeJson(json({
-                    {"error", {
-                        {"code", -32600},
-                        {"message", "Invalid Request"},
-                        {"data", "Id is not a string, number or null"}
-                    }}
-                })));
-
+                fail(id, -32600, "Invalid Request", !id_ok
+                    ? "Id is not a string, number or null"
+                    : "A request is an object with string jsonrpc and method");
                 return;
             }
+
+            RpcReq req{
+                .jsonrpc = body["jsonrpc"].get<std::string>(),
+                .method  = body["method"].get<std::string>(),
+                .params  = body.contains("params") ? std::optional(body["params"]) : std::nullopt,
+                .id      = id_it != body.end() ? std::optional(*id_it) : std::nullopt
+            };
 
             auto method = jsonrpc->m_methods.find(req.method);
 
             if (method == jsonrpc->m_methods.end())
             {
                 BOOST_LOG_TRIVIAL(debug) << "Failed to find JSONRPC method '" << req.method << "'";
-
-                res->end(SerializeJson(json({
-                    {"error", {
-                        {"code", -32601},
-                        {"message", "Method not found"}
-                    }}
-                })));
-
+                fail(id, -32601, "Method not found");
                 return;
             }
+
+            // auth responses carry tokens so compressing secrets next to request input
+            // over TLS invites BREACH-style attacks
+            const bool gzip = accepts_gzip && !req.method.starts_with("auth.");
+
+            auto writer = std::make_shared<DefaultResponseWriter>(res, req.id.value_or(json()), aborted, gzip);
 
             try
             {
                 BOOST_LOG_TRIVIAL(debug) << "Executing JSONRPC method '" << req.method << "'";
-
-                // auth responses carry tokens so compressing secrets next to request input
-                // over TLS invites BREACH-style attacks
-                const bool gzip = accepts_gzip && !req.method.starts_with("auth.");
-
-                auto writer = std::make_shared<DefaultResponseWriter>(res, req.id.value_or(json()), aborted, gzip);
 
                 if (!method->second.Allows(auth_context) || !method->second.method->CanInvoke(auth_context))
                 {
@@ -307,14 +296,7 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
             catch (const std::exception& ex)
             {
                 BOOST_LOG_TRIVIAL(error) << "Error when executing JSONRPC method '" << req.method << "': " << ex.what();
-
-                res->end(SerializeJson(json({
-                    {"error", {
-                        {"code", -32603},
-                        {"message", "Internal error"},
-                        {"data", ex.what()}
-                    }}
-                })));
+                writer->Error(-32603, "Internal error", ex.what());
             }
         });
     };

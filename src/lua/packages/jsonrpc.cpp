@@ -61,7 +61,11 @@ struct LuaMethod : public porla::Rpc::Method
             ? sol::object(state->lua.create_table())
             : porla::Lua::Types::PoJson::ToLua(state->lua.lua_state(), body, 0);
 
-        state->InvokeCallback(m_callback_id, lua_body, writer);
+        // a raising handler never replies itself; the writer ignores this if it already did
+        if (!state->InvokeCallback(m_callback_id, lua_body, writer))
+        {
+            writer->Error(-32603, "Internal error");
+        }
     }
 
 private:
