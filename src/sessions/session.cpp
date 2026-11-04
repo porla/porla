@@ -580,6 +580,7 @@ void Session::RegisterAlertHandlers()
     m_alert_dispatcher->On<lt::listen_failed_alert>([this](auto* a)        { OnListenFailedAlert(a); });
     m_alert_dispatcher->On<lt::listen_succeeded_alert>([this](auto* a)     { OnListenSucceededAlert(a); });
     m_alert_dispatcher->On<lt::metadata_received_alert>([this](auto* a)    { OnMetadataReceivedAlert(a); });
+    m_alert_dispatcher->On<lt::read_piece_alert>([this](auto* a)           { OnReadPieceAlert(a); });
     m_alert_dispatcher->On<lt::save_resume_data_alert>([this](auto* a)     { OnSaveResumeDataAlert(a); });
     m_alert_dispatcher->On<lt::session_stats_alert>([this](auto* a)        { OnSessionStatsAlert(a); });
     m_alert_dispatcher->On<lt::state_update_alert>([this](auto* a)         { OnStateUpdateAlert(a); });

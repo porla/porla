@@ -55,6 +55,7 @@ namespace
         "torrent.peer_info",
         "torrent.piece_availability",
         "torrent.piece_info",
+        "torrent.piece_read",
         "torrent.status",
         "torrent.storage_moved_failed",
         "torrent.storage_moved",
@@ -76,6 +77,12 @@ namespace
     constexpr bool kIsVector<std::vector<T>> = true;
 
     template<typename T>
+    constexpr bool kIsOptional = false;
+
+    template<typename T>
+    constexpr bool kIsOptional<std::optional<T>> = true;
+
+    template<typename T>
     bool PushValue(sol::table& tbl, const porla::Event& event)
     {
         const auto* value_event = dynamic_cast<const porla::TorrentValueEvent<T>*>(&event);
@@ -85,8 +92,9 @@ namespace
             return false;
         }
 
-        if constexpr (kIsVector<T>) { tbl[value_event->key] = sol::as_table(value_event->value); }
-        else                        { tbl[value_event->key] = value_event->value; }
+        if constexpr (kIsVector<T>)        { tbl[value_event->key] = sol::as_table(value_event->value); }
+        else if constexpr (kIsOptional<T>) { if (value_event->value) tbl[value_event->key] = *value_event->value; }
+        else                               { tbl[value_event->key] = value_event->value; }
 
         return true;
     }
@@ -134,7 +142,8 @@ namespace
             || PushValue<std::vector<int>>(tbl, event)
             || PushValue<std::vector<std::int64_t>>(tbl, event)
             || PushValue<lt::torrent_status>(tbl, event)
-            || PushValue<std::shared_ptr<const lt::torrent_info>>(tbl, event);
+            || PushValue<std::shared_ptr<const lt::torrent_info>>(tbl, event)
+            || PushValue<std::optional<std::string>>(tbl, event);
 
         return tbl;
     }

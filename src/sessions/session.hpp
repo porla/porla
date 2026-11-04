@@ -159,6 +159,7 @@ namespace porla
         void OnListenFailedAlert(const lt::listen_failed_alert* alert);
         void OnListenSucceededAlert(const lt::listen_succeeded_alert* alert);
         void OnMetadataReceivedAlert(const lt::metadata_received_alert* alert);
+        void OnReadPieceAlert(const lt::read_piece_alert* alert);
         void OnSaveResumeDataAlert(const lt::save_resume_data_alert* alert);
         void OnSessionStatsAlert(const lt::session_stats_alert* alert);
         void OnStateUpdateAlert(const lt::state_update_alert* alert);
