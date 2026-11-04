@@ -65,9 +65,21 @@ namespace porla::Rpc
             // Decode before starting the coroutine, so bad params fail exactly as before.
             std::optional<TReq> req;
 
+            if constexpr (!std::is_same_v<TReq, nlohmann::json>)
+            {
+                if (!body.is_null() && !body.is_object())
+                {
+                    writer->Error(-32602, "Invalid params: must be an object");
+                    return;
+                }
+            }
+
             try
             {
-                req.emplace(body.get<TReq>());
+                req.emplace(
+                    body.is_null()
+                        ? nlohmann::json::object().get<TReq>()
+                        : body.get<TReq>());
             }
             catch (const Json::FieldError& ex)
             {

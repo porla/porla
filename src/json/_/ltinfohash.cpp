@@ -121,6 +121,8 @@ namespace libtorrent
                 return;
             }
         }
+
+        throw std::invalid_argument("must be a v1 (40) or v2 (64) hex string, or [v1 | null, v2 | null]");
     }
 
     void to_json(json& j, const libtorrent::info_hash_t& ih)
