@@ -6,6 +6,7 @@
 #include <libtorrent/announce_entry.hpp>
 #include <libtorrent/disk_interface.hpp>
 #include <libtorrent/peer_info.hpp>
+#include <libtorrent/torrent_info.hpp>
 #include <libtorrent/torrent_status.hpp>
 
 #include "../../events.hpp"
@@ -132,7 +133,8 @@ namespace
             || PushValue<std::vector<porla::PartialPieceInfo>>(tbl, event)
             || PushValue<std::vector<int>>(tbl, event)
             || PushValue<std::vector<std::int64_t>>(tbl, event)
-            || PushValue<lt::torrent_status>(tbl, event);
+            || PushValue<lt::torrent_status>(tbl, event)
+            || PushValue<std::shared_ptr<const lt::torrent_info>>(tbl, event);
 
         return tbl;
     }
