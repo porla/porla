@@ -54,7 +54,7 @@ struct LuaMethod : public porla::Rpc::Method
 
         if (state == nullptr)
         {
-            return writer->Error(-99, "Failed to lock state");
+            return writer->Error(porla::Errors::Code::internal_error, "Failed to lock state");
         }
 
         const auto lua_body = body.is_null()
@@ -64,7 +64,7 @@ struct LuaMethod : public porla::Rpc::Method
         // a raising handler never replies itself; the writer ignores this if it already did
         if (!state->InvokeCallback(m_callback_id, lua_body, writer))
         {
-            writer->Error(-32603, "Internal error");
+            writer->Error(porla::Errors::Code::internal_error);
         }
     }
 

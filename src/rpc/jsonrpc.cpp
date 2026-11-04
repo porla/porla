@@ -67,6 +67,8 @@ namespace porla
 class DefaultResponseWriter : public porla::Rpc::ResponseWriter
 {
 public:
+    using porla::Rpc::ResponseWriter::Error;
+
     explicit DefaultResponseWriter(uWS::HttpResponse<false>* res, const nlohmann::json& id, std::shared_ptr<bool> aborted, bool gzip)
         : m_id(id)
         , m_res(res)
@@ -226,9 +228,10 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
                 ->writeHeader("Content-Type", "application/json");
 
             // every reply, errors included, goes through a writer so it carries jsonrpc and id
-            const auto fail = [&](const json& id, int code, const std::string& message, const json& data = {})
+            const auto fail = [&](const json& id, porla::Errors::Code code, const std::string& detail = {})
             {
-                std::make_shared<DefaultResponseWriter>(res, id, aborted, false)->Error(code, message, data);
+                std::make_shared<DefaultResponseWriter>(res, id, aborted, false)
+                    ->Error(code, {}, detail.empty() ? json::object() : json{{"detail", detail}});
             };
 
             json body;
@@ -240,7 +243,7 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
             catch (const std::exception& ex)
             {
                 BOOST_LOG_TRIVIAL(warning) << "Failed to parse JSONRPC request: " << ex.what();
-                fail(nullptr, -32700, "Parse error", ex.what());
+                fail(nullptr, porla::Errors::Code::parse_error, ex.what());
                 return;
             }
 
@@ -253,7 +256,7 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
                 || !body.contains("jsonrpc") || !body["jsonrpc"].is_string()
                 || !body.contains("method")  || !body["method"].is_string())
             {
-                fail(id, -32600, "Invalid Request", !id_ok
+                fail(id, porla::Errors::Code::invalid_request, !id_ok
                     ? "Id is not a string, number or null"
                     : "A request is an object with string jsonrpc and method");
                 return;
@@ -271,7 +274,7 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
             if (method == jsonrpc->m_methods.end())
             {
                 BOOST_LOG_TRIVIAL(debug) << "Failed to find JSONRPC method '" << req.method << "'";
-                fail(id, -32601, "Method not found");
+                fail(id, porla::Errors::Code::method_not_found);
                 return;
             }
 
@@ -287,7 +290,7 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
 
                 if (!method->second.Allows(auth_context) || !method->second.method->CanInvoke(auth_context))
                 {
-                    writer->Error(1001, "Invocation not allowed");
+                    writer->Error(porla::Errors::Code::permission_denied);
                     return;
                 }
 
@@ -296,7 +299,7 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
             catch (const std::exception& ex)
             {
                 BOOST_LOG_TRIVIAL(error) << "Error when executing JSONRPC method '" << req.method << "': " << ex.what();
-                writer->Error(-32603, "Internal error", ex.what());
+                writer->Error(porla::Errors::Code::internal_error, {}, {{"detail", ex.what()}});
             }
         });
     };
