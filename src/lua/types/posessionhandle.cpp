@@ -41,7 +41,9 @@ void PoSessionHandle::Register(sol::state& lua)
         "resume", [](const PoSessionHandle& session) { session.Lock()->Libtorrent().resume(); },
         "post_dht_stats", [](const PoSessionHandle& session) { session.Lock()->Libtorrent().post_dht_stats(); },
         "post_session_stats", [](const PoSessionHandle& session) { session.Lock()->Libtorrent().post_session_stats(); },
-        "torrents", &PoSessionHandle::Torrents);
+        "torrents", &PoSessionHandle::Torrents,
+        sol::meta_function::equal_to,  &PoSessionHandle::operator==,
+        sol::meta_function::to_string, &PoSessionHandle::ToString);
 }
 
 int PoSessionHandle::Id()
@@ -57,6 +59,24 @@ std::string PoSessionHandle::Name()
 std::shared_ptr<PoTorrentsHandle> PoSessionHandle::Torrents()
 {
     return std::make_shared<PoTorrentsHandle>(m_state);
+}
+
+// compares ownership, not the pointer, so it still works once the session is gone
+bool PoSessionHandle::operator==(const PoSessionHandle& other) const
+{
+    return !m_state.owner_before(other.m_state) && !other.m_state.owner_before(m_state);
+}
+
+std::string PoSessionHandle::ToString() const
+{
+    const auto session = m_state.lock();
+
+    if (session == nullptr)
+    {
+        return "PoSessionHandle(gone)";
+    }
+
+    return "PoSessionHandle(" + std::to_string(session->Id()) + ", \"" + session->Name() + "\")";
 }
 
 std::shared_ptr<porla::Session> PoSessionHandle::Lock() const
