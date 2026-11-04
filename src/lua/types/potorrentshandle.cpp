@@ -27,8 +27,8 @@ void PoTorrentsHandle::Register(sol::state& lua)
             sol::resolve<std::shared_ptr<PoTorrentsIterator>(const PoQuery&)>(&PoTorrentsHandle::List)
         ),
         "remove", sol::overload(
-            sol::resolve<void(const lt::info_hash_t&, std::optional<sol::table>)>(&PoTorrentsHandle::Remove),
-            sol::resolve<void(const lt::torrent_handle&, std::optional<sol::table>)>(&PoTorrentsHandle::Remove))
+            sol::resolve<bool(const lt::info_hash_t&, std::optional<sol::table>)>(&PoTorrentsHandle::Remove),
+            sol::resolve<bool(const lt::torrent_handle&, std::optional<sol::table>)>(&PoTorrentsHandle::Remove))
         );
 }
 
@@ -129,16 +129,16 @@ std::shared_ptr<PoTorrentsIterator> PoTorrentsHandle::List(const PoQuery& query)
     return std::make_shared<PoTorrentsIterator>(state, query);
 }
 
-void PoTorrentsHandle::Remove(const lt::info_hash_t& ih, std::optional<sol::table> opts)
+bool PoTorrentsHandle::Remove(const lt::info_hash_t& ih, std::optional<sol::table> opts)
 {
     auto state = m_weak_session.lock();
-    if (state == nullptr) { return; }
+    if (state == nullptr) { return false; }
 
     auto found = state->Find(ih);
 
     if (found == nullptr)
     {
-        return;
+        return false;
     }
 
     lt::remove_flags_t flags = {};
@@ -164,32 +164,16 @@ void PoTorrentsHandle::Remove(const lt::info_hash_t& ih, std::optional<sol::tabl
     state->Libtorrent().remove_torrent(
         found->status.handle,
         flags);
+
+    return true;
 }
 
-void PoTorrentsHandle::Remove(const lt::torrent_handle& th, std::optional<sol::table> opts)
+bool PoTorrentsHandle::Remove(const lt::torrent_handle& th, std::optional<sol::table> opts)
 {
-    auto state = m_weak_session.lock();
-    if (state == nullptr) { return; }
-
-    lt::remove_flags_t flags = {};
-
-    if (opts.has_value())
+    if (!th.is_valid())
     {
-        sol::object delete_files = (*opts)["delete_files"];
-
-        if (delete_files.valid() && delete_files.get_type() != sol::type::lua_nil)
-        {
-            if (delete_files.get_type() != sol::type::boolean)
-            {
-                throw std::runtime_error("'delete_files' parameter must be boolean");
-            }
-
-            if (delete_files.as<bool>())
-            {
-                flags |= lt::session::delete_files;
-            }
-        }
+        return false;
     }
 
-    state->Libtorrent().remove_torrent(th, flags);
+    return Remove(th.info_hashes(), std::move(opts));
 }
