@@ -210,6 +210,15 @@ namespace porla::Rpc::Methods::Plugins
 
             try
             {
+                // CheckPlugin's slug falls back to the file name, which would let a corrupt archive through;
+                // an unreadable zip still loads, with no sources
+                const auto source = Lua::PluginSource::Load(plugin.path);
+
+                if (!source.has_value() || !source->sources.contains(source->entrypoint))
+                {
+                    throw Error(code, "The release asset is not a plugin archive with " + (source ? source->entrypoint : std::string("plugin.lua")));
+                }
+
                 CheckPlugin(plugins, plugin, code);
             }
             catch (const Error&)

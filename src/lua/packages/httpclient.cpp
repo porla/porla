@@ -113,6 +113,11 @@ sol::object HttpClient::Load(sol::this_state ts)
         const auto follow_redirects = GetOpt<bool>(params, "follow_redirects", true);
         const auto max_redirects    = GetOpt<int>(params, "max_redirects", 10);
 
+        if (timeout < 0 || connect_timeout < 0)
+        {
+            throw std::runtime_error("porla.http.request: timeout and connect_timeout must be >= 0");
+        }
+
         auto transfer_state = std::make_shared<CurlTransferState>();
 
         if (params.has_value())
@@ -173,7 +178,8 @@ sol::object HttpClient::Load(sol::this_state ts)
             }
         }
 
-        if (!transfer_state->request_body.empty())
+        // without post fields libcurl reads a POST body from stdin
+        if (method == "POST" || !transfer_state->request_body.empty())
         {
             curl_easy_setopt(easy.get(), CURLOPT_POSTFIELDSIZE,
                 static_cast<long>(transfer_state->request_body.size()));
@@ -192,6 +198,9 @@ sol::object HttpClient::Load(sol::this_state ts)
             easy.release(),
             [weak, transfer_state, callback_id](CURL* easy, CURLcode result)
             {
+                // the handle is cleaned up after this returns, and transfer_state may be gone by then
+                curl_easy_setopt(easy, CURLOPT_ERRORBUFFER, nullptr);
+
                 auto state = weak.lock();
                 if (!state) { return; }
 
@@ -201,8 +210,11 @@ sol::object HttpClient::Load(sol::this_state ts)
 
                 boost::asio::post(
                     state->io,
-                    [state, transfer_state, callback_id]()
+                    [weak, transfer_state, callback_id]()
                     {
+                        auto state = weak.lock();
+                        if (!state) { return; }
+
                         if (transfer_state->result != CURLE_OK)
                         {
                             state->InvokeCallback(

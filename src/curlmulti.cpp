@@ -53,10 +53,14 @@ static size_t HttpWriteCallback(char *ptr, size_t size, size_t nmemb, void *user
 
 struct CurlMulti::SocketState
 {
-    SocketState(const boost::asio::any_io_executor& ex, int fd)
-        : descriptor(ex, fd) {}
+    SocketState(const boost::asio::any_io_executor& ex, int fd, std::uint64_t id)
+        : descriptor(ex, fd), id(id) {}
 
     boost::asio::posix::stream_descriptor descriptor;
+
+    // libcurl can close a socket and get the same fd back for the next one; waits of the old
+    // socket must not touch the new one's flags
+    std::uint64_t id;
 
     int  action  = 0;      // last CURL_POLL_* mask libcurl asked for
     bool reading = false;  // an async_wait(wait_read) is in flight
@@ -75,6 +79,7 @@ CurlMulti::CurlMulti(boost::asio::io_context& io)
     , m_timer(m_strand)
     , m_multi(curl_multi_init())
     , m_timer_generation(0)
+    , m_next_socket_id(0)
     , m_running(0)
     , m_shutdown(false)
     , m_in_check_completed(false)
@@ -169,9 +174,12 @@ void CurlMulti::HttpGet(const std::string& url, HttpCallback callback)
 
     if (auto slot = boost::asio::get_associated_cancellation_slot(callback); slot.is_connected())
     {
-        slot.assign([self = shared_from_this(), easy](boost::asio::cancellation_type)
+        slot.assign([weak = weak_from_this(), easy](boost::asio::cancellation_type)
         {
-            self->CancelTransfer(easy);
+            if (auto self = weak.lock())
+            {
+                self->CancelTransfer(easy);
+            }
         });
     }
 
@@ -198,7 +206,7 @@ void CurlMulti::HttpGet(const std::string& url, HttpCallback callback)
     // Capture m_io by reference, not a weak_ptr to self: during Shutdown() from
     // ~CurlMulti the use count is already zero, lock() would fail, and every
     // caller would hang - the exact thing Shutdown() invokes callbacks to avoid.
-    AddTransfer(easy, [&io = m_io, ex, body, callback = std::move(callback)](CURL* e, CURLcode) mutable
+    AddTransfer(easy, [&io = m_io, ex, body, callback = std::move(callback)](CURL* e, CURLcode result) mutable
     {
         if (auto slot = boost::asio::get_associated_cancellation_slot(callback); slot.is_connected())
         {
@@ -206,7 +214,16 @@ void CurlMulti::HttpGet(const std::string& url, HttpCallback callback)
         }
 
         long response_code = 0;
-        curl_easy_getinfo(e, CURLINFO_RESPONSE_CODE, &response_code);
+
+        // a transfer can fail after a 200 (timeout, reset, size limit) and leave a partial body
+        if (result == CURLE_OK)
+        {
+            curl_easy_getinfo(e, CURLINFO_RESPONSE_CODE, &response_code);
+        }
+        else
+        {
+            BOOST_LOG_TRIVIAL(warning) << "CurlMulti::HttpGet failed: " << curl_easy_strerror(result);
+        }
 
         CompleteHttp(io, ex, std::move(callback), static_cast<int>(response_code), body->str());
     });
@@ -271,11 +288,19 @@ void CurlMulti::CancelTransfer(CURL* easy)
         });
 }
 
+// An exception unwinding through libcurl leaves the multi stuck "in a callback": every later
+// curl_multi_* call fails with CURLM_RECURSIVE_API_CALL. So nothing may escape these two.
 int CurlMulti::SocketCallback(CURL*, curl_socket_t sock, int what, void* userp, void*)
+try
 {
     static_cast<CurlMulti*>(userp)->OnSocketUpdate(sock, what);
 
     // Always 0: a non-zero return aborts *every* transfer in the multi.
+    return 0;
+}
+catch (const std::exception& e)
+{
+    BOOST_LOG_TRIVIAL(error) << "CurlMulti: socket callback failed: " << e.what();
     return 0;
 }
 
@@ -314,7 +339,7 @@ void CurlMulti::OnSocketUpdate(curl_socket_t sock, int what)
 
         try
         {
-            it = m_sockets.emplace(sock, std::make_unique<SocketState>(m_strand, fd)).first;
+            it = m_sockets.emplace(sock, std::make_unique<SocketState>(m_strand, fd, ++m_next_socket_id)).first;
         }
         catch (const std::exception& e)
         {
@@ -358,11 +383,11 @@ void CurlMulti::ArmSocket(curl_socket_t sock)
 
         state.descriptor.async_wait(
             type,
-            [weak = weak_from_this(), sock, poll_bit](const boost::system::error_code& ec)
+            [weak = weak_from_this(), sock, id = state.id, poll_bit](const boost::system::error_code& ec)
             {
                 if (auto self = weak.lock())
                 {
-                    self->OnSocketReady(sock, ec, poll_bit);
+                    self->OnSocketReady(sock, id, ec, poll_bit);
                 }
             });
     };
@@ -418,7 +443,7 @@ void CurlMulti::DriveSocket(curl_socket_t sock, int mask)
     ArmSocket(sock);
 }
 
-void CurlMulti::OnSocketReady(curl_socket_t sock, const boost::system::error_code& ec, int direction)
+void CurlMulti::OnSocketReady(curl_socket_t sock, std::uint64_t id, const boost::system::error_code& ec, int direction)
 {
     if (m_shutdown)
     {
@@ -427,7 +452,7 @@ void CurlMulti::OnSocketReady(curl_socket_t sock, const boost::system::error_cod
 
     auto it = m_sockets.find(sock);
 
-    if (it == m_sockets.end())
+    if (it == m_sockets.end() || it->second->id != id)
     {
         // libcurl removed the socket while this handler was queued.
         return;
@@ -458,6 +483,7 @@ void CurlMulti::OnSocketReady(curl_socket_t sock, const boost::system::error_cod
 }
 
 int CurlMulti::TimerCallback(CURLM*, long timeout_ms, void* userp)
+try
 {
     auto* self = static_cast<CurlMulti*>(userp);
 
@@ -495,6 +521,11 @@ int CurlMulti::TimerCallback(CURLM*, long timeout_ms, void* userp)
             }
         });
 
+    return 0;
+}
+catch (const std::exception& e)
+{
+    BOOST_LOG_TRIVIAL(error) << "CurlMulti: timer callback failed: " << e.what();
     return 0;
 }
 

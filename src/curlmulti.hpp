@@ -60,7 +60,7 @@ namespace porla
         void DoAddTransfer(CURL* easy, TransferComplete callback);
         void ArmSocket(curl_socket_t sock);
         void DriveSocket(curl_socket_t sock, int mask);
-        void OnSocketReady(curl_socket_t sock, const boost::system::error_code& ec, int direction);
+        void OnSocketReady(curl_socket_t sock, std::uint64_t id, const boost::system::error_code& ec, int direction);
         void OnSocketUpdate(curl_socket_t sock, int what);
         void OnTimeout(std::uint64_t generation);
         void SocketAction(curl_socket_t sock, int event_bitmask);
@@ -74,6 +74,7 @@ namespace porla
         CURLM*                                                      m_multi;
 
         std::uint64_t m_timer_generation;
+        std::uint64_t m_next_socket_id;
         int           m_running;
         bool          m_shutdown;
         bool          m_in_check_completed;
