@@ -125,6 +125,8 @@ namespace porla
         // process pending libtorrent alerts
         void ReadAlerts();
 
+        void RequestStatus(const lt::torrent_handle& th);
+
         // re-reads the torrent's status from libtorrent. a change made through its handle
         // otherwise shows with the next state update, up to timer_torrent_updates later
         void Refresh(const lt::info_hash_t& hash);
@@ -144,8 +146,8 @@ namespace porla
         template<typename A, typename F>
         void ForwardValue(std::string name, std::string key, F get);
 
-        void PublishAdded(const lt::torrent_handle& th, const lt::torrent_status& status);
         void PublishAddFailed(const lt::add_torrent_alert& alert, const lt::info_hash_t& key, bool loading);
+        void PublishStatus(std::string name, const lt::torrent_handle& th, const lt::torrent_status& status);
 
         // registers all alert handlers
         void RegisterAlertHandlers();

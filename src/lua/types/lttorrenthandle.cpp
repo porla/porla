@@ -30,13 +30,16 @@ namespace
         throw sol::error("Invalid value");
     }
 
+    std::shared_ptr<porla::Session> SessionOf(const lt::torrent_handle& th)
+    {
+        const auto* data = th.userdata().get<porla::TorrentClientData>();
+        return data != nullptr ? data->session.lock() : nullptr;
+    }
+
     // saves the torrent's resume data shortly after a change made from Lua (Session::MarkDirty)
     void Changed(const lt::torrent_handle& th, bool force = false)
     {
-        const auto* data    = th.userdata().get<porla::TorrentClientData>();
-        const auto  session = data != nullptr ? data->session.lock() : nullptr;
-
-        if (session != nullptr)
+        if (const auto session = SessionOf(th))
         {
             session->MarkDirty(th.info_hashes(), force);
         }
@@ -161,7 +164,11 @@ void LtTorrentHandle::Register(sol::state& lua)
         "post_file_status",           &lt::torrent_handle::post_file_status,
         "post_peer_info",             &lt::torrent_handle::post_peer_info,
         "post_piece_availability",    &lt::torrent_handle::post_piece_availability,
-        "post_status",                [](const lt::torrent_handle& th) { th.post_status(); },
+        "post_status",                [](const lt::torrent_handle& th)
+        {
+            if (const auto session = SessionOf(th)) { session->RequestStatus(th); }
+            else                                    { th.post_status(); }
+        },
         "post_trackers",              &lt::torrent_handle::post_trackers,
         "prioritize_files",           [](const lt::torrent_handle& th, const sol::table& prios)
         {
