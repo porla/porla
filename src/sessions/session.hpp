@@ -141,6 +141,9 @@ namespace porla
         template<typename A>
         void Forward(std::string name);
 
+        template<typename A, typename F>
+        void ForwardValue(std::string name, std::string key, F get);
+
         // registers all alert handlers
         void RegisterAlertHandlers();
 

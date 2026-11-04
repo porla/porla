@@ -1,0 +1,8 @@
+---@meta
+---@class LtPartialPieceInfo
+---@field piece_index integer
+---@field blocks_in_piece integer
+---@field finished integer
+---@field writing integer
+---@field requested integer
+---@field blocks LtBlockInfo[]

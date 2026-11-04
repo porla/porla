@@ -3,8 +3,12 @@
 #include <set>
 
 #include <boost/signals2.hpp>
+#include <libtorrent/announce_entry.hpp>
+#include <libtorrent/disk_interface.hpp>
+#include <libtorrent/peer_info.hpp>
 
 #include "../../events.hpp"
+#include "../../sessions/partialpieceinfo.hpp"
 #include "../../sessions/sessionevent.hpp"
 #include "../../sessions/torrentevent.hpp"
 
@@ -39,9 +43,15 @@ namespace
         "torrent.checked",
         "torrent.error",
         "torrent.file_error",
+        "torrent.file_priorities",
+        "torrent.file_progress",
+        "torrent.file_status",
         "torrent.finished",
         "torrent.metadata_received",
         "torrent.need_cert",
+        "torrent.peer_info",
+        "torrent.piece_availability",
+        "torrent.piece_info",
         "torrent.storage_moved_failed",
         "torrent.storage_moved",
         "torrent.paused",
@@ -51,8 +61,24 @@ namespace
         "torrent.tracker_error",
         "torrent.tracker_reply",
         "torrent.tracker_warning",
+        "torrent.trackers",
         "torrent.userdata_updated"
     };
+
+    template<typename T>
+    bool PushValue(sol::table& tbl, const porla::Event& event)
+    {
+        const auto* value_event = dynamic_cast<const porla::TorrentValueEvent<T>*>(&event);
+
+        if (value_event == nullptr)
+        {
+            return false;
+        }
+
+        tbl[value_event->key] = sol::as_table(value_event->value);
+
+        return true;
+    }
 
     sol::table ToLua(LuaState& state, const porla::Event& event)
     {
@@ -89,6 +115,11 @@ namespace
                 tbl["torrent"] = torrent_event->torrent_handle;
             }
         }
+
+        PushValue<std::vector<lt::announce_entry>>(tbl, event)
+            || PushValue<std::vector<lt::open_file_state>>(tbl, event)
+            || PushValue<std::vector<lt::peer_info>>(tbl, event)
+            || PushValue<std::vector<porla::PartialPieceInfo>>(tbl, event);
 
         return tbl;
     }

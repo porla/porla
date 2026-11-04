@@ -57,9 +57,24 @@ namespace libtorrent
         json["filename"] = alert.filename();
     }
 
+    void to_json(nlohmann::json& json, const file_priorities_alert& alert)
+    {
+        json = {{"priorities", alert.priorities}};
+    }
+
+    void to_json(nlohmann::json& json, const file_progress_alert& alert)
+    {
+        json = {{"progress", static_cast<const std::vector<std::int64_t>&>(alert.files)}};
+    }
+
     void to_json(nlohmann::json& json, const metadata_received_alert& alert)
     {
         json = nlohmann::json::object();
+    }
+
+    void to_json(nlohmann::json& json, const piece_availability_alert& alert)
+    {
+        json = {{"availability", alert.piece_availability}};
     }
 
     void to_json(nlohmann::json& json, const state_changed_alert& alert)
