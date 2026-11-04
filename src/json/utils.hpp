@@ -6,6 +6,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include <nlohmann/json.hpp>
@@ -136,6 +137,24 @@ namespace porla::Json
     {
         ex.field = ex.field.empty() ? key : std::string(key) + "." + ex.field;
         throw;
+    }
+    catch (const nlohmann::json::exception& ex)
+    {
+        // 403: j.at(key) on a missing key
+        if (ex.id == 403)
+        {
+            throw FieldError(key, "is required");
+        }
+
+        // drop nlohmann's "[json.exception.type_error.302] " prefix
+        const std::string_view what = ex.what();
+        const auto             end  = what.find("] ");
+
+        throw FieldError(key, std::string(end == std::string_view::npos ? what : what.substr(end + 2)));
+    }
+    catch (const std::invalid_argument& ex)
+    {
+        throw FieldError(key, ex.what());
     }
 }
 
