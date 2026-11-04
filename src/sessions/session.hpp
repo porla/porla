@@ -144,6 +144,9 @@ namespace porla
         template<typename A, typename F>
         void ForwardValue(std::string name, std::string key, F get);
 
+        void PublishAdded(const lt::torrent_handle& th, const lt::torrent_status& status);
+        void PublishAddFailed(const lt::add_torrent_alert& alert, const lt::info_hash_t& key, bool loading);
+
         // registers all alert handlers
         void RegisterAlertHandlers();
 

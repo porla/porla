@@ -25,7 +25,11 @@ void Session::OnAddTorrentAlert(const lt::add_torrent_alert* alert)
         if (const auto it = m_torrents.find(key); it != m_torrents.end()
             && it->second.state != Torrent::State::Current)
         {
+            const bool loading = it->second.state == Torrent::State::Loading;
+
             m_torrents.erase(it);
+
+            PublishAddFailed(*alert, key, loading);
         }
 
         return;
@@ -101,7 +105,7 @@ void Session::OnAddTorrentAlert(const lt::add_torrent_alert* alert)
     // would skip a torrent added from complete resume data (a migrated one) and keep the stripped row.
     alert->handle.save_resume_data(lt::torrent_handle::save_info_dict);
 
-    EmitTorrentEvent("torrent.added", *alert);
+    PublishAdded(alert->handle, torrent.status);
 }
 
 void Session::OnTorrentRemovedAlert(const lt::torrent_removed_alert* alert)

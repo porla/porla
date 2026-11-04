@@ -28,12 +28,6 @@ namespace libtorrent
         json["last_active"] = bucket.last_active;
     }
 
-    void to_json(nlohmann::json& json, const add_torrent_alert& alert)
-    {
-        json = nlohmann::json::object();
-        json["error"] = alert.error;
-    }
-
     void to_json(nlohmann::json& json, const dht_stats_alert& alert)
     {
         std::stringstream nid_hex;
