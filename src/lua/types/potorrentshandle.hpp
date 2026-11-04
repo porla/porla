@@ -31,8 +31,8 @@ namespace porla::Lua::Types
         std::shared_ptr<PoTorrentsIterator> List();
         std::shared_ptr<PoTorrentsIterator> List(const PoQuery& query);
 
-        void Remove(const lt::info_hash_t& ih, std::optional<sol::table> opts);
-        void Remove(const lt::torrent_handle& th, std::optional<sol::table> opts);
+        bool Remove(const lt::info_hash_t& ih, std::optional<sol::table> opts);
+        bool Remove(const lt::torrent_handle& th, std::optional<sol::table> opts);
 
     private:
         std::weak_ptr<Session> m_weak_session;
