@@ -134,7 +134,7 @@ void LtTorrentHandle::Register(sol::state& lua)
                 {"reset_save_path_unchecked", lt::move_flags_t::reset_save_path_unchecked},
             };
 
-            lt::move_flags_t move_flags = lt::move_flags_t::always_replace_files;
+            lt::move_flags_t move_flags = lt::move_flags_t::dont_replace;
 
             if (opts)
             {
