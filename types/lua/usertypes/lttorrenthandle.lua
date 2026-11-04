@@ -3,6 +3,13 @@
 ---@class LtTorrentHandle
 local LtTorrentHandle = {}
 
+---@class LtTrackerOpts
+---@field tier? integer 0-255
+
+---@param url string
+---@param opts? LtTrackerOpts
+function LtTorrentHandle:add_tracker(url, opts) end
+
 ---@param url string
 function LtTorrentHandle:add_url_seed(url) end
 
@@ -12,8 +19,16 @@ function LtTorrentHandle:clear_peers() end
 
 function LtTorrentHandle:clear_piece_deadlines() end
 
+---@param ip string
+---@param port integer
+function LtTorrentHandle:connect_peer(ip, port) end
+
 ---@return integer
 function LtTorrentHandle:download_limit() end
+
+---Exact bytes downloaded per file; entry `i + 1` is file `i`. Waits for libtorrent, like `status()`.
+---@return integer[]
+function LtTorrentHandle:file_progress() end
 
 ---@return LtOpenFileState[]
 function LtTorrentHandle:file_status() end
@@ -88,6 +103,16 @@ function LtTorrentHandle:move_storage(path, opts) end
 
 function LtTorrentHandle:pause() end
 
+---Peers that have each piece; entry `i + 1` is piece `i`. Empty without metadata.
+---@return integer[]
+function LtTorrentHandle:piece_availability() end
+
+---Without `priority`, returns the piece's priority (0-7); with it, sets it.
+---@param index integer
+---@param priority? integer
+---@return integer?
+function LtTorrentHandle:piece_priority(index, priority) end
+
 function LtTorrentHandle:post_download_queue() end
 
 function LtTorrentHandle:post_file_priorities() end
@@ -134,12 +159,19 @@ function LtTorrentHandle:remove_url_seed(url) end
 ---@param name string
 function LtTorrentHandle:rename_file(index, name) end
 
+---@param trackers (string|{ url: string, tier?: integer })[]
+function LtTorrentHandle:replace_trackers(trackers) end
+
 ---@param index integer
 function LtTorrentHandle:reset_piece_deadline(index) end
 
 function LtTorrentHandle:resume() end
 
 function LtTorrentHandle:save_resume_data() end
+
+---Scrape now: every tracker, the tracker at `index`, or the tracker with this url.
+---@param tracker? integer|string
+function LtTorrentHandle:scrape_tracker(tracker) end
 
 ---@param limit integer
 function LtTorrentHandle:set_download_limit(limit) end
@@ -161,6 +193,11 @@ function LtTorrentHandle:set_max_uploads(n) end
 ---@param seconds number
 ---@param opts? LtPieceDeadlineOpts
 function LtTorrentHandle:set_piece_deadline(index, seconds, opts) end
+
+---Download pieces `first` to `last` in order (sequential mode); without `last`, to the end of the file `first` is in.
+---@param first integer
+---@param last? integer
+function LtTorrentHandle:set_sequential_range(first, last) end
 
 ---@param certificate string
 ---@param private_key string
