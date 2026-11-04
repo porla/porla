@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include <libtorrent/announce_entry.hpp>
 #include <libtorrent/torrent_handle.hpp>
 #include <libtorrent/torrent_status.hpp>
 
@@ -106,6 +107,28 @@ namespace
         return lt::piece_index_t{index};
     }
 
+    lt::announce_entry TrackerEntry(const std::string& url, std::optional<int> tier)
+    {
+        if (url.empty())
+        {
+            throw sol::error("tracker url must not be empty");
+        }
+
+        lt::announce_entry entry(url);
+
+        if (tier.has_value())
+        {
+            if (*tier < 0 || *tier > 255)
+            {
+                throw sol::error("tracker tier must be 0-255");
+            }
+
+            entry.tier = static_cast<std::uint8_t>(*tier);
+        }
+
+        return entry;
+    }
+
     // saves the torrent's resume data shortly after a change made from Lua (Session::MarkDirty)
     void Changed(const lt::torrent_handle& th, bool force = false)
     {
@@ -122,15 +145,35 @@ void LtTorrentHandle::Register(sol::state& lua)
         "LtTorrentHandle",
         sol::no_constructor,
         // add_piece
-        // add_tracker
+        "add_tracker",                [](const lt::torrent_handle& th, const std::string& url, std::optional<sol::table> opts)
+        {
+            th.add_tracker(TrackerEntry(url, opts ? opts->get<std::optional<int>>("tier") : std::nullopt));
+            Changed(th);
+        },
         "add_url_seed",               [](const lt::torrent_handle& th, const std::string& url) { th.add_url_seed(url); Changed(th); },
         "clear_error",                &lt::torrent_handle::clear_error,
         "clear_peers",                &lt::torrent_handle::clear_peers,
         "clear_piece_deadlines",      &lt::torrent_handle::clear_piece_deadlines,
-        // connect_peer
+        "connect_peer",               [](const lt::torrent_handle& th, const std::string& ip, int port)
+        {
+            boost::system::error_code ec;
+            const auto address = boost::asio::ip::make_address(ip, ec);
+
+            if (ec)
+            {
+                throw sol::error("invalid peer address '" + ip + "'");
+            }
+
+            if (port < 1 || port > 65535)
+            {
+                throw sol::error("peer port must be 1-65535");
+            }
+
+            th.connect_peer(lt::tcp::endpoint(address, static_cast<std::uint16_t>(port)));
+        },
         "download_limit",             &lt::torrent_handle::download_limit,
         // file_priority
-        // file_progress
+        "file_progress",              [](const lt::torrent_handle& th) { return sol::as_table(th.file_progress()); },
         "file_status",                [](const lt::torrent_handle& th) { return sol::as_table(th.file_status()); },
         "flags",                      &lt::torrent_handle::flags,
         "flush_cache",                &lt::torrent_handle::flush_cache,
@@ -214,9 +257,28 @@ void LtTorrentHandle::Register(sol::state& lua)
         },
         // "need_save_resume_data"
         "pause", [](const lt::torrent_handle& th) { th.pause(); Changed(th); },
-        // piece_availability
+        "piece_availability",         [](const lt::torrent_handle& th)
+        {
+            std::vector<int> availability;
+            th.piece_availability(availability);
+            return sol::as_table(availability);
+        },
         //"piece_layers",               &lt::torrent_handle::piece_layers,
-        // piece_priority
+        "piece_priority",             sol::overload(
+            [](const lt::torrent_handle& th, int index)
+            {
+                return static_cast<int>(static_cast<std::uint8_t>(th.piece_priority(PieceIndex(th, index))));
+            },
+            [](const lt::torrent_handle& th, int index, int priority)
+            {
+                if (priority < 0 || priority > 7)
+                {
+                    throw sol::error("priority must be 0-7");
+                }
+
+                th.piece_priority(PieceIndex(th, index), lt::download_priority_t(static_cast<std::uint8_t>(priority)));
+                Changed(th);
+            }),
         "post_download_queue",        &lt::torrent_handle::post_download_queue,
         "post_file_priorities",       &lt::torrent_handle::post_file_priorities,
         "post_file_progress",         [](const lt::torrent_handle& th) { th.post_file_progress(lt::torrent_handle::piece_granularity); },
@@ -274,7 +336,32 @@ void LtTorrentHandle::Register(sol::state& lua)
 
             th.rename_file(lt::file_index_t{index}, name);
         },
-        // replace_trackers
+        "replace_trackers",           [](const lt::torrent_handle& th, const sol::table& trackers)
+        {
+            std::vector<lt::announce_entry> entries;
+
+            for (std::size_t i = 1; i <= trackers.size(); i++)
+            {
+                const sol::object item = trackers[i];
+
+                if (item.get_type() == sol::type::string)
+                {
+                    entries.push_back(TrackerEntry(item.as<std::string>(), std::nullopt));
+                }
+                else if (item.get_type() == sol::type::table)
+                {
+                    const auto t = item.as<sol::table>();
+                    entries.push_back(TrackerEntry(t.get_or<std::string>("url", ""), t.get<std::optional<int>>("tier")));
+                }
+                else
+                {
+                    throw sol::error("trackers must be urls or { url = ..., tier = ... } tables");
+                }
+            }
+
+            th.replace_trackers(entries);
+            Changed(th);
+        },
         "reset_piece_deadline",       [](const lt::torrent_handle& th, int index) { th.reset_piece_deadline(PieceIndex(th, index)); },
         "resume",                     [](const lt::torrent_handle& th) { th.resume(); Changed(th); },
         "save_resume_data",           [](const lt::torrent_handle& th)
@@ -284,7 +371,18 @@ void LtTorrentHandle::Register(sol::state& lua)
                 | lt::torrent_handle::save_info_dict);
         },
         // save_resume_data
-        // scrape_tracker
+        "scrape_tracker",             sol::overload(
+            [](const lt::torrent_handle& th) { th.scrape_tracker(); },
+            [](const lt::torrent_handle& th, int index)
+            {
+                if (index < 0 || index >= static_cast<int>(th.trackers().size()))
+                {
+                    throw sol::error("tracker index out of range");
+                }
+
+                th.scrape_tracker(index);
+            },
+            [](const lt::torrent_handle& th, const std::string& url) { th.scrape_tracker(url); }),
         "set_download_limit",         [](const lt::torrent_handle& th, int value) { th.set_download_limit(AssertRateLimit(value)); Changed(th); },
         "set_flags",                  sol::overload(
             [](const lt::torrent_handle& th, const lt::torrent_flags_t& flags) { th.set_flags(flags); Changed(th); },
@@ -313,7 +411,25 @@ void LtTorrentHandle::Register(sol::state& lua)
 
             th.set_piece_deadline(PieceIndex(th, index), static_cast<int>(seconds * 1000), flags);
         },
-        // set_sequential_range
+        "set_sequential_range",       [](const lt::torrent_handle& th, int first, std::optional<int> last)
+        {
+            const auto first_piece = PieceIndex(th, first);
+
+            if (!last.has_value())
+            {
+                th.set_sequential_range(first_piece);
+                return;
+            }
+
+            const auto last_piece = PieceIndex(th, *last);
+
+            if (last_piece < first_piece)
+            {
+                throw sol::error("last piece must not come before the first");
+            }
+
+            th.set_sequential_range(first_piece, last_piece);
+        },
         "set_ssl_certificate", [](lt::torrent_handle& th, const std::string& certificate, const std::string& private_key, const std::string& dh_params, sol::optional<std::string> passphrase)
         {
             th.set_ssl_certificate(certificate, private_key, dh_params, passphrase.value_or(""));
