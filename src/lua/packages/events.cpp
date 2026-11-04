@@ -119,24 +119,9 @@ namespace
         PushValue<std::vector<lt::announce_entry>>(tbl, event)
             || PushValue<std::vector<lt::open_file_state>>(tbl, event)
             || PushValue<std::vector<lt::peer_info>>(tbl, event)
-            || PushValue<std::vector<porla::PartialPieceInfo>>(tbl, event);
-
-        return tbl;
-    }
-
-    sol::table EventCache(LuaState& state, const porla::Event& event)
-    {
-        auto registry = state.lua.registry();
-
-        if (registry.get_or<std::uint64_t>("porla.events.last_id", 0) == event.id)
-        {
-            return registry["porla.events.last"];
-        }
-
-        sol::table tbl = ToLua(state, event);
-
-        registry["porla.events.last_id"] = event.id;
-        registry["porla.events.last"]    = tbl;
+            || PushValue<std::vector<porla::PartialPieceInfo>>(tbl, event)
+            || PushValue<std::vector<int>>(tbl, event)
+            || PushValue<std::vector<std::int64_t>>(tbl, event);
 
         return tbl;
     }
@@ -178,7 +163,7 @@ sol::object porla::Lua::Packages::Events::Load(sol::this_state ts)
                     return;
                 }
 
-                state->InvokeCallback(callback_id, EventCache(*state, event));
+                state->InvokeCallback(callback_id, ToLua(*state, event));
             });
 
         const auto connection_id = state->RegisterScopedConnection(std::move(connection));

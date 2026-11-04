@@ -36,6 +36,22 @@ using porla::Data::Models::AddTorrentParams;
 using porla::Data::Transaction;
 using porla::Session;
 
+namespace
+{
+    std::vector<int> PriorityValues(const std::vector<lt::download_priority_t>& priorities)
+    {
+        std::vector<int> values;
+        values.reserve(priorities.size());
+
+        for (const auto prio : priorities)
+        {
+            values.push_back(static_cast<std::uint8_t>(prio));
+        }
+
+        return values;
+    }
+}
+
 Session::Session(const SessionOptions& options)
     : m_id(options.record.id)
     , m_name(options.record.name)
@@ -530,11 +546,11 @@ void Session::RegisterAlertHandlers()
     m_alert_dispatcher->On<lt::tracker_reply_alert>([this](auto* a)        { OnTrackerReplyAlert(a); });
 
     Forward<lt::file_error_alert>("torrent.file_error");
-    Forward<lt::file_priorities_alert>("torrent.file_priorities");
-    Forward<lt::file_progress_alert>("torrent.file_progress");
+    ForwardValue<lt::file_priorities_alert>("torrent.file_priorities", "priorities", [](const lt::file_priorities_alert& a) { return PriorityValues(a.priorities); });
+    ForwardValue<lt::file_progress_alert>("torrent.file_progress", "progress", [](const lt::file_progress_alert& a) { return std::vector<std::int64_t>(a.files.begin(), a.files.end()); });
     ForwardValue<lt::file_status_alert>("torrent.file_status", "files", &lt::file_status_alert::state);
     ForwardValue<lt::peer_info_alert>("torrent.peer_info", "peers", &lt::peer_info_alert::peer_info);
-    Forward<lt::piece_availability_alert>("torrent.piece_availability");
+    ForwardValue<lt::piece_availability_alert>("torrent.piece_availability", "availability", &lt::piece_availability_alert::piece_availability);
     ForwardValue<lt::piece_info_alert>("torrent.piece_info", "pieces", [](const lt::piece_info_alert& a) { return CopyDownloadQueue(a.piece_info); });
     Forward<lt::state_changed_alert>("torrent.state_changed");
     Forward<lt::torrent_need_cert_alert>("torrent.need_cert");
