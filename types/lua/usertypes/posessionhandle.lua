@@ -7,5 +7,9 @@
 ---@field name string
 local PoSessionHandle = {}
 
+---True when the session listens on at least one interface.
+---@return boolean
+function PoSessionHandle:is_listening() end
+
 ---@return PoTorrentsHandle
 function PoSessionHandle.torrents() end
