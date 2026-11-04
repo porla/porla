@@ -170,9 +170,11 @@ void Session::MetadataReceived(const lt::torrent_handle& th, Torrent* torrent)
 
     if (m_options.events.HasSubscribers("torrent.metadata_received"))
     {
-        TorrentEvent event("torrent.metadata_received", nlohmann::json::object());
+        TorrentValueEvent<std::shared_ptr<const lt::torrent_info>> event("torrent.metadata_received");
         event.torrent_handle = th;
         event.info_hash      = th.info_hashes();
+        event.key            = "torrent_file";
+        event.value          = th.torrent_file();
 
         Publish(std::move(event));
     }
