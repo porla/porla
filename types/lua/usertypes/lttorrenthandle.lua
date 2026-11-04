@@ -47,6 +47,9 @@ function LtTorrentHandle:get_file_priorities() end
 ---@return LtPeerInfo[]
 function LtTorrentHandle:get_peer_info() end
 
+---@return integer[]
+function LtTorrentHandle:get_piece_priorities() end
+
 ---@return LtRenamedFiles
 function LtTorrentHandle:get_renamed_files() end
 
@@ -104,6 +107,9 @@ function LtTorrentHandle:post_trackers() end
 ---@param prios integer[]
 function LtTorrentHandle:prioritize_files(prios) end
 
+---@param prios integer[] 0-7 per piece from the first; fewer than the torrent's pieces leaves the rest as they are
+function LtTorrentHandle:prioritize_pieces(prios) end
+
 function LtTorrentHandle:queue_position() end
 
 function LtTorrentHandle:queue_position_bottom() end
@@ -117,6 +123,7 @@ function LtTorrentHandle:queue_position_top() end
 
 function LtTorrentHandle:queue_position_up() end
 
+---Answered by the `torrent.piece_read` event.
 ---@param index integer
 function LtTorrentHandle:read_piece(index) end
 
@@ -126,6 +133,9 @@ function LtTorrentHandle:remove_url_seed(url) end
 ---@param index integer
 ---@param name string
 function LtTorrentHandle:rename_file(index, name) end
+
+---@param index integer
+function LtTorrentHandle:reset_piece_deadline(index) end
 
 function LtTorrentHandle:resume() end
 
@@ -143,6 +153,14 @@ function LtTorrentHandle:set_max_connections(n) end
 
 ---@param n integer
 function LtTorrentHandle:set_max_uploads(n) end
+
+---@class LtPieceDeadlineOpts
+---@field alert_when_available? boolean read the piece once it's downloaded (torrent.piece_read)
+
+---@param index integer
+---@param seconds number
+---@param opts? LtPieceDeadlineOpts
+function LtTorrentHandle:set_piece_deadline(index, seconds, opts) end
 
 ---@param certificate string
 ---@param private_key string

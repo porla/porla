@@ -1,5 +1,7 @@
 #include "../types.hpp"
 
+#include <utility>
+
 #include <libtorrent/torrent_handle.hpp>
 #include <libtorrent/torrent_status.hpp>
 
@@ -34,6 +36,74 @@ namespace
     {
         const auto* data = th.userdata().get<porla::TorrentClientData>();
         return data != nullptr ? data->session.lock() : nullptr;
+    }
+
+    std::vector<lt::download_priority_t> ReadPriorities(const sol::table& prios)
+    {
+        std::vector<lt::download_priority_t> priorities;
+        priorities.reserve(prios.size());
+
+        for (auto i = 1; i <= prios.size(); i++)
+        {
+            std::optional<sol::object> val = prios[i];
+
+            if (!val)
+            {
+                throw std::invalid_argument("missing value");
+            }
+
+            if (val->get_type() != sol::type::number)
+            {
+                throw std::invalid_argument("invalid type (not number)");
+            }
+
+            const auto n = val->as<int>();
+
+            if (n < 0 || n > 7)
+            {
+                throw std::invalid_argument("priority must be 0-7");
+            }
+
+            priorities.push_back(lt::download_priority_t(static_cast<std::uint8_t>(n)));
+        }
+
+        return priorities;
+    }
+
+    sol::table PriorityTable(sol::this_state ts, const std::vector<lt::download_priority_t>& prios)
+    {
+        sol::state_view lua(ts);
+        sol::table tbl = lua.create_table();
+
+        for (const auto prio : prios)
+        {
+            tbl.add(static_cast<std::uint8_t>(prio));
+        }
+
+        return tbl;
+    }
+
+    // libtorrent asserts on piece calls without metadata or with an index out of range
+    int NumPieces(const lt::torrent_handle& th)
+    {
+        const auto ti = th.torrent_file();
+
+        if (ti == nullptr)
+        {
+            throw sol::error("the torrent has no metadata yet");
+        }
+
+        return ti->num_pieces();
+    }
+
+    lt::piece_index_t PieceIndex(const lt::torrent_handle& th, int index)
+    {
+        if (index < 0 || index >= NumPieces(th))
+        {
+            throw sol::error("piece index out of range");
+        }
+
+        return lt::piece_index_t{index};
     }
 
     // saves the torrent's resume data shortly after a change made from Lua (Session::MarkDirty)
@@ -95,18 +165,7 @@ void LtTorrentHandle::Register(sol::state& lua)
         },
         "force_recheck",              &lt::torrent_handle::force_recheck,
         "get_download_queue",         [](const lt::torrent_handle& th) { return sol::as_table(porla::CopyDownloadQueue(th.get_download_queue())); },
-        "get_file_priorities",        [](sol::this_state ts, const lt::torrent_handle& th)
-        {
-            sol::state_view lua(ts);
-            sol::table tbl = lua.create_table();
-
-            for (const auto prio : th.get_file_priorities())
-            {
-                tbl.add(static_cast<std::uint8_t>(prio));
-            }
-
-            return tbl;
-        },
+        "get_file_priorities",        [](sol::this_state ts, const lt::torrent_handle& th) { return PriorityTable(ts, th.get_file_priorities()); },
         // get_peer_info
         "get_peer_info",              [](const lt::torrent_handle& th)
                                         {
@@ -114,7 +173,7 @@ void LtTorrentHandle::Register(sol::state& lua)
                                             th.get_peer_info(peers);
                                             return sol::as_table(peers);
                                         },
-        // get_piece_priorities
+        "get_piece_priorities",       [](sol::this_state ts, const lt::torrent_handle& th) { return PriorityTable(ts, th.get_piece_priorities()); },
         "get_renamed_files",          &lt::torrent_handle::get_renamed_files,
         // get_resume_data
         "have_piece",                 [](const lt::torrent_handle& th, int piece_index) { return th.have_piece(lt::piece_index_t{piece_index}); },
@@ -172,38 +231,21 @@ void LtTorrentHandle::Register(sol::state& lua)
         "post_trackers",              &lt::torrent_handle::post_trackers,
         "prioritize_files",           [](const lt::torrent_handle& th, const sol::table& prios)
         {
-            std::vector<lt::download_priority_t> file_priorities;
-            file_priorities.reserve(prios.size());
-
-            for (auto i = 1; i <= prios.size(); i++)
-            {
-                std::optional<sol::object> val = prios[i];
-
-                if (!val)
-                {
-                    throw std::invalid_argument("missing value");
-                }
-
-                if (val->get_type() != sol::type::number)
-                {
-                    throw std::invalid_argument("invalid type (not number");
-                }
-
-                const auto n = val->as<int>();
-
-                if (n < 0 || n > 7)
-                {
-                    throw std::invalid_argument("priority must be 0-7");
-                }
-
-                file_priorities.push_back(lt::download_priority_t(static_cast<std::uint8_t>(n)));
-            }
-
-            th.prioritize_files(file_priorities);
-
+            th.prioritize_files(ReadPriorities(prios));
             Changed(th);
         },
-        // prioritize_pieces
+        "prioritize_pieces",          [](const lt::torrent_handle& th, const sol::table& prios)
+        {
+            const auto priorities = ReadPriorities(prios);
+
+            if (std::cmp_greater(priorities.size(), NumPieces(th)))
+            {
+                throw sol::error("more priorities than pieces");
+            }
+
+            th.prioritize_pieces(priorities);
+            Changed(th);
+        },
         "queue_position",             [](const lt::torrent_handle& th) { return static_cast<int>(th.queue_position()); },
         "queue_position_bottom",      [](const lt::torrent_handle& th) { th.queue_position_bottom(); Changed(th, true); },
         "queue_position_down",        [](const lt::torrent_handle& th) { th.queue_position_down(); Changed(th, true); },
@@ -233,7 +275,7 @@ void LtTorrentHandle::Register(sol::state& lua)
             th.rename_file(lt::file_index_t{index}, name);
         },
         // replace_trackers
-        // reset_piece_deadline
+        "reset_piece_deadline",       [](const lt::torrent_handle& th, int index) { th.reset_piece_deadline(PieceIndex(th, index)); },
         "resume",                     [](const lt::torrent_handle& th) { th.resume(); Changed(th); },
         "save_resume_data",           [](const lt::torrent_handle& th)
         {
@@ -255,7 +297,22 @@ void LtTorrentHandle::Register(sol::state& lua)
         "set_max_connections",        [](const lt::torrent_handle& th, int value) { th.set_max_connections(AssertPeerLimit(value)); Changed(th); },
         "set_max_uploads",            [](const lt::torrent_handle& th, int value) { th.set_max_uploads(AssertPeerLimit(value)); Changed(th); },
         // set_metadata
-        // set_piece_deadline
+        "set_piece_deadline",         [](const lt::torrent_handle& th, int index, double seconds, std::optional<sol::table> opts)
+        {
+            if (seconds < 0)
+            {
+                throw sol::error("deadline must be >= 0 seconds");
+            }
+
+            lt::deadline_flags_t flags{};
+
+            if (opts && opts->get_or("alert_when_available", false))
+            {
+                flags |= lt::torrent_handle::alert_when_available;
+            }
+
+            th.set_piece_deadline(PieceIndex(th, index), static_cast<int>(seconds * 1000), flags);
+        },
         // set_sequential_range
         "set_ssl_certificate", [](lt::torrent_handle& th, const std::string& certificate, const std::string& private_key, const std::string& dh_params, sol::optional<std::string> passphrase)
         {

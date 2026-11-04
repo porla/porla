@@ -7,6 +7,7 @@
 #include "../publish.hpp"
 
 #include "../../data/models/addtorrentparams.hpp"
+#include "../../json/boost.hpp"
 #include "../../torrentclientdata.hpp"
 
 using porla::Data::Models::AddTorrentParams;
@@ -122,6 +123,30 @@ void Session::OnTorrentResumedAlert(const lt::torrent_resumed_alert* alert)
         << Log(alert->handle.info_hashes()) << "Torrent resumed";
 
     EmitTorrentEvent("torrent.resumed", *alert);
+}
+
+void Session::OnReadPieceAlert(const lt::read_piece_alert* alert)
+{
+    if (!m_options.events.HasSubscribers("torrent.piece_read") || !alert->handle.is_valid())
+    {
+        return;
+    }
+
+    TorrentValueEvent<std::optional<std::string>> event("torrent.piece_read", nlohmann::json{
+        { "piece", static_cast<int>(alert->piece) },
+        { "error", alert->error }
+    });
+
+    event.torrent_handle = alert->handle;
+    event.info_hash      = alert->handle.info_hashes();
+    event.key            = "data";
+
+    if (!alert->error)
+    {
+        event.value = std::string(alert->buffer.get(), alert->size);
+    }
+
+    Publish(std::move(event));
 }
 
 void Session::OnMetadataReceivedAlert(const lt::metadata_received_alert* alert)
