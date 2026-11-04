@@ -14,4 +14,13 @@ namespace porla
         lt::torrent_handle torrent_handle;
         lt::info_hash_t    info_hash;
     };
+
+    template<typename T>
+    struct TorrentValueEvent : TorrentEvent
+    {
+        using TorrentEvent::TorrentEvent;
+
+        std::string key;
+        T           value;
+    };
 }

@@ -85,10 +85,12 @@ struct Plugin::State
         Types::LtAnnounceEndpoint::Register(lua);
         Types::LtAnnounceEntry::Register(lua);
         Types::LtAnnounceInfohash::Register(lua);
+        Types::LtBlockInfo::Register(lua);
         Types::LtFilenames::Register(lua);
         Types::LtFileStorage::Register(lua);
         Types::LtInfoHash::Register(lua);
         Types::LtOpenFileState::Register(lua);
+        Types::LtPartialPieceInfo::Register(lua);
         Types::LtPeerInfo::Register(lua);
         Types::LtRenamedFiles::Register(lua);
         Types::LtSettingsPack::Register(lua);

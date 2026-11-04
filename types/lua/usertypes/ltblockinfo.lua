@@ -1,0 +1,7 @@
+---@meta
+---@class LtBlockInfo
+---@field state "none"|"requested"|"writing"|"finished"
+---@field bytes_progress integer
+---@field block_size integer
+---@field num_peers integer
+---@field peer [string, integer]? nil when no peer has the block

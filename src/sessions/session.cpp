@@ -17,6 +17,7 @@
 #include "jobs/reconciletorrents.hpp"
 #include "jobs/savestate.hpp"
 #include "alertdispatcher.hpp"
+#include "partialpieceinfo.hpp"
 #include "publish.hpp"
 #include "scheduler.hpp"
 #include "sessionevent.hpp"
@@ -483,6 +484,27 @@ void Session::Forward(std::string name)
         });
 }
 
+template<typename A, typename F>
+void Session::ForwardValue(std::string name, std::string key, F get)
+{
+    m_alert_dispatcher->On<A>(
+        [this, name = std::move(name), key = std::move(key), get = std::move(get)](const A* alert)
+        {
+            if (!m_options.events.HasSubscribers(name) || !alert->handle.is_valid())
+            {
+                return;
+            }
+
+            TorrentValueEvent<std::decay_t<std::invoke_result_t<F&, const A&>>> event(name, nlohmann::json::object());
+            event.torrent_handle = alert->handle;
+            event.info_hash      = alert->handle.info_hashes();
+            event.key            = key;
+            event.value          = std::invoke(get, *alert);
+
+            Publish(std::move(event));
+        });
+}
+
 void Session::RegisterAlertHandlers()
 {
     m_alert_dispatcher->On<lt::add_torrent_alert>([this](auto* a)          { OnAddTorrentAlert(a); });
@@ -508,8 +530,15 @@ void Session::RegisterAlertHandlers()
     m_alert_dispatcher->On<lt::tracker_reply_alert>([this](auto* a)        { OnTrackerReplyAlert(a); });
 
     Forward<lt::file_error_alert>("torrent.file_error");
+    Forward<lt::file_priorities_alert>("torrent.file_priorities");
+    Forward<lt::file_progress_alert>("torrent.file_progress");
+    ForwardValue<lt::file_status_alert>("torrent.file_status", "files", &lt::file_status_alert::state);
+    ForwardValue<lt::peer_info_alert>("torrent.peer_info", "peers", &lt::peer_info_alert::peer_info);
+    Forward<lt::piece_availability_alert>("torrent.piece_availability");
+    ForwardValue<lt::piece_info_alert>("torrent.piece_info", "pieces", [](const lt::piece_info_alert& a) { return CopyDownloadQueue(a.piece_info); });
     Forward<lt::state_changed_alert>("torrent.state_changed");
     Forward<lt::torrent_need_cert_alert>("torrent.need_cert");
+    ForwardValue<lt::tracker_list_alert>("torrent.trackers", "trackers", &lt::tracker_list_alert::trackers);
     Forward<lt::tracker_warning_alert>("torrent.tracker_warning");
 }
 

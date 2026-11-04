@@ -38,6 +38,9 @@ function LtTorrentHandle:force_reannounce(seconds, index, flags) end
 
 function LtTorrentHandle:force_recheck() end
 
+---@return LtPartialPieceInfo[]
+function LtTorrentHandle:get_download_queue() end
+
 ---@return integer[]
 function LtTorrentHandle:get_file_priorities() end
 

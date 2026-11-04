@@ -7,6 +7,7 @@
 
 #include "../pluginstate.hpp"
 
+#include "../../sessions/partialpieceinfo.hpp"
 #include "../../sessions/session.hpp"
 #include "../../torrentclientdata.hpp"
 #include "../../utils/limits.hpp"
@@ -90,7 +91,7 @@ void LtTorrentHandle::Register(sol::state& lua)
             th.force_reannounce(seconds.value_or(0), tracker, flags);
         },
         "force_recheck",              &lt::torrent_handle::force_recheck,
-        //"get_download_queue",       &lt::torrent_handle::get_download_queue,
+        "get_download_queue",         [](const lt::torrent_handle& th) { return sol::as_table(porla::CopyDownloadQueue(th.get_download_queue())); },
         "get_file_priorities",        [](sol::this_state ts, const lt::torrent_handle& th)
         {
             sol::state_view lua(ts);
