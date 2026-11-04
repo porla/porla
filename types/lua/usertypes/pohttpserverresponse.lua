@@ -11,12 +11,12 @@ function PoHttpServerResponse:write(data) end
 
 ---@param key string
 ---@param value string
-function PoHttpServerResponse:writeHeader(key, value) end
+function PoHttpServerResponse:write_header(key, value) end
 
 --- Writes the given HTTP status to the response.
 --- 
 --- ```lua
---- res:writeStatus("200 OK")
+--- res:write_status("200 OK")
 --- ```
 ---@param status string # The HTTP status line
-function PoHttpServerResponse:writeStatus(status) end
+function PoHttpServerResponse:write_status(status) end
