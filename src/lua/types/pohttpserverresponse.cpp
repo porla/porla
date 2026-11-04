@@ -208,7 +208,7 @@ PoHttpServerResponse::PoHttpServerResponse(std::shared_ptr<LuaState> lua_state, 
     m_request["method"]  = std::string{req->getMethod()};
     m_request["path"]    = std::string{req->getUrl()};
     m_request["query"]   = std::string{req->getQuery()};
-    m_request["url"]     = std::string{req->getUrl()};
+    m_request["url"]     = std::string{req->getFullUrl()};
     m_request["headers"] = headers;
 
     m_content_type = std::string{req->getHeader("content-type")};
