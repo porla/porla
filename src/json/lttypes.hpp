@@ -42,10 +42,7 @@ namespace libtorrent
     void to_json(nlohmann::json& json, const add_torrent_alert& alert);
     void to_json(nlohmann::json& json, const dht_stats_alert& alert);
     void to_json(nlohmann::json& json, const file_error_alert& alert);
-    void to_json(nlohmann::json& json, const file_priorities_alert& alert);
-    void to_json(nlohmann::json& json, const file_progress_alert& alert);
     void to_json(nlohmann::json& json, const metadata_received_alert& alert);
-    void to_json(nlohmann::json& json, const piece_availability_alert& alert);
     void to_json(nlohmann::json& json, const state_changed_alert& alert);
     void to_json(nlohmann::json& json, const storage_moved_alert& alert);
     void to_json(nlohmann::json& json, const storage_moved_failed_alert& alert);
