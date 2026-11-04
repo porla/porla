@@ -521,6 +521,46 @@ void Session::ForwardValue(std::string name, std::string key, F get)
         });
 }
 
+void Session::PublishAdded(const lt::torrent_handle& th, const lt::torrent_status& status)
+{
+    if (!m_options.events.HasSubscribers("torrent.added"))
+    {
+        return;
+    }
+
+    TorrentValueEvent<lt::torrent_status> event("torrent.added");
+    event.torrent_handle = th;
+    event.info_hash      = status.info_hashes;
+    event.key            = "status";
+    event.value          = status;
+
+    Publish(std::move(event));
+}
+
+void Session::PublishAddFailed(const lt::add_torrent_alert& alert, const lt::info_hash_t& key, bool loading)
+{
+    if (!m_options.events.HasSubscribers("torrent.add_failed"))
+    {
+        return;
+    }
+
+    nlohmann::json data = {
+        { "error",   alert.error },
+        { "loading", loading }
+    };
+
+    // "name" would be overwritten by the event name in Lua
+    if (const auto& name = alert.params.ti ? alert.params.ti->name() : alert.params.name; !name.empty())
+    {
+        data["torrent_name"] = name;
+    }
+
+    TorrentEvent event("torrent.add_failed", std::move(data));
+    event.info_hash = key;
+
+    Publish(std::move(event));
+}
+
 void Session::RegisterAlertHandlers()
 {
     m_alert_dispatcher->On<lt::add_torrent_alert>([this](auto* a)          { OnAddTorrentAlert(a); });
@@ -692,17 +732,7 @@ void Session::ReconcileTorrents()
                 << Log(hash) << "Failed to insert reconciled torrent: " << e.what();
         }
 
-        if (m_options.events.HasSubscribers("torrent.added"))
-        {
-            nlohmann::json event_data = nlohmann::json::object();
-            event_data["error"] = lt::error_code{};
-
-            TorrentEvent added("torrent.added", std::move(event_data));
-            added.torrent_handle = th;
-            added.info_hash      = hash;
-
-            Publish(std::move(added));
-        }
+        PublishAdded(th, it->second.status);
 
         tracked++;
     }

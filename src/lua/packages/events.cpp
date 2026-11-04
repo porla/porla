@@ -6,6 +6,7 @@
 #include <libtorrent/announce_entry.hpp>
 #include <libtorrent/disk_interface.hpp>
 #include <libtorrent/peer_info.hpp>
+#include <libtorrent/torrent_status.hpp>
 
 #include "../../events.hpp"
 #include "../../sessions/partialpieceinfo.hpp"
@@ -39,6 +40,7 @@ namespace
         "session.stats",
         "session.unloaded",
         "session.updated",
+        "torrent.add_failed",
         "torrent.added",
         "torrent.checked",
         "torrent.error",
@@ -66,6 +68,12 @@ namespace
     };
 
     template<typename T>
+    constexpr bool kIsVector = false;
+
+    template<typename T>
+    constexpr bool kIsVector<std::vector<T>> = true;
+
+    template<typename T>
     bool PushValue(sol::table& tbl, const porla::Event& event)
     {
         const auto* value_event = dynamic_cast<const porla::TorrentValueEvent<T>*>(&event);
@@ -75,7 +83,8 @@ namespace
             return false;
         }
 
-        tbl[value_event->key] = sol::as_table(value_event->value);
+        if constexpr (kIsVector<T>) { tbl[value_event->key] = sol::as_table(value_event->value); }
+        else                        { tbl[value_event->key] = value_event->value; }
 
         return true;
     }
@@ -121,7 +130,8 @@ namespace
             || PushValue<std::vector<lt::peer_info>>(tbl, event)
             || PushValue<std::vector<porla::PartialPieceInfo>>(tbl, event)
             || PushValue<std::vector<int>>(tbl, event)
-            || PushValue<std::vector<std::int64_t>>(tbl, event);
+            || PushValue<std::vector<std::int64_t>>(tbl, event)
+            || PushValue<lt::torrent_status>(tbl, event);
 
         return tbl;
     }
