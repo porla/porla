@@ -185,7 +185,7 @@ namespace porla::Lua
         {
             if (interval < 10)
             {
-                throw sol::error("timer interval must be more than 10ms");
+                throw sol::error("timer interval must be at least 10 ms");
             }
 
             const auto timer_id = NextId();
