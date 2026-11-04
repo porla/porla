@@ -6,11 +6,13 @@
 
 #include "poerror.hpp"
 #include "pojson.hpp"
+#include "time.hpp"
 
 #include "../../torrentclientdata.hpp"
 
 using porla::TorrentClientData;
 using porla::Lua::Types::LtAddTorrentParams;
+using porla::Lua::Types::NonZeroTime;
 
 namespace
 {
@@ -110,7 +112,7 @@ lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params, c
     if (sol::optional<std::time_t>                       v = t["completed_time"])     atp.completed_time     = *v;
     if (sol::optional<std::string>                       v = t["created_by"])         atp.created_by         = *v;
     if (sol::optional<std::time_t>                       v = t["creation_date"])      atp.creation_date      = *v;
-    if (sol::optional<std::time_t>                       v = t["finished_time"])      atp.finished_time      = *v;
+    if (sol::optional<int>                               v = t["finished_time"])      atp.finished_time      = *v;
     if (sol::optional<lt::info_hash_t>                   v = t["info_hash"])          atp.info_hashes        = *v;
     if (sol::optional<std::time_t>                       v = t["last_download"])      atp.last_download      = *v;
     if (sol::optional<std::time_t>                       v = t["last_seen_complete"]) atp.last_seen_complete = *v;
@@ -121,7 +123,7 @@ lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params, c
     if (sol::optional<int>                               v = t["num_incomplete"])     atp.num_incomplete     = *v;
     if (sol::optional<std::string>                       v = t["part_file_dir"])      atp.part_file_dir      = *v;
     if (sol::optional<std::string>                       v = t["root_certificate"])   atp.root_certificate   = *v;
-    if (sol::optional<std::time_t>                       v = t["seeding_time"])       atp.seeding_time       = *v;
+    if (sol::optional<int>                               v = t["seeding_time"])       atp.seeding_time       = *v;
     if (sol::optional<std::string>                       v = t["trackerid"])          atp.trackerid          = *v;
     if (sol::optional<std::shared_ptr<lt::torrent_info>> v = t["ti"])                 atp.ti                 = *v;
     if (sol::optional<std::int64_t>                      v = t["total_downloaded"])   atp.total_downloaded   = *v;
@@ -336,21 +338,21 @@ sol::table LtAddTorrentParams::ToTable(sol::this_state ts, const lt::add_torrent
     tbl[sol::metatable_key]   = meta;
 
     tbl["active_time"]        = params.active_time;
-    tbl["added_time"]         = params.added_time;
+    tbl["added_time"]         = NonZeroTime(params.added_time);
     // banned peers
     tbl["comment"]            = params.comment;
-    tbl["completed_time"]     = params.completed_time;
+    tbl["completed_time"]     = NonZeroTime(params.completed_time);
     tbl["created_by"]         = params.created_by;
-    tbl["creation_date"]      = params.creation_date;
+    tbl["creation_date"]      = NonZeroTime(params.creation_date);
     // dht nodes
     tbl["download_limit"]     = params.download_limit;
     tbl["file_priorities"]    = file_priorities;
     tbl["finished_time"]      = params.finished_time;
     tbl["flags"]              = params.flags;
     tbl["info_hash"]          = params.info_hashes;
-    tbl["last_download"]      = params.last_download;
-    tbl["last_seen_complete"] = params.last_seen_complete;
-    tbl["last_upload"]        = params.last_upload;
+    tbl["last_download"]      = NonZeroTime(params.last_download);
+    tbl["last_seen_complete"] = NonZeroTime(params.last_seen_complete);
+    tbl["last_upload"]        = NonZeroTime(params.last_upload);
     tbl["max_connections"]    = params.max_connections;
     tbl["max_uploads"]        = params.max_uploads;
     tbl["name"]               = params.name;
