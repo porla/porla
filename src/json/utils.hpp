@@ -1,11 +1,65 @@
 #pragma once
 
+#include <concepts>
+#include <cstdint>
+#include <limits>
 #include <optional>
+#include <stdexcept>
+#include <string>
+#include <utility>
 
 #include <nlohmann/json.hpp>
 
 namespace porla::Json
 {
+    struct FieldError : std::runtime_error
+    {
+        FieldError(std::string field, const std::string& reason)
+            : std::runtime_error(reason)
+            , field(std::move(field))
+        {
+        }
+
+        std::string field;
+    };
+
+    template <typename T>
+    concept Integer = std::integral<T> && !std::same_as<T, bool>;
+
+    // Reads a JSON integer into T. nlohmann casts any number to the target type, so 99999999999
+    // read as an int keeps its low 32 bits and 1.9 becomes 1; refuse both instead.
+    template <Integer T>
+    T ReadInteger(const nlohmann::json& j, std::string field = {})
+    {
+        if (j.is_number_unsigned())
+        {
+            if (const auto v = j.get<std::uint64_t>(); std::in_range<T>(v)) { return static_cast<T>(v); }
+        }
+        else if (j.is_number_integer())
+        {
+            if (const auto v = j.get<std::int64_t>(); std::in_range<T>(v)) { return static_cast<T>(v); }
+        }
+        else if (j.is_number_float())
+        {
+            throw FieldError(std::move(field), "must be a whole number");
+        }
+        else
+        {
+            return j.get<T>();
+        }
+
+        throw FieldError(std::move(field), "must be between "
+            + std::to_string(std::numeric_limits<T>::min()) + " and "
+            + std::to_string(std::numeric_limits<T>::max()));
+    }
+
+    template <typename T>
+    T Read(const nlohmann::json& j)
+    {
+        if constexpr (Integer<T>) { return ReadInteger<T>(j); }
+        else                      { return j.get<T>(); }
+    }
+
     constexpr int kMaxDepth = 256;
 
     // Parses untrusted JSON, rejecting values nested deeper than max_depth. Deeper values would
@@ -50,6 +104,7 @@ namespace porla::Json
     // A missing or null key reads as std::nullopt; any other key is required.
     template <typename T>
     void ReadField(const nlohmann::json& j, const char* key, T& value)
+    try
     {
         if constexpr (is_patch<T>)
         {
@@ -57,7 +112,7 @@ namespace porla::Json
 
             value.present = it != j.end();
             value.value   = value.present && !it->is_null()
-                ? std::optional(it->template get<typename decltype(value.value)::value_type>())
+                ? std::optional(Read<typename decltype(value.value)::value_type>(*it))
                 : std::nullopt;
         }
         else if constexpr (is_optional<T>)
@@ -65,13 +120,22 @@ namespace porla::Json
             const auto it = j.find(key);
 
             value = it != j.end() && !it->is_null()
-                ? std::optional(it->template get<typename T::value_type>())
+                ? std::optional(Read<typename T::value_type>(*it))
                 : std::nullopt;
+        }
+        else if constexpr (Integer<T>)
+        {
+            value = ReadInteger<T>(j.at(key));
         }
         else
         {
             j.at(key).get_to(value);
         }
+    }
+    catch (FieldError& ex)
+    {
+        ex.field = ex.field.empty() ? key : std::string(key) + "." + ex.field;
+        throw;
     }
 }
 

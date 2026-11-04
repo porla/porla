@@ -164,11 +164,23 @@ namespace porla::Rpc::Methods::Torrents
             std::optional<int>         session_id;
         };
 
+        struct PeerEndpoint
+        {
+            std::string ip;
+            uint16_t    port;
+        };
+
+        inline void from_json(const nlohmann::json& j, PeerEndpoint& peer)
+        {
+            j.at(0).get_to(peer.ip);
+            peer.port = Json::ReadInteger<uint16_t>(j.at(1));
+        }
+
         struct PeersAddReq
         {
-            libtorrent::info_hash_t                        info_hash;
-            std::optional<int>                             session_id;
-            std::vector<std::tuple<std::string, uint16_t>> peers;
+            libtorrent::info_hash_t   info_hash;
+            std::optional<int>        session_id;
+            std::vector<PeerEndpoint> peers;
         };
 
         struct PropertiesSetReq
