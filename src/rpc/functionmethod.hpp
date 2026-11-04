@@ -3,6 +3,7 @@
 #include <exception>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -14,6 +15,8 @@
 
 #include "error.hpp"
 #include "method.hpp"
+
+#include "../json/utils.hpp"
 
 namespace porla::Rpc
 {
@@ -60,11 +63,21 @@ namespace porla::Rpc
         void Invoke(const Auth::Context& caller, const nlohmann::json& body, ResponseWriterHandle writer) override
         {
             // Decode before starting the coroutine, so bad params fail exactly as before.
-            auto req = body.get<TReq>();
+            std::optional<TReq> req;
+
+            try
+            {
+                req.emplace(body.get<TReq>());
+            }
+            catch (const Json::FieldError& ex)
+            {
+                writer->Error(-32602, "Invalid " + ex.field + ": " + ex.what(), {{"field", ex.field}});
+                return;
+            }
 
             boost::asio::co_spawn(
                 m_executor,
-                Run(m_fn, std::move(req), Call(caller, writer), writer),
+                Run(m_fn, std::move(*req), Call(caller, writer), writer),
                 [writer](std::exception_ptr e)
                 {
                     if (!e)

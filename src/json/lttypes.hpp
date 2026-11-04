@@ -8,12 +8,14 @@
 #include <libtorrent/units.hpp>
 #include <nlohmann/json.hpp>
 
+#include "utils.hpp"
+
 namespace libtorrent
 {
     inline void from_json(const nlohmann::json& json, announce_endpoint& endpoint) {}
     inline void from_json(const nlohmann::json& json, announce_entry& entry) {}
     inline void from_json(const nlohmann::json& json, announce_infohash& infohash) {}
-    inline void from_json(const nlohmann::json& json, download_priority_t& dlp) { dlp = download_priority_t{json.get<uint8_t>()}; }
+    inline void from_json(const nlohmann::json& json, download_priority_t& dlp) { dlp = download_priority_t{porla::Json::ReadInteger<uint8_t>(json)}; }
     void from_json(const nlohmann::json& json, info_hash_t& infohash);
     inline void from_json(const nlohmann::json& json, peer_info& pi) {}
     void from_json(const nlohmann::json& json, queue_position_t& pos);
@@ -60,6 +62,6 @@ namespace libtorrent
     namespace aux
     {
         inline void to_json(nlohmann::json& j, const file_index_t& fi)   { j = static_cast<int>(fi); }
-        inline void from_json(const nlohmann::json& j, file_index_t& fi) { fi = file_index_t{ j.get<int>() }; }
+        inline void from_json(const nlohmann::json& j, file_index_t& fi) { fi = file_index_t{ porla::Json::ReadInteger<int>(j) }; }
     }
 }

@@ -6,7 +6,7 @@ namespace libtorrent
 {
     void from_json(const nlohmann::json& j, queue_position_t& pos)
     {
-        pos = queue_position_t{j.get<int>()};
+        pos = queue_position_t{porla::Json::ReadInteger<int>(j)};
     }
 
     void to_json(nlohmann::json& j, const queue_position_t& pos)
