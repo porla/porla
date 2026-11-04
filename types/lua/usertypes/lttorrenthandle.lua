@@ -77,7 +77,7 @@ function LtTorrentHandle:max_uploads() end
 ---| "reset_save_path_unchecked"
 
 ---@class LtMoveStorageOpts
----@field flags? LtMoveFlags
+---@field flags? LtMoveFlags "dont_replace" when omitted
 
 ---@param path string
 ---@param opts? LtMoveStorageOpts
