@@ -1,8 +1,12 @@
 #include "../packages.hpp"
 
+#include <algorithm>
+#include <cctype>
+#include <map>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 #include <boost/asio.hpp>
 #include <boost/log/trivial.hpp>
@@ -32,8 +36,12 @@ namespace
         std::string request_body;
         curl_slist* request_header_list = nullptr;
 
-        std::string response_body;
-        long        response_status = 0;
+        std::string                        response_body;
+        std::map<std::string, std::string> response_headers;
+        long                               response_status = 0;
+        std::string                        response_url;
+        long                               response_redirects = 0;
+        double                             response_time = 0;
 
         CURLcode result = CURLE_OK;
         char     error[CURL_ERROR_SIZE] = {};
@@ -60,6 +68,54 @@ namespace
         }
 
         state->response_body.append(ptr, total);
+
+        return total;
+    }
+
+    size_t CurlHeaderCallback(char* ptr, size_t size, size_t nmemb, void* userdata)
+    {
+        const size_t     total = size * nmemb;
+        auto*            state = static_cast<CurlTransferState*>(userdata);
+        std::string_view line(ptr, total);
+
+        // curl passes the headers of every redirect hop; each response starts with its status line,
+        // so starting over there keeps only the final response's headers
+        if (line.starts_with("HTTP/"))
+        {
+            state->response_headers.clear();
+            return total;
+        }
+
+        const auto colon = line.find(':');
+
+        if (colon == std::string_view::npos)
+        {
+            return total;
+        }
+
+        auto trim = [](std::string_view v)
+        {
+            while (!v.empty() && (v.front() == ' ' || v.front() == '\t')) v.remove_prefix(1);
+            while (!v.empty() && (v.back() == ' ' || v.back() == '\t' || v.back() == '\r' || v.back() == '\n')) v.remove_suffix(1);
+            return v;
+        };
+
+        std::string name(trim(line.substr(0, colon)));
+
+        std::ranges::transform(
+            name,
+            name.begin(),
+            [](unsigned char c)
+            {
+                return static_cast<char>(std::tolower(c));
+            });
+
+        const auto value = trim(line.substr(colon + 1));
+        auto&      entry = state->response_headers[name];
+
+        entry = entry.empty()
+            ? std::string(value)
+            : entry + ", " + std::string(value);
 
         return total;
     }
@@ -94,7 +150,7 @@ sol::object HttpClient::Load(sol::this_state ts)
 
     sol::table tbl = lua.create_table();
 
-    tbl.set_function("request", [](sol::this_state ts, std::string url, sol::protected_function callback, std::optional<sol::table> params)
+    const auto request = [](sol::this_state ts, std::string url, std::optional<sol::table> params, sol::protected_function callback)
     {
         sol::state_view lua(ts);
 
@@ -115,7 +171,7 @@ sol::object HttpClient::Load(sol::this_state ts)
 
         if (timeout < 0 || connect_timeout < 0)
         {
-            throw std::runtime_error("porla.http.request: timeout and connect_timeout must be >= 0");
+            throw std::runtime_error("http_client.request: timeout and connect_timeout must be >= 0");
         }
 
         auto transfer_state = std::make_shared<CurlTransferState>();
@@ -130,7 +186,7 @@ sol::object HttpClient::Load(sol::this_state ts)
                         if (!key.is<std::string>() || !val.is<std::string>())
                         {
                             throw std::runtime_error(
-                                "porla.http.request: header keys and values must be strings");
+                                "http_client.request: header keys and values must be strings");
                         }
 
                         const std::string header =
@@ -154,6 +210,8 @@ sol::object HttpClient::Load(sol::this_state ts)
         curl_easy_setopt(easy.get(), CURLOPT_URL,                 url.c_str());
         curl_easy_setopt(easy.get(), CURLOPT_WRITEFUNCTION,       &CurlWriteCallback);
         curl_easy_setopt(easy.get(), CURLOPT_WRITEDATA,           transfer_state.get());
+        curl_easy_setopt(easy.get(), CURLOPT_HEADERFUNCTION,      &CurlHeaderCallback);
+        curl_easy_setopt(easy.get(), CURLOPT_HEADERDATA,          transfer_state.get());
         curl_easy_setopt(easy.get(), CURLOPT_ERRORBUFFER,         transfer_state->error);
         curl_easy_setopt(easy.get(), CURLOPT_TIMEOUT,             static_cast<long>(timeout));
         curl_easy_setopt(easy.get(), CURLOPT_CONNECTTIMEOUT,      static_cast<long>(connect_timeout));
@@ -207,6 +265,13 @@ sol::object HttpClient::Load(sol::this_state ts)
                 transfer_state->result = result;
 
                 curl_easy_getinfo(easy, CURLINFO_RESPONSE_CODE, &transfer_state->response_status);
+                curl_easy_getinfo(easy, CURLINFO_REDIRECT_COUNT, &transfer_state->response_redirects);
+                curl_easy_getinfo(easy, CURLINFO_TOTAL_TIME, &transfer_state->response_time);
+
+                if (const char* url = nullptr; curl_easy_getinfo(easy, CURLINFO_EFFECTIVE_URL, &url) == CURLE_OK && url != nullptr)
+                {
+                    transfer_state->response_url = url;
+                }
 
                 boost::asio::post(
                     state->io,
@@ -225,14 +290,28 @@ sol::object HttpClient::Load(sol::this_state ts)
                             return;
                         }
 
-                        sol::table tbl = state->lua.create_table();
-                        tbl["body"]   = transfer_state->response_body;
-                        tbl["status"] = transfer_state->response_status;
+                        sol::table tbl   = state->lua.create_table();
+                        tbl["body"]      = transfer_state->response_body;
+                        tbl["headers"]   = sol::as_table(transfer_state->response_headers);
+                        tbl["redirects"] = transfer_state->response_redirects;
+                        tbl["status"]    = transfer_state->response_status;
+                        tbl["time"]      = transfer_state->response_time;
+                        tbl["url"]       = transfer_state->response_url;
 
                         state->InvokeCallback(callback_id, sol::lua_nil, tbl);
                     });
             });
-    });
+    };
+
+    tbl.set_function("request", sol::overload(
+        [request](sol::this_state ts, std::string url, sol::protected_function callback)
+        {
+            request(ts, std::move(url), std::nullopt, std::move(callback));
+        },
+        [request](sol::this_state ts, std::string url, sol::table params, sol::protected_function callback)
+        {
+            request(ts, std::move(url), std::move(params), std::move(callback));
+        }));
 
     return tbl;
 }
