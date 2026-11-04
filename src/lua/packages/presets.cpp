@@ -36,5 +36,15 @@ sol::object Presets::Load(sol::this_state ts)
         })
     );
 
+    tbl.set_function("list", [](sol::this_state ts)
+    {
+        auto state = LuaState::From(ts);
+
+        return sol::as_table(
+            state != nullptr
+                ? state->presets.All()
+                : std::vector<Data::Models::Presets::Preset>{});
+    });
+
     return tbl;
 }
