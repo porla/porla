@@ -2,7 +2,19 @@
 
 #include <libtorrent/peer_info.hpp>
 
+#include "../../utils/ltflags.hpp"
+
 using porla::Lua::Types::LtPeerInfo;
+using porla::Utils::LtFlags;
+
+namespace
+{
+    sol::table Endpoint(sol::this_state s, const lt::tcp::endpoint& ep)
+    {
+        sol::state_view lua(s);
+        return lua.create_table_with(1, ep.address().to_string(), 2, ep.port());
+    }
+}
 
 void LtPeerInfo::Register(sol::state& lua)
 {
@@ -11,20 +23,20 @@ void LtPeerInfo::Register(sol::state& lua)
         sol::no_constructor,
         "busy_requests",            sol::readonly(&lt::peer_info::busy_requests),
         "client",                   sol::readonly(&lt::peer_info::client),
-        // connection_type
+        "connection_type",          sol::readonly_property([](const lt::peer_info& pi) { return LtFlags::ConnectionTypeName(pi.connection_type); }),
         "down_speed",               sol::readonly(&lt::peer_info::down_speed),
         "download_queue_length",    sol::readonly(&lt::peer_info::download_queue_length),
         "download_rate_peak",       sol::readonly(&lt::peer_info::download_rate_peak),
-        // download_queue_time
+        "download_queue_time",      sol::readonly_property([](const lt::peer_info& pi) { return lt::total_seconds(pi.download_queue_time); }),
         "downloading_block_index",  sol::readonly(&lt::peer_info::downloading_block_index),
-        // downloading_piece_index
+        "downloading_piece_index",  sol::readonly_property([](const lt::peer_info& pi) { return static_cast<int>(pi.downloading_piece_index); }),
         "downloading_progress",     sol::readonly(&lt::peer_info::downloading_progress),
         "downloading_total",        sol::readonly(&lt::peer_info::downloading_total),
         "failcount",                sol::readonly(&lt::peer_info::failcount),
-        // flags
-        // last_active
-        // last_request
-        // local_endpoint
+        "flags",                    sol::readonly_property([](const lt::peer_info& pi) { return sol::as_table(LtFlags::PeerFlagNames(pi.flags)); }),
+        "last_active",              sol::readonly_property([](const lt::peer_info& pi) { return lt::total_seconds(pi.last_active); }),
+        "last_request",             sol::readonly_property([](const lt::peer_info& pi) { return lt::total_seconds(pi.last_request); }),
+        "local_endpoint",           sol::readonly_property([](const lt::peer_info& pi, sol::this_state s) { return Endpoint(s, pi.local_endpoint()); }),
         "num_hashfails",            sol::readonly(&lt::peer_info::num_hashfails),
         "num_pieces",               sol::readonly(&lt::peer_info::num_pieces),
         "payload_down_speed",       sol::readonly(&lt::peer_info::payload_down_speed),
@@ -39,11 +51,11 @@ void LtPeerInfo::Register(sol::state& lua)
         "receive_buffer_size",      sol::readonly(&lt::peer_info::receive_buffer_size),
         "receive_buffer_watermark", sol::readonly(&lt::peer_info::receive_buffer_watermark),
         "receive_quota",            sol::readonly(&lt::peer_info::receive_quota),
-        // remote_endpoint
+        "remote_endpoint",          sol::readonly_property([](const lt::peer_info& pi, sol::this_state s) { return Endpoint(s, pi.remote_endpoint()); }),
         "request_timeout",          sol::readonly(&lt::peer_info::request_timeout),
         "requests_in_buffer",       sol::readonly(&lt::peer_info::requests_in_buffer),
         "rtt",                      sol::readonly(&lt::peer_info::rtt),
-        // source
+        "source",                   sol::readonly_property([](const lt::peer_info& pi) { return sol::as_table(LtFlags::PeerSourceNames(pi.source)); }),
         "send_buffer_size",         sol::readonly(&lt::peer_info::send_buffer_size),
         "send_quota",               sol::readonly(&lt::peer_info::send_quota),
         "target_dl_queue_length",   sol::readonly(&lt::peer_info::target_dl_queue_length),
