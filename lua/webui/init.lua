@@ -157,7 +157,7 @@ local function handle_release_request(callback, owner, repository)
             return callback("no asset url")
         end
 
-        http_client.request(asset_url, handle_asset_request(callback, owner, repository, body.tag_name), http_client_opts)
+        http_client.request(asset_url, http_client_opts, handle_asset_request(callback, owner, repository, body.tag_name))
     end
 end
 
@@ -175,7 +175,7 @@ function webui.install(version, callback)
 
     print("Installing Web UI from", url)
 
-    http_client.request(url, handle_release_request(callback, owner, repository), http_client_opts)
+    http_client.request(url, http_client_opts, handle_release_request(callback, owner, repository))
 end
 
 ---@param path string # The path to a zip archive
