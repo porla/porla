@@ -3,9 +3,12 @@
 #include <libtorrent/torrent_status.hpp>
 
 #include "poerror.hpp"
+#include "time.hpp"
+
 #include "../../utils/ratio.hpp"
 
 using porla::Lua::Types::LtTorrentStatus;
+using porla::Lua::Types::NonZeroTime;
 
 namespace
 {
@@ -22,12 +25,6 @@ namespace
 
         return std::chrono::duration_cast<std::chrono::seconds>(wall.time_since_epoch()).count();
     }
-
-    std::optional<std::int64_t> NonZeroTime(std::time_t t)
-    {
-        if (t == 0) return std::nullopt;
-        return static_cast<std::int64_t>(t);
-    }
 }
 
 void LtTorrentStatus::Register(sol::state& lua)
@@ -36,7 +33,7 @@ void LtTorrentStatus::Register(sol::state& lua)
         "LtTorrentStatus",
         sol::no_constructor,
         "active_duration",        sol::property([](const lt::torrent_status& ts) { return ts.active_duration.count(); }),
-        "added_time",             sol::property([](const lt::torrent_status& ts) { return static_cast<std::int64_t>(ts.added_time); }),
+        "added_time",             sol::property([](const lt::torrent_status& ts) { return NonZeroTime(ts.added_time); }),
         "all_time_download",      sol::readonly(&lt::torrent_status::all_time_download),
         "all_time_upload",        sol::readonly(&lt::torrent_status::all_time_upload),
         "announcing_to_dht",      sol::readonly(&lt::torrent_status::announcing_to_dht),

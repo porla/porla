@@ -2,7 +2,7 @@
 
 ---@class LtTorrentStatus
 ---@field active_duration integer
----@field added_time integer
+---@field added_time integer?
 ---@field all_time_download integer
 ---@field all_time_upload integer
 ---@field announcing_to_dht boolean
