@@ -231,7 +231,7 @@ function webui.load()
         local requested_path = resolve_request_path(req.path)
 
         if not requested_path then
-            res:writeStatus("404 Not Found")
+            res:write_status("404 Not Found")
             res:finish("Not found")
             return
         end
@@ -243,7 +243,7 @@ function webui.load()
         local content = entries[requested_path]
 
         if not content then
-            res:writeStatus("404 Not Found")
+            res:write_status("404 Not Found")
             res:finish("Not found")
             return
         end
@@ -251,11 +251,11 @@ function webui.load()
         local extension = requested_path:match("%.[^./]+$")
         local mime_type = mime_types[extension] or "application/octet-stream"
 
-        res:writeStatus("200 OK")
-        res:writeHeader("Content-Type", mime_type)
+        res:write_status("200 OK")
+        res:write_header("Content-Type", mime_type)
         -- only Porla's own pages may frame the web UI (clickjacking)
-        res:writeHeader("Content-Security-Policy", "frame-ancestors 'self'")
-        res:writeHeader("X-Frame-Options", "SAMEORIGIN")
+        res:write_header("Content-Security-Policy", "frame-ancestors 'self'")
+        res:write_header("X-Frame-Options", "SAMEORIGIN")
         res:finish(content)
     end)
 end

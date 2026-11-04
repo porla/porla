@@ -184,8 +184,8 @@ void PoHttpServerResponse::Register(sol::state& lua)
             sol::resolve<void(const std::string&)>(&PoHttpServerResponse::Finish)
         ),
         "write", &PoHttpServerResponse::Write,
-        "writeHeader", &PoHttpServerResponse::WriteHeader,
-        "writeStatus", &PoHttpServerResponse::WriteStatus);
+        "write_header", &PoHttpServerResponse::WriteHeader,
+        "write_status", &PoHttpServerResponse::WriteStatus);
 }
 
 PoHttpServerResponse::PoHttpServerResponse(std::shared_ptr<LuaState> lua_state, uWS::HttpRequest* req, uWS::HttpResponse<false>* response, std::size_t callback_id)
