@@ -69,7 +69,7 @@ namespace porla::Rpc
             {
                 if (!body.is_null() && !body.is_object())
                 {
-                    writer->Error(-32602, "Invalid params: must be an object");
+                    writer->Error(Errors::Code::invalid_params, "Invalid params: must be an object");
                     return;
                 }
             }
@@ -83,7 +83,7 @@ namespace porla::Rpc
             }
             catch (const Json::FieldError& ex)
             {
-                writer->Error(-32602, "Invalid " + ex.field + ": " + ex.what(), {{"field", ex.field}});
+                writer->Error(Errors::Code::invalid_params, "Invalid " + ex.field + ": " + ex.what(), {{"field", ex.field}});
                 return;
             }
 
@@ -110,7 +110,7 @@ namespace porla::Rpc
                         BOOST_LOG_TRIVIAL(error) << "Unhandled unknown exception in RPC method";
                     }
 
-                    writer->Error(-32603, "Internal error");
+                    writer->Error(Errors::Code::internal_error);
                 });
         }
 
