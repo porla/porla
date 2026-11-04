@@ -54,6 +54,7 @@ namespace
         "torrent.peer_info",
         "torrent.piece_availability",
         "torrent.piece_info",
+        "torrent.status",
         "torrent.storage_moved_failed",
         "torrent.storage_moved",
         "torrent.paused",

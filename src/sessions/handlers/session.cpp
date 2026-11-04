@@ -1,5 +1,7 @@
 #include "../session.hpp"
 
+#include <utility>
+
 #include <boost/log/trivial.hpp>
 
 #include <libtorrent/alert_types.hpp>
@@ -110,6 +112,11 @@ void Session::OnStateUpdateAlert(const lt::state_update_alert* alert)
 
         it->second.status            = status;
         it->second.time_refreshed_at = alert->timestamp();
+
+        if (std::exchange(it->second.status_requested, false))
+        {
+            PublishStatus("torrent.status", status.handle, it->second.status);
+        }
 
         if (status.has_metadata && (!it->second.metadata_announced || !it->second.metadata_saved))
         {

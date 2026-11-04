@@ -39,6 +39,8 @@ namespace porla
         bool metadata_announced = false;
         bool metadata_saved     = false;
 
+        bool status_requested = false;
+
         // when we do a recheck of a torrent, store its flags
         // so we can restore them afterwards
         std::optional<lt::torrent_flags_t> restore_after_check;

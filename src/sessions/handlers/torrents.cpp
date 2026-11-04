@@ -105,7 +105,7 @@ void Session::OnAddTorrentAlert(const lt::add_torrent_alert* alert)
     // would skip a torrent added from complete resume data (a migrated one) and keep the stripped row.
     alert->handle.save_resume_data(lt::torrent_handle::save_info_dict);
 
-    PublishAdded(alert->handle, torrent.status);
+    PublishStatus("torrent.added", alert->handle, torrent.status);
 }
 
 void Session::OnTorrentRemovedAlert(const lt::torrent_removed_alert* alert)

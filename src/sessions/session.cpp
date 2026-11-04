@@ -361,6 +361,16 @@ void Session::MarkDirty(const lt::info_hash_t& hash, bool force)
         });
 }
 
+void Session::RequestStatus(const lt::torrent_handle& th)
+{
+    if (const auto it = m_torrents.find(th.info_hashes()); it != m_torrents.end())
+    {
+        it->second.status_requested = true;
+    }
+
+    th.post_status();
+}
+
 void Session::SaveDirty()
 {
     m_dirty_armed = false;
@@ -521,14 +531,14 @@ void Session::ForwardValue(std::string name, std::string key, F get)
         });
 }
 
-void Session::PublishAdded(const lt::torrent_handle& th, const lt::torrent_status& status)
+void Session::PublishStatus(std::string name, const lt::torrent_handle& th, const lt::torrent_status& status)
 {
-    if (!m_options.events.HasSubscribers("torrent.added"))
+    if (!m_options.events.HasSubscribers(name))
     {
         return;
     }
 
-    TorrentValueEvent<lt::torrent_status> event("torrent.added");
+    TorrentValueEvent<lt::torrent_status> event(std::move(name));
     event.torrent_handle = th;
     event.info_hash      = status.info_hashes;
     event.key            = "status";
@@ -732,7 +742,7 @@ void Session::ReconcileTorrents()
                 << Log(hash) << "Failed to insert reconciled torrent: " << e.what();
         }
 
-        PublishAdded(th, it->second.status);
+        PublishStatus("torrent.added", th, it->second.status);
 
         tracked++;
     }
