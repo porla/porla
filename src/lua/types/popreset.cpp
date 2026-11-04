@@ -1,5 +1,7 @@
 #include "popreset.hpp"
 
+#include "pojson.hpp"
+
 #include "../../data/models/presets.hpp"
 #include "../../query/pql.hpp"
 
@@ -21,7 +23,10 @@ void PoPreset::Register(sol::state& lua)
         "flags_mask", sol::readonly(&Preset::flags_mask),
         "max_connections", sol::readonly(&Preset::max_connections),
         "max_uploads", sol::readonly(&Preset::max_uploads),
-        // metadata
+        "metadata", sol::readonly_property([](const Preset& p, sol::this_state ts) -> sol::object
+        {
+            return p.metadata ? PoJson::ToLua(ts, nlohmann::json(*p.metadata), 0) : sol::lua_nil;
+        }),
         "session_id", sol::readonly(&Preset::session_id),
         "save_path", sol::readonly(&Preset::save_path),
         "storage_mode", sol::readonly(&Preset::storage_mode),
