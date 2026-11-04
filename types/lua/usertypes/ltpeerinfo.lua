@@ -1,2 +1,45 @@
 ---@meta
 ---@class LtPeerInfo
+---@field busy_requests integer
+---@field client string
+---@field connection_type "standard_bittorrent"|"web_seed"|"http_seed"
+---@field down_speed integer
+---@field download_queue_length integer
+---@field download_rate_peak integer
+---@field download_queue_time integer seconds
+---@field downloading_block_index integer
+---@field downloading_piece_index integer -1 when not downloading
+---@field downloading_progress integer
+---@field downloading_total integer
+---@field failcount integer
+---@field flags string[]
+---@field last_active integer seconds
+---@field last_request integer seconds
+---@field local_endpoint [string, integer]
+---@field num_hashfails integer
+---@field num_pieces integer
+---@field payload_down_speed integer
+---@field payload_up_speed integer
+---@field pending_disk_bytes integer
+---@field pending_disk_read_bytes integer
+---@field progress number
+---@field queue_bytes integer
+---@field receive_buffer_size integer
+---@field receive_buffer_watermark integer
+---@field receive_quota integer
+---@field remote_endpoint [string, integer]
+---@field request_timeout integer
+---@field requests_in_buffer integer
+---@field rtt integer
+---@field source ("tracker"|"dht"|"pex"|"lsd"|"resume_data"|"incoming")[]
+---@field send_buffer_size integer
+---@field send_quota integer
+---@field target_dl_queue_length integer
+---@field timed_out_requests integer
+---@field total_download integer
+---@field total_upload integer
+---@field up_speed integer
+---@field upload_queue_length integer
+---@field upload_rate_peak integer
+---@field used_send_buffer integer
+---@field used_receive_buffer integer
