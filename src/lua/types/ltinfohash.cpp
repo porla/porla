@@ -37,6 +37,14 @@ namespace
 
     constexpr std::size_t kV1Chars = lt::sha1_hash::size() * 2;
     constexpr std::size_t kV2Chars = lt::sha256_hash::size() * 2;
+
+    // a hybrid torrent is keyed by its v1 hash; a v2-only magnet becomes hybrid once it has metadata
+    std::string Hex(const lt::info_hash_t& ih)
+    {
+        return ih.has_v1()
+            ? porla::Utils::ToHex({ih.v1.data(), static_cast<size_t>(ih.v1.size())})
+            : porla::Utils::ToHex({ih.v2.data(), static_cast<size_t>(ih.v2.size())});
+    }
 }
 
 void LtInfoHash::Register(sol::state& lua)
@@ -80,5 +88,8 @@ void LtInfoHash::Register(sol::state& lua)
             }
 
             return porla::Utils::ToHex({ih.v2.data(), static_cast<size_t>(ih.v2.size())});
-        }));
+        }),
+        "hex", &Hex,
+        sol::meta_function::equal_to,  [](const lt::info_hash_t& a, const lt::info_hash_t& b) { return a == b; },
+        sol::meta_function::to_string, &Hex);
 }

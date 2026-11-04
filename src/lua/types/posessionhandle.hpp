@@ -25,6 +25,9 @@ namespace porla::Lua::Types
         std::string Name();
         std::shared_ptr<PoTorrentsHandle> Torrents();
 
+        bool operator==(const PoSessionHandle& other) const;
+        std::string ToString() const;
+
     private:
         std::shared_ptr<Session> Lock() const;
 
