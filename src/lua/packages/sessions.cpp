@@ -20,13 +20,13 @@ sol::object porla::Lua::Packages::Sessions::Load(sol::this_state ts)
 
     sol::table tbl = lua.create_table();
 
-    tbl.set_function("count", [](sol::this_state ts) -> std::optional<std::size_t>
+    tbl.set_function("count", [](sol::this_state ts) -> std::size_t
     {
         auto state = LuaState::From(ts);
 
         if (state == nullptr)
         {
-            return std::nullopt;
+            return 0;
         }
 
         return state->sessions.All().size();
@@ -103,13 +103,13 @@ sol::object porla::Lua::Packages::Sessions::Load(sol::this_state ts)
             return std::make_shared<PoSessionHandle>(session_ptr);
         }));
 
-    tbl.set_function("list", [](sol::this_state ts) -> std::optional<PoSessionsIterator>
+    tbl.set_function("list", [](sol::this_state ts)
     {
         auto state = LuaState::From(ts);
 
         if (state == nullptr)
         {
-            return std::nullopt;
+            return PoSessionsIterator({});
         }
 
         return PoSessionsIterator(state->sessions.All());

@@ -1,5 +1,6 @@
 #include "posessionhandle.hpp"
 
+#include "poerror.hpp"
 #include "potorrentshandle.hpp"
 
 #include "../../sessions/session.hpp"
@@ -23,7 +24,7 @@ void PoSessionHandle::Register(sol::state& lua)
         {
             if (const auto invalid = Utils::LibtorrentSettingsPack::Validate(sp))
             {
-                throw sol::error("invalid value for setting '" + *invalid + "'");
+                throw Error(Errors::Code::invalid_params, "invalid value for setting '" + *invalid + "'");
             }
 
             Utils::LibtorrentSettingsPack::UpdateStatic(sp);
@@ -59,6 +60,7 @@ std::string PoSessionHandle::Name()
 
 std::shared_ptr<PoTorrentsHandle> PoSessionHandle::Torrents()
 {
+    Lock();
     return std::make_shared<PoTorrentsHandle>(m_state);
 }
 
@@ -86,7 +88,7 @@ std::shared_ptr<porla::Session> PoSessionHandle::Lock() const
 
     if (state == nullptr)
     {
-        throw sol::error("Failed to lock session state");
+        throw Error(Errors::Code::session_not_loaded, "session is no longer loaded");
     }
 
     return state;

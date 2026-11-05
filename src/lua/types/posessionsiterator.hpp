@@ -32,8 +32,8 @@ namespace porla::Lua::Types
         std::shared_ptr<PoSessionHandle> operator()();
 
     private:
-        std::vector<std::shared_ptr<Session>> m_sessions;
-        std::size_t                           m_next = 0;
+        std::vector<std::weak_ptr<Session>> m_sessions;
+        std::size_t                         m_next = 0;
     };
 
 }

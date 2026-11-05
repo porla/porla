@@ -12,4 +12,9 @@ function sessions.default() end
 ---@return PoSessionHandle? # The session with the given ID/name, or nil.
 function sessions.get(id) end
 
+---Iterates the loaded sessions in id order: `for session in sessions.list() do ... end`.
+---Sessions removed during the loop are skipped.
+---@return fun(): PoSessionHandle?
+function sessions.list() end
+
 return sessions
