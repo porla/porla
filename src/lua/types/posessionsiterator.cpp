@@ -9,10 +9,13 @@ using porla::Lua::Types::PoSessionsIterator;
 
 std::shared_ptr<PoSessionHandle> PoSessionsIterator::operator()()
 {
-    if (m_next >= m_sessions.size())
+    while (m_next < m_sessions.size())
     {
-        return nullptr;
+        if (auto session = m_sessions[m_next++].lock())
+        {
+            return std::make_shared<PoSessionHandle>(session);
+        }
     }
 
-    return std::make_shared<PoSessionHandle>(m_sessions[m_next++]);
+    return nullptr;
 }
