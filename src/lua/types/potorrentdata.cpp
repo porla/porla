@@ -1,5 +1,6 @@
 #include "potorrentdata.hpp"
 
+#include "poerror.hpp"
 #include "pojson.hpp"
 #include "posessionhandle.hpp"
 
@@ -57,14 +58,14 @@ void PoTorrentData::Register(sol::state& lua)
             {
                 if (v.get_type() == sol::type::string) category = v.as<std::string>();
                 else if (IsNull(v))                    category = std::optional<std::string>{};
-                else throw sol::error("'category' must be a string, or porla.null to clear it");
+                else throw Error(Errors::Code::invalid_params, "'category' must be a string, or porla.null to clear it");
             }
 
             if (const sol::object v = changes["tags"]; v.valid() && v.get_type() != sol::type::lua_nil)
             {
                 if (v.get_type() != sol::type::table)
                 {
-                    throw sol::error("'tags' must be a list of strings");
+                    throw Error(Errors::Code::invalid_params, "'tags' must be a list of strings");
                 }
 
                 tags.emplace();
@@ -73,7 +74,7 @@ void PoTorrentData::Register(sol::state& lua)
                 {
                     if (tag.get_type() != sol::type::string)
                     {
-                        throw sol::error("'tags' must be a list of strings");
+                        throw Error(Errors::Code::invalid_params, "'tags' must be a list of strings");
                     }
 
                     tags->insert(tag.as<std::string>());
@@ -86,7 +87,7 @@ void PoTorrentData::Register(sol::state& lua)
 
                 if (!metadata->is_object())
                 {
-                    throw sol::error("'metadata' must be a table with string keys");
+                    throw Error(Errors::Code::invalid_params, "'metadata' must be a table with string keys");
                 }
             }
 
@@ -120,7 +121,7 @@ TorrentClientData& PoTorrentData::ClientData() const
 
     if (data == nullptr)
     {
-        throw sol::error("Torrent is no longer in the session");
+        throw Error(Errors::Code::torrent_not_found, "Torrent is no longer in the session");
     }
 
     return *data;
@@ -132,11 +133,11 @@ void PoTorrentData::Update(const std::function<void(TorrentClientData&)>& change
 
     if (result == porla::Torrents::UpdateClientDataResult::NotFound)
     {
-        throw sol::error("Torrent is no longer in the session");
+        throw Error(Errors::Code::torrent_not_found, "Torrent is no longer in the session");
     }
 
     if (result == porla::Torrents::UpdateClientDataResult::InvalidData)
     {
-        throw sol::error("Category, tags and metadata must be valid UTF-8");
+        throw Error(Errors::Code::invalid_params, "Category, tags and metadata must be valid UTF-8");
     }
 }
