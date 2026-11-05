@@ -171,7 +171,7 @@ sol::object porla::Lua::Packages::Events::Load(sol::this_state ts)
     {
         if (!kEvents.contains(event))
         {
-            throw sol::error("invalid event name: " + event);
+            throw Error(Errors::Code::invalid_params, "invalid event name: " + event);
         }
 
         auto weak = LuaState::WeakFrom(ts);

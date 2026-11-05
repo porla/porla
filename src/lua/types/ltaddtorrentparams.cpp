@@ -156,19 +156,19 @@ lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params, c
 
             if (!val)
             {
-                throw std::invalid_argument("missing value");
+                throw Error(Errors::Code::invalid_params, "missing value");
             }
 
             if (val->get_type() != sol::type::number)
             {
-                throw std::invalid_argument("invalid type (not number)");
+                throw Error(Errors::Code::invalid_params, "invalid type (not number)");
             }
 
             const auto n = val->as<int>();
 
             if (n < 0 || n > 7)
             {
-                throw std::invalid_argument("priority must be 0-7");
+                throw Error(Errors::Code::invalid_params, "priority must be 0-7");
             }
 
             file_priorities.push_back(lt::download_priority_t(static_cast<std::uint8_t>(n)));
@@ -188,12 +188,12 @@ lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params, c
 
             if (!val)
             {
-                throw std::invalid_argument("missing value");
+                throw Error(Errors::Code::invalid_params, "missing value");
             }
 
             if (val->get_type() != sol::type::string)
             {
-                throw std::invalid_argument("invalid type (not string)");
+                throw Error(Errors::Code::invalid_params, "invalid type (not string)");
             }
 
             trackers.push_back(val->as<std::string>());
@@ -208,7 +208,7 @@ lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params, c
 
         if (count > atp.trackers.size())
         {
-            throw std::invalid_argument("cannot have more tracker tiers than trackers");
+            throw Error(Errors::Code::invalid_params, "cannot have more tracker tiers than trackers");
         }
 
         std::vector<int> tracker_tiers;
@@ -220,19 +220,19 @@ lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params, c
 
             if (!val)
             {
-                throw std::invalid_argument("missing value");
+                throw Error(Errors::Code::invalid_params, "missing value");
             }
 
             if (!IsLuaInteger(*val))
             {
-                throw std::invalid_argument("invalid type (not an integer)");
+                throw Error(Errors::Code::invalid_params, "invalid type (not an integer)");
             }
 
             const auto tier = val->as<lua_Integer>();
 
             if (tier < 0 || tier > std::numeric_limits<int>::max())
             {
-                throw std::invalid_argument("invalid tracker tier (must be 0 or greater)");
+                throw Error(Errors::Code::invalid_params, "invalid tracker tier (must be 0 or greater)");
             }
 
             tracker_tiers.push_back(static_cast<int>(tier));
@@ -252,12 +252,12 @@ lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params, c
 
             if (!val)
             {
-                throw std::invalid_argument("missing value");
+                throw Error(Errors::Code::invalid_params, "missing value");
             }
 
             if (val->get_type() != sol::type::string)
             {
-                throw std::invalid_argument("invalid type (not string)");
+                throw Error(Errors::Code::invalid_params, "invalid type (not string)");
             }
 
             url_seeds.push_back(val->as<std::string>());
@@ -283,7 +283,7 @@ lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params, c
 
             if (!metadata.is_object())
             {
-                throw std::invalid_argument("'userdata.metadata' must be a table with string keys");
+                throw Error(Errors::Code::invalid_params, "'userdata.metadata' must be a table with string keys");
             }
 
             ud->metadata = metadata;
@@ -297,7 +297,7 @@ lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params, c
             {
                 if (tag.get_type() != sol::type::string)
                 {
-                    throw std::invalid_argument("'userdata.tags' must be a list of strings");
+                    throw Error(Errors::Code::invalid_params, "'userdata.tags' must be a list of strings");
                 }
 
                 tags.insert(tag.as<std::string>());

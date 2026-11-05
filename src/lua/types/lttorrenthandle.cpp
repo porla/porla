@@ -6,6 +6,7 @@
 #include <libtorrent/torrent_handle.hpp>
 #include <libtorrent/torrent_status.hpp>
 
+#include "poerror.hpp"
 #include "potorrentdata.hpp"
 
 #include "../pluginstate.hpp"
@@ -16,6 +17,9 @@
 #include "../../utils/limits.hpp"
 
 using porla::Lua::Types::LtTorrentHandle;
+using porla::Lua::Error;
+
+namespace Errors = porla::Errors;
 
 namespace
 {
@@ -23,14 +27,14 @@ namespace
     {
         const auto val = porla::Utils::CheckPeerLimit(limit);
         if (val) { return *val; }
-        throw sol::error("Invalid value");
+        throw Error(Errors::Code::invalid_params, "Invalid value");
     }
 
     int AssertRateLimit(int limit)
     {
         const auto val = porla::Utils::CheckRateLimit(limit);
         if (val) { return *val; }
-        throw sol::error("Invalid value");
+        throw Error(Errors::Code::invalid_params, "Invalid value");
     }
 
     std::shared_ptr<porla::Session> SessionOf(const lt::torrent_handle& th)
@@ -50,19 +54,19 @@ namespace
 
             if (!val)
             {
-                throw std::invalid_argument("missing value");
+                throw Error(Errors::Code::invalid_params, "missing value");
             }
 
             if (val->get_type() != sol::type::number)
             {
-                throw std::invalid_argument("invalid type (not number)");
+                throw Error(Errors::Code::invalid_params, "invalid type (not number)");
             }
 
             const auto n = val->as<int>();
 
             if (n < 0 || n > 7)
             {
-                throw std::invalid_argument("priority must be 0-7");
+                throw Error(Errors::Code::invalid_params, "priority must be 0-7");
             }
 
             priorities.push_back(lt::download_priority_t(static_cast<std::uint8_t>(n)));
@@ -91,7 +95,7 @@ namespace
 
         if (ti == nullptr)
         {
-            throw sol::error("the torrent has no metadata yet");
+            throw Error(Errors::Code::torrent_no_metadata, "the torrent has no metadata");
         }
 
         return ti->num_pieces();
@@ -101,7 +105,7 @@ namespace
     {
         if (index < 0 || index >= NumPieces(th))
         {
-            throw sol::error("piece index out of range");
+            throw Error(Errors::Code::invalid_params, "piece index out of range");
         }
 
         return lt::piece_index_t{index};
@@ -111,7 +115,7 @@ namespace
     {
         if (url.empty())
         {
-            throw sol::error("tracker url must not be empty");
+            throw Error(Errors::Code::invalid_params, "tracker url must not be empty");
         }
 
         lt::announce_entry entry(url);
@@ -120,7 +124,7 @@ namespace
         {
             if (*tier < 0 || *tier > 255)
             {
-                throw sol::error("tracker tier must be 0-255");
+                throw Error(Errors::Code::invalid_params, "tracker tier must be 0-255");
             }
 
             entry.tier = static_cast<std::uint8_t>(*tier);
@@ -161,12 +165,12 @@ void LtTorrentHandle::Register(sol::state& lua)
 
             if (ec)
             {
-                throw sol::error("invalid peer address '" + ip + "'");
+                throw Error(Errors::Code::invalid_params, "invalid peer address '" + ip + "'");
             }
 
             if (port < 1 || port > 65535)
             {
-                throw sol::error("peer port must be 1-65535");
+                throw Error(Errors::Code::invalid_params, "peer port must be 1-65535");
             }
 
             th.connect_peer(lt::tcp::endpoint(address, static_cast<std::uint16_t>(port)));
@@ -201,7 +205,7 @@ void LtTorrentHandle::Register(sol::state& lua)
 
             if (tracker < -1 || tracker >= static_cast<int>(th.trackers().size()))
             {
-                throw sol::error("tracker index out of range");
+                throw Error(Errors::Code::invalid_params, "tracker index out of range");
             }
 
             th.force_reannounce(seconds.value_or(0), tracker, flags);
@@ -246,7 +250,7 @@ void LtTorrentHandle::Register(sol::state& lua)
 
                     if (it == lookup.end())
                     {
-                        throw std::invalid_argument("move_storage: unknown flags value '" + *flag + "'");
+                        throw Error(Errors::Code::invalid_params, "move_storage: unknown flags value '" + *flag + "'");
                     }
 
                     move_flags = it->second;
@@ -273,7 +277,7 @@ void LtTorrentHandle::Register(sol::state& lua)
             {
                 if (priority < 0 || priority > 7)
                 {
-                    throw sol::error("priority must be 0-7");
+                    throw Error(Errors::Code::invalid_params, "priority must be 0-7");
                 }
 
                 th.piece_priority(PieceIndex(th, index), lt::download_priority_t(static_cast<std::uint8_t>(priority)));
@@ -302,7 +306,7 @@ void LtTorrentHandle::Register(sol::state& lua)
 
             if (std::cmp_greater(priorities.size(), NumPieces(th)))
             {
-                throw sol::error("more priorities than pieces");
+                throw Error(Errors::Code::invalid_params, "more priorities than pieces");
             }
 
             th.prioritize_pieces(priorities);
@@ -313,7 +317,7 @@ void LtTorrentHandle::Register(sol::state& lua)
         "queue_position_down",        [](const lt::torrent_handle& th) { th.queue_position_down(); Changed(th, true); },
         "queue_position_set",         [](const lt::torrent_handle& th, int pos)
         {
-            if (pos < 0) { throw sol::error("queue position must be >= 0"); }
+            if (pos < 0) { throw Error(Errors::Code::invalid_params, "queue position must be >= 0"); }
             th.queue_position_set(lt::queue_position_t{pos});
             Changed(th, true);
         },
@@ -325,14 +329,14 @@ void LtTorrentHandle::Register(sol::state& lua)
         "rename_file",                [](const lt::torrent_handle& th, int index, const std::string& name)
         {
             const auto ti = th.torrent_file();
-            if (!ti) { throw sol::error("cannot rename file on torrent without metadata"); }
+            if (!ti) { throw Error(Errors::Code::torrent_no_metadata, "cannot rename file on torrent without metadata"); }
 
             if (index < 0 || index >= ti->num_files())
             {
-                throw sol::error("file index out of range");
+                throw Error(Errors::Code::invalid_params, "file index out of range");
             }
 
-            if (name.empty()) { throw sol::error("file name must not be empty"); }
+            if (name.empty()) { throw Error(Errors::Code::invalid_params, "file name must not be empty"); }
 
             th.rename_file(lt::file_index_t{index}, name);
         },
@@ -355,7 +359,7 @@ void LtTorrentHandle::Register(sol::state& lua)
                 }
                 else
                 {
-                    throw sol::error("trackers must be urls or { url = ..., tier = ... } tables");
+                    throw Error(Errors::Code::invalid_params, "trackers must be urls or { url = ..., tier = ... } tables");
                 }
             }
 
@@ -377,7 +381,7 @@ void LtTorrentHandle::Register(sol::state& lua)
             {
                 if (index < 0 || index >= static_cast<int>(th.trackers().size()))
                 {
-                    throw sol::error("tracker index out of range");
+                    throw Error(Errors::Code::invalid_params, "tracker index out of range");
                 }
 
                 th.scrape_tracker(index);
@@ -399,7 +403,7 @@ void LtTorrentHandle::Register(sol::state& lua)
         {
             if (seconds < 0)
             {
-                throw sol::error("deadline must be >= 0 seconds");
+                throw Error(Errors::Code::invalid_params, "deadline must be >= 0 seconds");
             }
 
             lt::deadline_flags_t flags{};
@@ -425,7 +429,7 @@ void LtTorrentHandle::Register(sol::state& lua)
 
             if (last_piece < first_piece)
             {
-                throw sol::error("last piece must not come before the first");
+                throw Error(Errors::Code::invalid_params, "last piece must not come before the first");
             }
 
             th.set_sequential_range(first_piece, last_piece);

@@ -3,6 +3,8 @@
 #include <libtorrent/load_torrent.hpp>
 #include <libtorrent/torrent_info.hpp>
 
+#include "poerror.hpp"
+
 using porla::Lua::Types::LtTorrentInfo;
 
 void LtTorrentInfo::Register(sol::state& lua)
@@ -15,7 +17,7 @@ void LtTorrentInfo::Register(sol::state& lua)
         {
             if (!ti->is_valid())
             {
-                throw sol::error("torrent has no metadata");
+                throw Error(Errors::Code::torrent_no_metadata, "torrent has no metadata");
             }
 
             return std::shared_ptr<const lt::file_storage>(ti, &ti->layout());

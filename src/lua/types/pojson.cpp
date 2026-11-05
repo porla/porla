@@ -1,6 +1,11 @@
 #include "pojson.hpp"
 
+#include "poerror.hpp"
+
 using porla::Lua::Types::PoJson;
+using porla::Lua::Error;
+
+namespace Errors = porla::Errors;
 
 namespace
 {
@@ -82,7 +87,7 @@ namespace
         {
             if (static_cast<std::size_t>(max_index) != count)
             {
-                throw sol::error("json: cannot encode sparse array");
+                throw Error(Errors::Code::invalid_params, "json: cannot encode sparse array");
             }
 
             auto out = nlohmann::json::array();
@@ -101,7 +106,7 @@ namespace
         {
             if (kv.first.get_type() != sol::type::string)
             {
-                throw sol::error("json: object keys must be strings");
+                throw Error(Errors::Code::invalid_params, "json: object keys must be strings");
             }
 
             out[kv.first.as<std::string>()] = PoJson::ToJson(ts, kv.second, depth + 1);
@@ -115,7 +120,7 @@ sol::object PoJson::ToLua(sol::this_state ts, const nlohmann::json& data, int de
 {
     if (depth > kMaxDepth)
     {
-        throw sol::error("json: maximum nesting depth exceeded");
+        throw Error(Errors::Code::invalid_params, "json: maximum nesting depth exceeded");
     }
 
     sol::state_view lua(ts);
@@ -181,21 +186,21 @@ sol::object PoJson::ToLua(sol::this_state ts, const nlohmann::json& data, int de
     }
 
     case nlohmann::json::value_t::binary:
-        throw sol::error("json: cannot decode binary values");
+        throw Error(Errors::Code::invalid_params, "json: cannot decode binary values");
 
     case nlohmann::json::value_t::discarded:
     default:
         break;
     }
 
-    throw sol::error("json: unsupported value type");
+    throw Error(Errors::Code::invalid_params, "json: unsupported value type");
 }
 
 nlohmann::json PoJson::ToJson(sol::this_state ts, const sol::object& data, int depth)
 {
     if (depth > kMaxDepth)
     {
-        throw sol::error("json: maximum nesting depth exceeded");
+        throw Error(Errors::Code::invalid_params, "json: maximum nesting depth exceeded");
     }
 
     switch (data.get_type())
@@ -218,7 +223,7 @@ nlohmann::json PoJson::ToJson(sol::this_state ts, const sol::object& data, int d
 
             if (!std::isfinite(value))
             {
-                throw sol::error("json: cannot encode NaN or infinity");
+                throw Error(Errors::Code::invalid_params, "json: cannot encode NaN or infinity");
             }
 
             return nlohmann::json(value);
@@ -233,7 +238,7 @@ nlohmann::json PoJson::ToJson(sol::this_state ts, const sol::object& data, int d
                 return nlohmann::json();
             }
 
-            throw sol::error("json: cannot encode userdata");
+            throw Error(Errors::Code::invalid_params, "json: cannot encode userdata");
 
         case sol::type::table:
             return ConvertTable(ts, data.as<sol::table>(), depth);
@@ -242,7 +247,7 @@ nlohmann::json PoJson::ToJson(sol::this_state ts, const sol::object& data, int d
             break;
     }
 
-    throw sol::error(
+    throw Error(Errors::Code::invalid_params,
         std::string("json: cannot encode value of type ") +
         sol::type_name(ts, data.get_type()));
 }

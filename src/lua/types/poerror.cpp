@@ -1,5 +1,7 @@
 #include "poerror.hpp"
 
+#include <boost/system/system_error.hpp>
+
 using porla::Lua::Types::PoError;
 
 namespace
@@ -56,6 +58,17 @@ void PoError::Register(sol::state& lua)
         if (const auto* err = ex ? dynamic_cast<const porla::Lua::Error*>(&*ex) : nullptr)
         {
             return sol::stack::push(L, PoError::Make(L, err->code, err->what()));
+        }
+
+        if (const auto* err = ex ? dynamic_cast<const boost::system::system_error*>(&*ex) : nullptr)
+        {
+            const auto& ec = err->code();
+
+            const auto code = ec == lt::errors::invalid_torrent_handle  ? Errors::Code::torrent_not_found
+                            : ec.category() == lt::libtorrent_category() ? Errors::Code::libtorrent_error
+                            : Errors::Code::io_error;
+
+            return sol::stack::push(L, PoError::Construct(L, ec, code));
         }
 
         return sol::stack::push(L, description);
