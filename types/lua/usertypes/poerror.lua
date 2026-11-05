@@ -1,7 +1,8 @@
 ---@meta
 
 ---@class PoError
----@field category string
+---@field code string
 ---@field message string
----@field value integer
+---@field category? string
+---@field value? integer
 local PoError = {}
