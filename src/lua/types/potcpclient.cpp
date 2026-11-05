@@ -38,6 +38,11 @@ namespace
         return value.as<double>();
     }
 
+    bool IsPeerClose(const boost::system::error_code& ec)
+    {
+        return ec == boost::asio::error::eof || ec == boost::asio::ssl::error::stream_truncated;
+    }
+
     bool Flag(const sol::object& value, const char* what, const std::string& key)
     {
         if (value.get_type() != sol::type::boolean)
@@ -230,11 +235,17 @@ void PoTcpClient::Read(sol::main_protected_function callback)
 
     m_read_pending = true;
 
-    Arm(m_options.read_timeout);
-
     const auto callback_id = state->RegisterCallback(callback, true);
     const auto handler     = std::bind_front(&PoTcpClient::ReadComplete, shared_from_this(), callback_id);
     const auto buffer      = boost::asio::buffer(m_read_buffer);
+
+    if (m_peer_closed)
+    {
+        boost::asio::post(state->io, [handler]() { handler(boost::asio::error::eof, 0); });
+        return;
+    }
+
+    Arm(m_options.read_timeout);
 
     if (m_tls_ctx && m_tls.has_value())
     {
@@ -249,6 +260,7 @@ void PoTcpClient::Read(sol::main_protected_function callback)
 void PoTcpClient::ReadComplete(std::size_t callback_id, const boost::system::error_code& ec, std::size_t n)
 {
     m_read_pending = false;
+    m_peer_closed  = m_peer_closed || IsPeerClose(ec);
 
     Disarm();
 
@@ -283,11 +295,17 @@ void PoTcpClient::ReadExactly(std::size_t n, sol::main_protected_function callba
     m_read_buffer.resize(n);
     m_read_pending = true;
 
-    Arm(m_options.read_timeout);
-
     const auto callback_id = state->RegisterCallback(callback, true);
     const auto handler     = std::bind_front(&PoTcpClient::ReadComplete, shared_from_this(), callback_id);
     const auto buffer      = boost::asio::buffer(m_read_buffer);
+
+    if (m_peer_closed)
+    {
+        boost::asio::post(state->io, [handler]() { handler(boost::asio::error::eof, 0); });
+        return;
+    }
+
+    Arm(m_options.read_timeout);
 
     if (m_tls_ctx && m_tls.has_value())
     {
@@ -564,7 +582,7 @@ sol::table PoTcpClient::ToPoError(lua_State* L, const boost::system::error_code&
         return PoError::Make(L, Errors::Code::io_error, boost::asio::error::timed_out, "timed out");
     }
 
-    if (ec == boost::asio::error::eof || ec == boost::asio::ssl::error::stream_truncated)
+    if (IsPeerClose(ec))
     {
         return PoError::Make(L, Errors::Code::closed, "connection closed by peer");
     }
