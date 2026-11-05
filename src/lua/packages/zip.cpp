@@ -2,7 +2,22 @@
 
 #include <zip.h>
 
+#include "../types/poerror.hpp"
+
 using porla::Lua::Packages::Zip;
+using porla::Lua::Types::PoError;
+
+namespace
+{
+    sol::table ZipError(lua_State* L, zip_error_t* error)
+    {
+        sol::table err = PoError::Make(L, porla::Errors::Code::decode_error, zip_error_strerror(error));
+        err["category"] = "libzip";
+        err["value"]    = zip_error_code_zip(error);
+
+        return err;
+    }
+}
 
 sol::object Zip::Load(sol::this_state ts)
 {
@@ -10,7 +25,7 @@ sol::object Zip::Load(sol::this_state ts)
 
     sol::table tbl = lua.create_table();
 
-    tbl.set_function("read", [](sol::this_state ts, const std::string& buffer) -> std::tuple<std::optional<sol::table>, std::optional<std::string>>
+    tbl.set_function("read", [](sol::this_state ts, const std::string& buffer) -> std::tuple<sol::object, sol::object>
     {
         sol::state_view lua(ts);
 
@@ -25,7 +40,7 @@ sol::object Zip::Load(sol::this_state ts)
 
         if (source == nullptr)
         {
-            return std::make_tuple(std::nullopt, std::string(zip_error_strerror(&err)));
+            return { sol::lua_nil, ZipError(ts, &err) };
         }
 
         zip_t* archive = zip_open_from_source(source, ZIP_RDONLY, &err);
@@ -33,16 +48,16 @@ sol::object Zip::Load(sol::this_state ts)
         if (archive == nullptr)
         {
             zip_source_free(source);
-            return std::make_tuple(std::nullopt, std::string(zip_error_strerror(&err)));
+            return { sol::lua_nil, ZipError(ts, &err) };
         }
 
         const zip_int64_t num_entries = zip_get_num_entries(archive, ZIP_FL_UNCHANGED);
 
         if (num_entries < 0)
         {
-            const auto error = std::string(zip_error_strerror(zip_get_error(archive)));
+            sol::table error = ZipError(ts, zip_get_error(archive));
             zip_close(archive);
-            return std::make_tuple(std::nullopt, error);
+            return { sol::lua_nil, error };
         }
 
         sol::table files = lua.create_table();
@@ -54,11 +69,11 @@ sol::object Zip::Load(sol::this_state ts)
 
             if (zip_stat_index(archive, i, 0, &st) != 0)
             {
-                const auto error = std::string(zip_error_strerror(zip_get_error(archive)));
+                sol::table error = ZipError(ts, zip_get_error(archive));
 
                 zip_close(archive);
 
-                return std::make_tuple(std::nullopt, error);
+                return { sol::lua_nil, error };
             }
 
             if (!(st.valid & ZIP_STAT_SIZE))
@@ -77,17 +92,33 @@ sol::object Zip::Load(sol::this_state ts)
 
             if (file == nullptr)
             {
-                const auto error = std::string(zip_error_strerror(zip_get_error(archive)));
+                sol::table error = ZipError(ts, zip_get_error(archive));
 
                 zip_close(archive);
 
-                return std::make_tuple(std::nullopt, error);
+                return { sol::lua_nil, error };
             }
 
             std::string contents;
             contents.resize(st.size);
 
-            zip_fread(file, contents.data(), contents.size());
+            const auto read = zip_fread(file, contents.data(), contents.size());
+
+            if (read < 0 || static_cast<zip_uint64_t>(read) != st.size)
+            {
+                zip_error_t short_read;
+                zip_error_init_with_code(&short_read, ZIP_ER_READ);
+
+                sol::table error = ZipError(ts, read < 0 ? zip_file_get_error(file) : &short_read);
+
+                zip_error_fini(&short_read);
+
+                zip_fclose(file);
+                zip_close(archive);
+
+                return { sol::lua_nil, error };
+            }
+
             zip_fclose(file);
 
             files[file_name] = contents;
@@ -95,7 +126,7 @@ sol::object Zip::Load(sol::this_state ts)
 
         zip_close(archive);
 
-        return std::make_tuple(files, std::nullopt);
+        return { files, sol::lua_nil };
     });
 
     return tbl;

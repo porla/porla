@@ -2,6 +2,8 @@
 
 #include <sodium.h>
 
+#include "poerror.hpp"
+
 using porla::Lua::Types::SoHashState;
 
 void SoHashState::Register(sol::state& lua)
@@ -13,7 +15,7 @@ void SoHashState::Register(sol::state& lua)
         {
             if (state.m_finalized)
             {
-                throw sol::error("hash state already finalized");
+                throw Error(Errors::Code::invalid_state, "hash state already finalized");
             }
 
             state.m_finalized = true;
@@ -26,7 +28,7 @@ void SoHashState::Register(sol::state& lua)
                 reinterpret_cast<unsigned char*>(output.data()),
                 output.size()) != 0)
             {
-                throw sol::error("failed to finalize state");
+                throw Error(Errors::Code::internal_error, "failed to finalize state");
             }
 
             return output;
@@ -35,7 +37,7 @@ void SoHashState::Register(sol::state& lua)
         {
             if (state.m_finalized)
             {
-                throw sol::error("hash state already finalized");
+                throw Error(Errors::Code::invalid_state, "hash state already finalized");
             }
 
             if (crypto_generichash_update(
@@ -43,7 +45,7 @@ void SoHashState::Register(sol::state& lua)
                 reinterpret_cast<const unsigned char*>(data.c_str()),
                 data.size()) != 0)
             {
-                throw sol::error("failed to update hash");
+                throw Error(Errors::Code::internal_error, "failed to update hash");
             }
         });
 }

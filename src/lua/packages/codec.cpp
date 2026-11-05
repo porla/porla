@@ -3,11 +3,16 @@
 #include <nlohmann/json.hpp>
 #include <sodium.h>
 
+#include "../types/poerror.hpp"
 #include "../types/pojson.hpp"
 
 #include "../../json/utils.hpp"
 
 using porla::Lua::Packages::Codec;
+using porla::Lua::Types::PoError;
+using porla::Lua::Error;
+
+namespace Errors = porla::Errors;
 
 namespace
 {
@@ -24,7 +29,7 @@ namespace
             return v;
         }
 
-        throw sol::error("invalid base64 variant");
+        throw Error(Errors::Code::invalid_params, "invalid base64 variant");
     }
 }
 
@@ -38,7 +43,8 @@ sol::object Codec::Load(sol::this_state ts)
     b64["VARIANT_URLSAFE"]             = sodium_base64_VARIANT_URLSAFE;
     b64["VARIANT_URLSAFE_NO_PADDING"]  = sodium_base64_VARIANT_URLSAFE_NO_PADDING;
 
-    b64.set_function("decode", [](const std::string& data, std::optional<int> variant)
+    b64.set_function("decode", [](sol::this_state ts, const std::string& data, std::optional<int> variant)
+        -> std::tuple<sol::object, sol::object>
     {
         const auto resolved_variant = ResolveBase64Variant(variant);
 
@@ -59,12 +65,12 @@ sol::object Codec::Load(sol::this_state ts)
 
         if (result != 0)
         {
-            throw sol::error("invalid base64");
+            return { sol::lua_nil, PoError::Make(ts, Errors::Code::decode_error, "invalid base64") };
         }
 
         output.resize(bin_len);
 
-        return output;
+        return { sol::make_object(ts, output), sol::lua_nil };
     });
 
     b64.set_function("encode", [](const std::string& data, std::optional<int> variant)
@@ -101,18 +107,18 @@ sol::object Codec::Load(sol::this_state ts)
     json_tbl["null"] = sol::light(Types::PoJson::NullSentinel());
 
     json_tbl.set_function("decode", [](sol::this_state ts, const std::string& data)
-        -> std::tuple<sol::object, std::optional<std::string>>
+        -> std::tuple<sol::object, sol::object>
     {
         nlohmann::json parsed_json;
 
         try
         {
             parsed_json = Json::Parse(data);
-            return std::make_tuple(Types::PoJson::ToLua(ts, parsed_json, 0), std::nullopt);
+            return { Types::PoJson::ToLua(ts, parsed_json, 0), sol::lua_nil };
         }
         catch (const std::exception& ex)
         {
-            return std::make_tuple(sol::lua_nil, ex.what());
+            return { sol::lua_nil, PoError::Make(ts, Errors::Code::decode_error, ex.what()) };
         }
     });
 
@@ -124,15 +130,18 @@ sol::object Codec::Load(sol::this_state ts)
         }
         catch (const nlohmann::json::type_error& e)
         {
-            throw sol::error(std::string("json: ") + e.what() +
-                            " (binary data must be base64-encoded first)");
+            throw Error(Errors::Code::invalid_params,
+                std::string("json: ") + e.what() + " (binary data must be base64-encoded first)");
         }
     });
 
     sol::table hex = lua.create_table();
-    hex.set_function("decode", [](const std::string& data)
+    hex.set_function("decode", [](sol::this_state ts, const std::string& data) -> std::tuple<sol::object, sol::object>
     {
-        if (data.size() % 2 != 0) { throw sol::error("invalid hex length"); }
+        if (data.size() % 2 != 0)
+        {
+            return { sol::lua_nil, PoError::Make(ts, Errors::Code::decode_error, "invalid hex length") };
+        }
 
         std::string output;
         output.resize(data.size() / 2);
@@ -150,12 +159,12 @@ sol::object Codec::Load(sol::this_state ts)
 
         if (result != 0)
         {
-            throw sol::error("invalid hex string");
+            return { sol::lua_nil, PoError::Make(ts, Errors::Code::decode_error, "invalid hex string") };
         }
 
         output.resize(bin_len);
 
-        return output;
+        return { sol::make_object(ts, output), sol::lua_nil };
     });
 
     hex.set_function("encode", [](const std::string& data)

@@ -87,6 +87,24 @@ sol::table PoError::Make(lua_State* L, Errors::Code code, const std::string& mes
     return err;
 }
 
+sol::table PoError::Make(lua_State* L, Errors::Code code, const lt::error_code& ec, const std::string& message)
+{
+    sol::table err = Make(L, code, message.empty() ? ec.message() : message);
+    err["category"] = ec.category().name();
+    err["value"]    = ec.value();
+
+    return err;
+}
+
+sol::table PoError::Make(lua_State* L, Errors::Code code, const std::error_code& ec, const std::string& message)
+{
+    sol::table err = Make(L, code, message.empty() ? ec.message() : message);
+    err["category"] = ec.category().name();
+    err["value"]    = ec.value();
+
+    return err;
+}
+
 sol::object PoError::Construct(sol::this_state ts, const lt::error_code& ec, Errors::Code code)
 {
     if (!ec)
@@ -94,11 +112,7 @@ sol::object PoError::Construct(sol::this_state ts, const lt::error_code& ec, Err
         return sol::lua_nil;
     }
 
-    sol::table err = Make(ts, code, ec.message());
-    err["category"] = ec.category().name();
-    err["value"]    = ec.value();
-
-    return err;
+    return Make(ts, code, ec);
 }
 
 std::string porla::Lua::DescribeError(const sol::protected_function_result& result)

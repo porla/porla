@@ -22,7 +22,7 @@ function crypto.hash(input) end
 function crypto.hash(input, key) end
 
 ---@param key string
----@return SoHashState?
+---@return SoHashState
 function crypto.hash_init(key) end
 
 ---@param a string
@@ -31,12 +31,12 @@ function crypto.hash_init(key) end
 function crypto.memcmp(a, b) end
 
 ---@param input string
----@param callback fun(err?: string, hash: string)
+---@param callback fun(err?: PoError, hash: string)
 function crypto.pwhash(input, callback) end
 
 ---@param hash string
 ---@param input string
----@param callback fun(err?: string, result: boolean)
+---@param callback fun(err?: PoError, result: boolean)
 function crypto.pwhash_verify(hash, input, callback) end
 
 ---@param len integer
@@ -56,7 +56,8 @@ function crypto.secretbox_keygen() end
 
 ---@param box string
 ---@param key string
----@return string?
+---@return string? message
+---@return PoError? err # `decrypt_failed` for a wrong key or a tampered or foreign box
 function crypto.secretbox_open(box, key) end
 
 return crypto
