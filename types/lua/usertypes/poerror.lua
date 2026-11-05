@@ -1,8 +1,42 @@
 ---@meta
 
+---A plain table with a shared metatable. `tostring(err)` gives `"<code>: <message>"`, and `..` with a
+---PoError on either side concatenates `tostring` of both operands.
+---
+---Porla functions report expected failures by returning `nil, err`, and raise a PoError for bad
+---arguments or misuse; catch those with `local ok, err = pcall(...)`. Errors raised by the binding
+---layer itself (wrong argument types, unmatched overloads) are plain strings, so `err` is `PoError|string`.
+---
+---Raising a table (`error(err)`) inside a callback Porla invokes passes it through unchanged, with no
+---traceback or position added; Porla logs `tostring(err)`. A plain table without the PoError
+---metatable logs as `table: 0x...`.
 ---@class PoError
----@field code string
+---@field code PoErrorCode
 ---@field message string
----@field category? string
----@field value? integer
+---@field category? string # Underlying error category (e.g. `system`, `libtorrent`) for `io_error`, `libtorrent_error` and similar
+---@field value? integer # Underlying error value within `category`
+---@operator concat(any): string
 local PoError = {}
+
+---@alias PoErrorCode
+---| "parse_error" # The JSON-RPC body isn't valid JSON
+---| "invalid_request" # Not a valid JSON-RPC request
+---| "method_not_found" # No such JSON-RPC method
+---| "invalid_params" # An argument or value is missing, of the wrong type or out of range
+---| "internal_error" # Unexpected failure inside Porla
+---| "permission_denied" # The caller may not invoke this method
+---| "session_not_found" # No session with that id
+---| "session_not_loaded" # The session exists but isn't loaded, or has been unloaded
+---| "torrent_not_found" # The torrent isn't in the session, or its handle is no longer valid
+---| "torrent_already_added" # The torrent is already in the session
+---| "torrent_no_metadata" # The torrent has no metadata yet (e.g. a magnet link still resolving)
+---| "torrent_add_failed" # libtorrent rejected the torrent
+---| "preset_not_found" # No preset with that name or id
+---| "already_registered" # The name (e.g. a JSON-RPC method) is already registered
+---| "decode_error" # The input couldn't be decoded (base64, hex, JSON, ...)
+---| "decrypt_failed" # Wrong key, or the ciphertext was tampered with
+---| "invalid_state" # Not allowed in the object's current state (e.g. a finalized hash)
+---| "closed" # The connection was closed
+---| "libtorrent_error" # A libtorrent error; see `category` and `value`
+---| "io_error" # An OS, filesystem or network error; see `category` and `value`
+---| "http_error" # The HTTP request failed

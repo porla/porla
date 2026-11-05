@@ -1,4 +1,5 @@
 {
   "workspace.library": ["types/lua"],
+  "workspace.ignoreDir": ["build", ".deps", "vendor"],
   "runtime.version": "Lua 5.4"
 }

@@ -1,7 +1,9 @@
 ---@meta
 
+---A snapshot; fields are readonly. Times are unix seconds, nil when unset; byte counts
+---are bytes, rates bytes/s. `==` is true for statuses of the same torrent.
 ---@class LtTorrentStatus
----@field active_duration integer
+---@field active_duration integer # seconds
 ---@field added_time integer?
 ---@field all_time_download integer
 ---@field all_time_upload integer
@@ -12,58 +14,60 @@
 ---@field completed_time integer?
 ---@field connect_candidates integer
 ---@field connections_limit integer
----@field current_tracker string
----@field distributed_copies number
+---@field current_tracker string # last working tracker; empty until one answers
+---@field distributed_copies number # -1 when not known
 ---@field down_bandwidth_queue integer
----@field download_limit integer
+---@field download_limit integer # -1 when unlimited
 ---@field download_payload_rate integer
 ---@field download_rate integer
----@field errc PoError?
----@field flags LtTorrentFlags
----@field finished_duration integer
+---@field errc PoError? # `code = "libtorrent_error"`; nil without an error
+---@field flags LtTorrentFlags # a copy; changing it doesn't change the torrent
+---@field finished_duration integer # seconds
 ---@field handle LtTorrentHandle
 ---@field has_incoming boolean
 ---@field has_metadata boolean
 ---@field info_hash LtInfoHash
 ---@field is_finished boolean
 ---@field is_seeding boolean
----@field last_download integer?
+---@field last_download integer? # last payload download
 ---@field last_seen_complete integer?
----@field last_upload integer?
+---@field last_upload integer? # last payload upload
 ---@field list_peers integer
 ---@field list_seeds integer
 ---@field moving_storage boolean
 ---@field name string
----@field next_announce integer
----@field num_complete integer
+---@field next_announce integer # seconds until the next announce
+---@field num_complete integer # -1 when the tracker sent no scrape data
 ---@field num_connections integer
----@field num_incomplete integer
+---@field num_incomplete integer # -1 when the tracker sent no scrape data
 ---@field num_peers integer
 ---@field num_pieces integer
 ---@field num_seeds integer
 ---@field num_uploads integer
----@field progress number
----@field queue_position integer
+---@field progress number # 0-1
+---@field queue_position integer # -1 when not queued
+---@field ratio number # uploaded over downloaded, 0-9999; falls back to the data held when the download counter is missing or too small (seed mode, cross seeding)
+---@field ratio_real number # uploaded over downloaded by this client, 0-9999
 ---@field renamed_files LtRenamedFiles
 ---@field save_path string
 ---@field seed_rank integer
----@field seeding_duration integer
----@field state "checking_files" |"downloading_metadata" |"downloading" |"finished" |"seeding" |"checking_resume_data" | nil
----@field storage_mode "allocate" | "sparse"
----@field torrent_file LtTorrentInfo?
+---@field seeding_duration integer # seconds
+---@field state "checking_files"|"downloading_metadata"|"downloading"|"finished"|"seeding"|"checking_resume_data"|nil
+---@field storage_mode "allocate"|"sparse"
+---@field torrent_file LtTorrentInfo? # nil without metadata
 ---@field total integer
 ---@field total_done integer
----@field total_download integer
+---@field total_download integer # this session
 ---@field total_failed_bytes integer
----@field total_payload_download integer
----@field total_payload_upload integer
+---@field total_payload_download integer # this session
+---@field total_payload_upload integer # this session
 ---@field total_redundant_bytes integer
 ---@field total_wanted integer
 ---@field total_wanted_done integer
----@field total_upload integer
+---@field total_upload integer # this session
 ---@field up_bandwidth_queue integer
+---@field upload_limit integer # -1 when unlimited
 ---@field upload_payload_rate integer
 ---@field upload_rate integer
----@field upload_limit integer
 ---@field uploads_limit integer
 local LtTorrentStatus = {}
