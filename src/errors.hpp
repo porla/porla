@@ -8,7 +8,8 @@
     X(method_not_found,  -32601, "Method not found")          \
     X(invalid_params,    -32602, "Invalid params")            \
     X(internal_error,    -32603, "Internal error")            \
-    X(permission_denied,   1001, "Invocation not allowed")
+    X(permission_denied,   1001, "Invocation not allowed")    \
+    X(libtorrent_error,   -5000, "libtorrent error")
 
 namespace porla::Errors
 {

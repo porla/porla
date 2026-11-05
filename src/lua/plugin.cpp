@@ -42,21 +42,6 @@ namespace fs = std::filesystem;
 using porla::Lua::Plugin;
 using porla::Lua::PluginSource;
 
-namespace
-{
-    std::string DescribeError(const sol::protected_function_result& result)
-    {
-        if (result.valid() || result.return_count() < 1)
-        {
-            return "unknown error";
-        }
-
-        sol::error err = result;
-
-        return err.what();
-    }
-}
-
 struct Plugin::State
 {
     PluginSource                source;
@@ -80,6 +65,8 @@ struct Plugin::State
             sol::lib::package,
             sol::lib::string,
             sol::lib::table);
+
+        Types::PoError::Register(lua);
 
         Types::LtAddTorrentParams::Register(lua);
         Types::LtAnnounceEndpoint::Register(lua);

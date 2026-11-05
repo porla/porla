@@ -41,7 +41,7 @@ void LtAddTorrentParams::Register(sol::state& lua)
 
         if (ec)
         {
-            return std::make_tuple(sol::lua_nil, PoError::Construct(ts, ec));
+            return std::make_tuple(sol::lua_nil, PoError::Construct(ts, ec, Errors::Code::invalid_params));
         }
 
         return std::make_tuple(ToTable(ts, params), sol::lua_nil);
@@ -54,7 +54,7 @@ void LtAddTorrentParams::Register(sol::state& lua)
 
         if (ec)
         {
-            return std::make_tuple(sol::lua_nil, PoError::Construct(ts, ec));
+            return std::make_tuple(sol::lua_nil, PoError::Construct(ts, ec, Errors::Code::invalid_params));
         }
 
         return std::make_tuple(ToTable(ts, params), sol::lua_nil);
@@ -67,7 +67,7 @@ void LtAddTorrentParams::Register(sol::state& lua)
 
         if (ec)
         {
-            return std::make_tuple(sol::lua_nil, PoError::Construct(ts, ec));
+            return std::make_tuple(sol::lua_nil, PoError::Construct(ts, ec, Errors::Code::invalid_params));
         }
 
         return std::make_tuple(ToTable(ts, params), sol::lua_nil);

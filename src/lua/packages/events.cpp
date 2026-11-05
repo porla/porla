@@ -16,6 +16,7 @@
 
 #include "../pluginstate.hpp"
 #include "../types/pocancellable.hpp"
+#include "../types/poerror.hpp"
 #include "../types/pojson.hpp"
 #include "../types/posessionhandle.hpp"
 
@@ -111,6 +112,17 @@ namespace
             }
 
             tbl[k] = porla::Lua::Types::PoJson::ToLua(state.lua.lua_state(), v, 0);
+        }
+
+        if (const auto it = event.data.find("error"); it != event.data.end() && it->is_object())
+        {
+            sol::table err = porla::Lua::Types::PoError::Make(
+                state.lua.lua_state(),
+                porla::Errors::Code::libtorrent_error,
+                it->value("message", ""));
+
+            err["value"] = it->value("value", 0);
+            tbl["error"] = err;
         }
 
         tbl["name"] = event.name;

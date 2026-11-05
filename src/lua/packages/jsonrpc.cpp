@@ -32,8 +32,10 @@ struct LuaMethod : public porla::Rpc::Method
 
         if (!result.valid())
         {
-            sol::error err = result;
-            BOOST_LOG_TRIVIAL(error) << "Failed to run CanInvoke callback for JSONRPC method: " << err.what();
+            BOOST_LOG_TRIVIAL(error)
+                << "Failed to run CanInvoke callback for JSONRPC method: "
+                << porla::Lua::DescribeError(result);
+
             return false;
         }
 

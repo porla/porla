@@ -12,6 +12,7 @@
 #include "../plugins.hpp"
 #include "../timer.hpp"
 
+#include "types/poerror.hpp"
 #include "types/pohttpserverresponse.hpp"
 #include "types/potcpclient.hpp"
 
@@ -144,8 +145,10 @@ namespace porla::Lua
 
             if (!result.valid())
             {
-                sol::error err = result;
-                BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Error when invoking callback: " << err.what();
+                BOOST_LOG_TRIVIAL(error)
+                    << "plugin[" << plugin_id << "] Error when invoking callback: "
+                    << DescribeError(result);
+
                 return false;
             }
 
