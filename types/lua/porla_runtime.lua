@@ -3,8 +3,8 @@
 local runtime = {}
 
 ---@class RuntimeArgs
----@field ["http-base-path"] string
----@field ["state-dir"] string
+---@field ["http-base-path"] string? nil when no base path is configured
+---@field ["state-dir"] string as configured, so it can be relative to the working directory
 
 ---@type RuntimeArgs
 runtime.args = {}

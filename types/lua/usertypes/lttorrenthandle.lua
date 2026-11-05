@@ -1,14 +1,17 @@
 ---@meta
 
 ---Methods raise a `PoError`: `torrent_not_found` once the torrent is removed (except `is_valid`,
----`info_hash` and `userdata`), `invalid_params` for bad arguments, `torrent_no_metadata` where metadata is needed.
+---`info_hash`, `torrent_file`, `file_status` and `userdata`), `invalid_params` for bad arguments,
+---`torrent_no_metadata` where metadata is needed. Getters marked "waits for libtorrent" block until
+---libtorrent answers; each `post_*` method asks for the same data without waiting and answers with an
+---event. Indices are 0-based. `==` is true for handles to the same torrent; `<` orders handles.
 ---@class LtTorrentHandle
 local LtTorrentHandle = {}
 
 ---@class LtTrackerOpts
----@field tier? integer 0-255
+---@field tier? integer # 0-255
 
----@param url string
+---@param url string # must not be empty
 ---@param opts? LtTrackerOpts
 function LtTorrentHandle:add_tracker(url, opts) end
 
@@ -21,20 +24,23 @@ function LtTorrentHandle:clear_peers() end
 
 function LtTorrentHandle:clear_piece_deadlines() end
 
----@param ip string
----@param port integer
+---@param ip string # IPv4 or IPv6 address
+---@param port integer # 1-65535
 function LtTorrentHandle:connect_peer(ip, port) end
 
----@return integer
+---Waits for libtorrent.
+---@return integer # bytes/s; 0 or -1 when unlimited
 function LtTorrentHandle:download_limit() end
 
 ---Exact bytes downloaded per file; entry `i + 1` is file `i`. Waits for libtorrent, like `status()`.
 ---@return integer[]
 function LtTorrentHandle:file_progress() end
 
+---Files libtorrent has open; empty once the torrent is removed.
 ---@return LtOpenFileState[]
 function LtTorrentHandle:file_status() end
 
+---Waits for libtorrent.
 ---@return LtTorrentFlags
 function LtTorrentHandle:flags() end
 
@@ -48,45 +54,55 @@ function LtTorrentHandle:force_lsd_announce() end
 ---@field ignore_min_interval? boolean
 ---@field high_priority? boolean
 
----@param seconds? integer
----@param index? integer
+---Waits for libtorrent to check `index`.
+---@param seconds? integer # delay before announcing; 0 when omitted
+---@param index? integer # tracker index; -1 or omitted for every tracker
 ---@param flags? LtReannounceFlagsT
 function LtTorrentHandle:force_reannounce(seconds, index, flags) end
 
 function LtTorrentHandle:force_recheck() end
 
+---Waits for libtorrent.
 ---@return LtPartialPieceInfo[]
 function LtTorrentHandle:get_download_queue() end
 
+---Priority (0-7) per file; entry `i + 1` is file `i`. Waits for libtorrent.
 ---@return integer[]
 function LtTorrentHandle:get_file_priorities() end
 
+---Waits for libtorrent.
 ---@return LtPeerInfo[]
 function LtTorrentHandle:get_peer_info() end
 
+---Priority (0-7) per piece; entry `i + 1` is piece `i`. Waits for libtorrent.
 ---@return integer[]
 function LtTorrentHandle:get_piece_priorities() end
 
+---Waits for libtorrent.
 ---@return LtRenamedFiles
 function LtTorrentHandle:get_renamed_files() end
 
+---Waits for libtorrent.
 ---@param index integer
----@return boolean
+---@return boolean # false for an index out of range or without metadata
 function LtTorrentHandle:have_piece(index) end
 
+---Waits for libtorrent.
 ---@return boolean
 function LtTorrentHandle:in_session() end
 
----@return LtInfoHash
+---@return LtInfoHash # empty (`v1` and `v2` nil) once the torrent is removed
 function LtTorrentHandle:info_hash() end
 
 ---@return boolean
 function LtTorrentHandle:is_valid() end
 
----@return integer
+---Waits for libtorrent.
+---@return integer # 16777215 when unlimited
 function LtTorrentHandle:max_connections() end
 
----@return integer
+---Waits for libtorrent.
+---@return integer # 16777215 when unlimited
 function LtTorrentHandle:max_uploads() end
 
 ---@alias LtMoveFlags
@@ -97,60 +113,72 @@ function LtTorrentHandle:max_uploads() end
 ---| "reset_save_path_unchecked"
 
 ---@class LtMoveStorageOpts
----@field flags? LtMoveFlags "dont_replace" when omitted
+---@field flags? LtMoveFlags # "dont_replace" when omitted
 
+---Answered by `torrent.storage_moved` or `torrent.storage_moved_failed`.
 ---@param path string
 ---@param opts? LtMoveStorageOpts
 function LtTorrentHandle:move_storage(path, opts) end
 
 function LtTorrentHandle:pause() end
 
----Peers that have each piece; entry `i + 1` is piece `i`. Empty without metadata.
+---Peers that have each piece; entry `i + 1` is piece `i`. Empty without metadata. Waits for libtorrent.
 ---@return integer[]
 function LtTorrentHandle:piece_availability() end
 
----Without `priority`, returns the piece's priority (0-7); with it, sets it.
+---Returns the piece's priority (0-7); waits for libtorrent. With `priority` (0-7), sets it instead.
 ---@param index integer
----@param priority? integer
----@return integer?
-function LtTorrentHandle:piece_priority(index, priority) end
+---@return integer
+---@overload fun(self: LtTorrentHandle, index: integer, priority: integer)
+function LtTorrentHandle:piece_priority(index) end
 
+---Answered by `torrent.piece_info`.
 function LtTorrentHandle:post_download_queue() end
 
+---Answered by `torrent.file_priorities`.
 function LtTorrentHandle:post_file_priorities() end
 
+---Answered by `torrent.file_progress`, rounded down to whole pieces (unlike `file_progress()`).
 function LtTorrentHandle:post_file_progress() end
 
+---Answered by `torrent.file_status`.
 function LtTorrentHandle:post_file_status() end
 
+---Answered by `torrent.peer_info`.
 function LtTorrentHandle:post_peer_info() end
 
+---Answered by `torrent.piece_availability`.
 function LtTorrentHandle:post_piece_availability() end
 
+---Answered by `torrent.status`.
 function LtTorrentHandle:post_status() end
 
+---Answered by `torrent.trackers`.
 function LtTorrentHandle:post_trackers() end
 
----@param prios integer[]
+---@param prios integer[] # 0-7 per file from the first
 function LtTorrentHandle:prioritize_files(prios) end
 
----@param prios integer[] 0-7 per piece from the first; fewer than the torrent's pieces leaves the rest as they are
+---@param prios integer[] # 0-7 per piece from the first; fewer than the torrent's pieces leaves the rest as they are
 function LtTorrentHandle:prioritize_pieces(prios) end
 
+---Waits for libtorrent.
+---@return integer # -1 when not queued
 function LtTorrentHandle:queue_position() end
 
 function LtTorrentHandle:queue_position_bottom() end
 
 function LtTorrentHandle:queue_position_down() end
 
----@param pos integer
+---@param pos integer # 0 or more
 function LtTorrentHandle:queue_position_set(pos) end
 
 function LtTorrentHandle:queue_position_top() end
 
 function LtTorrentHandle:queue_position_up() end
 
----Answered by the `torrent.piece_read` event.
+---Answered by the `torrent.piece_read` event, which carries the error for a piece out of range,
+---not downloaded yet, or without metadata.
 ---@param index integer
 function LtTorrentHandle:read_piece(index) end
 
@@ -158,10 +186,10 @@ function LtTorrentHandle:read_piece(index) end
 function LtTorrentHandle:remove_url_seed(url) end
 
 ---@param index integer
----@param name string
+---@param name string # must not be empty
 function LtTorrentHandle:rename_file(index, name) end
 
----@param trackers (string|{ url: string, tier?: integer })[]
+---@param trackers (string|{ url: string, tier?: integer })[] # tier 0-255; urls must not be empty
 function LtTorrentHandle:replace_trackers(trackers) end
 
 ---@param index integer
@@ -169,67 +197,77 @@ function LtTorrentHandle:reset_piece_deadline(index) end
 
 function LtTorrentHandle:resume() end
 
+---Includes the info dict and flushes the disk cache first.
 function LtTorrentHandle:save_resume_data() end
 
----Scrape now: every tracker, the tracker at `index`, or the tracker with this url.
+---Scrape now: every tracker, the tracker at `index` (waits for libtorrent), or the tracker with this url.
 ---@param tracker? integer|string
 function LtTorrentHandle:scrape_tracker(tracker) end
 
----@param limit integer
+---@param limit integer # bytes/s; -1 for unlimited, below -1 raises
 function LtTorrentHandle:set_download_limit(limit) end
 
+---Sets the flags in `flags`; with `mask`, sets each flag in `mask` to its value in `flags`.
 ---@param flags LtTorrentFlags
 ---@param mask? LtTorrentFlags
 function LtTorrentHandle:set_flags(flags, mask) end
 
----@param n integer
+---@param n integer # 2 or more; 0 or -1 for unlimited
 function LtTorrentHandle:set_max_connections(n) end
 
----@param n integer
+---@param n integer # 2 or more; 0 or -1 for unlimited
 function LtTorrentHandle:set_max_uploads(n) end
 
 ---@class LtPieceDeadlineOpts
----@field alert_when_available? boolean read the piece once it's downloaded (torrent.piece_read)
+---@field alert_when_available? boolean # read the piece once it's downloaded (torrent.piece_read)
 
 ---@param index integer
----@param seconds number
+---@param seconds number # 0 or more, to the millisecond
 ---@param opts? LtPieceDeadlineOpts
 function LtTorrentHandle:set_piece_deadline(index, seconds, opts) end
 
 ---Download pieces `first` to `last` in order (sequential mode); without `last`, to the end of the file `first` is in.
 ---@param first integer
----@param last? integer
+---@param last? integer # not before `first`
 function LtTorrentHandle:set_sequential_range(first, last) end
 
+---Paths to PEM files, for an SSL torrent (`torrent.need_cert`).
 ---@param certificate string
 ---@param private_key string
 ---@param dh_params string
----@param passphrase string
+---@param passphrase? string
 function LtTorrentHandle:set_ssl_certificate(certificate, private_key, dh_params, passphrase) end
 
----@param buffer string
+---Like `set_ssl_certificate`, with the PEM contents instead of paths and no passphrase.
+---@param certificate string
 ---@param private_key string
 ---@param dh_params string
----@param passphrase string
-function LtTorrentHandle:set_ssl_certificate_buffer(buffer, private_key, dh_params, passphrase) end
+function LtTorrentHandle:set_ssl_certificate_buffer(certificate, private_key, dh_params) end
 
----@param limit integer
+---@param limit integer # bytes/s; -1 for unlimited, below -1 raises
 function LtTorrentHandle:set_upload_limit(limit) end
 
+---Waits for libtorrent.
 ---@return LtTorrentStatus
 function LtTorrentHandle:status() end
 
----@return LtTorrentInfo
+---@return LtTorrentInfo? # nil without metadata or once the torrent is removed
 function LtTorrentHandle:torrent_file() end
 
+---Waits for libtorrent.
 ---@return LtAnnounceEntry[]
 function LtTorrentHandle:trackers() end
 
----@return integer
+---@param flags LtTorrentFlags
+function LtTorrentHandle:unset_flags(flags) end
+
+---Waits for libtorrent.
+---@return integer # bytes/s; 0 or -1 when unlimited
 function LtTorrentHandle:upload_limit() end
 
+---Sorted. Waits for libtorrent.
 ---@return string[]
 function LtTorrentHandle:url_seeds() end
 
----@return PoTorrentData
+---@return PoTorrentData? # nil once the torrent is removed
 function LtTorrentHandle:userdata() end

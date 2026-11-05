@@ -1,5 +1,8 @@
 ---@meta
+
+---A file libtorrent has open; fields are readonly.
 ---@class LtOpenFileState
----@field file_index integer 0-based index into the torrent's file list
----@field open_mode ("read_only"|"write_only"|"read_write"|"sparse"|"no_atime"|"random_access"|"mmapped")[] read/write mode first, then any flags
----@field last_use integer
+---@field file_index integer # 0-based index into the torrent's file list
+---@field open_mode ("read_only"|"write_only"|"read_write"|"sparse"|"no_atime"|"random_access"|"mmapped")[] # read/write mode first, then any flags
+---@field last_use integer # unix time in nanoseconds
+local LtOpenFileState = {}

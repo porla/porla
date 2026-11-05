@@ -1,0 +1,21 @@
+---@meta
+
+---A copy of the preset at the time it was read; it doesn't follow later changes.
+---Every field is read-only and raises when assigned.
+---@class PoPreset
+---@field id integer
+---@field name string
+---@field is_default boolean
+---@field category string?
+---@field download_limit integer? bytes per second
+---@field flags LtTorrentFlags?
+---@field flags_mask LtTorrentFlags? which bits of `flags` the preset sets; flags apply only when both are set
+---@field max_connections integer?
+---@field max_uploads integer?
+---@field metadata table<string, any>?
+---@field session_id integer?
+---@field save_path string?
+---@field storage_mode string? `"allocate"` or `"sparse"` take effect; other values are stored but ignored
+---@field tags string[] in no particular order
+---@field upload_limit integer? bytes per second
+local PoPreset = {}

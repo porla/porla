@@ -1,0 +1,37 @@
+name: Lua types
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  luals:
+    runs-on: ubuntu-latest
+    env:
+      LUALS_VERSION: 3.19.2
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install lua-language-server
+        run: |
+          mkdir -p "$RUNNER_TEMP/luals"
+          curl -fsSL "https://github.com/LuaLS/lua-language-server/releases/download/${LUALS_VERSION}/lua-language-server-${LUALS_VERSION}-linux-x64.tar.gz" \
+            | tar xz -C "$RUNNER_TEMP/luals"
+
+      # older LuaLS versions exit 0 even with problems, so the summary line decides too.
+      - name: Check
+        run: |
+          set +e
+          output=$("$RUNNER_TEMP/luals/bin/lua-language-server" \
+            --check="$GITHUB_WORKSPACE" \
+            --configpath="$GITHUB_WORKSPACE/.luarc.json" \
+            --checklevel=Warning \
+            --logpath="$RUNNER_TEMP/luals-log" 2>&1)
+          status=$?
+          echo "$output"
+
+          if [ $status -ne 0 ] || ! grep -q "no problems found" <<< "$output"; then
+            cat "$RUNNER_TEMP/luals-log/check.json" 2>/dev/null
+            exit 1
+          fi

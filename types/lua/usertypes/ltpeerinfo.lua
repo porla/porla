@@ -1,4 +1,6 @@
 ---@meta
+
+---A connected peer; fields are readonly. Speeds and rates are bytes/s, sizes bytes.
 ---@class LtPeerInfo
 ---@field busy_requests integer
 ---@field client string
@@ -6,31 +8,31 @@
 ---@field down_speed integer
 ---@field download_queue_length integer
 ---@field download_rate_peak integer
----@field download_queue_time integer seconds
----@field downloading_block_index integer
----@field downloading_piece_index integer -1 when not downloading
----@field downloading_progress integer
----@field downloading_total integer
+---@field download_queue_time integer # seconds
+---@field downloading_block_index integer # valid when `downloading_piece_index` is 0 or more
+---@field downloading_piece_index integer # -1 when not downloading
+---@field downloading_progress integer # bytes of the block received
+---@field downloading_total integer # bytes in the block
 ---@field failcount integer
----@field flags string[]
----@field last_active integer seconds
----@field last_request integer seconds
----@field local_endpoint [string, integer]
+---@field flags ("interesting"|"choked"|"remote_interested"|"remote_choked"|"supports_extensions"|"outgoing_connection"|"handshake"|"connecting"|"on_parole"|"seed"|"optimistic_unchoke"|"snubbed"|"upload_only"|"endgame_mode"|"holepunched"|"i2p_socket"|"utp_socket"|"ssl_socket"|"rc4_encrypted"|"plaintext_encrypted")[]
+---@field last_active integer # seconds ago
+---@field last_request integer # seconds ago
+---@field local_endpoint [string, integer] # address and port
 ---@field num_hashfails integer
 ---@field num_pieces integer
 ---@field payload_down_speed integer
 ---@field payload_up_speed integer
 ---@field pending_disk_bytes integer
 ---@field pending_disk_read_bytes integer
----@field progress number
+---@field progress number # 0-1
 ---@field queue_bytes integer
 ---@field receive_buffer_size integer
 ---@field receive_buffer_watermark integer
 ---@field receive_quota integer
----@field remote_endpoint [string, integer]
----@field request_timeout integer
+---@field remote_endpoint [string, integer] # address and port
+---@field request_timeout integer # seconds; -1 without an outstanding request
 ---@field requests_in_buffer integer
----@field rtt integer
+---@field rtt integer # milliseconds
 ---@field source ("tracker"|"dht"|"pex"|"lsd"|"resume_data"|"incoming")[]
 ---@field send_buffer_size integer
 ---@field send_quota integer
@@ -43,3 +45,4 @@
 ---@field upload_rate_peak integer
 ---@field used_send_buffer integer
 ---@field used_receive_buffer integer
+local LtPeerInfo = {}
