@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string_view>
 
 #define PORLA_ERRORS(X)                                       \
@@ -37,5 +38,14 @@ namespace porla::Errors
         }
 
         return { "internal_error", -32603, "Internal error" };
+    }
+
+    constexpr std::optional<Code> Find(std::string_view name)
+    {
+#define PORLA_ERRORS_FIND(n, rpc_code, message) if (name == #n) { return Code::n; }
+        PORLA_ERRORS(PORLA_ERRORS_FIND)
+#undef PORLA_ERRORS_FIND
+
+        return std::nullopt;
     }
 }
