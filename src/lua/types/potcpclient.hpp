@@ -68,6 +68,7 @@ namespace porla::Lua::Types
         bool                                                  m_closed = false;
         std::optional<std::string>                            m_connect_host;
         Options                                               m_options;
+        bool                                                  m_peer_closed = false;
         std::vector<char>                                     m_read_buffer;
         bool                                                  m_read_pending = false;
         boost::asio::ip::tcp::resolver                        m_resolver;
