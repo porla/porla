@@ -1,2 +1,4 @@
 ---@meta
+---Once the torrent is removed, every field and method raises a `PoError` with
+---`code = "torrent_not_found"`; `update` raises `invalid_params` for a bad change.
 ---@class PoTorrentData

@@ -11,6 +11,7 @@
     X(internal_error,    -32603, "Internal error")            \
     X(permission_denied,   1001, "Invocation not allowed")    \
     X(session_not_loaded,    -2, "Session not loaded")        \
+    X(torrent_not_found,     -3, "Torrent not found")         \
     X(libtorrent_error,   -5000, "libtorrent error")
 
 namespace porla::Errors
