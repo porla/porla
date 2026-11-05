@@ -2,7 +2,12 @@
 
 #include <libtorrent/file_storage.hpp>
 
+#include "poerror.hpp"
+
 using porla::Lua::Types::LtFileStorage;
+using porla::Lua::Error;
+
+namespace Errors = porla::Errors;
 
 namespace
 {
@@ -12,7 +17,7 @@ namespace
 
         if (index < 0 || index >= num_files)
         {
-            throw sol::error("file index out of range");
+            throw Error(Errors::Code::invalid_params, "file index out of range");
         }
 
         return lt::file_index_t(index);

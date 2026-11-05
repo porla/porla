@@ -2,6 +2,8 @@
 
 #include <libtorrent/torrent_flags.hpp>
 
+#include "poerror.hpp"
+
 #include "../../utils/ltflags.hpp"
 
 using porla::Lua::Types::LtTorrentFlags;
@@ -30,19 +32,19 @@ void LtTorrentFlags::Register(sol::state& lua)
         "has", [](const lt::torrent_flags_t& flags, const std::string& flag)
         {
             const auto flag_value = LtFlags::FindTorrentFlag(flag);
-            if (!flag_value.has_value()) { throw sol::error("invalid torrent flag: " + flag); }
+            if (!flag_value.has_value()) { throw Error(Errors::Code::invalid_params, "invalid torrent flag: " + flag); }
             return (flags & *flag_value) == *flag_value;
         },
         "set", [](lt::torrent_flags_t& flags, const std::string& flag)
         {
             const auto flag_value = LtFlags::FindTorrentFlag(flag);
-            if (!flag_value.has_value()) { throw sol::error("invalid torrent flag: " + flag); }
+            if (!flag_value.has_value()) { throw Error(Errors::Code::invalid_params, "invalid torrent flag: " + flag); }
             flags |= *flag_value;
         },
         "unset", [](lt::torrent_flags_t& flags, const std::string& flag)
         {
             const auto flag_value = LtFlags::FindTorrentFlag(flag);
-            if (!flag_value.has_value()) { throw sol::error("invalid torrent flag: " + flag); }
+            if (!flag_value.has_value()) { throw Error(Errors::Code::invalid_params, "invalid torrent flag: " + flag); }
             flags &= ~*flag_value;
         }
     );

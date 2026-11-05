@@ -167,7 +167,18 @@ namespace porla::Lua
         std::size_t RegisterCron(const std::string& expression, sol::main_protected_function func)
         {
             const auto timer_id = NextId();
-            auto timer = Timer::Cron(io, expression, Trigger(timer_id));
+
+            std::shared_ptr<Timer> timer;
+
+            try
+            {
+                timer = Timer::Cron(io, expression, Trigger(timer_id));
+            }
+            catch (const std::exception& ex)
+            {
+                throw Error(Errors::Code::invalid_params, "invalid cron expression '" + expression + "': " + ex.what());
+            }
+
             return AddTimer(timer_id, std::move(timer), std::move(func), false);
         }
 
@@ -188,7 +199,7 @@ namespace porla::Lua
         {
             if (interval < 10)
             {
-                throw sol::error("timer interval must be at least 10 ms");
+                throw Error(Errors::Code::invalid_params, "timer interval must be at least 10 ms");
             }
 
             const auto timer_id = NextId();

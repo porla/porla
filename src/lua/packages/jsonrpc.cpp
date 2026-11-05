@@ -103,7 +103,7 @@ sol::object JsonRpc::Load(sol::this_state ts)
         if (!jsonrpc->Register(method, std::move(kinds), std::make_shared<LuaMethod>(callback_id, state, can_invoke)))
         {
             state->RemoveCallback(callback_id);
-            throw sol::error("jsonrpc method '" + method + "' is already registered");
+            throw Error(Errors::Code::already_registered, "jsonrpc method '" + method + "' is already registered");
         }
 
         state->destructors.emplace_back([jsonrpc_weak = state->jsonrpc, method]()

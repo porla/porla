@@ -1,5 +1,7 @@
 ---@meta
 
+---Methods raise a `PoError`: `torrent_not_found` once the torrent is removed (except `is_valid`,
+---`info_hash` and `userdata`), `invalid_params` for bad arguments, `torrent_no_metadata` where metadata is needed.
 ---@class LtTorrentHandle
 local LtTorrentHandle = {}
 

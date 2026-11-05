@@ -5,9 +5,14 @@
 #include <libtorrent/hex.hpp>
 #include <libtorrent/info_hash.hpp>
 
+#include "poerror.hpp"
+
 #include "../../utils/hex.hpp"
 
 using porla::Lua::Types::LtInfoHash;
+using porla::Lua::Error;
+
+namespace Errors = porla::Errors;
 
 namespace
 {
@@ -18,7 +23,7 @@ namespace
 
         if (hex.size() != chars)
         {
-            throw std::invalid_argument(
+            throw Error(Errors::Code::invalid_params,
                 "info hash " + std::string(label) + " must be "
                 + std::to_string(chars) + " hex characters, got "
                 + std::to_string(hex.size()));
@@ -28,7 +33,7 @@ namespace
 
         if (!porla::Utils::FromHex(hex, out.data(), static_cast<std::size_t>(THash::size())))
         {
-            throw std::invalid_argument(
+            throw Error(Errors::Code::invalid_params,
                 "info hash " + std::string(label) + " contains invalid hex characters");
         }
 
@@ -66,7 +71,7 @@ void LtInfoHash::Register(sol::state& lua)
             case kV2Chars: return lt::info_hash_t(ParseInfoHash<lt::sha256_hash>(hex1, "v2"));
             }
 
-            throw std::invalid_argument(
+            throw Error(Errors::Code::invalid_params,
                 "info hash must be " + std::to_string(kV1Chars) + " (v1) or "
                 + std::to_string(kV2Chars) + " (v2) hex characters, got "
                 + std::to_string(hex1.size()));

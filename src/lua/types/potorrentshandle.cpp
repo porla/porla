@@ -1,6 +1,7 @@
 #include "potorrentshandle.hpp"
 
 #include "ltaddtorrentparams.hpp"
+#include "poerror.hpp"
 #include "poquery.hpp"
 #include "potorrentsiterator.hpp"
 
@@ -151,7 +152,7 @@ bool PoTorrentsHandle::Remove(const lt::info_hash_t& ih, std::optional<sol::tabl
         {
             if (delete_files.get_type() != sol::type::boolean)
             {
-                throw std::runtime_error("'delete_files' parameter must be boolean");
+                throw Error(Errors::Code::invalid_params, "'delete_files' parameter must be boolean");
             }
 
             if (delete_files.as<bool>())

@@ -3,16 +3,19 @@
 #include <optional>
 #include <string_view>
 
-#define PORLA_ERRORS(X)                                       \
-    X(parse_error,       -32700, "Parse error")               \
-    X(invalid_request,   -32600, "Invalid Request")           \
-    X(method_not_found,  -32601, "Method not found")          \
-    X(invalid_params,    -32602, "Invalid params")            \
-    X(internal_error,    -32603, "Internal error")            \
-    X(permission_denied,   1001, "Invocation not allowed")    \
-    X(session_not_loaded,    -2, "Session not loaded")        \
-    X(torrent_not_found,     -3, "Torrent not found")         \
-    X(libtorrent_error,   -5000, "libtorrent error")
+#define PORLA_ERRORS(X)                                             \
+    X(parse_error,            -32700, "Parse error")                \
+    X(invalid_request,        -32600, "Invalid Request")            \
+    X(method_not_found,       -32601, "Method not found")           \
+    X(invalid_params,         -32602, "Invalid params")             \
+    X(internal_error,         -32603, "Internal error")             \
+    X(permission_denied,        1001, "Invocation not allowed")     \
+    X(session_not_loaded,         -2, "Session not loaded")         \
+    X(torrent_not_found,          -3, "Torrent not found")          \
+    X(torrent_no_metadata,       -11, "Torrent has no metadata")    \
+    X(already_registered,        -48, "Already registered")         \
+    X(libtorrent_error,        -5000, "libtorrent error")           \
+    X(io_error,                -5001, "I/O error")
 
 namespace porla::Errors
 {
