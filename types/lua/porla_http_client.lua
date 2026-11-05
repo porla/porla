@@ -14,8 +14,8 @@ local http_client = {}
 --- Makes a HTTP request to the provided URL. The callback comes last.
 ---@param url string
 ---@param options HttpClientOptions
----@param callback fun(err: string?, res: PoHttpClientResponse?)
----@overload fun(url: string, callback: fun(err: string?, res: PoHttpClientResponse?))
+---@param callback fun(err: PoError?, res: PoHttpClientResponse?) # `err` is an `http_error` (`category = "curl"`); HTTP status codes are not errors
+---@overload fun(url: string, callback: fun(err: PoError?, res: PoHttpClientResponse?))
 function http_client.request(url, options, callback) end
 
 return http_client

@@ -12,10 +12,15 @@
 #include <boost/log/trivial.hpp>
 #include <curl/curl.h>
 
-#include "../../curlmulti.hpp"
 #include "../pluginstate.hpp"
+#include "../types/poerror.hpp"
+#include "../../curlmulti.hpp"
 
 using porla::Lua::Packages::HttpClient;
+using porla::Lua::Types::PoError;
+using porla::Lua::Error;
+
+namespace Errors = porla::Errors;
 
 namespace
 {
@@ -120,7 +125,7 @@ namespace
         return total;
     }
 
-    std::string TransferError(const CurlTransferState& state)
+    std::string TransferErrorText(const CurlTransferState& state)
     {
         if (state.result == CURLE_WRITE_ERROR || state.result == CURLE_FILESIZE_EXCEEDED)
         {
@@ -134,6 +139,15 @@ namespace
         }
 
         return curl_easy_strerror(state.result);
+    }
+
+    sol::table TransferError(lua_State* L, const CurlTransferState& state)
+    {
+        sol::table err = PoError::Make(L, Errors::Code::http_error, TransferErrorText(state));
+        err["category"] = "curl";
+        err["value"]    = static_cast<int>(state.result);
+
+        return err;
     }
 
     template<typename T>
@@ -171,7 +185,7 @@ sol::object HttpClient::Load(sol::this_state ts)
 
         if (timeout < 0 || connect_timeout < 0)
         {
-            throw std::runtime_error("http_client.request: timeout and connect_timeout must be >= 0");
+            throw Error(Errors::Code::invalid_params, "http_client.request: timeout and connect_timeout must be >= 0");
         }
 
         auto transfer_state = std::make_shared<CurlTransferState>();
@@ -185,7 +199,7 @@ sol::object HttpClient::Load(sol::this_state ts)
                     {
                         if (!key.is<std::string>() || !val.is<std::string>())
                         {
-                            throw std::runtime_error(
+                            throw Error(Errors::Code::invalid_params,
                                 "http_client.request: header keys and values must be strings");
                         }
 
@@ -204,7 +218,7 @@ sol::object HttpClient::Load(sol::this_state ts)
 
         if (easy.get() == nullptr)
         {
-            throw std::runtime_error("curl_easy_init failed");
+            throw Error(Errors::Code::internal_error, "curl_easy_init failed");
         }
 
         curl_easy_setopt(easy.get(), CURLOPT_URL,                 url.c_str());
@@ -284,7 +298,7 @@ sol::object HttpClient::Load(sol::this_state ts)
                         {
                             state->InvokeCallback(
                                 callback_id,
-                                TransferError(*transfer_state),
+                                TransferError(state->lua.lua_state(), *transfer_state),
                                 sol::lua_nil);
 
                             return;

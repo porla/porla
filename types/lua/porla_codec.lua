@@ -6,11 +6,11 @@ codec.hex  = {}
 
 ---@param data string
 ---@return any? value # Decoded value, or nil on error
----@return string? err # Parse error message, or nil on success
+---@return PoError? err # `decode_error`, or nil on success
 function codec.json.decode(data) end
 
----@param data string
----@return string
+---@return string? value # Decoded bytes, or nil on error
+---@return PoError? err # `decode_error`, or nil on success
 function codec.hex.decode(data) end
 
 ---@param data string

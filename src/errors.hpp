@@ -10,12 +10,21 @@
     X(invalid_params,         -32602, "Invalid params")             \
     X(internal_error,         -32603, "Internal error")             \
     X(permission_denied,        1001, "Invocation not allowed")     \
+    X(session_not_found,          -1, "Session not found")          \
     X(session_not_loaded,         -2, "Session not loaded")         \
     X(torrent_not_found,          -3, "Torrent not found")          \
+    X(torrent_already_added,     -10, "Torrent already in session") \
     X(torrent_no_metadata,       -11, "Torrent has no metadata")    \
+    X(torrent_add_failed,        -12, "Failed to add torrent")      \
+    X(preset_not_found,          -20, "Preset not found")           \
     X(already_registered,        -48, "Already registered")         \
+    X(decode_error,              -62, "Decode error")               \
+    X(decrypt_failed,            -63, "Decryption failed")          \
+    X(invalid_state,             -64, "Invalid state")              \
+    X(closed,                    -65, "Connection closed")          \
     X(libtorrent_error,        -5000, "libtorrent error")           \
-    X(io_error,                -5001, "I/O error")
+    X(io_error,                -5001, "I/O error")                  \
+    X(http_error,              -5002, "HTTP error")
 
 namespace porla::Errors
 {

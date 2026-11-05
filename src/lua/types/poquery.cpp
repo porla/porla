@@ -1,5 +1,7 @@
 #include "poquery.hpp"
 
+#include "poerror.hpp"
+
 #include "../../fields.hpp"
 #include "../../query/pql.hpp"
 
@@ -11,18 +13,15 @@ void PoQuery::Register(sol::state& lua)
         "PoQuery",
         sol::no_constructor,
         "includes", &PoQuery::Includes,
-        "parse", [](const std::string& pql) -> std::tuple<std::shared_ptr<PoQuery>, std::optional<std::string>>
+        "parse", [](sol::this_state ts, const std::string& pql) -> std::tuple<sol::object, sol::object>
         {
             try
             {
-                auto query = Query::PQL::Parse(pql);
-                return std::make_tuple(
-                    std::make_shared<PoQuery>(query),
-                    std::nullopt);
+                return { sol::make_object(ts, std::make_shared<PoQuery>(Query::PQL::Parse(pql))), sol::lua_nil };
             }
-            catch(const std::exception& e)
+            catch (const std::exception& e)
             {
-                return std::make_tuple(nullptr, e.what());
+                return { sol::lua_nil, PoError::Make(ts, porla::Errors::Code::invalid_params, e.what()) };
             }
         });
 }

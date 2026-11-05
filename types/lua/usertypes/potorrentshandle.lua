@@ -4,6 +4,8 @@
 local PoTorrentsHandle = {}
 
 ---@param params LtAddTorrentParams
+---@return LtInfoHash?
+---@return PoError? err # `session_not_found`, `session_not_loaded`, `torrent_already_added`, `preset_not_found`, `torrent_add_failed` or `invalid_params`
 function PoTorrentsHandle:add(params) end
 
 ---@param query PoQuery? # An optional query for filtering

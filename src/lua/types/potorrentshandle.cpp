@@ -15,6 +15,25 @@
 using porla::Lua::Types::PoTorrentsHandle;
 using porla::Lua::Types::PoTorrentsIterator;
 
+namespace
+{
+    porla::Errors::Code CodeOf(porla::TorrentsAddResult::Error error)
+    {
+        using AddError = porla::TorrentsAddResult::Error;
+        using Code     = porla::Errors::Code;
+
+        switch (error)
+        {
+        case AddError::SessionNotFound:  return Code::session_not_found;
+        case AddError::SessionNotLoaded: return Code::session_not_loaded;
+        case AddError::AlreadyInSession: return Code::torrent_already_added;
+        case AddError::MissingPreset:    return Code::preset_not_found;
+        case AddError::Failed:           return Code::torrent_add_failed;
+        default:                         return Code::invalid_params;
+        }
+    }
+}
+
 void PoTorrentsHandle::Register(sol::state& lua)
 {
     lua.new_usertype<PoTorrentsHandle>(
@@ -78,14 +97,14 @@ std::tuple<sol::object, sol::object> PoTorrentsHandle::Add(sol::this_state ts, c
     {
         // Prepare failed and allocated nothing, but ToParams may have created client data
         delete atp.userdata.get<TorrentClientData>();
-        return { sol::lua_nil, sol::make_object(lua, prepared.what) };
+        return { sol::lua_nil, PoError::Make(lua, CodeOf(prepared.error), prepared.what) };
     }
 
     const auto added = lua_state->torrents.Add(std::move(atp));
 
     if (!added)
     {
-        return { sol::lua_nil, sol::make_object(lua, added.what) };
+        return { sol::lua_nil, PoError::Make(lua, CodeOf(added.error), added.what) };
     }
 
     return { sol::make_object(lua, added.info_hash), sol::lua_nil };

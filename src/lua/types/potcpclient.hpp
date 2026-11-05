@@ -52,7 +52,6 @@ namespace porla::Lua::Types
         void ConnectComplete(std::size_t callback_id, const boost::system::error_code& ec2, const tcp::endpoint& endpoint);
         void Arm(std::optional<double> seconds);
         void Disarm();
-        std::string ErrorText(const boost::system::error_code& ec) const;
         void HandshakeComplete(std::size_t callback_id, const boost::system::error_code& ec);
         void Read(sol::main_protected_function callback);
         void ReadComplete(std::size_t callback_id, const boost::system::error_code& ec, std::size_t n);
@@ -64,6 +63,7 @@ namespace porla::Lua::Types
         void Write(const std::string& data, std::optional<sol::main_protected_function> callback);
         void WriteComplete(const boost::system::error_code& ec, std::size_t n);
         void WriteNext();
+        sol::table ToPoError(lua_State* L, const boost::system::error_code& ec) const;
 
         bool                                                  m_closed = false;
         std::optional<std::string>                            m_connect_host;

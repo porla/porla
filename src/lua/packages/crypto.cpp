@@ -3,16 +3,33 @@
 #include <boost/asio/co_spawn.hpp>
 #include <sodium.h>
 
-#include "../../auth/password.hpp"
 #include "../pluginstate.hpp"
+
+#include "../types/poerror.hpp"
 #include "../types/sohashstate.hpp"
 
+#include "../../auth/password.hpp"
+
 using porla::Lua::Packages::Crypto;
+using porla::Lua::Types::PoError;
+using porla::Lua::Error;
+
+namespace Errors = porla::Errors;
 
 namespace
 {
     constexpr unsigned char kSecretboxV1     = 0x01;
     constexpr std::size_t kSecretboxOverhead = 1 + crypto_secretbox_NONCEBYTES + crypto_secretbox_MACBYTES;
+
+    void CheckHashKey(const std::string& key)
+    {
+        if (!key.empty() && (key.size() < crypto_generichash_KEYBYTES_MIN || key.size() > crypto_generichash_KEYBYTES_MAX))
+        {
+            throw Error(Errors::Code::invalid_params,
+                "key must be empty or " + std::to_string(crypto_generichash_KEYBYTES_MIN) + "-"
+                + std::to_string(crypto_generichash_KEYBYTES_MAX) + " bytes");
+        }
+    }
 }
 
 sol::object Crypto::Load(sol::this_state ts)
@@ -25,7 +42,7 @@ sol::object Crypto::Load(sol::this_state ts)
     {
         if (key.size() != crypto_auth_KEYBYTES)
         {
-            throw sol::error("invalid key size");
+            throw Error(Errors::Code::invalid_params, "invalid key size");
         }
 
         unsigned char mac[crypto_auth_BYTES];
@@ -38,7 +55,7 @@ sol::object Crypto::Load(sol::this_state ts)
 
         if (result != 0)
         {
-            throw sol::error("crypto_auth failed");
+            throw Error(Errors::Code::internal_error, "crypto_auth failed");
         }
 
         return std::string(reinterpret_cast<const char*>(mac), sizeof(mac));
@@ -58,8 +75,8 @@ sol::object Crypto::Load(sol::this_state ts)
 
     tbl.set_function("auth_verify", [](const std::string& mac, const std::string& input, const std::string& key)
     {
-        if (mac.size() != crypto_auth_BYTES)    { throw sol::error("invalid mac size"); }
-        if (key.size() != crypto_auth_KEYBYTES) { throw sol::error("invalid key size"); }
+        if (mac.size() != crypto_auth_BYTES)    { throw Error(Errors::Code::invalid_params, "invalid mac size"); }
+        if (key.size() != crypto_auth_KEYBYTES) { throw Error(Errors::Code::invalid_params, "invalid key size"); }
 
         return crypto_auth_verify(
             reinterpret_cast<const unsigned char*>(mac.c_str()),
@@ -69,7 +86,7 @@ sol::object Crypto::Load(sol::this_state ts)
     });
 
     tbl.set_function("hash", sol::overload(
-        [](const std::string& input) -> std::optional<std::string>
+        [](const std::string& input)
         {
             std::string output;
             output.resize(crypto_generichash_BYTES, '\0');
@@ -84,13 +101,15 @@ sol::object Crypto::Load(sol::this_state ts)
 
             if (result < 0)
             {
-                return std::nullopt;
+                throw Error(Errors::Code::internal_error, "crypto_generichash failed");
             }
 
             return output;
         },
-        [](const std::string& input, const std::string& key) -> std::optional<std::string>
+        [](const std::string& input, const std::string& key)
         {
+            CheckHashKey(key);
+
             std::string output;
             output.resize(crypto_generichash_BYTES, '\0');
 
@@ -104,7 +123,7 @@ sol::object Crypto::Load(sol::this_state ts)
 
             if (result < 0)
             {
-                return std::nullopt;
+                throw Error(Errors::Code::internal_error, "crypto_generichash failed");
             }
 
             return output;
@@ -113,6 +132,8 @@ sol::object Crypto::Load(sol::this_state ts)
 
     tbl.set_function("hash_init", [](const std::string& key) -> std::shared_ptr<Types::SoHashState>
     {
+        CheckHashKey(key);
+
         crypto_generichash_state state;
 
         int result = crypto_generichash_init(
@@ -123,7 +144,7 @@ sol::object Crypto::Load(sol::this_state ts)
 
         if (result < 0)
         {
-            return nullptr;
+            throw Error(Errors::Code::internal_error, "crypto_generichash_init failed");
         }
 
         return std::make_shared<Types::SoHashState>(state);
@@ -159,7 +180,11 @@ sol::object Crypto::Load(sol::this_state ts)
 
                 if (e || !hashed.has_value())
                 {
-                    state->InvokeCallback(callback_id, "failed to hash password", sol::lua_nil);
+                    state->InvokeCallback(
+                        callback_id,
+                        PoError::Make(state->lua.lua_state(), Errors::Code::internal_error, "failed to hash password"),
+                        sol::lua_nil);
+
                     return;
                 }
 
@@ -189,7 +214,11 @@ sol::object Crypto::Load(sol::this_state ts)
 
                 if (e)
                 {
-                    state->InvokeCallback(callback_id, "failed to verify password", sol::lua_nil);
+                    state->InvokeCallback(
+                        callback_id,
+                        PoError::Make(state->lua.lua_state(), Errors::Code::internal_error, "failed to verify password"),
+                        sol::lua_nil);
+
                     return;
                 }
 
@@ -199,8 +228,8 @@ sol::object Crypto::Load(sol::this_state ts)
 
     tbl.set_function("randombytes", [](lua_Integer size)
     {
-        if (size < 0)    { throw sol::error("size must be non-negative"); }
-        if (size > 4096) { throw sol::error("size exceeds maximum of 4096 bytes"); }
+        if (size < 0)    { throw Error(Errors::Code::invalid_params, "size must be non-negative"); }
+        if (size > 4096) { throw Error(Errors::Code::invalid_params, "size exceeds maximum of 4096 bytes"); }
 
         std::string bytes;
         bytes.resize(static_cast<std::size_t>(size));
@@ -215,8 +244,8 @@ sol::object Crypto::Load(sol::this_state ts)
 
     tbl.set_function("randombytes_uniform", [](lua_Integer upper_bound)
     {
-        if (upper_bound <= 0)           { throw sol::error("upper_bound must be positive"); }
-        if (upper_bound > 0xFFFFFFFFll) { throw sol::error("upper_bound too large"); }
+        if (upper_bound <= 0)           { throw Error(Errors::Code::invalid_params, "upper_bound must be positive"); }
+        if (upper_bound > 0xFFFFFFFFll) { throw Error(Errors::Code::invalid_params, "upper_bound too large"); }
 
         return static_cast<lua_Integer>(
             randombytes_uniform(static_cast<uint32_t>(upper_bound)));
@@ -226,7 +255,7 @@ sol::object Crypto::Load(sol::this_state ts)
     {
         if (key.size() != crypto_secretbox_KEYBYTES)
         {
-            throw sol::error("invalid key size");
+            throw Error(Errors::Code::invalid_params, "invalid key size");
         }
 
         std::string out;
@@ -246,7 +275,7 @@ sol::object Crypto::Load(sol::this_state ts)
 
         if (result != 0)
         {
-            throw sol::error("crypto_secretbox_easy failed");
+            throw Error(Errors::Code::internal_error, "crypto_secretbox_easy failed");
         }
 
         return out;
@@ -264,11 +293,18 @@ sol::object Crypto::Load(sol::this_state ts)
         return out;
     });
 
-    tbl.set_function("secretbox_open", [](const std::string& box, const std::string& key) -> sol::optional<std::string>
+    tbl.set_function("secretbox_open", [](sol::this_state ts, const std::string& box, const std::string& key)
+        -> std::tuple<sol::object, sol::object>
     {
-        if (key.size() != crypto_secretbox_KEYBYTES)            { throw sol::error("invalid key size"); }
-        if (box.size() < kSecretboxOverhead)                    { return sol::nullopt; }
-        if (static_cast<unsigned char>(box[0]) != kSecretboxV1) { return sol::nullopt; }
+        if (key.size() != crypto_secretbox_KEYBYTES)
+        {
+            throw Error(Errors::Code::invalid_params, "invalid key size");
+        }
+
+        if (box.size() < kSecretboxOverhead || static_cast<unsigned char>(box[0]) != kSecretboxV1)
+        {
+            return { sol::lua_nil, PoError::Make(ts, Errors::Code::decrypt_failed, "not a secretbox") };
+        }
 
         const auto* buf = reinterpret_cast<const unsigned char*>(box.data());
 
@@ -284,10 +320,10 @@ sol::object Crypto::Load(sol::this_state ts)
 
         if (result != 0)
         {
-            return sol::nullopt;
+            return { sol::lua_nil, PoError::Make(ts, Errors::Code::decrypt_failed, "wrong key or tampered box") };
         }
 
-        return out;
+        return { sol::make_object(ts, out), sol::lua_nil };
     });
 
     return tbl;

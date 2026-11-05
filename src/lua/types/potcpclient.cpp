@@ -5,10 +5,16 @@
 #include <boost/log/trivial.hpp>
 #include <openssl/ssl.h>
 
+#include "poerror.hpp"
+
 #include "../pluginstate.hpp"
 
+using porla::Lua::Error;
+using porla::Lua::Types::PoError;
 using porla::Lua::Types::PoTcpClient;
 using PoTcpClientPtr = std::shared_ptr<PoTcpClient>;
+
+namespace Errors = porla::Errors;
 
 namespace
 {
@@ -16,7 +22,7 @@ namespace
     {
         if (key.get_type() != sol::type::string)
         {
-            throw sol::error(std::string(what) + ": option keys must be strings");
+            throw Error(Errors::Code::invalid_params, std::string(what) + ": option keys must be strings");
         }
 
         return key.as<std::string>();
@@ -26,7 +32,7 @@ namespace
     {
         if (value.get_type() != sol::type::number || value.as<double>() <= 0)
         {
-            throw sol::error("tcp_client: " + key + " must be a number of seconds > 0");
+            throw Error(Errors::Code::invalid_params, "tcp_client: " + key + " must be a number of seconds > 0");
         }
 
         return value.as<double>();
@@ -36,7 +42,7 @@ namespace
     {
         if (value.get_type() != sol::type::boolean)
         {
-            throw sol::error(std::string(what) + ": " + key + " must be a boolean");
+            throw Error(Errors::Code::invalid_params, std::string(what) + ": " + key + " must be a boolean");
         }
 
         return value.as<bool>();
@@ -55,7 +61,7 @@ PoTcpClient::Options PoTcpClient::ReadOptions(const sol::table& options)
         else if (key == "read_timeout")    result.read_timeout    = Seconds(v, key);
         else if (key == "nodelay")         result.nodelay         = Flag(v, "tcp_client", key);
         else if (key == "keepalive")       result.keepalive       = Flag(v, "tcp_client", key);
-        else throw sol::error("tcp_client: unknown option '" + key + "'");
+        else throw Error(Errors::Code::invalid_params, "tcp_client: unknown option '" + key + "'");
     }
 
     return result;
@@ -140,7 +146,7 @@ void PoTcpClient::ConnectComplete(std::size_t callback_id, const boost::system::
 
     if (ec)
     {
-        state->InvokeCallback(callback_id, ErrorText(ec));
+        state->InvokeCallback(callback_id, ToPoError(state->lua.lua_state(), ec));
         return;
     }
 
@@ -191,11 +197,6 @@ void PoTcpClient::Disarm()
     m_timer.cancel();
 }
 
-std::string PoTcpClient::ErrorText(const boost::system::error_code& ec) const
-{
-    return m_timed_out ? "timed out" : ec.message();
-}
-
 void PoTcpClient::HandshakeComplete(std::size_t callback_id, const boost::system::error_code& ec)
 {
     Disarm();
@@ -205,7 +206,7 @@ void PoTcpClient::HandshakeComplete(std::size_t callback_id, const boost::system
 
     if (ec)
     {
-        state->InvokeCallback(callback_id, ErrorText(ec));
+        state->InvokeCallback(callback_id, ToPoError(state->lua.lua_state(), ec));
         return;
     }
 
@@ -219,7 +220,7 @@ void PoTcpClient::Read(sol::main_protected_function callback)
 
     if (m_read_pending)
     {
-        throw sol::error("a read operation is already in progress");
+        throw Error(Errors::Code::invalid_state, "a read operation is already in progress");
     }
 
     if (m_read_buffer.size() < 8192)
@@ -256,7 +257,11 @@ void PoTcpClient::ReadComplete(std::size_t callback_id, const boost::system::err
 
     if (ec)
     {
-        state->InvokeCallback(callback_id, ErrorText(ec), sol::lua_nil);
+        state->InvokeCallback(
+            callback_id,
+            ToPoError(state->lua.lua_state(), ec),
+            n > 0 ? sol::make_object(state->lua, std::string(m_read_buffer.data(), n)) : sol::lua_nil);
+
         return;
     }
 
@@ -272,7 +277,7 @@ void PoTcpClient::ReadExactly(std::size_t n, sol::main_protected_function callba
 
     if (m_read_pending)
     {
-        throw sol::error("a read operation is already in progress");
+        throw Error(Errors::Code::invalid_state, "a read operation is already in progress");
     }
 
     m_read_buffer.resize(n);
@@ -311,7 +316,7 @@ void PoTcpClient::ResolveComplete(std::size_t callback_id, const boost::system::
     {
         Disarm();
 
-        state->InvokeCallback(callback_id, ErrorText(ec));
+        state->InvokeCallback(callback_id, ToPoError(state->lua.lua_state(), ec));
         return;
     }
 
@@ -342,7 +347,7 @@ void PoTcpClient::TlsWith(const sol::table& options, sol::main_protected_functio
         {
             if (v.get_type() != sol::type::string)
             {
-                throw sol::error("tls: " + key + " must be a string");
+                throw Error(Errors::Code::invalid_params, "tls: " + key + " must be a string");
             }
 
             auto& field = key == "ca_file"   ? tls.ca_file
@@ -354,7 +359,7 @@ void PoTcpClient::TlsWith(const sol::table& options, sol::main_protected_functio
         }
         else
         {
-            throw sol::error("tls: unknown option '" + key + "'");
+            throw Error(Errors::Code::invalid_params, "tls: unknown option '" + key + "'");
         }
     }
 
@@ -370,12 +375,19 @@ void PoTcpClient::StartTls(const TlsOptions& options, sol::main_protected_functi
         return;
     }
 
+    lua_State* L = state->lua.lua_state();
+
+    const auto fail = [&](const sol::table& err)
+    {
+        state->InvokeCallback(state->RegisterCallback(callback, true), err);
+    };
+
     const auto server_name = options.server_name ? options.server_name : m_connect_host;
 
     if (!server_name.has_value())
     {
         BOOST_LOG_TRIVIAL(error) << "lua[PoTcpClient] Cannot do TLS upgrade due to missing connect host";
-        state->InvokeCallback(state->RegisterCallback(callback, true), "missing connect host");
+        fail(PoError::Make(L, Errors::Code::invalid_state, "missing connect host"));
         return;
     }
 
@@ -398,7 +410,7 @@ void PoTcpClient::StartTls(const TlsOptions& options, sol::main_protected_functi
 
         if (ec)
         {
-            state->InvokeCallback(state->RegisterCallback(callback, true), "ca_file: " + ec.message());
+            fail(PoError::Make(L, Errors::Code::io_error, ec, "ca_file: " + ec.message()));
             return;
         }
     }
@@ -414,7 +426,7 @@ void PoTcpClient::StartTls(const TlsOptions& options, sol::main_protected_functi
 
     if (options.key_file && !options.cert_file)
     {
-        state->InvokeCallback(state->RegisterCallback(callback, true), "key_file needs cert_file");
+        fail(PoError::Make(L, Errors::Code::invalid_params, "key_file needs cert_file"));
         return;
     }
 
@@ -424,7 +436,7 @@ void PoTcpClient::StartTls(const TlsOptions& options, sol::main_protected_functi
 
         if (ec)
         {
-            state->InvokeCallback(state->RegisterCallback(callback, true), "cert_file: " + ec.message());
+            fail(PoError::Make(L, Errors::Code::io_error, ec, "cert_file: " + ec.message()));
             return;
         }
 
@@ -432,7 +444,7 @@ void PoTcpClient::StartTls(const TlsOptions& options, sol::main_protected_functi
 
         if (ec)
         {
-            state->InvokeCallback(state->RegisterCallback(callback, true), "key_file: " + ec.message());
+            fail(PoError::Make(L, Errors::Code::io_error, ec, "key_file: " + ec.message()));
             return;
         }
     }
@@ -446,7 +458,7 @@ void PoTcpClient::StartTls(const TlsOptions& options, sol::main_protected_functi
 
     if (ec)
     {
-        state->InvokeCallback(state->RegisterCallback(callback, true), ec.message());
+        fail(PoError::Make(L, Errors::Code::io_error, ec));
         return;
     }
 
@@ -503,7 +515,7 @@ void PoTcpClient::WriteComplete(const boost::system::error_code& ec, std::size_t
 
     if (write_op.callback_id.has_value())
     {
-        ec  ? state->InvokeCallback(write_op.callback_id.value(), ec.message())
+        ec  ? state->InvokeCallback(write_op.callback_id.value(), ToPoError(state->lua.lua_state(), ec))
             : state->InvokeCallback(write_op.callback_id.value(), sol::lua_nil);
     }
 
@@ -543,4 +555,19 @@ void PoTcpClient::WriteNext()
             buffer,
             handler);
     }
+}
+
+sol::table PoTcpClient::ToPoError(lua_State* L, const boost::system::error_code& ec) const
+{
+    if (m_timed_out)
+    {
+        return PoError::Make(L, Errors::Code::io_error, boost::asio::error::timed_out, "timed out");
+    }
+
+    if (ec == boost::asio::error::eof || ec == boost::asio::ssl::error::stream_truncated)
+    {
+        return PoError::Make(L, Errors::Code::closed, "connection closed by peer");
+    }
+
+    return PoError::Make(L, Errors::Code::io_error, ec);
 }

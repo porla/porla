@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <system_error>
 
 #include <libtorrent/error_code.hpp>
 #include <sol/sol.hpp>
@@ -32,6 +33,8 @@ namespace porla::Lua::Types
         static void Register(sol::state& lua);
 
         static sol::table Make(lua_State* L, Errors::Code code, const std::string& message);
+        static sol::table Make(lua_State* L, Errors::Code code, const lt::error_code& ec, const std::string& message = {});
+        static sol::table Make(lua_State* L, Errors::Code code, const std::error_code& ec, const std::string& message = {});
         static sol::object Construct(sol::this_state ts, const lt::error_code& ec, Errors::Code code = Errors::Code::libtorrent_error);
     };
 }
