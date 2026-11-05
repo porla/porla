@@ -150,6 +150,15 @@ namespace
         return err;
     }
 
+    bool IsToken(std::string_view value)
+    {
+        return !value.empty() && std::ranges::all_of(value, [](unsigned char c)
+        {
+            return std::isalnum(c)
+                || std::string_view{"!#$%&'*+-.^_`|~"}.find(static_cast<char>(c)) != std::string_view::npos;
+        });
+    }
+
     template<typename T>
     T GetOpt(const std::optional<sol::table>& tbl, const char* key, T default_value)
     {
@@ -176,12 +185,22 @@ sol::object HttpClient::Load(sol::this_state ts)
             return;
         }
 
-        const auto method           = GetOpt<std::string>(params, "method", "GET");
+        auto       method           = GetOpt<std::string>(params, "method", "GET");
         const auto body             = GetOpt<std::string>(params, "body", "");
         const auto timeout          = GetOpt<int>(params, "timeout", 30);
         const auto connect_timeout  = GetOpt<int>(params, "connect_timeout", 10);
         const auto follow_redirects = GetOpt<bool>(params, "follow_redirects", true);
         const auto max_redirects    = GetOpt<int>(params, "max_redirects", 10);
+
+        std::ranges::transform(
+            method,
+            method.begin(),
+            [](unsigned char c) { return std::toupper(c); });
+
+        if (!IsToken(method))
+        {
+            throw Error(Errors::Code::invalid_params, "http_client.request: method must be an HTTP token");
+        }
 
         if (timeout < 0 || connect_timeout < 0)
         {

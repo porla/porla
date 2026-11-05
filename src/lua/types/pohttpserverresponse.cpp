@@ -1,5 +1,8 @@
 #include "pohttpserverresponse.hpp"
 
+#include <algorithm>
+#include <cctype>
+
 #include <boost/log/trivial.hpp>
 #include <uWebSockets/Multipart.h>
 
@@ -205,7 +208,14 @@ PoHttpServerResponse::PoHttpServerResponse(std::shared_ptr<LuaState> lua_state, 
         headers[std::string{key}] = std::string{value};
     }
 
-    m_request["method"]  = std::string{req->getMethod()};
+    std::string method{req->getCaseSensitiveMethod()};
+
+    std::ranges::transform(
+        method,
+        method.begin(),
+        [](unsigned char c) { return std::toupper(c); });
+
+    m_request["method"]  = method;
     m_request["path"]    = std::string{req->getUrl()};
     m_request["query"]   = std::string{req->getQuery()};
     m_request["url"]     = std::string{req->getFullUrl()};
@@ -259,9 +269,10 @@ void PoHttpServerResponse::BuildForm(LuaState& state)
     const bool is_multipart  = IEquals(mime, "multipart/form-data");
     const bool is_urlencoded = IEquals(mime, "application/x-www-form-urlencoded");
 
+    if (m_body) { m_request["body"] = *m_body; }
+
     if (!is_multipart && !is_urlencoded)
     {
-        if (m_body) { m_request["body"] = *m_body; }
         return;
     }
 
@@ -281,7 +292,6 @@ void PoHttpServerResponse::BuildForm(LuaState& state)
 
         form["kind"] = "urlencoded";
         form["ok"]   = true;
-        form["body"] = m_body ? *m_body : std::string{};
     }
     else
     {
