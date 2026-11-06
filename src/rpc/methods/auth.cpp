@@ -12,8 +12,14 @@
 #include "../../data/models/tokens.hpp"
 #include "../../data/models/users.hpp"
 #include "../../json/utils.hpp"
+#include "../../logger.hpp"
 
 using boost::asio::awaitable;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("rpc"); }
+}
 
 namespace porla::Rpc::Methods::Auth
 {
@@ -135,7 +141,9 @@ namespace porla::Rpc::Methods::Auth
 
             if (porla::Data::Models::Users::Any(db))
             {
-                BOOST_LOG_TRIVIAL(warning) << "An initial user was created while hashing password";
+                BOOST_LOG_SEV(logger::get(), Log::warning)
+                    << "An initial user was created while hashing password";
+
                 throw Error(-1, "Already initialized");
             }
 
@@ -146,7 +154,9 @@ namespace porla::Rpc::Methods::Auth
                     .password_hashed = hashed_password.value()
                 });
 
-            BOOST_LOG_TRIVIAL(info) << "User " << req.username << " created";
+            BOOST_LOG_SEV(logger::get(), Log::info)
+                << Log::Property("user", req.username)
+                << "User " << req.username << " created";
         }
 
         awaitable<nlohmann::json> Login(boost::asio::thread_pool& hash_pool, sqlite3* db, const LoginReq& req, Call& call)
@@ -180,7 +190,10 @@ namespace porla::Rpc::Methods::Auth
                         user->id,
                         fresh_password.value());
 
-                    BOOST_LOG_TRIVIAL(info) << "Updated password hash for user " << user->username;
+                    BOOST_LOG_SEV(logger::get(), Log::info)
+                        << Log::Property("user", user->username)
+                        << Log::Property("user_id", user->id)
+                        << "Updated password hash for user " << user->username;
                 }
             }
 
@@ -188,16 +201,18 @@ namespace porla::Rpc::Methods::Auth
 
             if (const int removed = Data::Models::Tokens::RemoveExpiredSessions(db, now); removed > 0)
             {
-                BOOST_LOG_TRIVIAL(debug) << "Removed " << removed << " expired session(s)";
+                PORLA_LOG(logger::get(), debug,
+                    "Removed {count} expired session(s)", removed);
             }
 
             // Make room for the new session.
             if (const int removed = Data::Models::Tokens::RemoveLeastRecentlyUsedSessions(db, user->id, porla::Auth::Tokens::kMaxSessionsPerUser - 1); removed > 0)
             {
-                BOOST_LOG_TRIVIAL(info)
-                    << "User " << user->username << " has more than "
-                    << porla::Auth::Tokens::kMaxSessionsPerUser
-                    << " sessions - ended the " << removed << " least recently used";
+                PORLA_LOG(logger::get(), info,
+                    "User {user} has more than {max_count} sessions - ended the {count} least recently used",
+                    user->username,
+                    porla::Auth::Tokens::kMaxSessionsPerUser,
+                    removed);
             }
 
             const auto& caller = call.Caller();
@@ -213,7 +228,10 @@ namespace porla::Rpc::Methods::Auth
                     .remote_address = caller.remote_address.empty() ? std::nullopt : std::optional(caller.remote_address)
                 });
 
-            BOOST_LOG_TRIVIAL(info) << "User " << user->username << " logged in (session " << session.id << ")";
+            BOOST_LOG_SEV(logger::get(), Log::info)
+                << Log::Property("user", user->username)
+                << Log::Property("session_id", session.id)
+                << "User " << user->username << " logged in";
 
             call.Header("Set-Cookie", CreateAuthCookie("porla-auth-token", session.token, kCookieMaxAge, false));
 
@@ -227,7 +245,10 @@ namespace porla::Rpc::Methods::Auth
             if (const auto& id = call.Caller().token_id)
             {
                 Data::Models::Tokens::Remove(db, *id);
-                BOOST_LOG_TRIVIAL(info) << "Session " << *id << " logged out";
+
+                PORLA_LOG(logger::get(), info,
+                    "Session {session_id} logged out",
+                    *id);
             }
 
             call.Header("Set-Cookie", CreateAuthCookie("porla-auth-token", "", 0, false));
@@ -255,7 +276,9 @@ namespace porla::Rpc::Methods::Auth
                     .expires_at = req.expires_at
                 });
 
-            BOOST_LOG_TRIVIAL(info) << "API key " << req.name << " created with ID " << key.id;
+            BOOST_LOG_SEV(logger::get(), Log::info)
+                << Log::Property("token_id", key.id)
+                << "API key " << req.name << " created";
 
             co_return nlohmann::json({
                 {"id", key.id},
@@ -300,7 +323,11 @@ namespace porla::Rpc::Methods::Auth
             }
 
             Data::Models::Tokens::Remove(db, req.id);
-            BOOST_LOG_TRIVIAL(info) << "API key " << req.id << " removed";
+
+            BOOST_LOG_SEV(logger::get(), Log::info)
+                << Log::Property("token_id", req.id)
+                << "API key " << req.id << " removed";
+
             co_return;
         }
 
@@ -334,7 +361,11 @@ namespace porla::Rpc::Methods::Auth
             }
 
             Data::Models::Tokens::Remove(db, req.id);
-            BOOST_LOG_TRIVIAL(info) << "Session " << req.id << " removed";
+
+            BOOST_LOG_SEV(logger::get(), Log::info)
+                << Log::Property("token_id", req.id)
+                << "Session " << req.id << " removed";
+
             co_return;
         }
     }

@@ -2,14 +2,20 @@
 
 #include <ctime>
 
-#include <boost/log/trivial.hpp>
 #include <libtorrent/bdecode.hpp>
 #include <nlohmann/json.hpp>
 
 #include "../statement.hpp"
 
+#include "../../logger.hpp"
+
 using json = nlohmann::json;
 using porla::Data::Statement;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("db"); }
+}
 
 namespace
 {
@@ -41,7 +47,10 @@ namespace
 
         if (userdata.is_discarded() || !userdata.is_object())
         {
-            BOOST_LOG_TRIVIAL(warning) << "Unparsable userdata found - ID " << row.id;
+            BOOST_LOG_SEV(logger::get(), porla::Log::warning)
+                << porla::Log::Property("addtorrentparams_id", row.id)
+                << "Unparsable userdata found";
+
             return;
         }
 
@@ -68,7 +77,8 @@ namespace
 
 int porla::Data::Migrations::AddCompletedAt(sqlite3* db)
 {
-    BOOST_LOG_TRIVIAL(info) << "Moving 'signal:finished' markers to completed_at";
+    BOOST_LOG_SEV(logger::get(), Log::info)
+        << "Moving 'signal:finished' markers to completed_at";
 
     try
     {
@@ -107,7 +117,10 @@ int porla::Data::Migrations::AddCompletedAt(sqlite3* db)
     }
     catch (const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to migrate finished markers: " << e.what();
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("error", e.what())
+            << "Failed to migrate finished markers";
+
         return SQLITE_ERROR;
     }
 

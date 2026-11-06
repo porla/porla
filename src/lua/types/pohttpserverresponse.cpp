@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cctype>
 
-#include <boost/log/trivial.hpp>
 #include <uWebSockets/Multipart.h>
 
 #include "pohttpformfile.hpp"

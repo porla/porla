@@ -15,6 +15,7 @@ namespace porla::Lua::Packages
     PORLA_LUA_PACKAGE(HttpServer)
     PORLA_LUA_PACKAGE(JsonRpc)
     PORLA_LUA_PACKAGE(Kv)
+    PORLA_LUA_PACKAGE(Log)
     PORLA_LUA_PACKAGE(Presets)
     PORLA_LUA_PACKAGE(Runtime)
     PORLA_LUA_PACKAGE(Sessions)

@@ -1,12 +1,18 @@
 #include "../migrations.hpp"
 
-#include <boost/log/trivial.hpp>
+#include "../../logger.hpp"
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("db"); }
+}
 
 int porla::Data::Migrations::TorrentsMetadata(sqlite3* db)
 {
-    BOOST_LOG_TRIVIAL(info) << "Creating 'torrentsmetadata' table";
+    BOOST_LOG_SEV(logger::get(), Log::info)
+        << "Creating 'torrentsmetadata' table";
 
-    int res = sqlite3_exec(
+    return sqlite3_exec(
         db,
         "CREATE TABLE torrentsmetadata ("
             "id INTEGER PRIMARY KEY,"
@@ -20,6 +26,4 @@ int porla::Data::Migrations::TorrentsMetadata(sqlite3* db)
         nullptr,
         nullptr,
         nullptr);
-
-    return res;
 }

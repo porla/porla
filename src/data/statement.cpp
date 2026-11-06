@@ -2,7 +2,12 @@
 
 #include <map>
 
-#include <boost/log/trivial.hpp>
+#include "../logger.hpp"
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("db"); }
+}
 
 using porla::Data::Statement;
 
@@ -124,9 +129,14 @@ Statement::Statement(sqlite3_stmt *stmt)
 
 Statement::~Statement()
 {
+    sqlite3* db = sqlite3_db_handle(m_stmt);
+
+    // sqlite3_finalize frees m_stmt even when it fails
     if (sqlite3_finalize(m_stmt) != SQLITE_OK)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to finalize SQLite statement";
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("error", sqlite3_errmsg(db))
+            << "Failed to finalize SQLite statement";
     }
 }
 Statement& Statement::Check(int res, const std::string& param)
@@ -159,7 +169,11 @@ Statement Statement::Prepare(sqlite3 *db, std::string_view sql)
 
     if (sqlite3_prepare_v2(db, sql.data(), static_cast<int>(sql.size()), &stmt, nullptr) != SQLITE_OK)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to prepare SQLite statement: " << sqlite3_errmsg(db);
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("error", sqlite3_errmsg(db))
+            << Log::Property("statement", sql)
+            << "Failed to prepare SQLite statement";
+
         throw std::runtime_error("Failed to prepare SQLite statement: " + std::string(sqlite3_errmsg(db)));
     }
 
@@ -229,7 +243,9 @@ void Statement::Execute()
         return;
     }
 
-    BOOST_LOG_TRIVIAL(error) << "Unexpected SQLite return code for Execute. If results are expected, use Step instead. Expected 101, got " << res;
+    BOOST_LOG_SEV(logger::get(), Log::error)
+        << Log::Property("code", res)
+        << "Unexpected SQLite return code for Execute. If results are expected, use Step instead. Expected 101, got " << res;
 
     throw std::runtime_error("Unexpected SQLite return code for Execute: " + std::to_string(res));
 }
@@ -267,7 +283,10 @@ void Statement::Run(const std::function<void(const Statement::IRow&)>& cb, bool 
             break;
         }
         default:
-            BOOST_LOG_TRIVIAL(error) << "Unexpected SQLite return code " << res;
+            BOOST_LOG_SEV(logger::get(), Log::error)
+                << Log::Property("code", res)
+                << "Unexpected SQLite return code " << res;
+
             throw std::runtime_error("Unexpected SQLite return code");
         }
     } while (true);

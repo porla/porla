@@ -1,17 +1,24 @@
 #include "../migrations.hpp"
 
-#include <boost/log/trivial.hpp>
 #include <libtorrent/bencode.hpp>
 #include <libtorrent/session_params.hpp>
 #include <libtorrent/settings_pack.hpp>
 
 #include "../statement.hpp"
 
+#include "../../logger.hpp"
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("db"); }
+}
+
 namespace lt = libtorrent;
 
 int porla::Data::Migrations::Sessions(sqlite3 *db)
 {
-    BOOST_LOG_TRIVIAL(info) << "Adding 'sessions' table";
+    BOOST_LOG_SEV(logger::get(), Log::info)
+        << "Adding 'sessions' table";
 
     int res = sqlite3_exec(
         db,
@@ -42,7 +49,8 @@ int porla::Data::Migrations::Sessions(sqlite3 *db)
         return res;
     }
 
-    BOOST_LOG_TRIVIAL(info) << "Inserting default session";
+    BOOST_LOG_SEV(logger::get(), Log::info)
+        << "Inserting default session";
 
     lt::session_params params;
     params.settings = lt::default_settings();

@@ -1,6 +1,5 @@
 #include <boost/asio.hpp>
 #include <boost/log/expressions.hpp>
-#include <boost/log/trivial.hpp>
 #include <cmrc/cmrc.hpp>
 #include <curl/curl.h>
 #include <sodium.h>
@@ -27,6 +26,7 @@
 #include "rpc/methods/auth.hpp"
 #include "rpc/methods/fs.hpp"
 #include "rpc/methods/kv.hpp"
+#include "rpc/methods/logs.hpp"
 #include "rpc/methods/mmdb.hpp"
 #include "rpc/methods/plugins.hpp"
 #include "rpc/methods/presets.hpp"
@@ -35,6 +35,11 @@
 #include "rpc/methods/torrents.hpp"
 
 CMRC_DECLARE(porla_lua);
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("main"); }
+}
 
 extern "C"
 {
@@ -120,7 +125,7 @@ int main(int argc, char* argv[])
         return porla::CmdArgs::Help();
     }
 
-    porla::Logger::Setup(cmd);
+    const auto logs = porla::Log::Setup(cmd);
 
     std::unique_ptr<porla::Config> cfg;
 
@@ -130,7 +135,9 @@ int main(int argc, char* argv[])
     }
     catch (const std::exception& ex)
     {
-        BOOST_LOG_TRIVIAL(fatal) << "Failed to load configuration: " << ex.what();
+        BOOST_LOG_SEV(logger::get(), porla::Log::fatal)
+            << porla::Log::Property("error", ex.what())
+            << "Failed to load configuration";
         return -1;
     }
 
@@ -143,7 +150,10 @@ int main(int argc, char* argv[])
         signals.async_wait(
             [&io](boost::system::error_code const& ec, int signal)
             {
-                BOOST_LOG_TRIVIAL(info) << "Interrupt received (" << signal << ") - stopping...";
+                BOOST_LOG_SEV(logger::get(), porla::Log::info)
+                    << porla::Log::Property("signal", signal)
+                    << "Interrupt received - stopping...";
+
                 io.stop();
             });
 
@@ -197,6 +207,7 @@ int main(int argc, char* argv[])
         porla::Rpc::Methods::Auth::Register(io, *jsonrpc, sodium_hash_pool, cfg->db);
         porla::Rpc::Methods::Fs::Register(io, *jsonrpc);
         porla::Rpc::Methods::Kv::Register(io, *jsonrpc, kv);
+        porla::Rpc::Methods::Logs::Register(io, *jsonrpc, *logs);
         porla::Rpc::Methods::Mmdb::Register(io, *jsonrpc, kv, events);
         porla::Rpc::Methods::Plugins::Register(io, *curl_multi_instance, *jsonrpc, plugins, cfg->state_dir);
         porla::Rpc::Methods::Presets::Register(io, *jsonrpc, presets);
@@ -223,7 +234,9 @@ int main(int argc, char* argv[])
                 }
                 catch (const std::exception& e)
                 {
-                    BOOST_LOG_TRIVIAL(error) << "Failed to load plugins: " << e.what();
+                    BOOST_LOG_SEV(logger::get(), porla::Log::error)
+                        << porla::Log::Property("error", e.what())
+                        << "Failed to load plugins";
                 }
 
                 std::string http_base_path = cfg->http_base_path.value_or("/");
@@ -271,7 +284,8 @@ int main(int argc, char* argv[])
                     cfg->http_port.value_or(1337),
                     [](const auto* t)
                     {
-                        BOOST_LOG_TRIVIAL(info) << "HTTP server listening";
+                        BOOST_LOG_SEV(logger::get(), porla::Log::info)
+                            << "HTTP server listening";
                     });
             });
 
@@ -289,14 +303,17 @@ int main(int argc, char* argv[])
             }
             catch(const std::exception& e)
             {
-                BOOST_LOG_TRIVIAL(error) << "Unhandled exception in event loop: " << e.what();
+                BOOST_LOG_SEV(logger::get(), porla::Log::error)
+                    << porla::Log::Property("error", e.what())
+                    << "Unhandled exception in event loop";
             }
         }
     }
 
     curl_global_cleanup();
 
-    BOOST_LOG_TRIVIAL(info) << "Bye";
+    BOOST_LOG_SEV(logger::get(), porla::Log::info)
+        << "Bye";
 
     return 0;
 }

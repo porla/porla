@@ -7,8 +7,8 @@ porla = {}
 ---@type PoJsonNull
 porla.null = nil
 
----Logs the arguments at info level, tab-separated and converted with `tostring`, prefixed with the plugin id.
----@param ... any
+---Logs the arguments at info level, tab-separated and converted with `tostring`, tagged with the plugin id.
+---The same as `require("porla_log").info`.
 function print(...) end
 
 ---The table a plugin's entry point returns; returning anything else fails the load.

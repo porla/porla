@@ -2,8 +2,6 @@
 
 #include <utility>
 
-#include <boost/log/trivial.hpp>
-
 #include <libtorrent/alert_types.hpp>
 #include <libtorrent/session_stats.hpp>
 
@@ -13,6 +11,8 @@
 #include "../sessionevent.hpp"
 
 #include "../../events.hpp"
+#include "../../logger.hpp"
+#include "../../utils/ltlogvalue.hpp"
 
 using porla::Session;
 
@@ -33,9 +33,9 @@ void Session::OnAlertsDroppedAlert(const lt::alerts_dropped_alert* alert)
         }
     }
 
-    BOOST_LOG_TRIVIAL(warning)
-        << Log() << "The libtorrent alert queue is full and dropped "
-        << types << " alerts. Consider raising alert_queue_size.";
+    BOOST_LOG_SEV(m_log, Log::warning)
+        << "The libtorrent alert queue is full and dropped "
+        << types << " alerts. Consider raising alert_queue_size";
 
     if (alert->dropped_alerts.test(lt::add_torrent_alert::alert_type)
         || alert->dropped_alerts.test(lt::torrent_removed_alert::alert_type))
@@ -63,12 +63,12 @@ void Session::OnDhtStatsAlert(const lt::dht_stats_alert* alert)
 
 void Session::OnListenFailedAlert(const lt::listen_failed_alert* alert)
 {
-    BOOST_LOG_TRIVIAL(warning) << Log() << alert->message();
+    BOOST_LOG_SEV(m_log, Log::warning) << alert->message();
 }
 
 void Session::OnListenSucceededAlert(const lt::listen_succeeded_alert* alert)
 {
-    BOOST_LOG_TRIVIAL(info) << Log() << alert->message();
+    BOOST_LOG_SEV(m_log, Log::info) << alert->message();
 }
 
 void Session::OnSessionStatsAlert(const lt::session_stats_alert* alert)
@@ -102,8 +102,9 @@ void Session::OnStateUpdateAlert(const lt::state_update_alert* alert)
         // could have missed an alert
         if (it == m_torrents.end() || it->second.state != Torrent::State::Current)
         {
-            BOOST_LOG_TRIVIAL(debug)
-                << Log(status.info_hashes) << "Received state update for non-tracked torrent";
+            BOOST_LOG_SEV(m_log, Log::debug)
+                << Log::Property("torrent", status.info_hashes)
+                << "Received state update for non-tracked torrent";
 
             m_jobs->Trigger<Jobs::ReconcileTorrents>();
 
@@ -122,8 +123,9 @@ void Session::OnStateUpdateAlert(const lt::state_update_alert* alert)
         {
             if (!it->second.metadata_announced)
             {
-                BOOST_LOG_TRIVIAL(info)
-                    << Log(status.info_hashes) << "Metadata received from a state update - alert was dropped";
+                BOOST_LOG_SEV(m_log, Log::info)
+                    << Log::Property("torrent", status.info_hashes)
+                    << "Metadata received from a state update - alert was dropped";
             }
 
             MetadataReceived(status.handle, &it->second);

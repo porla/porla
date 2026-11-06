@@ -7,7 +7,6 @@
 #include <string>
 
 #include <boost/asio/awaitable.hpp>
-#include <boost/log/trivial.hpp>
 
 #include "../functionmethod.hpp"
 #include "../jsonrpc.hpp"
@@ -15,6 +14,7 @@
 #include "../../curlmulti.hpp"
 #include "../../json/github.hpp"
 #include "../../json/utils.hpp"
+#include "../../logger.hpp"
 #include "../../lua/plugin.hpp"
 #include "../../lua/pluginmanifest.hpp"
 #include "../../lua/pluginsource.hpp"
@@ -23,6 +23,11 @@
 using boost::asio::awaitable;
 
 namespace fs = std::filesystem;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("rpc"); }
+}
 
 namespace porla::Rpc::Methods::Plugins
 {
@@ -197,7 +202,9 @@ namespace porla::Rpc::Methods::Plugins
                 throw Error(code, "Failed to write plugin archive to " + download.string());
             }
 
-            BOOST_LOG_TRIVIAL(debug) << "Wrote plugin to " << download;
+            BOOST_LOG_SEV(logger::get(), Log::debug)
+                << Log::Property("path", download)
+                << "Wrote plugin file to " << download;
 
             return download;
         }
@@ -314,7 +321,9 @@ namespace porla::Rpc::Methods::Plugins
             std::stringstream url;
             url << "https://api.github.com/repos/" << req.owner << "/" << req.repository << "/releases/tags/" << req.version;
 
-            BOOST_LOG_TRIVIAL(trace) << "Begin installation of plugin from " << url.str();
+            BOOST_LOG_SEV(logger::get(), Log::debug)
+                << Log::Property("url", url.str())
+                << "Begin installation of plugin from " << url.str();
 
             const auto [
                 release_status,
@@ -348,10 +357,10 @@ namespace porla::Rpc::Methods::Plugins
                 throw Error(-7, "Plugin path is used by another plugin", {{"id", existing->id}});
             }
 
-            BOOST_LOG_TRIVIAL(info)
-                << "Found version "
-                << release.tag_name
-                << " of plugin - fetching from " << release.assets[0].browser_download_url;
+            PORLA_LOG(logger::get(), info,
+                "Found version {version} of plugin - fetching from {url}",
+                release.tag_name,
+                release.assets[0].browser_download_url);
 
             const auto [
                 asset_status,
@@ -507,7 +516,9 @@ namespace porla::Rpc::Methods::Plugins
                 << repository.value()
                 << "/releases/tags/" << req.version;
 
-            BOOST_LOG_TRIVIAL(trace) << "Begin upgrading plugin from " << url.str();
+            PORLA_LOG(logger::get(), debug,
+                "Begin upgrading plugin from {url}",
+                url.str());
 
             const auto [
                 release_status,
@@ -541,10 +552,10 @@ namespace porla::Rpc::Methods::Plugins
                 throw Error(-9, "Plugin path is used by another plugin", {{"id", existing->id}});
             }
 
-            BOOST_LOG_TRIVIAL(info)
-                << "Found version "
-                << release.tag_name
-                << " of plugin - fetching from " << release.assets[0].browser_download_url;
+            PORLA_LOG(logger::get(), info,
+                "Found version {version} of plugin - fetching from {url}",
+                release.tag_name,
+                release.assets[0].browser_download_url);
 
             const auto [
                 asset_status,

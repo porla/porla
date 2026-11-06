@@ -9,7 +9,6 @@
 #include <string_view>
 
 #include <boost/asio.hpp>
-#include <boost/log/trivial.hpp>
 #include <curl/curl.h>
 
 #include "../pluginstate.hpp"

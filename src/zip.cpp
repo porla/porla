@@ -1,9 +1,15 @@
 #include "zip.hpp"
 
-#include <boost/log/trivial.hpp>
 #include <zip.h>
 
+#include "logger.hpp"
+
 using porla::Zip;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("zip"); }
+}
 
 std::map<std::string, std::vector<char>> Zip::Load(const std::vector<char>& buffer)
 {
@@ -18,7 +24,10 @@ std::map<std::string, std::vector<char>> Zip::Load(const std::vector<char>& buff
 
     if (source == nullptr)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to create zip source from buffer: " << zip_error_strerror(&err);
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("error", zip_error_strerror(&err))
+            << "Failed to create zip source from buffer";
+
         return {};
     }
 
@@ -26,7 +35,10 @@ std::map<std::string, std::vector<char>> Zip::Load(const std::vector<char>& buff
 
     if (archive == nullptr)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to open zip archive from source: " << zip_error_strerror(&err);
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("error", zip_error_strerror(&err))
+            << "Failed to open zip archive from source";
+
         zip_source_close(source);
         return {};
     }
@@ -42,7 +54,10 @@ std::map<std::string, std::vector<char>> Zip::Load(const std::vector<char>& buff
 
         if (zip_stat_index(archive, i, 0, &st) != 0)
         {
-            BOOST_LOG_TRIVIAL(warning) << "Failed to stat zip index " << i << ": " << zip_error_strerror(zip_get_error(archive));
+            BOOST_LOG_SEV(logger::get(), Log::warning)
+                << Log::Property("error", zip_error_strerror(zip_get_error(archive)))
+                << "Failed to stat zip index " << i;
+
             continue;
         }
 
@@ -55,7 +70,11 @@ std::map<std::string, std::vector<char>> Zip::Load(const std::vector<char>& buff
 
         if (file == nullptr)
         {
-            BOOST_LOG_TRIVIAL(warning) << "Failed to open file " << st.name << " in archive: " << zip_error_strerror(zip_get_error(archive));
+            BOOST_LOG_SEV(logger::get(), Log::warning)
+                << Log::Property("error", zip_error_strerror(zip_get_error(archive)))
+                << Log::Property("file", st.name)
+                << "Failed to open file " << st.name;
+
             continue;
         }
 

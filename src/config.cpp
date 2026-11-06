@@ -5,16 +5,21 @@
 #include <filesystem>
 #include <string>
 
-#include <boost/log/trivial.hpp>
 #include <boost/program_options.hpp>
 
 #include "data/migrate.hpp"
 #include "httphostguard.hpp"
+#include "logger.hpp"
 #include "utils/string.hpp"
 
 namespace fs = std::filesystem;
 
 using porla::Config;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("config"); }
+}
 
 namespace
 {
@@ -129,7 +134,8 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
     // Logins are server-side sessions now - nothing is signed, so there is no secret key.
     if (std::getenv("PORLA_SECRET_KEY") != nullptr)
     {
-        BOOST_LOG_TRIVIAL(warning) << "PORLA_SECRET_KEY is no longer used and can be removed";
+        BOOST_LOG_SEV(logger::get(), Log::warning)
+            << "PORLA_SECRET_KEY is no longer used and can be removed";
     }
 
     if (cmd.count("config-file"))
@@ -144,7 +150,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         std::error_code ec;
         config_file_found = fs::is_regular_file(*cfg->config_file, ec);
 
-        BOOST_LOG_TRIVIAL(warning)
+        BOOST_LOG_SEV(logger::get(), Log::warning)
             << "Config file " << fs::absolute(*cfg->config_file, ec)
             << (config_file_found ? " is ignored" : " does not exist")
             << " - Porla no longer reads config files. Use flags or PORLA_* environment variables instead.";
@@ -172,7 +178,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
             && fs::exists(old_db_path, ec)
             && fs::weakly_canonical(cfg->state_dir, ec) != fs::weakly_canonical(fs::current_path(), ec))
         {
-            BOOST_LOG_TRIVIAL(fatal)
+            BOOST_LOG_SEV(logger::get(), Log::fatal)
                 << "Found a database at " << old_db_path << " but none in the state directory "
                 << cfg->state_dir << ". Move porla.sqlite (and any porla.sqlite-wal/-shm next to it) into "
                 << cfg->state_dir << ", or set --state-dir/PORLA_STATE_DIR to " << fs::current_path();
@@ -184,7 +190,7 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
         // empty database (and auth.init open to anyone) because it isn't read anymore.
         if (config_file_found && !fs::exists(db_path, ec) && !ec)
         {
-            BOOST_LOG_TRIVIAL(fatal)
+            BOOST_LOG_SEV(logger::get(), Log::fatal)
                 << "Config file " << *cfg->config_file << " is no longer read, and the database " << db_path
                 << " does not exist. Pass --db/--state-dir (or PORLA_DB/PORLA_STATE_DIR) to point at your"
                 << " existing database, or remove the config file for a fresh install.";
@@ -199,19 +205,26 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
     if (cfg->http_host_guard->Enabled())
     {
-        BOOST_LOG_TRIVIAL(info) << "HTTP requests are only answered for localhost names"
+        BOOST_LOG_SEV(logger::get(), Log::warning)
+            << "HTTP requests are only answered for localhost names"
             << (cfg->http_allowed_hosts.empty() ? "" : " and the allowed hosts");
     }
 
     if (std::error_code ec; !fs::create_directories(cfg->state_dir, ec) && ec)
     {
-        BOOST_LOG_TRIVIAL(fatal) << "Failed to create state directory " << cfg->state_dir << ": " << ec.message();
+        BOOST_LOG_SEV(logger::get(), Log::fatal)
+            << Log::Property("error", ec.message())
+            << Log::Property("path", cfg->state_dir)
+            << "Failed to create state directory";
+
         throw std::runtime_error("Failed to create state directory");
     }
 
     if (sqlite3_open(cfg->db_file.value_or("porla.sqlite").c_str(), &cfg->db) != SQLITE_OK)
     {
-        BOOST_LOG_TRIVIAL(fatal) << "Failed to open SQLite connection: " << sqlite3_errmsg(cfg->db);
+        BOOST_LOG_SEV(logger::get(), Log::fatal)
+            << Log::Property("error", sqlite3_errmsg(cfg->db))
+            << "Failed to open SQLite connection";
 
         // sqlite3_open returns a handle even when it fails - close it so ~Config doesn't use it
         sqlite3_close(cfg->db);
@@ -222,24 +235,32 @@ std::unique_ptr<Config> Config::Load(const boost::program_options::variables_map
 
     if (sqlite3_exec(cfg->db, "PRAGMA journal_mode=WAL;", nullptr, nullptr, nullptr) != SQLITE_OK)
     {
-        BOOST_LOG_TRIVIAL(fatal) << "Failed to enable WAL journal mode: " << sqlite3_errmsg(cfg->db);
+        BOOST_LOG_SEV(logger::get(), Log::fatal)
+            << Log::Property("error", sqlite3_errmsg(cfg->db))
+            << "Failed to enable WAL journal mode";
+
         throw std::runtime_error("Failed to enable WAL journal mode");
     }
 
     if (sqlite3_exec(cfg->db, "PRAGMA synchronous=NORMAL;", nullptr, nullptr, nullptr) != SQLITE_OK)
     {
-        BOOST_LOG_TRIVIAL(warning) << "Failed to set synchronous mode: " << sqlite3_errmsg(cfg->db);
+        BOOST_LOG_SEV(logger::get(), Log::warning)
+            << Log::Property("error", sqlite3_errmsg(cfg->db))
+            << "Failed to set synchronous mode";
     }
 
     if (sqlite3_busy_timeout(cfg->db, 10000) != SQLITE_OK)
     {
-        BOOST_LOG_TRIVIAL(warning)
-            << "Failed to set SQLite busy timeout: " << sqlite3_errmsg(cfg->db);
+        BOOST_LOG_SEV(logger::get(), Log::warning)
+            << Log::Property("error", sqlite3_errmsg(cfg->db))
+            << "Failed to set SQLite busy timeout";
     }
 
     if (!porla::Data::Migrate(cfg->db))
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to run migrations";
+        BOOST_LOG_SEV(logger::get(), Log::fatal)
+            << "Failed to run migrations";
+
         throw std::runtime_error("Failed to apply migrations");
     }
 
@@ -252,12 +273,16 @@ Config::~Config()
     {
         if (sqlite3_exec(db, "PRAGMA wal_checkpoint(TRUNCATE);", nullptr, nullptr, nullptr) != SQLITE_OK)
         {
-            BOOST_LOG_TRIVIAL(warning) << "Failed to checkpoint WAL: " << sqlite3_errmsg(db);
+            BOOST_LOG_SEV(logger::get(), Log::warning)
+                << Log::Property("error", sqlite3_errmsg(db))
+                << "Failed to checkpoint WAL";
         }
 
         if (sqlite3_close(db) != SQLITE_OK)
         {
-            BOOST_LOG_TRIVIAL(error) << "Failed to close SQLite connection: " << sqlite3_errmsg(db);
+            BOOST_LOG_SEV(logger::get(), Log::error)
+                << Log::Property("error", sqlite3_errmsg(db))
+                << "Failed to close SQLite connection";
         }
     }
 }

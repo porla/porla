@@ -1,10 +1,16 @@
 #include "mmdb.hpp"
 
-#include <boost/log/trivial.hpp>
 #include <maxminddb.h>
+
+#include "logger.hpp"
 
 using json = nlohmann::json;
 using porla::Mmdb;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("mmdb"); }
+}
 
 class Mmdb::State
 {
@@ -109,7 +115,9 @@ static MMDB_entry_data_list_s* MmdbEntryToJson(MMDB_entry_data_list_s* entry, js
             break;
 
         default:
-            BOOST_LOG_TRIVIAL(warning) << "MMDB type not handled: " << entry->entry_data.type;
+            BOOST_LOG_SEV(logger::get(), porla::Log::warning)
+                << "MMDB type not handled: " << entry->entry_data.type;
+
             entry = entry->next;
             break;
     }
@@ -125,7 +133,11 @@ std::unique_ptr<Mmdb> Mmdb::Load(const std::filesystem::path& path)
 
     if (result != MMDB_SUCCESS)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to open MMDB file: " << MMDB_strerror(result);
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("error", MMDB_strerror(result))
+            << Log::Property("path", path)
+            << "Failed to open MMDB file";
+
         return nullptr;
     }
 
@@ -158,7 +170,10 @@ nlohmann::json Mmdb::Lookup(const std::string& key)
 
     if (err_mmdb != MMDB_SUCCESS)
     {
-        BOOST_LOG_TRIVIAL(error) << "Error in MMDB lookup: " << MMDB_strerror(err_mmdb);
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("error", MMDB_strerror(err_mmdb))
+            << "Error in MMDB lookup";
+
         return nullptr;
     }
 
@@ -172,7 +187,10 @@ nlohmann::json Mmdb::Lookup(const std::string& key)
 
         if (status != MMDB_SUCCESS)
         {
-            BOOST_LOG_TRIVIAL(error) << "MMDB failed to get entry data: " << MMDB_strerror(status);
+            BOOST_LOG_SEV(logger::get(), Log::error)
+                << Log::Property("error", MMDB_strerror(status))
+                << "Failed to get entry data";
+
             return nullptr;
         }
 

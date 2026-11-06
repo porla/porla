@@ -4,11 +4,16 @@
 #include <string>
 #include <vector>
 
-#include <boost/log/trivial.hpp>
-
 #include "migrations.hpp"
 #include "statement.hpp"
 #include "transaction.hpp"
+
+#include "../logger.hpp"
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("db"); }
+}
 
 int GetUserVersion(sqlite3* db)
 {
@@ -53,7 +58,10 @@ bool porla::Data::Migrate(sqlite3* db)
 
     if (user_version > Migrations.size())
     {
-        BOOST_LOG_TRIVIAL(error) << "Unsupported database version: " << user_version;
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("version", user_version)
+            << "Unsupported database version";
+
         return false;
     }
 
@@ -62,7 +70,8 @@ bool porla::Data::Migrate(sqlite3* db)
         return true;
     }
 
-    BOOST_LOG_TRIVIAL(info) << "Migrating database from version " << user_version << " to " << Migrations.size();
+    PORLA_LOG(logger::get(), info,
+        "Migrating database from version {from_version} to {to_version}", user_version, Migrations.size());
 
     Transaction tx(db);
 
@@ -77,11 +86,15 @@ bool porla::Data::Migrate(sqlite3* db)
                 continue;
             }
 
-            BOOST_LOG_TRIVIAL(error) << "Failed to apply migration " << i + 1 << ": " << sqlite3_errmsg(db);
+            BOOST_LOG_SEV(logger::get(), Log::error)
+                << Log::Property("error", sqlite3_errmsg(db))
+                << "Failed to apply migration " << i + 1;
         }
         catch(const std::exception& e)
         {
-            BOOST_LOG_TRIVIAL(error) << "Failed to apply migration " << i + 1 << ": " << e.what();
+            BOOST_LOG_SEV(logger::get(), Log::error)
+                << Log::Property("error", e.what())
+                << "Failed to apply migration " << i + 1;
         }
 
         tx.Rollback();
@@ -91,14 +104,20 @@ bool porla::Data::Migrate(sqlite3* db)
 
     if (SetUserVersion(db, static_cast<int>(Migrations.size())) != SQLITE_OK)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to set user_version: " << sqlite3_errmsg(db);
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("error", sqlite3_errmsg(db))
+            << "Failed to set user version";
+
         tx.Rollback();
+
         return false;
     }
 
     if (!tx.Commit())
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to commit migration transaction";
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << "Failed to commit migration transaction";
+
         return false;
     }
 

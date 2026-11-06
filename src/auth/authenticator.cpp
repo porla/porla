@@ -1,12 +1,12 @@
 #include "authenticator.hpp"
 
 #include <boost/algorithm/string.hpp>
-#include <boost/log/trivial.hpp>
 #include <nlohmann/json.hpp>
 #include <sodium.h>
 
 #include "tokens.hpp"
 
+#include "../logger.hpp"
 #include "../utils/string.hpp"
 
 using porla::Auth::Authenticator;
@@ -14,6 +14,11 @@ using porla::Auth::Context;
 using porla::Utils::String;
 
 namespace Tokens = porla::Auth::Tokens;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("auth"); }
+}
 
 namespace
 {
@@ -92,6 +97,10 @@ Context Authenticator::Authenticate(uWS::HttpRequest* req) const
     // of context more than the default.
     if (!bearer_token)
     {
+        BOOST_LOG_SEV(logger::get(), Log::trace)
+            << Log::Property("url", req->getFullUrl())
+            << "No auth token on request";
+
         return {};
     }
 
@@ -103,11 +112,18 @@ Context Authenticator::Authenticate(uWS::HttpRequest* req) const
     }
     catch(const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to verify token: " << e.what();
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("error", e.what())
+            << Log::Property("url", req->getFullUrl())
+            << "Failed to verify token";
     }
 
     if (!token.has_value())
     {
+        BOOST_LOG_SEV(logger::get(), Log::debug)
+            << Log::Property("url", req->getFullUrl())
+            << "Rejected auth token";
+
         return {};
     }
 
@@ -116,6 +132,10 @@ Context Authenticator::Authenticate(uWS::HttpRequest* req) const
         // session token from a user that has been removed
         if (!token->username.has_value())
         {
+            BOOST_LOG_SEV(logger::get(), Log::warning)
+                << Log::Property("token_id", token->id)
+                << "Session token belongs to removed user";
+
             return {};
         }
 

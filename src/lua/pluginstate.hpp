@@ -4,17 +4,17 @@
 #include <memory>
 
 #include <boost/asio.hpp>
-#include <boost/log/trivial.hpp>
 #include <boost/signals2.hpp>
 #include <sol/sol.hpp>
 #include <uWebSockets/App.h>
 
-#include "../plugins.hpp"
-#include "../timer.hpp"
-
 #include "types/poerror.hpp"
 #include "types/pohttpserverresponse.hpp"
 #include "types/potcpclient.hpp"
+
+#include "../logger.hpp"
+#include "../plugins.hpp"
+#include "../timer.hpp"
 
 namespace porla
 {
@@ -63,6 +63,7 @@ namespace porla::Lua
             , kv(opts.kv)
             , presets(opts.presets)
             , lua(lua)
+            , logger(Log::Plugin(plugin_id))
             , plugin_id(plugin_id)
             , sessions(opts.sessions)
             , torrents(opts.torrents)
@@ -130,7 +131,10 @@ namespace porla::Lua
 
             if (entry == m_callbacks.end())
             {
-                BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] No callback with id " << callback_id;
+                BOOST_LOG_SEV(logger, Log::error)
+                    << Log::Property("callback", callback_id)
+                    << "No callback with id " << callback_id;
+
                 return false;
             }
 
@@ -145,9 +149,10 @@ namespace porla::Lua
 
             if (!result.valid())
             {
-                BOOST_LOG_TRIVIAL(error)
-                    << "plugin[" << plugin_id << "] Error when invoking callback: "
-                    << DescribeError(result);
+                BOOST_LOG_SEV(logger, Log::error)
+                    << Log::Property("callback", callback_id)
+                    << Log::Property("error", DescribeError(result))
+                    << "Error when invoking callback";
 
                 return false;
             }
@@ -213,7 +218,10 @@ namespace porla::Lua
 
             if (entry == m_callbacks.end())
             {
-                BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] No callback with id " << callback_id;
+                BOOST_LOG_SEV(logger, Log::error)
+                    << Log::Property("callback", callback_id)
+                    << "No callback with id " << callback_id;
+
                 return;
             }
 
@@ -231,6 +239,7 @@ namespace porla::Lua
         porla::KeyValue&                                          kv;
         porla::Presets&                                           presets;
         sol::state_view                                           lua;
+        porla::Log::Logger                                        logger;
         int                                                       plugin_id;
         porla::Sessions&                                          sessions;
         porla::Torrents&                                          torrents;
@@ -283,7 +292,10 @@ namespace porla::Lua
 
             if (entry == m_timers.end())
             {
-                BOOST_LOG_TRIVIAL(error) << "plugin[" << plugin_id << "] Failed to find timer id " << timer_id;
+                BOOST_LOG_SEV(logger, Log::error)
+                    << Log::Property("timer", timer_id)
+                    << "Failed to find timer";
+
                 return;
             }
 

@@ -1,7 +1,5 @@
 #include "sessions.hpp"
 
-#include <boost/log/trivial.hpp>
-
 #include <libtorrent/alert_types.hpp>
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/bencode.hpp>

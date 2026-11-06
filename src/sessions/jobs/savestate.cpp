@@ -1,7 +1,5 @@
 #include "savestate.hpp"
 
-#include <boost/log/trivial.hpp>
-
 #include "../session.hpp"
 
 using porla::Jobs::SaveState;
@@ -22,8 +20,7 @@ porla::Job::Result SaveState::Run(Session& session)
         return Done();
     }
 
-    BOOST_LOG_TRIVIAL(info) << session.Log()
-        << "Saving state for " << torrents.size() << " torrent(s)";
+    PORLA_LOG(session.Logger(), info, "Saving state for {count} torrent(s)", torrents.size());
 
     for (const auto& ts : torrents)
     {

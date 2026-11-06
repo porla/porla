@@ -2,7 +2,6 @@
 
 #include <chrono>
 
-#include <boost/log/trivial.hpp>
 #include <openssl/ssl.h>
 
 #include "poerror.hpp"
@@ -86,7 +85,8 @@ void PoTcpClient::Register(sol::state& lua)
 }
 
 PoTcpClient::PoTcpClient(const std::shared_ptr<LuaState>& lua_state, Options options)
-    : m_options(options)
+    : m_logger(lua_state->logger)
+    , m_options(options)
     , m_resolver(lua_state->io)
     , m_socket(lua_state->io)
     , m_state(lua_state)
@@ -103,7 +103,9 @@ PoTcpClient::~PoTcpClient()
     }
     catch(const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(warning) << "lua[PoTcpClient] Error when closing socket: " << e.what();
+        BOOST_LOG_SEV(m_logger, Log::warning)
+            << Log::Property("error", e.what())
+            << "Error when closing TCP socket";
     }
 }
 
@@ -162,7 +164,9 @@ void PoTcpClient::ConnectComplete(std::size_t callback_id, const boost::system::
 
     if (opt_ec)
     {
-        BOOST_LOG_TRIVIAL(warning) << "lua[PoTcpClient] Failed to set socket options: " << opt_ec.message();
+        BOOST_LOG_SEV(m_logger, Log::warning)
+            << Log::Property("error", opt_ec.message())
+            << "Failed to set socket options";
     }
 
     state->InvokeCallback(callback_id, sol::lua_nil);
@@ -404,7 +408,8 @@ void PoTcpClient::StartTls(const TlsOptions& options, sol::main_protected_functi
 
     if (!server_name.has_value())
     {
-        BOOST_LOG_TRIVIAL(error) << "lua[PoTcpClient] Cannot do TLS upgrade due to missing connect host";
+        BOOST_LOG_SEV(m_logger, Log::error)
+            << "Cannot do TLS upgrade due to missing connect host";
         fail(PoError::Make(L, Errors::Code::invalid_state, "missing connect host"));
         return;
     }
@@ -438,7 +443,9 @@ void PoTcpClient::StartTls(const TlsOptions& options, sol::main_protected_functi
 
         if (ec)
         {
-            BOOST_LOG_TRIVIAL(warning) << "lua[PoTcpClient] set_default_verify_paths failed: " << ec.message();
+            BOOST_LOG_SEV(m_logger, Log::warning)
+                << Log::Property("error", ec.message())
+                << "set_default_verify_paths failed";
         }
     }
 

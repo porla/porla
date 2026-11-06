@@ -8,6 +8,8 @@
 
 #include <sol/sol.hpp>
 
+#include "../../logger.hpp"
+
 using tcp = boost::asio::ip::tcp;
 
 namespace porla::Lua
@@ -67,6 +69,7 @@ namespace porla::Lua::Types
 
         bool                                                  m_closed = false;
         std::optional<std::string>                            m_connect_host;
+        porla::Log::Logger                                    m_logger;
         Options                                               m_options;
         bool                                                  m_peer_closed = false;
         std::vector<char>                                     m_read_buffer;

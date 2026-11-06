@@ -2,23 +2,28 @@
 
 #include <vector>
 
-#include <boost/log/trivial.hpp>
-
 #include "data/models/addtorrentparams.hpp"
 #include "data/models/sessions.hpp"
 #include "events.hpp"
+#include "logger.hpp"
 #include "presets.hpp"
 #include "sessions/session.hpp"
 #include "sessions/sessions.hpp"
 #include "sessions/torrent.hpp"
 #include "sessions/torrentevent.hpp"
 #include "torrentclientdata.hpp"
+#include "utils/ltlogvalue.hpp"
 
 using porla::Torrents;
 using porla::TorrentsAddOptions;
 using porla::TorrentsAddResult;
 
 using Error = TorrentsAddResult::Error;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("torrents"); }
+}
 
 namespace
 {
@@ -142,7 +147,7 @@ TorrentsAddResult Torrents::Prepare(lt::add_torrent_params& params, const Torren
 
     if (default_preset.has_value())
     {
-        BOOST_LOG_TRIVIAL(info) << "Applying default preset";
+        BOOST_LOG_SEV(logger::get(), Log::info) << "Applying default preset";
         ApplyPreset(params, default_preset.value());
     }
 
@@ -150,7 +155,7 @@ TorrentsAddResult Torrents::Prepare(lt::add_torrent_params& params, const Torren
     // already been applied above.
     if (preset.has_value() && (!default_preset.has_value() || preset->id != default_preset->id))
     {
-        BOOST_LOG_TRIVIAL(info) << "Applying preset " << preset->name;
+        BOOST_LOG_SEV(logger::get(), Log::info) << "Applying preset " << preset->name;
         ApplyPreset(params, preset.value());
     }
 
@@ -204,7 +209,12 @@ TorrentsAddResult Torrents::Add(lt::add_torrent_params params)
         }
         catch (const std::exception& e)
         {
-            BOOST_LOG_TRIVIAL(error) << "Failed to add torrent to session: " << e.what();
+            BOOST_LOG_SEV(logger::get(), Log::error)
+                << Log::Property("error", e.what())
+                << Log::Property("session_id", session->Id())
+                << Log::Property("session_name", session->Name())
+                << Log::Property("torrent", params.info_hashes)
+                << "Failed to add torrent to session";
 
             result.error = Error::Failed;
             result.what  = e.what();

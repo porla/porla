@@ -11,12 +11,12 @@
 #include <boost/asio/any_io_executor.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
-#include <boost/log/trivial.hpp>
 
 #include "error.hpp"
 #include "method.hpp"
 
 #include "../json/utils.hpp"
+#include "../logger.hpp"
 
 namespace porla::Rpc
 {
@@ -97,17 +97,22 @@ namespace porla::Rpc
                         return;
                     }
 
+                    auto logger = Log::Component("rpc");
+
                     try
                     {
                         std::rethrow_exception(e);
                     }
                     catch (const std::exception& ex)
                     {
-                        BOOST_LOG_TRIVIAL(error) << "Unhandled exception in RPC method: " << ex.what();
+                        BOOST_LOG_SEV(logger, Log::error)
+                            << Log::Property("error", ex.what())
+                            << "Unhandled exception in RPC method";
                     }
                     catch (...)
                     {
-                        BOOST_LOG_TRIVIAL(error) << "Unhandled unknown exception in RPC method";
+                        BOOST_LOG_SEV(logger, Log::error)
+                            << "Unhandled unknown exception in RPC method";
                     }
 
                     writer->Error(Errors::Code::internal_error);

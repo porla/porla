@@ -2,12 +2,17 @@
 
 #include <limits>
 
-#include <boost/log/trivial.hpp>
 #include <libtorrent/alert_types.hpp>
 
 #include "../buildinfo.hpp"
+#include "../logger.hpp"
 
 using porla::Utils::LibtorrentSettingsPack;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("session"); }
+}
 
 namespace
 {
@@ -111,7 +116,7 @@ void LibtorrentSettingsPack::Sanitize(lt::settings_pack& settings)
     {
         if (!InRange(settings, range))
         {
-            BOOST_LOG_TRIVIAL(warning)
+            BOOST_LOG_SEV(logger::get(), Log::warning)
                 << "Ignoring invalid value " << settings.get_int(range.name)
                 << " for setting " << lt::name_for_setting(range.name) << " - using the default";
 

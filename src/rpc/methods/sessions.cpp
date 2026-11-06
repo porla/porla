@@ -15,11 +15,17 @@
 
 #include "../../json/lttypes.hpp"
 #include "../../json/utils.hpp"
+#include "../../logger.hpp"
 #include "../../sessions/session.hpp"
 #include "../../sessions/sessions.hpp"
 #include "../../utils/ltsettings.hpp"
 
 using boost::asio::awaitable;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("rpc"); }
+}
 
 namespace porla::Rpc::Methods::Sessions
 {
@@ -357,7 +363,9 @@ namespace porla::Rpc::Methods::Sessions
             resolved.session->Libtorrent().apply_settings(settings);
             resolved.session->Persist();
 
-            BOOST_LOG_TRIVIAL(info) << "Session settings for " << resolved.session->Name() << " updated";
+            PORLA_LOG(logger::get(), info,
+                "Session settings for {session} updated",
+                resolved.session->Name());
 
             co_return;
         }

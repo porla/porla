@@ -6,7 +6,6 @@
 #include <unordered_set>
 
 #include <boost/asio/awaitable.hpp>
-#include <boost/log/trivial.hpp>
 #include <boost/signals2.hpp>
 #include <nlohmann/json.hpp>
 
@@ -19,6 +18,11 @@
 #include "../../mmdb.hpp"
 
 namespace fs = std::filesystem;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("rpc"); }
+}
 
 namespace porla::Rpc::Methods::Mmdb
 {
@@ -48,12 +52,17 @@ namespace porla::Rpc::Methods::Mmdb
                     std::error_code ec;
                     if (!fs::exists(mmdb_path.get<std::string>(), ec))
                     {
-                        BOOST_LOG_TRIVIAL(error) << "MMDB path " << mmdb_path.get<std::string>() << " is not usable: "
-                                                << (ec ? ec.message() : "does not exist");
+                        BOOST_LOG_SEV(logger::get(), Log::error)
+                            << Log::Property("error", ec ? ec.message() : "does not exist")
+                            << Log::Property("path", mmdb_path.get<std::string>())
+                            << "MMDB path " << mmdb_path.get<std::string>() << " is not usable";
+
                         return;
                     }
 
-                    BOOST_LOG_TRIVIAL(info) << "Loading MMDB file from " << mmdb_path.get<std::string>();
+                    BOOST_LOG_SEV(logger::get(), Log::info)
+                        << Log::Property("path", mmdb_path.get<std::string>())
+                        << "Loading MMDB file from " << mmdb_path.get<std::string>();
 
                     mmdb = porla::Mmdb::Load(mmdb_path.get<std::string>());
                 }
@@ -96,7 +105,7 @@ namespace porla::Rpc::Methods::Mmdb
 
             if (auto s = weak.lock(); s && std::ranges::find(keys, "porla.mmdb.path") != keys.end())
             {
-                BOOST_LOG_TRIVIAL(debug) << "Reloading MMDB file";
+                PORLA_LOG(logger::get(), debug, "Reloading MMDB file");
                 s->Load();
             }
         });

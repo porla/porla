@@ -5,9 +5,8 @@
 #include <stdexcept>
 #include <utility>
 
-#include <boost/log/trivial.hpp>
-
 #include "events.hpp"
+#include "logger.hpp"
 #include "lua/plugin.hpp"
 #include "lua/pluginsource.hpp"
 
@@ -88,7 +87,10 @@ int Plugins::Add(const Plugin& plugin)
 {
     const int id = Model::Insert(m_options.db, plugin);
 
-    BOOST_LOG_TRIVIAL(info) << "plugin[" << id << "] Added with path " << plugin.path;
+    auto log = Log::Plugin(id);
+    BOOST_LOG_SEV(log, Log::info)
+        << Log::Property("path", plugin.path)
+        << "Plugin added";
 
     Publish("plugin.added", id);
 
@@ -222,9 +224,13 @@ void Plugins::Update(const Plugin& plugin)
 
 void Plugins::Load(int id)
 {
+    auto log = Log::Plugin(id);
+
     if (m_plugins.contains(id))
     {
-        BOOST_LOG_TRIVIAL(error) << "plugin[" << id << "] Already loaded";
+        BOOST_LOG_SEV(log, Log::error)
+            << "Plugin already loaded";
+
         return;
     }
 
@@ -232,7 +238,9 @@ void Plugins::Load(int id)
 
     if (!plugin.has_value())
     {
-        BOOST_LOG_TRIVIAL(warning) << "plugin[" << id << "] Cannot load - not found";
+        BOOST_LOG_SEV(log, Log::warning)
+            << "Plugin not found - cannot load";
+
         return;
     }
 
@@ -268,7 +276,9 @@ void Plugins::Load(int id)
     }
     catch(const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error) << "plugin[" << id << "] Not loaded: " << e.what();
+        BOOST_LOG_SEV(log, Log::error)
+            << Log::Property("error", e.what())
+            << "Failed to load plugin";
 
         // the reason without Lua's stack traceback, which stays in the log
         const std::string_view error = e.what();
@@ -277,7 +287,9 @@ void Plugins::Load(int id)
         return;
     }
 
-    BOOST_LOG_TRIVIAL(info) << "plugin[" << id << "] Loaded from " << plugin->path;
+    BOOST_LOG_SEV(log, Log::info)
+        << Log::Property("path", plugin->path)
+        << "Loaded plugin";
 
     Publish("plugin.loaded", id);
 }

@@ -7,9 +7,13 @@
 
 #include <unistd.h>
 
-#include <boost/log/trivial.hpp>
-
 #include "buildinfo.hpp"
+#include "logger.hpp"
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("http_client"); }
+}
 
 namespace
 {
@@ -165,7 +169,8 @@ void CurlMulti::HttpGet(const std::string& url, HttpCallback callback)
     {
         // AddTransfer() would silently drop a null handle and the caller would
         // wait forever, so report the failure here.
-        BOOST_LOG_TRIVIAL(error) << "CurlMulti: curl_easy_init failed";
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << "curl_easy_init failed";
 
         CompleteHttp(m_io, ex, std::move(callback), 0, std::string{});
 
@@ -201,7 +206,9 @@ void CurlMulti::HttpGet(const std::string& url, HttpCallback callback)
     curl_easy_setopt(easy, CURLOPT_URL,                 url.c_str());
     curl_easy_setopt(easy, CURLOPT_USERAGENT,           user_agent.c_str());
 
-    BOOST_LOG_TRIVIAL(trace) << "CurlMulti::HttpGet: " << url;
+    BOOST_LOG_SEV(logger::get(), Log::debug)
+        << Log::Property("url", url)
+        << "Adding HTTP GET transfer";
 
     // Capture m_io by reference, not a weak_ptr to self: during Shutdown() from
     // ~CurlMulti the use count is already zero, lock() would fail, and every
@@ -222,7 +229,9 @@ void CurlMulti::HttpGet(const std::string& url, HttpCallback callback)
         }
         else
         {
-            BOOST_LOG_TRIVIAL(warning) << "CurlMulti::HttpGet failed: " << curl_easy_strerror(result);
+            BOOST_LOG_SEV(logger::get(), Log::warning)
+                << Log::Property("error", curl_easy_strerror(result))
+                << "HTTP GET transfer failed";
         }
 
         CompleteHttp(io, ex, std::move(callback), static_cast<int>(response_code), body->str());
@@ -243,8 +252,8 @@ void CurlMulti::DoAddTransfer(CURL* easy, TransferComplete callback)
     // moved from, and the caller would wait forever.
     if (m_transfers.find(easy) != m_transfers.end())
     {
-        BOOST_LOG_TRIVIAL(error)
-            << "CurlMulti: easy handle " << easy << " added twice - ignoring";
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << "easy handle added twice - ignoring";
 
         // No cleanup - the first registration owns this handle.
         SafeInvoke(std::move(callback), easy, CURLE_FAILED_INIT);
@@ -259,8 +268,9 @@ void CurlMulti::DoAddTransfer(CURL* easy, TransferComplete callback)
 
     if (rc != CURLM_OK)
     {
-        BOOST_LOG_TRIVIAL(error)
-            << "CurlMulti: curl_multi_add_handle failed: " << curl_multi_strerror(rc);
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("error", curl_multi_strerror(rc))
+            << "curl_multi_add_handle failed";
 
         auto failed = std::move(it->second);
         m_transfers.erase(it);
@@ -300,7 +310,10 @@ try
 }
 catch (const std::exception& e)
 {
-    BOOST_LOG_TRIVIAL(error) << "CurlMulti: socket callback failed: " << e.what();
+    BOOST_LOG_SEV(logger::get(), Log::error)
+        << Log::Property("error", e.what())
+        << "Socket callback failed";
+
     return 0;
 }
 
@@ -331,9 +344,11 @@ void CurlMulti::OnSocketUpdate(curl_socket_t sock, int what)
 
         if (fd == -1)
         {
-            BOOST_LOG_TRIVIAL(error)
-                << "CurlMulti: dup() failed for socket " << sock
-                << ": " << std::strerror(errno);
+            BOOST_LOG_SEV(logger::get(), Log::error)
+                << Log::Property("error", std::strerror(errno))
+                << Log::Property("socket", sock)
+                << "dup failed";
+
             return;
         }
 
@@ -345,8 +360,11 @@ void CurlMulti::OnSocketUpdate(curl_socket_t sock, int what)
         {
             ::close(fd);
 
-            BOOST_LOG_TRIVIAL(error)
-                << "CurlMulti: failed to register socket " << sock << ": " << e.what();
+            BOOST_LOG_SEV(logger::get(), Log::error)
+                << Log::Property("error", e.what())
+                << Log::Property("socket", sock)
+                << "Failed to register socket";
+
             return;
         }
     }
@@ -471,8 +489,10 @@ void CurlMulti::OnSocketReady(curl_socket_t sock, std::uint64_t id, const boost:
 
     if (ec)
     {
-        BOOST_LOG_TRIVIAL(debug)
-            << "CurlMulti: wait failed on socket " << sock << ": " << ec.message();
+        BOOST_LOG_SEV(logger::get(), Log::debug)
+            << Log::Property("error", ec.message())
+            << Log::Property("socket", sock)
+            << "Wait failed on socket";
 
         SocketAction(sock, CURL_CSELECT_ERR);
 
@@ -525,7 +545,10 @@ try
 }
 catch (const std::exception& e)
 {
-    BOOST_LOG_TRIVIAL(error) << "CurlMulti: timer callback failed: " << e.what();
+    BOOST_LOG_SEV(logger::get(), Log::error)
+        << Log::Property("error", e.what())
+        << "Timer callback failed";
+
     return 0;
 }
 
@@ -552,8 +575,9 @@ void CurlMulti::SocketAction(curl_socket_t sock, int event_bitmask)
 
     if (rc != CURLM_OK)
     {
-        BOOST_LOG_TRIVIAL(error)
-            << "CurlMulti: curl_multi_socket_action failed: " << curl_multi_strerror(rc);
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("error", curl_multi_strerror(rc))
+            << "curl_multi_socket_action failed";
     }
 
     CheckCompleted();
@@ -625,10 +649,13 @@ void CurlMulti::SafeInvoke(TransferComplete&& callback, CURL* easy, CURLcode res
     }
     catch (const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error) << "CurlMulti: transfer callback threw: " << e.what();
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("error", e.what())
+            << "Transfer callback failed";
     }
     catch (...)
     {
-        BOOST_LOG_TRIVIAL(error) << "CurlMulti: transfer callback threw an unknown exception";
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << "Transfer callback failed with unknown exception";
     }
 }

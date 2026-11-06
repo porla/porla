@@ -1,10 +1,16 @@
 #include "../migrations.hpp"
 
-#include <boost/log/trivial.hpp>
+#include "../../logger.hpp"
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("db"); }
+}
 
 int porla::Data::Migrations::ClientData(sqlite3* db)
 {
-    BOOST_LOG_TRIVIAL(info) << "Adding client_data column to addtorrentparams table";
+    BOOST_LOG_SEV(logger::get(), Log::info)
+        << "Adding client_data column to addtorrentparams table";
 
     int res = sqlite3_exec(
         db,
@@ -18,7 +24,8 @@ int porla::Data::Migrations::ClientData(sqlite3* db)
         return res;
     }
 
-    BOOST_LOG_TRIVIAL(info) << "Dropping torrentsmetadata table";
+    BOOST_LOG_SEV(logger::get(), Log::info)
+        << "Dropping torrentsmetadata table";
 
     return sqlite3_exec(
         db,

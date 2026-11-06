@@ -1,11 +1,16 @@
 #include "../migrations.hpp"
 
-#include <boost/log/trivial.hpp>
-#include <sqlite3.h>
+#include "../../logger.hpp"
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("db"); }
+}
 
 int porla::Data::Migrations::MorePresets(sqlite3* db)
 {
-    BOOST_LOG_TRIVIAL(info) << "Adding columns to 'presets' table";
+    BOOST_LOG_SEV(logger::get(), Log::info)
+        << "Adding columns to 'presets' table";
 
     return sqlite3_exec(
         db,
