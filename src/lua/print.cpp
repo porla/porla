@@ -4,7 +4,7 @@
 
 #include "pluginstate.hpp"
 
-void porla::Lua::Print(sol::this_state ts, sol::variadic_args args)
+void porla::Lua::LogArgs(sol::this_state ts, porla::Log::Level level, sol::variadic_args args)
 {
     auto state = LuaState::From(ts);
 
@@ -26,10 +26,16 @@ void porla::Lua::Print(sol::this_state ts, sol::variadic_args args)
 
     if (state == nullptr)
     {
-        BOOST_LOG_TRIVIAL(info) << "plugin[unknown] " << line;
+        static auto unknown = porla::Log::Component("plugin");
+        BOOST_LOG_SEV(unknown, level) << line;
     }
     else
     {
-        BOOST_LOG_TRIVIAL(info) << "plugin[" << state->plugin_id << "] " << line;
+        BOOST_LOG_SEV(state->logger, level) << line;
     }
+}
+
+void porla::Lua::Print(sol::this_state ts, sol::variadic_args args)
+{
+    LogArgs(ts, porla::Log::info, args);
 }

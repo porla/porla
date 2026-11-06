@@ -237,6 +237,7 @@ add_library(
     src/lua/packages/httpserver.cpp
     src/lua/packages/jsonrpc.cpp
     src/lua/packages/kv.cpp
+    src/lua/packages/log.cpp
     src/lua/packages/presets.cpp
     src/lua/packages/runtime.cpp
     src/lua/packages/sessions.cpp

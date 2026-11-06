@@ -6,7 +6,6 @@
 #include <utility>
 
 #include <boost/asio/post.hpp>
-#include <boost/log/trivial.hpp>
 #include <sol/sol.hpp>
 
 #include "packages.hpp"
@@ -34,6 +33,7 @@
 
 #include "../config.hpp"
 #include "../curlmulti.hpp"
+#include "../logger.hpp"
 #include "../plugins.hpp"
 #include "../sessions/sessions.hpp"
 
@@ -109,6 +109,7 @@ struct Plugin::State
         package["preload"]["porla_http_server"] = Packages::HttpServer::Load;
         package["preload"]["porla_jsonrpc"]     = Packages::JsonRpc::Load;
         package["preload"]["porla_kv"]          = Packages::Kv::Load;
+        package["preload"]["porla_log"]         = Packages::Log::Load;
         package["preload"]["porla_presets"]     = Packages::Presets::Load;
         package["preload"]["porla_runtime"]     = Packages::Runtime::Load;
         package["preload"]["porla_sessions"]    = Packages::Sessions::Load;
@@ -301,18 +302,22 @@ Plugin::~Plugin()
 
             if (!result.valid())
             {
-                BOOST_LOG_TRIVIAL(error)
-                    << "plugin[" << m_state->lua_state->plugin_id << "] Error in destroy: " << DescribeError(result);
+                BOOST_LOG_SEV(m_state->lua_state->logger, Log::error)
+                    << Log::Property("error", DescribeError(result))
+                    << "Error when destroying plugin";
             }
         }
     }
     catch (const std::exception& err)
     {
-        BOOST_LOG_TRIVIAL(error) << "Exception during plugin teardown: " << err.what();
+        BOOST_LOG_SEV(m_state->lua_state->logger, Log::error)
+            << Log::Property("error", err.what())
+            << "Exception when destroying plugin";
     }
     catch (...)
     {
-        BOOST_LOG_TRIVIAL(error) << "Unknown exception during plugin teardown";
+        BOOST_LOG_SEV(m_state->lua_state->logger, Log::error)
+            << "Unknown exception when destroying plugin";
     }
 
     m_state->lua_state.reset();

@@ -2,6 +2,7 @@
 
 #include "../pluginstate.hpp"
 #include "../types/pojson.hpp"
+#include "../../logger.hpp"
 #include "../../rpc/jsonrpc.hpp"
 
 using porla::Lua::LuaState;
@@ -18,7 +19,9 @@ struct LuaMethod : public porla::Rpc::Method
 
     bool CanInvoke(const porla::Auth::Context& ctx) override
     {
-        if (m_state.expired())
+        auto state = m_state.lock();
+
+        if (state == nullptr)
         {
             return false;
         }
@@ -32,9 +35,9 @@ struct LuaMethod : public porla::Rpc::Method
 
         if (!result.valid())
         {
-            BOOST_LOG_TRIVIAL(error)
-                << "Failed to run CanInvoke callback for JSONRPC method: "
-                << porla::Lua::DescribeError(result);
+            BOOST_LOG_SEV(state->logger, porla::Log::error)
+                << porla::Log::Property("error", porla::Lua::DescribeError(result))
+                << "Failed to run CanInvoke callback for JSONRPC method";
 
             return false;
         }
@@ -43,7 +46,9 @@ struct LuaMethod : public porla::Rpc::Method
 
         if (!allowed.has_value())
         {
-            BOOST_LOG_TRIVIAL(error) << "CanInvoke callback for JSONRPC method did not return a boolean";
+            BOOST_LOG_SEV(state->logger, porla::Log::error)
+                << "CanInvoke callback for JSONRPC method did not return a boolean";
+
             return false;
         }
 
