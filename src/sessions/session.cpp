@@ -5,7 +5,6 @@
 #include <utility>
 
 #include <boost/asio/post.hpp>
-#include <boost/log/trivial.hpp>
 
 #include <libtorrent/alert_types.hpp>
 #include <libtorrent/extensions/smart_ban.hpp>
@@ -31,6 +30,7 @@
 #include "../json/lttypes.hpp"
 #include "../torrentclientdata.hpp"
 #include "../utils/hex.hpp"
+#include "../utils/ltlogvalue.hpp"
 
 using porla::Data::Models::AddTorrentParams;
 using porla::Data::Transaction;
@@ -54,12 +54,16 @@ namespace
 
 Session::Session(const SessionOptions& options)
     : m_id(options.record.id)
+    , m_log(Log::Component("session"))
     , m_name(options.record.name)
     , m_options(options)
     , m_alert_dispatcher(std::make_unique<AlertDispatcher>())
     , m_jobs(std::make_unique<Scheduler>(options.io, *this))
     , m_dirty_timer(options.io)
 {
+    Log::AddProperty(m_log, "session_id", std::int64_t{m_id});
+    Log::AddProperty(m_log, "session_name", m_name);
+
     m_session = std::make_unique<lt::session>(std::move(m_options.record.params));
     m_session->add_extension(&lt::create_smart_ban_plugin);
     m_session->add_extension(&lt::create_ut_metadata_plugin);
@@ -235,8 +239,8 @@ void Session::Stop()
     const int  chunk_size       = std::clamp(alert_queue_size, 1, 1000);
     const int  chunks           = static_cast<int>(torrents.size() / chunk_size) + 1;
 
-    BOOST_LOG_TRIVIAL(info)
-        << Log() << "Saving resume data in " << chunks
+    BOOST_LOG_SEV(m_log, Log::info)
+        << "Saving resume data in " << chunks
         << " chunk(s) - total torrents: " << torrents.size();
 
     auto current = torrents.begin();
@@ -272,15 +276,16 @@ void Session::Stop()
             }
             catch(const std::exception& e)
             {
-                BOOST_LOG_TRIVIAL(warning)
-                    << Log() << "Failed to post save resume data: " << e.what();
+                BOOST_LOG_SEV(m_log, Log::warning)
+                    << Log::Property("error", e.what())
+                    << "Failed to post save resume data";
             }
 
             std::advance(current, 1);
         }
 
-        BOOST_LOG_TRIVIAL(info)
-            << Log() << "Chunk " << i + 1 << " - Saving state for "
+        BOOST_LOG_SEV(m_log, Log::info)
+            << "Chunk " << i + 1 << " - Saving state for "
             << outstanding.size() << " torrent(s) (out of " << chunk_items << ")";
 
         while (!outstanding.empty()) {
@@ -288,8 +293,8 @@ void Session::Stop()
 
             if (!found_alert)
             {
-                BOOST_LOG_TRIVIAL(warning)
-                    << Log() << "Gave up waiting for " << outstanding.size() << " resume data alerts "
+                BOOST_LOG_SEV(m_log, Log::warning)
+                    << "Gave up waiting for " << outstanding.size() << " resume data alerts "
                     << "in chunk " << i + 1;
 
                 break;
@@ -306,9 +311,10 @@ void Session::Stop()
                 {
                     outstanding.erase(fail->handle.info_hashes());
 
-                    BOOST_LOG_TRIVIAL(error)
-                        << Log(fail->handle.info_hashes())
-                        << "Failed to save resume data: " << fail->message();
+                    BOOST_LOG_SEV(m_log, Log::error)
+                        << Log::Property("error", fail->error.what())
+                        << Log::Property("torrent", fail->handle.info_hashes())
+                        << "Failed to save resume data";
 
                     continue;
                 }
@@ -328,7 +334,7 @@ void Session::Stop()
 
             if (!tx.Commit())
             {
-                BOOST_LOG_TRIVIAL(error) << Log() << "Failed to commit shutdown save changes";
+                BOOST_LOG_SEV(m_log, Log::error) << "Failed to commit shutdown save changes";
             }
         }
     }
@@ -400,8 +406,9 @@ void Session::Recheck(const lt::info_hash_t& hash)
 
     if (it == m_torrents.end() || it->second.state != Torrent::State::Current)
     {
-        BOOST_LOG_TRIVIAL(warning)
-            << Log(hash) << "Failed to find torrent for rechecking";
+        BOOST_LOG_SEV(m_log, Log::warning)
+            << Log::Property("torrent", hash)
+            << "Failed to find torrent for rechecking";
 
         return;
     }
@@ -444,14 +451,16 @@ void Session::ReadAlerts()
         }
         catch(const std::exception& e)
         {
-            BOOST_LOG_TRIVIAL(error)
-                << Log() << "Failed to process alert " << alert->what() << ": " << e.what();
+            BOOST_LOG_SEV(m_log, Log::error)
+                << Log::Property("error", e.what())
+                << Log::Property("alert_message", alert->message())
+                << "Failed to process libtorrent alert";
         }
     }
 
     if (!tx.Commit())
     {
-        BOOST_LOG_TRIVIAL(error) << Log() << "Failed to commit process alert changes";
+        BOOST_LOG_SEV(m_log, Log::error) << "Failed to commit process alert changes";
     }
 }
 
@@ -496,7 +505,7 @@ void Session::RefreshQueuePositions()
 
 void Session::ProcessAlert(const lt::alert* alert)
 {
-    BOOST_LOG_TRIVIAL(trace) << Log() << alert->what() << ": " << alert->message();
+    BOOST_LOG_SEV(m_log, Log::trace) << alert->what() << ": " << alert->message();
     m_alert_dispatcher->Dispatch(alert);
 }
 
@@ -619,8 +628,9 @@ void Session::ReconcileTorrents()
     }
     catch(const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error)
-            << Log() << "Failed to list torrents to reconcile: " << e.what();
+        BOOST_LOG_SEV(m_log, Log::error)
+            << Log::Property("error", e.what())
+            << "Failed to list torrents to reconcile";
 
         return;
     }
@@ -687,7 +697,10 @@ void Session::ReconcileTorrents()
                     }
                     catch(const std::exception& e)
                     {
-                        BOOST_LOG_TRIVIAL(error) << Log(hash) << "Failed to store torrent with updated hashes: " << e.what();
+                        BOOST_LOG_SEV(m_log, Log::error)
+                            << Log::Property("error", e.what())
+                            << Log::Property("torrent", hash)
+                            << "Failed to store torrent with updated hashes";
                     }
 
                     rehashed++;
@@ -739,8 +752,10 @@ void Session::ReconcileTorrents()
         }
         catch (const std::exception& e)
         {
-            BOOST_LOG_TRIVIAL(error)
-                << Log(hash) << "Failed to insert reconciled torrent: " << e.what();
+            BOOST_LOG_SEV(m_log, Log::error)
+                << Log::Property("error", e.what())
+                << Log::Property("torrent", hash)
+                << "Failed to insert reconciled torrent";
         }
 
         PublishStatus("torrent.added", th, it->second.status);
@@ -779,7 +794,7 @@ void Session::ReconcileTorrents()
 
     if (!tx.Commit())
     {
-        BOOST_LOG_TRIVIAL(error) << Log() << "Failed to commit reconcile changes";
+        BOOST_LOG_SEV(m_log, Log::error) << "Failed to commit reconcile changes";
     }
 
     if (tracked + loaded + rehashed + untracked + failed == 0)
@@ -787,8 +802,8 @@ void Session::ReconcileTorrents()
         return;
     }
 
-    BOOST_LOG_TRIVIAL(warning)
-        << Log() << "Reconciled torrents:"
+    BOOST_LOG_SEV(m_log, Log::warning)
+        << "Reconciled torrents:"
         << " tracked=" << tracked
         << " loaded=" << loaded
         << " rehashed=" << rehashed
@@ -839,8 +854,8 @@ void Session::UntrackInvalidTorrents()
         UntrackTorrent(hash);
     }
 
-    BOOST_LOG_TRIVIAL(warning)
-        << Log() << "Removed " << gone.size() << " orphaned torrent(s). "
+    BOOST_LOG_SEV(m_log, Log::warning)
+        << "Removed " << gone.size() << " orphaned torrent(s). "
         << "This might be due to dropped alerts. Consider increasing alert_queue_size";
 }
 
@@ -870,9 +885,10 @@ void Session::UntrackTorrent(const lt::info_hash_t& hash)
     }
     catch(const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error)
-            << Log(hash) << "Failed to remove torrent from database: "
-            << e.what();
+        BOOST_LOG_SEV(m_log, Log::error)
+            << Log::Property("error", e.what())
+            << Log::Property("torrent", hash)
+            << "Failed to remove torrent from database";
     }
 }
 
@@ -889,18 +905,4 @@ void Session::UpdateInfoHashes(const lt::info_hash_t& prev, const lt::info_hash_
     node.mapped().status.info_hashes = curr;
 
     m_torrents.insert(std::move(node));
-}
-
-std::string Session::Log() const
-{
-    return "session[" + m_name + "] ";
-}
-
-std::string Session::Log(const lt::info_hash_t& hash) const
-{
-    const auto hash_hex = hash.has_v1()
-        ? porla::Utils::ToHex({ hash.v1.data(), static_cast<std::size_t>(hash.v1.size()) })
-        : porla::Utils::ToHex({ hash.v2.data(), static_cast<std::size_t>(hash.v2.size()) });
-
-    return "session[" + m_name + "][" + hash_hex.substr(0, 8) + "] ";
 }

@@ -1,9 +1,9 @@
 #include "scheduler.hpp"
 
 #include <boost/asio/steady_timer.hpp>
-#include <boost/log/trivial.hpp>
 
 #include "jobs/job.hpp"
+#include "session.hpp"
 
 using porla::Job;
 using porla::Scheduler;
@@ -97,7 +97,9 @@ void Scheduler::Trigger(std::type_index type)
         return;
     }
 
-    BOOST_LOG_TRIVIAL(warning) << "Job of type " << type.name() << " not registered";
+    BOOST_LOG_SEV(m_state->session.Logger(), Log::warning)
+        << Log::Property("job", type.name())
+        << "Job of type " << type.name() << " not registered";
 }
 
 void Scheduler::Suspend()
@@ -156,8 +158,10 @@ void Scheduler::Stop()
         }
         catch(const std::exception& e)
         {
-            BOOST_LOG_TRIVIAL(error)
-                << "Job " << entry->job->Name() << " failed to stop: " << e.what();
+            BOOST_LOG_SEV(m_state->session.Logger(), Log::error)
+                << Log::Property("error", e.what())
+                << Log::Property("job", entry->job->Name())
+                << "Failed to stop job";
         }
         
     }
@@ -227,7 +231,10 @@ void Scheduler::Run(
     }
     catch(const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error) << "Job " << entry->job->Name() << " failed: " << e.what();
+        BOOST_LOG_SEV(state->session.Logger(), Log::error)
+            << Log::Property("error", e.what())
+            << Log::Property("job", entry->job->Name())
+            << "Job failed";
     }
 
     entry->running = false;
@@ -237,7 +244,10 @@ void Scheduler::Run(
 
     if (elapsed > kSlowJobThreshold)
     {
-        BOOST_LOG_TRIVIAL(warning) << "Job " << entry->job->Name() << " took " << elapsed.count() << " ms";
+        BOOST_LOG_SEV(state->session.Logger(), Log::warning)
+            << Log::Property("job", entry->job->Name())
+            << Log::Property("duration", elapsed.count())
+            << "Job reached slow-job threshold";
     }
 
     if (state->stopped)

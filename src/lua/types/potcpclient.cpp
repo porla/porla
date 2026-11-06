@@ -85,7 +85,7 @@ void PoTcpClient::Register(sol::state& lua)
 }
 
 PoTcpClient::PoTcpClient(const std::shared_ptr<LuaState>& lua_state, Options options)
-    : m_log(lua_state->logger)
+    : m_logger(lua_state->logger)
     , m_options(options)
     , m_resolver(lua_state->io)
     , m_socket(lua_state->io)
@@ -103,7 +103,7 @@ PoTcpClient::~PoTcpClient()
     }
     catch(const std::exception& e)
     {
-        BOOST_LOG_SEV(m_log, Log::warning)
+        BOOST_LOG_SEV(m_logger, Log::warning)
             << Log::Property("error", e.what())
             << "Error when closing TCP socket";
     }

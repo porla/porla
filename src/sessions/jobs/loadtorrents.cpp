@@ -1,11 +1,10 @@
 #include "loadtorrents.hpp"
 
-#include <boost/log/trivial.hpp>
-
-#include "../../events.hpp"
 #include "../scheduler.hpp"
 #include "../session.hpp"
 #include "../sessionevent.hpp"
+
+#include "../../events.hpp"
 
 using porla::Data::Models::AddTorrentParams;
 using porla::Jobs::LoadTorrents;
@@ -32,9 +31,7 @@ porla::Job::Result LoadTorrents::Run(Session& session)
     if (m_count < 0)
     {
         m_count = AddTorrentParams::Count(m_db, session.Id());
-
-        BOOST_LOG_TRIVIAL(info)
-            << session.Log() << "Loading " << m_count << " torrent(s) from storage";
+        PORLA_LOG(session.Logger(), info, "Loading {count} torrent(s) from storage", m_count);
     }
 
     try
@@ -43,14 +40,16 @@ porla::Job::Result LoadTorrents::Run(Session& session)
     }
     catch(const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error) << session.Log() << "Failed to read alerts during load: " << e.what();
+        BOOST_LOG_SEV(session.Logger(), Log::error)
+            << Log::Property("error", e.what())
+            << "Failed to read session alerts during load";
     }
     
     bool more = false;
 
     try
     {
-        more     = AddTorrentParams::Next(
+        more = AddTorrentParams::Next(
             m_db,
             session.Id(),
             m_cursor,
@@ -75,18 +74,19 @@ porla::Job::Result LoadTorrents::Run(Session& session)
                 kLoadRetryMaxDelay,
                 kLoadRetryBaseDelay * (1 << (m_errors - 1)));
 
-            BOOST_LOG_TRIVIAL(warning)
-                << session.Log() << "Chunk failed at " << m_loaded
+            BOOST_LOG_SEV(session.Logger(), Log::warning)
+                << Log::Property("error", e.what())
+                << "Chunk failed at " << m_loaded
                 << " of " << m_count << " (attempt " << m_errors << " of "
-                << kLoadMaxChunkErrors << ", retrying in " << delay.count()
-                << "ms): " << e.what();
+                << kLoadMaxChunkErrors << ", retrying in " << delay.count() << "ms)";
 
             return Again(delay);
         }
 
-        BOOST_LOG_TRIVIAL(error)
-            << session.Log() << "Failed to load torrents after "
-            << m_loaded << " of " << m_count << ": " << e.what();
+        BOOST_LOG_SEV(session.Logger(), Log::error)
+            << Log::Property("error", e.what())
+            << "Failed to load torrents after "
+            << m_loaded << " of " << m_count;
 
         m_failed = true;
     }
@@ -97,9 +97,7 @@ porla::Job::Result LoadTorrents::Run(Session& session)
 
         if (m_chunks % 10 == 0)
         {
-            BOOST_LOG_TRIVIAL(info)
-                << session.Log() << m_loaded << " torrents (of "
-                << m_count << ") added";
+            PORLA_LOG(session.Logger(), info, "{added} torrents (of {total}) added", m_loaded, m_count);
         }
 
         return Again();
@@ -109,18 +107,18 @@ porla::Job::Result LoadTorrents::Run(Session& session)
     {
         if (m_failed)
         {
-            BOOST_LOG_TRIVIAL(error)
-                << session.Log() << "Incomplete load - "
-                << m_loaded << " of " << m_count
+            BOOST_LOG_SEV(session.Logger(), Log::error)
+                << "Incomplete load - " << m_loaded << " of " << m_count
                 << " torrent(s) were added. The remaining "
                 << m_count - m_loaded << " are still in the database but not in the session. "
                 << "Do not re-add them; restart Porla once the database is healthy.";
         }
         else
         {
-            BOOST_LOG_TRIVIAL(info)
-                << session.Log() << "Added " << m_loaded
-                << " (of " << m_count << ") torrent(s) to the session";
+            PORLA_LOG(session.Logger(), info,
+                "Added {added} (of {total}) torrent(s) to the session",
+                m_loaded,
+                m_count);
         }
     }
 
@@ -149,8 +147,9 @@ void LoadTorrents::Complete(const Session& session)
     }
     catch(const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error)
-            << session.Log() << "Load completion callback failed: " << e.what();
+        BOOST_LOG_SEV(session.Logger(), Log::error)
+            << Log::Property("error", e.what())
+            << "Load completion callback failed";
     }
 }
 

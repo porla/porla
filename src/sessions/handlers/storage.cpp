@@ -1,13 +1,12 @@
 #include "../session.hpp"
 
-#include <boost/log/trivial.hpp>
-
 #include <libtorrent/alert_types.hpp>
 
 #include "../publish.hpp"
 
 #include "../../data/models/addtorrentparams.hpp"
 #include "../../torrentclientdata.hpp"
+#include "../../utils/ltlogvalue.hpp"
 
 using porla::Data::Models::AddTorrentParams;
 using porla::Session;
@@ -16,8 +15,9 @@ void Session::OnSaveResumeDataAlert(const lt::save_resume_data_alert* alert)
 {
     if (!alert->handle.is_valid())
     {
-        BOOST_LOG_TRIVIAL(debug)
-            << Log(alert->params.info_hashes) << "Received resume data for invalid torrent";
+        BOOST_LOG_SEV(m_log, Log::debug)
+            << Log::Property("torrent", alert->params.info_hashes)
+            << "Received resume data for invalid torrent";
 
         return;
     }
@@ -37,8 +37,10 @@ void Session::OnSaveResumeDataAlert(const lt::save_resume_data_alert* alert)
     }
     catch(const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error)
-            << Log(info_hashes) << "Failed to save resume data: " << e.what();
+        BOOST_LOG_SEV(m_log, Log::error)
+            << Log::Property("error", e.what())
+            << Log::Property("torrent", info_hashes)
+            << "Failed to save resume data";
 
         return;
     }
@@ -51,7 +53,9 @@ void Session::OnSaveResumeDataAlert(const lt::save_resume_data_alert* alert)
         }
     }
 
-    BOOST_LOG_TRIVIAL(debug) << Log(info_hashes) << "Resume data saved";
+    BOOST_LOG_SEV(m_log, Log::debug)
+        << Log::Property("torrent", info_hashes)
+        << "Resume data saved";
 }
 
 void Session::OnStorageMovedAlert(const lt::storage_moved_alert* alert)
@@ -61,8 +65,10 @@ void Session::OnStorageMovedAlert(const lt::storage_moved_alert* alert)
         return;
     }
 
-    BOOST_LOG_TRIVIAL(info)
-        << Log(alert->handle.info_hashes()) << "Storage moved to " << alert->storage_path();
+    BOOST_LOG_SEV(m_log, Log::info)
+        << Log::Property("torrent", alert->handle.info_hashes())
+        << Log::Property("path", alert->storage_path())
+        << "Torrent storage moved";
 
     alert->handle.save_resume_data(
         lt::torrent_handle::only_if_modified);
@@ -88,7 +94,10 @@ void Session::OnStorageMovedFailedAlert(const lt::storage_moved_failed_alert* al
         return;
     }
 
-    BOOST_LOG_TRIVIAL(warning) << Log(alert->handle.info_hashes()) << alert->message();
+    BOOST_LOG_SEV(m_log, Log::error)
+        << Log::Property("error", alert->error.message())
+        << Log::Property("torrent", alert->handle.info_hashes())
+        << "Failed to move torrent storage";
 
     EmitTorrentEvent("torrent.storage_moved_failed", *alert);
 }

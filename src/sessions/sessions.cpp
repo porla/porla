@@ -1,7 +1,5 @@
 #include "sessions.hpp"
 
-#include <boost/log/trivial.hpp>
-
 #include "session.hpp"
 #include "sessionevent.hpp"
 
@@ -9,10 +7,16 @@
 #include "../data/models/presets.hpp"
 #include "../data/transaction.hpp"
 #include "../events.hpp"
+#include "../logger.hpp"
 
 using porla::Data::Transaction;
 using porla::Session;
 using porla::Sessions;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("session"); }
+}
 
 Sessions::Sessions(const SessionsOptions& options)
     : m_options(options)
@@ -24,7 +28,8 @@ Sessions::~Sessions()
     std::vector<std::shared_ptr<Session>> pending;
     pending.reserve(m_sessions.size());
 
-    BOOST_LOG_TRIVIAL(info) << "Shutting down " << pending.size() << " session(s)";
+    BOOST_LOG_SEV(logger::get(), Log::info)
+        << "Shutting down " << pending.size() << " session(s)";
 
     while (!m_sessions.empty())
     {
@@ -37,20 +42,26 @@ Sessions::~Sessions()
         }
         catch(const std::exception& e)
         {
-            BOOST_LOG_TRIVIAL(error) << "session[" << session->Name() << "] Failed to unload session: " << e.what();
+            BOOST_LOG_SEV(logger::get(), Log::error)
+                << Log::Property("error", e.what())
+                << Log::Property("session_id", session->Id())
+                << Log::Property("session_name", session->Name())
+                << "Failed to unload session";
         }
 
         pending.push_back(std::move(session));
     }
 
-    BOOST_LOG_TRIVIAL(info) << "All state saved";
+    BOOST_LOG_SEV(logger::get(), Log::info) << "All state saved";
 
     for (auto& session : pending)
     {
         const auto name = session->Name();
 
-        BOOST_LOG_TRIVIAL(info)
-            << "session[" << name << "] Destroying session - this is safe to interrupt";
+        BOOST_LOG_SEV(logger::get(), Log::info)
+            << Log::Property("session_id", session->Id())
+            << Log::Property("session_name", session->Name())
+            << "Destroying session - this is safe to interrupt";
 
         std::weak_ptr<Session> observer = session;
 
@@ -58,9 +69,10 @@ Sessions::~Sessions()
 
         if (!observer.expired())
         {
-            BOOST_LOG_TRIVIAL(warning)
-                << "session[" << name << "] Still referenced after unload - "
-                << "destruction deferred past shutdown";
+            BOOST_LOG_SEV(logger::get(), Log::warning)
+                << Log::Property("session_id", session->Id())
+                << Log::Property("session_name", session->Name())
+                << "Still referenced after unload - destruction deferred past shutdown";
         }
     }
 }
@@ -121,7 +133,10 @@ int Sessions::Add(const Record& session)
 {
     const int id = Data::Models::Sessions::Insert(m_options.db, session);
 
-    BOOST_LOG_TRIVIAL(info) << "session[" << session.name << "] Added - loading";
+    BOOST_LOG_SEV(logger::get(), Log::info)
+        << Log::Property("session_id", id)
+        << Log::Property("session_name", session.name)
+        << "Added session - loading";
 
     LoadById(id);
 
@@ -158,7 +173,10 @@ void Sessions::Remove(int id)
         throw std::runtime_error("Failed to commit session removal transaction");
     }
 
-    BOOST_LOG_TRIVIAL(info) << "session[" << session->name << "] Removed";
+    BOOST_LOG_SEV(logger::get(), Log::info)
+        << Log::Property("session_id", session->id)
+        << Log::Property("session_name", session->name)
+        << "Removed session";
 
     for (const auto preset_id : preset_ids)
     {
@@ -191,7 +209,10 @@ void Sessions::Update(const Record& session)
 
     if (new_default)
     {
-        BOOST_LOG_TRIVIAL(info) << "session[" << session.name << "] Now the default session";
+        BOOST_LOG_SEV(logger::get(), Log::info)
+            << Log::Property("session_id", session.id)
+            << Log::Property("session_name", session.name)
+            << "Set as default session";
     }
 
     if (const auto instance = Get(session.id))
@@ -212,7 +233,7 @@ void Sessions::Load(const std::function<void()>& load_callback)
 {
     const auto sessions = Data::Models::Sessions::List(m_options.db);
 
-    BOOST_LOG_TRIVIAL(info) << "Loading " << sessions.size() << " session(s)";
+    PORLA_LOG(logger::get(), info, "Loading {count} session(s)", sessions.size());
 
     if (sessions.empty())
     {
@@ -255,15 +276,24 @@ void Sessions::LoadById(int id, const std::function<void()>& load_callback)
 
     if (!record)
     {
-        BOOST_LOG_TRIVIAL(warning) << "No session with ID " << id;
+        BOOST_LOG_SEV(logger::get(), Log::warning)
+            << Log::Property("session_id", id)
+            << "No session found with ID";
+
         if (load_callback) { boost::asio::post(m_options.io, load_callback); }
+
         return;
     }
 
     if (m_sessions.contains(record->id))
     {
-        BOOST_LOG_TRIVIAL(warning) << "session[" << record->name << "] Already loaded - skipping";
+        BOOST_LOG_SEV(logger::get(), Log::info)
+            << Log::Property("session_id", record->id)
+            << Log::Property("session_name", record->name)
+            << "Already loaded - skipping";
+
         if (load_callback) { boost::asio::post(m_options.io, load_callback); }
+
         return;
     }
 

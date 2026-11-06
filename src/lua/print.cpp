@@ -1,7 +1,5 @@
 #include "print.hpp"
 
-#include <boost/log/trivial.hpp>
-
 #include "pluginstate.hpp"
 
 void porla::Lua::LogArgs(sol::this_state ts, porla::Log::Level level, sol::variadic_args args)

@@ -12,9 +12,11 @@
 #include <nlohmann/json.hpp>
 #include <sqlite3.h>
 
+#include "torrent.hpp"
+
 #include "../data/models/addtorrentparams.hpp"
 #include "../data/models/sessions.hpp"
-#include "torrent.hpp"
+#include "../logger.hpp"
 
 namespace porla
 {
@@ -104,8 +106,7 @@ namespace porla
         // to libtorrent checking by actually resuming, etc
         void Recheck(const lt::info_hash_t& hash);
 
-        std::string Log() const;
-        std::string Log(const lt::info_hash_t& hash) const;
+        porla::Log::Logger& Logger() const { return m_log; }
 
         // reconciles our torrents with the libtorrent session. use Jobs::ReconcileTorrents
         // to trigger this instead of calling directly
@@ -194,9 +195,10 @@ namespace porla
         template<typename Alert>
         void EmitTorrentEvent(std::string name, const Alert& alert, nlohmann::json extra = {});
 
-        int            m_id;
-        std::string    m_name;
-        SessionOptions m_options;
+        int                        m_id;
+        mutable porla::Log::Logger m_log;
+        std::string                m_name;
+        SessionOptions             m_options;
 
         std::unique_ptr<lt::session>       m_session;
         std::map<lt::info_hash_t, Torrent> m_torrents;

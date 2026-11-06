@@ -1,7 +1,5 @@
 #include "../session.hpp"
 
-#include <boost/log/trivial.hpp>
-
 #include <libtorrent/alert_types.hpp>
 
 #include "../publish.hpp"
@@ -9,6 +7,7 @@
 #include "../../data/models/addtorrentparams.hpp"
 #include "../../json/boost.hpp"
 #include "../../torrentclientdata.hpp"
+#include "../../utils/ltlogvalue.hpp"
 
 using porla::Data::Models::AddTorrentParams;
 using porla::Session;
@@ -21,7 +20,10 @@ void Session::OnAddTorrentAlert(const lt::add_torrent_alert* alert)
 
     if (alert->error)
     {
-        BOOST_LOG_TRIVIAL(error) << Log(key) << "Failed to add torrent: " << alert->error.what();
+        BOOST_LOG_SEV(m_log, Log::error)
+            << Log::Property("error", alert->error.message())
+            << Log::Property("torrent", key)
+            << "Failed to add torrent";
 
         if (const auto it = m_torrents.find(key); it != m_torrents.end()
             && it->second.state != Torrent::State::Current)
@@ -47,8 +49,9 @@ void Session::OnAddTorrentAlert(const lt::add_torrent_alert* alert)
 
     if (it == m_torrents.end())
     {
-        BOOST_LOG_TRIVIAL(warning)
-            << Log(hash) << "Received add torrent alert for a torrent Porla did not add";
+        BOOST_LOG_SEV(m_log, Log::warning)
+            << Log::Property("torrent", hash)
+            << "Received add torrent alert for a torrent Porla did not add";
 
         Track(alert->handle.status());
 
@@ -97,8 +100,10 @@ void Session::OnAddTorrentAlert(const lt::add_torrent_alert* alert)
     }
     catch(const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error)
-            << Log(hash) << "Failed to insert: " << e.what();
+        BOOST_LOG_SEV(m_log, Log::error)
+            << Log::Property("error", e.what())
+            << Log::Property("torrent", hash)
+            << "Failed to insert torrent";
     }
 
     // add_torrent_alert::params is a stripped copy without the resume fields (added time, limits,
@@ -111,16 +116,18 @@ void Session::OnAddTorrentAlert(const lt::add_torrent_alert* alert)
 
 void Session::OnTorrentRemovedAlert(const lt::torrent_removed_alert* alert)
 {
-    BOOST_LOG_TRIVIAL(info)
-        << Log(alert->info_hashes) << "Torrent removed";
+    BOOST_LOG_SEV(m_log, Log::info)
+        << Log::Property("torrent", alert->info_hashes)
+        << "Torrent removed";
 
     UntrackTorrent(alert->info_hashes);
 }
 
 void Session::OnTorrentResumedAlert(const lt::torrent_resumed_alert* alert)
 {
-    BOOST_LOG_TRIVIAL(debug)
-        << Log(alert->handle.info_hashes()) << "Torrent resumed";
+    BOOST_LOG_SEV(m_log, Log::debug)
+        << Log::Property("torrent", alert->handle.info_hashes())
+        << "Torrent resumed";
 
     EmitTorrentEvent("torrent.resumed", *alert);
 }
@@ -158,7 +165,9 @@ void Session::OnMetadataReceivedAlert(const lt::metadata_received_alert* alert)
 
     const auto info_hashes = alert->handle.info_hashes();
 
-    BOOST_LOG_TRIVIAL(info) << Log(info_hashes) << "Metadata received";
+    BOOST_LOG_SEV(m_log, Log::info)
+        << Log::Property("torrent", info_hashes)
+        << "Metadata received for torrent";
 
     // A magnet link only carries the hash(es) it was added with. A hybrid
     // torrent gains its other hash with the metadata, and every later alert
@@ -212,7 +221,10 @@ void Session::OnTorrentErrorAlert(const lt::torrent_error_alert* alert)
         return;
     }
 
-    BOOST_LOG_TRIVIAL(error) << Log(alert->handle.info_hashes()) << alert->message();
+    BOOST_LOG_SEV(m_log, Log::error)
+        << Log::Property("error", alert->error.what())
+        << Log::Property("torrent", alert->handle.info_hashes())
+        << "A torrent error has occured";
 
     EmitTorrentEvent("torrent.error", *alert);
 }
@@ -224,7 +236,8 @@ void Session::OnTorrentCheckedAlert(const lt::torrent_checked_alert* alert)
         return;
     }
 
-    BOOST_LOG_TRIVIAL(info) << Log(alert->handle.info_hashes())
+    BOOST_LOG_SEV(m_log, Log::info)
+        << Log::Property("torrent", alert->handle.info_hashes())
         << "Torrent finished checking";
 
     if (const auto it = m_torrents.find(alert->handle.info_hashes());
@@ -277,7 +290,9 @@ void Session::OnTorrentFinishedAlert(const lt::torrent_finished_alert* alert)
 
     if (first)
     {
-        BOOST_LOG_TRIVIAL(info) << Log(status.info_hashes) << "Torrent finished";
+        BOOST_LOG_SEV(m_log, Log::info)
+            << Log::Property("torrent", status.info_hashes)
+            << "Torrent finished";
     }
 
     status.handle.save_resume_data(
@@ -288,8 +303,9 @@ void Session::OnTorrentFinishedAlert(const lt::torrent_finished_alert* alert)
 
 void Session::OnTorrentPausedAlert(const lt::torrent_paused_alert* alert)
 {
-    BOOST_LOG_TRIVIAL(debug)
-        << Log(alert->handle.info_hashes()) << "Torrent paused";
+    BOOST_LOG_SEV(m_log, Log::debug)
+        << Log::Property("torrent", alert->handle.info_hashes())
+        << "Torrent paused";
 
     EmitTorrentEvent("torrent.paused", *alert);
 }

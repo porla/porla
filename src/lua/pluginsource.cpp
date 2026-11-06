@@ -2,11 +2,15 @@
 
 #include <fstream>
 
-#include <boost/log/trivial.hpp>
-
+#include "../logger.hpp"
 #include "../zip.hpp"
 
 using porla::Lua::PluginSource;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("plugins"); }
+}
 
 namespace
 {
@@ -46,7 +50,10 @@ std::optional<PluginSource> PluginSource::Load(const fs::path& path)
 {
     if (!path.is_absolute())
     {
-        BOOST_LOG_TRIVIAL(error) << "Provided path is not absolute: " << path;
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("path", path)
+            << "Provided path is not absolute";
+
         return std::nullopt;
     }
 
@@ -56,7 +63,10 @@ std::optional<PluginSource> PluginSource::Load(const fs::path& path)
 
         if (!file_data.has_value())
         {
-            BOOST_LOG_TRIVIAL(error) << "Failed to read file " << path;
+            BOOST_LOG_SEV(logger::get(), Log::error)
+                << Log::Property("path", path)
+                << "Failed to read file";
+
             return std::nullopt;
         }
 
@@ -76,7 +86,10 @@ std::optional<PluginSource> PluginSource::Load(const fs::path& path)
 
         if (!archive_buffer.has_value())
         {
-            BOOST_LOG_TRIVIAL(error) << "Failed to load plugin sources from " << path;
+            BOOST_LOG_SEV(logger::get(), Log::error)
+                << Log::Property("path", path)
+                << "Failed to load plugin sources";
+
             return std::nullopt;
         }
 
@@ -112,7 +125,10 @@ std::optional<PluginSource> PluginSource::Load(const fs::path& path)
 
             if (!contents.has_value())
             {
-                BOOST_LOG_TRIVIAL(error) << "Failed to read file " << it->path();
+                BOOST_LOG_SEV(logger::get(), Log::error)
+                    << Log::Property("path", it->path())
+                    << "Failed to read file";
+
                 continue;
             }
 
