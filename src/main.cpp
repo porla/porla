@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
         return porla::CmdArgs::Help();
     }
 
-    porla::Logger::Setup(cmd);
+    porla::Log::Setup(cmd);
 
     std::unique_ptr<porla::Config> cfg;
 
