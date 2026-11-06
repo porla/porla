@@ -82,7 +82,7 @@ std::optional<TokenRows::Token> porla::Auth::Tokens::Verify(sqlite3* db, std::st
     {
         BOOST_LOG_SEV(logger::get(), Log::debug)
             << Log::Property("length", token.size())
-            << Log::Property("exptected_length", kTokenLen)
+            << Log::Property("expected_length", kTokenLen)
             << "Malformed token";
 
         return std::nullopt;

@@ -96,6 +96,8 @@ void Session::OnStorageMovedFailedAlert(const lt::storage_moved_failed_alert* al
 
     BOOST_LOG_SEV(m_log, Log::error)
         << Log::Property("error", alert->error.message())
+        << Log::Property("file", alert->file_path())
+        << Log::Property("operation", lt::operation_name(alert->op))
         << Log::Property("torrent", alert->handle.info_hashes())
         << "Failed to move torrent storage";
 

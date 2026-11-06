@@ -29,7 +29,7 @@ Sessions::~Sessions()
     pending.reserve(m_sessions.size());
 
     BOOST_LOG_SEV(logger::get(), Log::info)
-        << "Shutting down " << pending.size() << " session(s)";
+        << "Shutting down " << m_sessions.size() << " session(s)";
 
     while (!m_sessions.empty())
     {
@@ -56,11 +56,12 @@ Sessions::~Sessions()
 
     for (auto& session : pending)
     {
+        const auto id   = session->Id();
         const auto name = session->Name();
 
         BOOST_LOG_SEV(logger::get(), Log::info)
-            << Log::Property("session_id", session->Id())
-            << Log::Property("session_name", session->Name())
+            << Log::Property("session_id", id)
+            << Log::Property("session_name", name)
             << "Destroying session - this is safe to interrupt";
 
         std::weak_ptr<Session> observer = session;
@@ -70,8 +71,8 @@ Sessions::~Sessions()
         if (!observer.expired())
         {
             BOOST_LOG_SEV(logger::get(), Log::warning)
-                << Log::Property("session_id", session->Id())
-                << Log::Property("session_name", session->Name())
+                << Log::Property("session_id", id)
+                << Log::Property("session_name", name)
                 << "Still referenced after unload - destruction deferred past shutdown";
         }
     }

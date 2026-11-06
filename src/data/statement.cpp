@@ -129,10 +129,13 @@ Statement::Statement(sqlite3_stmt *stmt)
 
 Statement::~Statement()
 {
+    sqlite3* db = sqlite3_db_handle(m_stmt);
+
+    // sqlite3_finalize frees m_stmt even when it fails
     if (sqlite3_finalize(m_stmt) != SQLITE_OK)
     {
         BOOST_LOG_SEV(logger::get(), Log::error)
-            << Log::Property("error", sqlite3_errmsg(sqlite3_db_handle(m_stmt)))
+            << Log::Property("error", sqlite3_errmsg(db))
             << "Failed to finalize SQLite statement";
     }
 }

@@ -204,9 +204,15 @@ namespace porla::Log
         }
     }
 
-    void AddProperty(Logger& logger, const std::string& name, Value value)
+    void SetProperty(Logger& logger, const std::string& name, Value value)
     {
-        logger.add_attribute(name, boost::log::attributes::constant<Value>(std::move(value)));
+        const boost::log::attributes::constant<Value> attr(std::move(value));
+
+        if (auto [it, added] = logger.add_attribute(name, attr); !added)
+        {
+            logger.remove_attribute(it);
+            logger.add_attribute(name, attr);
+        }
     }
 
     Logger Component(const std::string& name)
@@ -217,7 +223,7 @@ namespace porla::Log
     Logger Plugin(int id)
     {
         auto logger = Component("plugin");
-        AddProperty(logger, "plugin_id", std::int64_t{ id });
+        SetProperty(logger, "plugin_id", std::int64_t{ id });
         return logger;
     }
 
@@ -346,7 +352,7 @@ namespace porla::Log
         auto buffer  = std::make_shared<Buffer>(4 * 1024 * 1024);
         auto console = boost::make_shared<boost::log::sinks::synchronous_sink<boost::log::sinks::text_ostream_backend>>();
 
-        console->locked_backend()->add_stream(boost::shared_ptr<std::ostream>(&std::cout, boost::null_deleter()));
+        console->locked_backend()->add_stream(boost::shared_ptr<std::ostream>(&std::clog, boost::null_deleter()));
         console->locked_backend()->auto_flush(true);
         console->locked_backend()->set_auto_newline_mode(boost::log::sinks::auto_newline_mode::always_insert);
         console->set_formatter(&Format);

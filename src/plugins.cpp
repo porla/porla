@@ -87,7 +87,7 @@ int Plugins::Add(const Plugin& plugin)
 {
     const int id = Model::Insert(m_options.db, plugin);
 
-    auto log = Log::Plugin(plugin.id);
+    auto log = Log::Plugin(id);
     BOOST_LOG_SEV(log, Log::info)
         << Log::Property("path", plugin.path)
         << "Plugin added";

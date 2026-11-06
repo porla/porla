@@ -24,7 +24,6 @@
 #include <boost/log/sources/record_ostream.hpp>
 #include <boost/log/sources/severity_channel_logger.hpp>
 #include <boost/log/trivial.hpp>
-#include <boost/log/utility/manipulators/add_value.hpp>
 #include <boost/program_options.hpp>
 
 #define PORLA_LOG(lg, lvl, ...) ::porla::Log::Write((lg), ::porla::Log::lvl, __VA_ARGS__)
@@ -45,7 +44,7 @@ namespace porla::Log
     Logger Component(const std::string& name);
     Logger Plugin(int plugin_id);
 
-    void AddProperty(Logger& logger, const std::string& name, Value value);
+    void SetProperty(Logger& logger, const std::string& name, Value value);
 
     template <typename T>
     struct ValueOf;
@@ -76,10 +75,26 @@ namespace porla::Log
         else                                                                { return ValueOf<T>::From(value); }
     }
 
-    template <typename T>
-    auto Property(const std::string& name, const T& value)
+    // Owns its value, unlike boost::log::add_value, which keeps a reference to a non-scalar temporary.
+    struct PropertyValue
     {
-        return boost::log::add_value(name, ToValue(value));
+        boost::log::attribute_name name;
+        Value                      value;
+    };
+
+    template <typename T>
+    PropertyValue Property(const std::string& name, const T& value)
+    {
+        return PropertyValue{ .name = boost::log::attribute_name(name), .value = ToValue(value) };
+    }
+
+    inline boost::log::record_ostream& operator<<(boost::log::record_ostream& strm, PropertyValue property)
+    {
+        strm.get_record().attribute_values().insert(
+            property.name,
+            boost::log::attributes::make_attribute_value(std::move(property.value)));
+
+        return strm;
     }
 
     namespace Detail

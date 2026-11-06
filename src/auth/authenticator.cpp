@@ -139,21 +139,12 @@ Context Authenticator::Authenticate(uWS::HttpRequest* req) const
             return {};
         }
 
-        BOOST_LOG_SEV(logger::get(), Log::debug)
-            << Log::Property("user", token->username)
-            << Log::Property("token_id", token->id)
-            << "Authenticated user";
-
         return Context{
             .kind     = Context::Kind::User,
             .subject  = token->username,
             .token_id = token->id
         };
     }
-
-    BOOST_LOG_SEV(logger::get(), Log::debug)
-        << Log::Property("token_id", token->id)
-        << "Authenticated API key";
 
     return Context{
         .kind     = Context::Kind::Machine,

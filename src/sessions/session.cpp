@@ -61,8 +61,8 @@ Session::Session(const SessionOptions& options)
     , m_jobs(std::make_unique<Scheduler>(options.io, *this))
     , m_dirty_timer(options.io)
 {
-    Log::AddProperty(m_log, "session_id", std::int64_t{m_id});
-    Log::AddProperty(m_log, "session_name", m_name);
+    Log::SetProperty(m_log, "session_id", std::int64_t{m_id});
+    Log::SetProperty(m_log, "session_name", m_name);
 
     m_session = std::make_unique<lt::session>(std::move(m_options.record.params));
     m_session->add_extension(&lt::create_smart_ban_plugin);
@@ -76,6 +76,12 @@ Session::~Session()
 {
     // bye bye libtorrent session
     m_session.reset();
+}
+
+void Session::Rename(std::string name)
+{
+    m_name = std::move(name);
+    Log::SetProperty(m_log, "session_name", m_name);
 }
 
 void Session::Start(std::function<void()> load_callback)

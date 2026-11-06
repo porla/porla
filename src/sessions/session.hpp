@@ -62,7 +62,7 @@ namespace porla
 
         int                Id()   const             { return m_id; }
         const std::string& Name() const             { return m_name; }
-        void               Rename(std::string name) { m_name = std::move(name); }
+        void               Rename(std::string name);
 
         lt::session& Libtorrent() { return *m_session; }
 

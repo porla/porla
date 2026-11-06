@@ -223,8 +223,9 @@ void Session::OnTorrentErrorAlert(const lt::torrent_error_alert* alert)
 
     BOOST_LOG_SEV(m_log, Log::error)
         << Log::Property("error", alert->error.what())
+        << Log::Property("file", alert->filename())
         << Log::Property("torrent", alert->handle.info_hashes())
-        << "A torrent error has occured";
+        << "A torrent error has occurred";
 
     EmitTorrentEvent("torrent.error", *alert);
 }

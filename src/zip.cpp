@@ -26,7 +26,7 @@ std::map<std::string, std::vector<char>> Zip::Load(const std::vector<char>& buff
     {
         BOOST_LOG_SEV(logger::get(), Log::error)
             << Log::Property("error", zip_error_strerror(&err))
-            << "Failed to craete zip source from buffer";
+            << "Failed to create zip source from buffer";
 
         return {};
     }
