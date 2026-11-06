@@ -39,7 +39,7 @@ namespace porla::Log
     // store component in the Channel attribute
     BOOST_LOG_ATTRIBUTE_KEYWORD(component, "Channel", std::string)
 
-    using Value      = std::variant<bool, std::int64_t, std::uint64_t, double, std::string>;
+    using Value      = std::variant<std::monostate, bool, std::int64_t, std::uint64_t, double, std::string>;
     using Properties = std::vector<std::pair<std::string, Value>>;
 
     Logger Component(const std::string& name);
@@ -50,10 +50,19 @@ namespace porla::Log
     template <typename T>
     struct ValueOf;
 
+    template <typename T>
+    Value ToValue(const T& value);
+
     template <>
     struct ValueOf<std::filesystem::path>
     {
         static Value From(const std::filesystem::path& path) { return path.string(); }
+    };
+
+    template <typename T>
+    struct ValueOf<std::optional<T>>
+    {
+        static Value From(const std::optional<T>& value) { return value ? ToValue(*value) : Value(); }
     };
 
     template <typename T>
@@ -221,7 +230,17 @@ namespace porla::Log
             [&](std::string_view name)
             {
                 std::visit(
-                    [&](const auto& v) { std::format_to(std::back_inserter(message), "{}", v); },
+                    [&](const auto& v)
+                    {
+                        if constexpr (std::same_as<std::decay_t<decltype(v)>, std::monostate>)
+                        {
+                            message.append("null");
+                        }
+                        else
+                        {
+                            std::format_to(std::back_inserter(message), "{}", v);
+                        }
+                    },
                     values[index]);
 
                 rec.attribute_values().insert(

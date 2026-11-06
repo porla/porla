@@ -2,10 +2,16 @@
 
 #include <ctime>
 
-#include <boost/log/trivial.hpp>
 #include <croncpp.hpp>
 
+#include "logger.hpp"
+
 using porla::Timer;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("timer"); }
+}
 
 namespace
 {
@@ -16,7 +22,10 @@ namespace
 
         if (next == static_cast<std::time_t>(-1) || next <= now)
         {
-            BOOST_LOG_TRIVIAL(error) << "Cron expression has no future execution - stopping";
+            BOOST_LOG_SEV(logger::get(), porla::Log::error)
+                << porla::Log::Property("expression", cron::to_cronstr(expr))
+                << "Cron expression has no future execution - stopping";
+
             return std::nullopt;
         }
 
@@ -85,7 +94,10 @@ void Timer::OnExpired(boost::system::error_code ec)
     }
     else if (ec)
     {
-        BOOST_LOG_TRIVIAL(error) << "Error in timer: " << ec.message();
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("error", ec.message())
+            << "Error in timer";
+
         return;
     }
 
@@ -97,10 +109,13 @@ void Timer::OnExpired(boost::system::error_code ec)
     }
     catch (const std::exception& ex)
     {
-        BOOST_LOG_TRIVIAL(error) << "Unhandled exception in timer callback: " << ex.what();
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("error", ex.what())
+            << "Unhandled exception in timer callback";
     }
     catch (...)
     {
-        BOOST_LOG_TRIVIAL(error) << "Unknown exception in timer callback";
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << "Unhandled unknown exception in timer callback";
     }
 }

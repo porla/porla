@@ -2,10 +2,16 @@
 
 #include <ctime>
 
-#include <boost/log/trivial.hpp>
 #include <sodium.h>
 
+#include "../logger.hpp"
+
 using TokenRows = porla::Data::Models::Tokens;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("auth"); }
+}
 
 namespace
 {
@@ -58,6 +64,12 @@ porla::Auth::Tokens::Issued porla::Auth::Tokens::Issue(sqlite3* db, Data::Models
 
     TokenRows::Insert(db, row);
 
+    BOOST_LOG_SEV(logger::get(), Log::info)
+        << Log::Property("kind", row.kind)
+        << Log::Property("token_id", row.id)
+        << Log::Property("user_agent", row.user_agent)
+        << "Auth token issued";
+
     return Issued{
         .id    = row.id,
         .token = "porla_" + row.id + "_" + secret_encoded
@@ -68,6 +80,11 @@ std::optional<TokenRows::Token> porla::Auth::Tokens::Verify(sqlite3* db, std::st
 {
     if (token.size() != kTokenLen || !token.starts_with("porla_") || token[6 + kIdLen] != '_')
     {
+        BOOST_LOG_SEV(logger::get(), Log::debug)
+            << Log::Property("length", token.size())
+            << Log::Property("exptected_length", kTokenLen)
+            << "Malformed token";
+
         return std::nullopt;
     }
 
@@ -88,6 +105,11 @@ std::optional<TokenRows::Token> porla::Auth::Tokens::Verify(sqlite3* db, std::st
             sodium_base64_VARIANT_URLSAFE_NO_PADDING) != 0
         || secret_len != sizeof(secret))
     {
+        sodium_memzero(secret, sizeof(secret));
+
+        BOOST_LOG_SEV(logger::get(), Log::debug)
+            << "Token secret is not valid base64url";
+
         return std::nullopt;
     }
 
@@ -103,6 +125,9 @@ std::optional<TokenRows::Token> porla::Auth::Tokens::Verify(sqlite3* db, std::st
         || row->secret_hash.size() != hashed.size()
         || sodium_memcmp(row->secret_hash.data(), hashed.data(), hashed.size()) != 0)
     {
+        BOOST_LOG_SEV(logger::get(), Log::debug)
+            << "Invalid token";
+
         return std::nullopt;
     }
 
@@ -127,7 +152,10 @@ std::optional<TokenRows::Token> porla::Auth::Tokens::Verify(sqlite3* db, std::st
         }
         catch(const std::exception& e)
         {
-            BOOST_LOG_TRIVIAL(warning) << "Failed to update last use of token " << row->id << ": " << e.what();
+            BOOST_LOG_SEV(logger::get(), Log::warning)
+                << Log::Property("error", e.what())
+                << Log::Property("token_id", row->id)
+                << "Failed to update last use of token";
         }
     }
 

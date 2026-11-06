@@ -1,13 +1,18 @@
 #include "jsonrpc.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/log/trivial.hpp>
 #include <zlib.h>
 
 #include "../auth/authenticator.hpp"
 #include "../json/utils.hpp"
+#include "../logger.hpp"
 
 using porla::Rpc::JsonRpc;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("rpc"); }
+}
 
 namespace
 {
@@ -242,7 +247,10 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
             }
             catch (const std::exception& ex)
             {
-                BOOST_LOG_TRIVIAL(warning) << "Failed to parse JSONRPC request: " << ex.what();
+                BOOST_LOG_SEV(logger::get(), Log::warning)
+                    << Log::Property("error", ex.what())
+                    << "Failed to parse JSONRPC request";
+
                 fail(nullptr, porla::Errors::Code::parse_error, ex.what());
                 return;
             }
@@ -273,7 +281,10 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
 
             if (method == jsonrpc->m_methods.end())
             {
-                BOOST_LOG_TRIVIAL(debug) << "Failed to find JSONRPC method '" << req.method << "'";
+                BOOST_LOG_SEV(logger::get(), Log::debug)
+                    << Log::Property("method", req.method)
+                    << "Failed to find JSONRPC method '" << req.method << "'";
+
                 fail(id, porla::Errors::Code::method_not_found);
                 return;
             }
@@ -286,7 +297,9 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
 
             try
             {
-                BOOST_LOG_TRIVIAL(debug) << "Executing JSONRPC method '" << req.method << "'";
+                BOOST_LOG_SEV(logger::get(), Log::trace)
+                    << Log::Property("method", req.method)
+                    << "Executing JSONRPC method '" << req.method << "'";
 
                 if (!method->second.Allows(auth_context) || !method->second.method->CanInvoke(auth_context))
                 {
@@ -298,7 +311,11 @@ std::function<void(uWS::HttpResponse<false>*, uWS::HttpRequest*)> JsonRpc::HttpH
             }
             catch (const std::exception& ex)
             {
-                BOOST_LOG_TRIVIAL(error) << "Error when executing JSONRPC method '" << req.method << "': " << ex.what();
+                BOOST_LOG_SEV(logger::get(), Log::error)
+                    << Log::Property("error", ex.what())
+                    << Log::Property("method", req.method)
+                    << "Error when executing JSONRPC method";
+
                 writer->Error(porla::Errors::Code::internal_error, {}, {{"detail", ex.what()}});
             }
         });

@@ -4,7 +4,12 @@
 #include <stdexcept>
 #include <string>
 
-#include <boost/log/trivial.hpp>
+#include "../logger.hpp"
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("db"); }
+}
 
 using porla::Data::Transaction;
 
@@ -28,8 +33,12 @@ bool Transaction::Commit()
 
     if (sqlite3_exec(m_db, "COMMIT;", nullptr, nullptr, nullptr) != SQLITE_OK)
     {
-        BOOST_LOG_TRIVIAL(error) << "db[tx] Failed to commit transaction: " << sqlite3_errmsg(m_db);
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("error", sqlite3_errmsg(m_db))
+            << "Failed to commit transaction";
+
         Rollback();
+
         return false;
     }
 
@@ -51,7 +60,9 @@ void Transaction::Rollback()
 
     if (in_transaction && sqlite3_exec(m_db, "ROLLBACK;", nullptr, nullptr, nullptr) != SQLITE_OK)
     {
-        BOOST_LOG_TRIVIAL(error) << "db[tx] Failed to roll back transaction: " << sqlite3_errmsg(m_db);
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("error", sqlite3_errmsg(m_db))
+            << "Failed to rollback transaction";
     }
 }
 
@@ -64,7 +75,8 @@ Transaction::~Transaction()
 
     if (std::uncaught_exceptions() <= m_uncaught_exceptions)
     {
-        BOOST_LOG_TRIVIAL(error) << "db[tx] Transaction destroyed without commit or rollback - rolling back";
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << "Transaction destroyed without commit or rollback - rolling back";
     }
 
     Rollback();

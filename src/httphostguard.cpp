@@ -5,11 +5,16 @@
 #include <optional>
 
 #include <boost/asio/ip/address.hpp>
-#include <boost/log/trivial.hpp>
 
+#include "logger.hpp"
 #include "utils/string.hpp"
 
 using porla::HttpHostGuard;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("http"); }
+}
 
 namespace
 {
@@ -95,7 +100,7 @@ HttpHostGuard::HttpHostGuard(std::string_view bind_host, const std::vector<std::
         }
         else
         {
-            BOOST_LOG_TRIVIAL(warning) << "Ignoring invalid allowed host '" << host << "'";
+            PORLA_LOG(logger::get(), info, "Ignoring invalid allowed host {host}", host);
         }
     }
 
@@ -129,9 +134,11 @@ bool HttpHostGuard::Reject(uWS::HttpResponse<false>* res, uWS::HttpRequest* req)
     // once per name (and not too many), so a flood can't fill the log
     if (const auto name = HostName(host).value_or(std::string(host.substr(0, 64))); m_logged.size() < 32 && m_logged.insert(name).second)
     {
-        BOOST_LOG_TRIVIAL(warning)
-            << "Rejected a request for host '" << name << "': porla only answers to localhost names here. "
-            << "Behind a reverse proxy, add the name with --http-allowed-hosts or PORLA_HTTP_ALLOWED_HOSTS";
+        PORLA_LOG(
+            logger::get(), warning,
+            "Rejected a request for host {host}: Porla only answers to localhost names here. "
+            "Behind a reverse proxy, add the name with --http-allowed-hosts or PORLA_HTTP_ALLOWED_HOSTS",
+            name);
     }
 
     res->writeStatus("403 Forbidden")->end("Forbidden", true);

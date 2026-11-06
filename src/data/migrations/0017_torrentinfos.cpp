@@ -1,6 +1,5 @@
 #include "../migrations.hpp"
 
-#include <boost/log/trivial.hpp>
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/bencode.hpp>
 #include <libtorrent/entry.hpp>
@@ -8,7 +7,14 @@
 
 #include "../statement.hpp"
 
+#include "../../logger.hpp"
+
 using porla::Data::Statement;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("db"); }
+}
 
 namespace
 {
@@ -32,7 +38,10 @@ namespace
 
         if (ec || resume_data.type() != lt::bdecode_node::dict_t)
         {
-            BOOST_LOG_TRIVIAL(warning) << "Undecodable row found - ID " << row.id << ": " << ec;
+            BOOST_LOG_SEV(logger::get(), porla::Log::warning)
+                << porla::Log::Property("addtorrentparams_id", row.id)
+                << "Undecodable row found";
+
             return;
         }
 
@@ -67,7 +76,8 @@ namespace
 
 int porla::Data::Migrations::TorrentInfos(sqlite3* db)
 {
-    BOOST_LOG_TRIVIAL(info) << "Adding table 'torrentinfos'";
+    BOOST_LOG_SEV(logger::get(), Log::info)
+        << "Adding table 'torrentinfos'";
 
     int res = sqlite3_exec(
         db,
@@ -86,7 +96,8 @@ int porla::Data::Migrations::TorrentInfos(sqlite3* db)
         return res;
     }
 
-    BOOST_LOG_TRIVIAL(info) << "Moving info dicts to torrentinfos - might take a while";
+    BOOST_LOG_SEV(logger::get(), Log::info)
+        << "Moving info dicts to torrentinfos - might take a while";
 
     try
     {
@@ -118,7 +129,10 @@ int porla::Data::Migrations::TorrentInfos(sqlite3* db)
     }
     catch(const std::exception& e)
     {
-        BOOST_LOG_TRIVIAL(error) << "Failed to move info dicts: " << e.what();
+        BOOST_LOG_SEV(logger::get(), Log::error)
+            << Log::Property("error", e.what())
+            << "Failed to move info dicts";
+
         return SQLITE_ERROR;
     }
 

@@ -1,6 +1,5 @@
 #include <boost/asio.hpp>
 #include <boost/log/expressions.hpp>
-#include <boost/log/trivial.hpp>
 #include <cmrc/cmrc.hpp>
 #include <curl/curl.h>
 #include <sodium.h>
@@ -35,6 +34,11 @@
 #include "rpc/methods/torrents.hpp"
 
 CMRC_DECLARE(porla_lua);
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("main"); }
+}
 
 extern "C"
 {
@@ -130,7 +134,9 @@ int main(int argc, char* argv[])
     }
     catch (const std::exception& ex)
     {
-        BOOST_LOG_TRIVIAL(fatal) << "Failed to load configuration: " << ex.what();
+        BOOST_LOG_SEV(logger::get(), porla::Log::fatal)
+            << porla::Log::Property("error", ex.what())
+            << "Failed to load configuration";
         return -1;
     }
 
@@ -143,7 +149,10 @@ int main(int argc, char* argv[])
         signals.async_wait(
             [&io](boost::system::error_code const& ec, int signal)
             {
-                BOOST_LOG_TRIVIAL(info) << "Interrupt received (" << signal << ") - stopping...";
+                BOOST_LOG_SEV(logger::get(), porla::Log::info)
+                    << porla::Log::Property("signal", signal)
+                    << "Interrupt received - stopping...";
+
                 io.stop();
             });
 
@@ -223,7 +232,9 @@ int main(int argc, char* argv[])
                 }
                 catch (const std::exception& e)
                 {
-                    BOOST_LOG_TRIVIAL(error) << "Failed to load plugins: " << e.what();
+                    BOOST_LOG_SEV(logger::get(), porla::Log::error)
+                        << porla::Log::Property("error", e.what())
+                        << "Failed to load plugins";
                 }
 
                 std::string http_base_path = cfg->http_base_path.value_or("/");
@@ -271,7 +282,8 @@ int main(int argc, char* argv[])
                     cfg->http_port.value_or(1337),
                     [](const auto* t)
                     {
-                        BOOST_LOG_TRIVIAL(info) << "HTTP server listening";
+                        BOOST_LOG_SEV(logger::get(), porla::Log::info)
+                            << "HTTP server listening";
                     });
             });
 
@@ -289,14 +301,17 @@ int main(int argc, char* argv[])
             }
             catch(const std::exception& e)
             {
-                BOOST_LOG_TRIVIAL(error) << "Unhandled exception in event loop: " << e.what();
+                BOOST_LOG_SEV(logger::get(), porla::Log::error)
+                    << porla::Log::Property("error", e.what())
+                    << "Unhandled exception in event loop";
             }
         }
     }
 
     curl_global_cleanup();
 
-    BOOST_LOG_TRIVIAL(info) << "Bye";
+    BOOST_LOG_SEV(logger::get(), porla::Log::info)
+        << "Bye";
 
     return 0;
 }

@@ -6,7 +6,6 @@
 #include <optional>
 
 #include <boost/asio/awaitable.hpp>
-#include <boost/log/trivial.hpp>
 #include <fcntl.h>
 #include <sys/quota.h>
 #include <sys/syscall.h>
@@ -16,8 +15,14 @@
 #include "../jsonrpc.hpp"
 
 #include "../../json/utils.hpp"
+#include "../../logger.hpp"
 
 namespace fs = std::filesystem;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("rpc"); }
+}
 
 namespace porla::Rpc::Methods::Fs
 {
@@ -70,7 +75,11 @@ namespace porla::Rpc::Methods::Fs
 
             if (fd < 0)
             {
-                BOOST_LOG_TRIVIAL(debug) << "Could not open " << path << " for quota lookup: " << std::strerror(errno);
+                BOOST_LOG_SEV(logger::get(), Log::debug)
+                    << Log::Property("error", std::strerror(errno))
+                    << Log::Property("path", path)
+                    << "Could not open " << path << " for quota lookup";
+
                 return std::nullopt;
             }
 
@@ -93,10 +102,18 @@ namespace porla::Rpc::Methods::Fs
                 case EOPNOTSUPP:
         #endif
                 case ENOENT:
-                    BOOST_LOG_TRIVIAL(debug) << "No quota information for " << path << ": " << std::strerror(err);
+                    BOOST_LOG_SEV(logger::get(), Log::debug)
+                        << Log::Property("error", std::strerror(err))
+                        << Log::Property("path", path)
+                        << "No quota information for " << path;
+
                     break;
                 default:
-                    BOOST_LOG_TRIVIAL(warning) << "quotactl_fd failed for " << path << ": " << std::strerror(err);
+                    BOOST_LOG_SEV(logger::get(), Log::warning)
+                        << Log::Property("error", std::strerror(err))
+                        << Log::Property("path", path)
+                        << "quotactl_fd failed for " << path;
+
                     break;
                 }
 

@@ -1,12 +1,18 @@
 #include "../migrations.hpp"
 
-#include <boost/log/trivial.hpp>
+#include "../../logger.hpp"
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("db"); }
+}
 
 int porla::Data::Migrations::Plugins(sqlite3* db)
 {
-    BOOST_LOG_TRIVIAL(info) << "Creating 'plugins' table";
+    BOOST_LOG_SEV(logger::get(), Log::info)
+        << "Creating 'plugins' table";
 
-    int res = sqlite3_exec(
+    return sqlite3_exec(
         db,
         "CREATE TABLE plugins ("
             "id INTEGER PRIMARY KEY,"
@@ -18,6 +24,4 @@ int porla::Data::Migrations::Plugins(sqlite3* db)
         nullptr,
         nullptr,
         nullptr);
-
-    return res;
 }

@@ -1,17 +1,23 @@
 #include "addtorrentparams.hpp"
 
-#include <boost/log/trivial.hpp>
 #include <libtorrent/read_resume_data.hpp>
 #include <libtorrent/write_resume_data.hpp>
 #include <nlohmann/json.hpp>
 
 #include "../statement.hpp"
+
+#include "../../logger.hpp"
 #include "../../torrentclientdata.hpp"
 
 using json = nlohmann::json;
 using porla::Data::Statement;
 using porla::Data::Models::AddTorrentParams;
 using porla::TorrentClientData;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("db"); }
+}
 
 namespace
 {
@@ -53,7 +59,10 @@ namespace
 
         if (ec)
         {
-            BOOST_LOG_TRIVIAL(error) << "Failed to decode info dict: " << ec;
+            BOOST_LOG_SEV(logger::get(), porla::Log::error)
+                << porla::Log::Property("error", ec.message())
+                << "Failed to decode info dict";
+
             return nullptr;
         }
 
@@ -61,7 +70,10 @@ namespace
 
         if (ec)
         {
-            BOOST_LOG_TRIVIAL(error) << "Failed to read info dict: " << ec;
+            BOOST_LOG_SEV(logger::get(), porla::Log::error)
+                << porla::Log::Property("error", ec.message())
+                << "Failed to read info dict";
+
             return nullptr;
         }
 
@@ -70,7 +82,9 @@ namespace
         if ((expected.has_v1() && actual.v1 != expected.v1)
             || (expected.has_v2() && actual.v2 != expected.v2))
         {
-            BOOST_LOG_TRIVIAL(error) << "Info dict does not match info hash " << expected;
+            BOOST_LOG_SEV(logger::get(), porla::Log::error)
+                << "Info dict does not match info hash " << expected;
+
             return nullptr;
         }
 
@@ -94,7 +108,10 @@ namespace
             }
             catch (const std::exception& e)
             {
-                BOOST_LOG_TRIVIAL(error) << "Failed to parse client data JSON: " << e.what();
+                BOOST_LOG_SEV(logger::get(), porla::Log::error)
+                    << porla::Log::Property("error", e.what())
+                    << "Failed to parse client data JSON";
+
                 client_data_json = json::object();
             }
 
@@ -109,7 +126,10 @@ namespace
 
         if (ec)
         {
-            BOOST_LOG_TRIVIAL(error) << "Failed to read resume data from buffer: " << ec;
+            BOOST_LOG_SEV(logger::get(), porla::Log::error)
+                << porla::Log::Property("error", ec.message())
+                << "Failed to read resume data from buffer";
+
             return std::nullopt;
         }
 

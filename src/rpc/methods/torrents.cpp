@@ -20,6 +20,7 @@
 #include "../../fields.hpp"
 #include "../../json/lttypes.hpp"
 #include "../../json/utils.hpp"
+#include "../../logger.hpp"
 #include "../../query/pql.hpp"
 #include "../../sessions/torrent.hpp"
 #include "../../sessions/session.hpp"
@@ -28,8 +29,14 @@
 #include "../../torrentclientdata.hpp"
 #include "../../torrents.hpp"
 #include "../../utils/limits.hpp"
+#include "../../utils/ltlogvalue.hpp"
 
 using boost::asio::awaitable;
+
+namespace
+{
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(logger, porla::Log::Logger) { return porla::Log::Component("rpc"); }
+}
 
 namespace porla::Rpc::Methods::Torrents
 {
@@ -1019,7 +1026,10 @@ namespace porla::Rpc::Methods::Torrents
 
             if (!removed)
             {
-                BOOST_LOG_TRIVIAL(error) << "Timed out waiting for removal of " << params.info_hashes << " at " << params.save_path;
+                BOOST_LOG_SEV(logger::get(), Log::error)
+                    << Log::Property("torrent", params.info_hashes)
+                    << Log::Property("path", params.save_path)
+                    << "Timed out waiting for removal of torrent";
 
                 // still in the source session (as far as we know) - its row goes back too
                 sessions.MoveParams(target_id, source_id, hash, params, client_data);
@@ -1037,7 +1047,10 @@ namespace porla::Rpc::Methods::Torrents
 
                 if (target_locked->Add(params))
                 {
-                    BOOST_LOG_TRIVIAL(info) << "Torrent " << params.info_hashes << " migrated to session " << target_locked->Name();
+                    BOOST_LOG_SEV(logger::get(), Log::info)
+                        << Log::Property("torrent", params.info_hashes)
+                        << Log::Property("session", target_locked->Name())
+                        << "Torrent migrated to session";
 
                     co_return MigrateRes{
                         .info_hash  = params.info_hashes,
@@ -1064,7 +1077,9 @@ namespace porla::Rpc::Methods::Torrents
 
                 if (session->Add(params))
                 {
-                    BOOST_LOG_TRIVIAL(warning) << "Target session did not exist or did not accept torrent - added back to source";
+                    BOOST_LOG_SEV(logger::get(), Log::warning)
+                        << Log::Property("torrent", params.info_hashes)
+                        << "Target session did not exist or did not accept torrent - added back to source";
 
                     throw Error(-6, "Torrent migration failed - added back to source session");
                 }
@@ -1073,9 +1088,10 @@ namespace porla::Rpc::Methods::Torrents
             // Neither session took it. The row stays where it is, so the torrent loads with that
             // session on the next start.
 
-            BOOST_LOG_TRIVIAL(error)
-                << "Failed to migrate torrent and source did not accept it back - " << params.info_hashes << " at " << params.save_path
-                << " is stored but not loaded";
+            BOOST_LOG_SEV(logger::get(), Log::error)
+                << Log::Property("torrent", params.info_hashes)
+                << Log::Property("path", params.save_path)
+                << "Failed to migrate torrent and source did not accept it back";
 
             throw Error(-7, "Migration failed - neither target nor source accepted the torrent");
         }
@@ -1125,7 +1141,10 @@ namespace porla::Rpc::Methods::Torrents
 
                 if (ec)
                 {
-                    BOOST_LOG_TRIVIAL(error) << "Failed to parse '" << ip << "': " << ec.message();
+                    BOOST_LOG_SEV(logger::get(), Log::warning)
+                        << Log::Property("error", ec.message())
+                        << "Failed to parse IP address '" << ip << "'";
+
                     continue;
                 }
 

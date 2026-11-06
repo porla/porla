@@ -87,7 +87,11 @@ namespace porla::Log
             std::visit(
                 [&os](const auto& v)
                 {
-                    if constexpr (std::same_as<std::decay_t<decltype(v)>, std::string>)
+                    if constexpr (std::same_as<std::decay_t<decltype(v)>, std::monostate>)
+                    {
+                        os << "null";
+                    }
+                    else if constexpr (std::same_as<std::decay_t<decltype(v)>, std::string>)
                     {
                         WriteValue(os, std::string_view(v));
                     }
