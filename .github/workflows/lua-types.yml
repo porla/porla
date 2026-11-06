@@ -11,7 +11,7 @@ jobs:
     env:
       LUALS_VERSION: 3.19.2
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install lua-language-server
         run: |
