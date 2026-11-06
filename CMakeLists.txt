@@ -288,6 +288,7 @@ add_library(
     src/rpc/methods/auth.cpp
     src/rpc/methods/fs.cpp
     src/rpc/methods/kv.cpp
+    src/rpc/methods/logs.cpp
     src/rpc/methods/mmdb.cpp
     src/rpc/methods/plugins.cpp
     src/rpc/methods/presets.cpp

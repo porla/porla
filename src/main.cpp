@@ -26,6 +26,7 @@
 #include "rpc/methods/auth.hpp"
 #include "rpc/methods/fs.hpp"
 #include "rpc/methods/kv.hpp"
+#include "rpc/methods/logs.hpp"
 #include "rpc/methods/mmdb.hpp"
 #include "rpc/methods/plugins.hpp"
 #include "rpc/methods/presets.hpp"
@@ -124,7 +125,7 @@ int main(int argc, char* argv[])
         return porla::CmdArgs::Help();
     }
 
-    porla::Log::Setup(cmd);
+    const auto logs = porla::Log::Setup(cmd);
 
     std::unique_ptr<porla::Config> cfg;
 
@@ -206,6 +207,7 @@ int main(int argc, char* argv[])
         porla::Rpc::Methods::Auth::Register(io, *jsonrpc, sodium_hash_pool, cfg->db);
         porla::Rpc::Methods::Fs::Register(io, *jsonrpc);
         porla::Rpc::Methods::Kv::Register(io, *jsonrpc, kv);
+        porla::Rpc::Methods::Logs::Register(io, *jsonrpc, *logs);
         porla::Rpc::Methods::Mmdb::Register(io, *jsonrpc, kv, events);
         porla::Rpc::Methods::Plugins::Register(io, *curl_multi_instance, *jsonrpc, plugins, cfg->state_dir);
         porla::Rpc::Methods::Presets::Register(io, *jsonrpc, presets);
