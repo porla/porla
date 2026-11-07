@@ -12,6 +12,7 @@
 #include <nlohmann/json.hpp>
 #include <sqlite3.h>
 
+#include "infohashmap.hpp"
 #include "torrent.hpp"
 
 #include "../data/models/addtorrentparams.hpp"
@@ -72,7 +73,10 @@ namespace porla
         const Torrent* Find(const lt::info_hash_t& hash);
 
         // check if the current hash exists in the session (in any state)
-        bool Contains(const lt::info_hash_t& hash) const { return m_torrents.contains(hash); }
+        bool Contains(const lt::info_hash_t& hash) const
+        {
+            return m_torrents.contains(hash) || m_torrents.find_by_half(hash) != m_torrents.end();
+        }
 
         std::size_t Count() const;
 
@@ -200,10 +204,10 @@ namespace porla
         std::string                m_name;
         SessionOptions             m_options;
 
-        std::unique_ptr<lt::session>       m_session;
-        std::map<lt::info_hash_t, Torrent> m_torrents;
-        std::unique_ptr<AlertDispatcher>   m_alert_dispatcher;
-        std::unique_ptr<Scheduler>         m_jobs;
+        std::unique_ptr<lt::session>     m_session;
+        InfoHashMap<Torrent>             m_torrents;
+        std::unique_ptr<AlertDispatcher> m_alert_dispatcher;
+        std::unique_ptr<Scheduler>       m_jobs;
 
         // hash -> force, see MarkDirty
         std::map<lt::info_hash_t, bool>    m_dirty;

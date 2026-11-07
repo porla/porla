@@ -10,8 +10,7 @@
 LtInfoHash = {}
 
 ---The v1 hash as hex, or the v2 hash for a v2-only torrent. Use it to key tables by torrent;
----a v2-only magnet's key changes to its v1 hash once it has metadata. To look a torrent up again, keep the
----`LtInfoHash` itself (or both `v1` and `v2`): `LtInfoHash(ih:hex())` has only one half, so `torrents:get` and
----`torrents:remove` don't find a hybrid torrent with it.
+---a v2-only magnet's key changes to its v1 hash once it has metadata. `LtInfoHash(ih:hex())` finds the torrent
+---again, a hybrid one too.
 ---@return string
 function LtInfoHash:hex() end

@@ -18,13 +18,14 @@ local PoTorrentsHandle = {}
 ---@param params LtAddTorrentParams
 ---@param opts? PoTorrentsHandleAddOpts
 ---@return LtInfoHash?
----@return PoError|string|nil err # `session_not_found`, `session_not_loaded`, `torrent_already_added`, `preset_not_found`, `torrent_add_failed` or `invalid_params` (missing info hash or save path, invalid UTF-8); the string `"Session not loaded"` when this handle's session is gone
+---@return PoError|string|nil err # `session_not_found`, `session_not_loaded`, `torrent_already_added` (also for one half of a hybrid torrent already here), `preset_not_found`, `torrent_add_failed` or `invalid_params` (missing info hash or save path, invalid UTF-8); the string `"Session not loaded"` when this handle's session is gone
 function PoTorrentsHandle:add(params, opts) end
 
 ---@return integer # -1 once the session is unloaded
 function PoTorrentsHandle:count() end
 
----The status is the cached one from the last status update.
+---The status is the cached one from the last status update. A hybrid torrent is also found by its v1 or v2
+---hash alone.
 ---@param info_hash LtInfoHash
 ---@return LtTorrentHandle? # nil when the torrent isn't in this session
 ---@return LtTorrentStatus?
@@ -39,7 +40,8 @@ function PoTorrentsHandle:list(query) end
 ---@class PoTorrentsHandleRemoveOpts
 ---@field delete_files? boolean # Raises `invalid_params` when not a boolean
 
----Asks libtorrent to remove the torrent; it is gone once `torrent.removed` fires.
+---Asks libtorrent to remove the torrent; it is gone once `torrent.removed` fires. A hybrid torrent is also
+---found by its v1 or v2 hash alone.
 ---@param torrent LtInfoHash|LtTorrentHandle
 ---@param opts? PoTorrentsHandleRemoveOpts
 ---@return boolean # false when the torrent isn't in this session or the handle is invalid

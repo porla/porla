@@ -130,7 +130,12 @@ void Session::SetTimers(const Data::Models::Sessions::Session& updated)
 
 const porla::Torrent* Session::Find(const lt::info_hash_t& hash)
 {
-    const auto it = m_torrents.find(hash);
+    auto it = m_torrents.find(hash);
+
+    if (it == m_torrents.end())
+    {
+        it = m_torrents.find_by_half(hash);
+    }
 
     if (it == m_torrents.end() || it->second.state != Torrent::State::Current)
     {
@@ -163,6 +168,12 @@ bool Session::Add(lt::add_torrent_params params, Torrent::State state)
     const auto hash = params.ti
         ? params.ti->info_hashes()
         : params.info_hashes;
+
+    // libtorrent finds a hybrid torrent by either half too, and would only refuse the duplicate later
+    if (m_torrents.find_by_half(hash) != m_torrents.end())
+    {
+        return false;
+    }
 
     const auto [ it, inserted ] = m_torrents.try_emplace(hash);
 
@@ -900,15 +911,18 @@ void Session::UntrackTorrent(const lt::info_hash_t& hash)
 
 void Session::UpdateInfoHashes(const lt::info_hash_t& prev, const lt::info_hash_t& curr)
 {
-    auto node = m_torrents.extract(prev);
+    const auto it = m_torrents.rekey(prev, curr);
 
-    if (node.empty())
+    if (it == m_torrents.end())
     {
         return;
     }
 
-    node.key() = curr;
-    node.mapped().status.info_hashes = curr;
+    it->second.status.info_hashes = curr;
 
-    m_torrents.insert(std::move(node));
+    // SaveDirty looks torrents up by their key, so a pending save would otherwise be skipped
+    if (auto dirty = m_dirty.extract(prev); !dirty.empty())
+    {
+        m_dirty[curr] = m_dirty[curr] || dirty.mapped();
+    }
 }
