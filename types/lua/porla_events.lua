@@ -201,7 +201,7 @@ local events = {}
 
 ---Calls `callback` with an event table every time `name` is emitted, until cancelled or the plugin unloads.
 ---The callback never runs inside this call. Errors it raises are logged and the handler stays registered.
----Raises `invalid_params` for an unknown event name.
+---Raises `invalid_params` for an unknown event name or when `callback` isn't a function.
 ---@param name PoEventName
 ---@param callback fun(event: PoEvent)
 ---@return PoCancellable

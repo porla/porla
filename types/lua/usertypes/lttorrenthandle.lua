@@ -55,8 +55,11 @@ function LtTorrentHandle:force_lsd_announce() end
 ---@field high_priority? boolean
 
 ---Waits for libtorrent to check `index`.
+---
+---**Warning:** `index` is 0-based but `trackers()` is a 1-based Lua array; inside
+---`for i, t in ipairs(th:trackers())` pass `i - 1`.
 ---@param seconds? integer # delay before announcing; 0 when omitted
----@param index? integer # tracker index; -1 or omitted for every tracker
+---@param index? integer # 0-based tracker index; -1 or omitted for every tracker
 ---@param flags? LtReannounceFlagsT
 function LtTorrentHandle:force_reannounce(seconds, index, flags) end
 
@@ -201,6 +204,10 @@ function LtTorrentHandle:resume() end
 function LtTorrentHandle:save_resume_data() end
 
 ---Scrape now: every tracker, the tracker at `index` (waits for libtorrent), or the tracker with this url.
+---
+---**Warning:** `index` is 0-based but `trackers()` is a 1-based Lua array, so `scrape_tracker(i)` inside
+---`for i, t in ipairs(th:trackers())` scrapes the next tracker and raises on the last one. Pass `t.url`
+---instead, or `i - 1`.
 ---@param tracker? integer|string
 function LtTorrentHandle:scrape_tracker(tracker) end
 

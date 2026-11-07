@@ -162,8 +162,19 @@ namespace porla::Lua
 
         boost::asio::any_io_executor IoExecutor() const { return io.get_executor(); }
 
+        // make sure that the given func is actually valid
+        static void AssertCallback(const sol::main_protected_function& func)
+        {
+            if (!func.valid())
+            {
+                throw Error(Errors::Code::invalid_params, "callback must be a function");
+            }
+        }
+
         std::size_t RegisterCallback(sol::main_protected_function func, bool one_shot)
         {
+            AssertCallback(func);
+
             const auto id = NextId();
             m_callbacks[id] = CallbackRef{.callback = std::move(func), .one_shot = one_shot};
             return id;
@@ -171,6 +182,8 @@ namespace porla::Lua
 
         std::size_t RegisterCron(const std::string& expression, sol::main_protected_function func)
         {
+            AssertCallback(func);
+
             const auto timer_id = NextId();
 
             std::shared_ptr<Timer> timer;
@@ -202,6 +215,8 @@ namespace porla::Lua
 
         std::size_t RegisterTimer(int interval, sol::main_protected_function func, bool one_shot)
         {
+            AssertCallback(func);
+
             if (interval < 10)
             {
                 throw Error(Errors::Code::invalid_params, "timer interval must be at least 10 ms");

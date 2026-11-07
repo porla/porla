@@ -13,9 +13,8 @@ function sessions.default() end
 ---@overload fun(name: string): PoSessionHandle?
 function sessions.get(id) end
 
----Iterates the loaded sessions in id order: `for session in sessions.list() do ... end`.
----Sessions removed during the loop are skipped.
----@return fun(): PoSessionHandle?
+---The loaded sessions in id order: `for _, session in ipairs(sessions.list()) do ... end`.
+---@return PoSessionHandle[]
 function sessions.list() end
 
 ---@class PoSessionMetric

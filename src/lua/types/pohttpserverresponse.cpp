@@ -6,12 +6,41 @@
 #include <uWebSockets/Multipart.h>
 
 #include "pohttpformfile.hpp"
+#include "poerror.hpp"
+
 #include "../pluginstate.hpp"
 
+using porla::Lua::Error;
 using porla::Lua::Types::PoHttpServerResponse;
+
+namespace Errors = porla::Errors;
 
 namespace
 {
+    bool IsToken(std::string_view value)
+    {
+        return !value.empty() && std::ranges::all_of(value, [](unsigned char c)
+        {
+            return std::isalnum(c)
+                || std::string_view{"!#$%&'*+-.^_`|~"}.find(static_cast<char>(c)) != std::string_view::npos;
+        });
+    }
+
+    bool HasLineBreak(std::string_view value)
+    {
+        return value.find_first_of(std::string_view{"\r\n\0", 3}) != std::string_view::npos;
+    }
+
+    bool IsStatusLine(std::string_view status)
+    {
+        return status.size() >= 3
+            && status[0] >= '1' && status[0] <= '5'
+            && std::isdigit(static_cast<unsigned char>(status[1]))
+            && std::isdigit(static_cast<unsigned char>(status[2]))
+            && (status.size() == 3 || status[3] == ' ')
+            && !HasLineBreak(status);
+    }
+
     std::string_view Trim(std::string_view s)
     {
         while (!s.empty() && (s.front() == ' ' || s.front() == '\t')) s.remove_prefix(1);
@@ -442,6 +471,12 @@ void PoHttpServerResponse::Write(const std::string& data)
 
 void PoHttpServerResponse::WriteHeader(const std::string& key, const std::string& value)
 {
+    // uWS writes headers verbatim, a CR/LF from request data would split the response
+    if (!IsToken(key) || HasLineBreak(value))
+    {
+        throw Error(Errors::Code::invalid_params, "write_header: invalid header '" + key + "'");
+    }
+
     if (m_is_aborted || m_is_finished) { return; }
     m_is_started = true;
 
@@ -450,6 +485,11 @@ void PoHttpServerResponse::WriteHeader(const std::string& key, const std::string
 
 void PoHttpServerResponse::WriteStatus(const std::string& status)
 {
+    if (!IsStatusLine(status))
+    {
+        throw Error(Errors::Code::invalid_params, "write_status: expected a status like \"404 Not Found\"");
+    }
+
     if (m_is_aborted || m_is_finished) { return; }
     m_is_started = true;
 

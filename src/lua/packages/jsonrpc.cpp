@@ -87,7 +87,7 @@ sol::object JsonRpc::Load(sol::this_state ts)
 
     sol::table tbl = lua.create_table();
 
-    tbl.set_function("register", [](sol::this_state ts, const std::string& method, sol::main_protected_function callback,  std::optional<sol::main_protected_function> can_invoke)
+    tbl.set_function("register", [](sol::this_state ts, const std::string& method, sol::main_protected_function callback, sol::object can_invoke_arg)
     {
         auto state = LuaState::From(ts);
 
@@ -95,6 +95,19 @@ sol::object JsonRpc::Load(sol::this_state ts)
 
         auto jsonrpc = state->jsonrpc.lock();
         if (jsonrpc == nullptr) { return; }
+
+        std::optional<sol::main_protected_function> can_invoke;
+
+        // a wrong-typed can_invoke must not quietly fall back to users-only
+        if (can_invoke_arg.get_type() != sol::type::lua_nil && can_invoke_arg.get_type() != sol::type::none)
+        {
+            if (!can_invoke_arg.is<sol::main_protected_function>())
+            {
+                throw Error(Errors::Code::invalid_params, "can_invoke must be a function");
+            }
+
+            can_invoke = can_invoke_arg.as<sol::main_protected_function>();
+        }
 
         const auto callback_id = state->RegisterCallback(callback, false);
 

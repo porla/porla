@@ -237,11 +237,12 @@ void PoTcpClient::Read(sol::main_protected_function callback)
         m_read_buffer.resize(8192);
     }
 
+    const auto callback_id = state->RegisterCallback(callback, true);
+
     m_read_pending = true;
 
-    const auto callback_id = state->RegisterCallback(callback, true);
-    const auto handler     = std::bind_front(&PoTcpClient::ReadComplete, shared_from_this(), callback_id);
-    const auto buffer      = boost::asio::buffer(m_read_buffer);
+    const auto handler = std::bind_front(&PoTcpClient::ReadComplete, shared_from_this(), callback_id);
+    const auto buffer  = boost::asio::buffer(m_read_buffer);
 
     if (m_peer_closed)
     {
@@ -296,12 +297,13 @@ void PoTcpClient::ReadExactly(std::size_t n, sol::main_protected_function callba
         throw Error(Errors::Code::invalid_state, "a read operation is already in progress");
     }
 
+    const auto callback_id = state->RegisterCallback(callback, true);
+
     m_read_buffer.resize(n);
     m_read_pending = true;
 
-    const auto callback_id = state->RegisterCallback(callback, true);
-    const auto handler     = std::bind_front(&PoTcpClient::ReadComplete, shared_from_this(), callback_id);
-    const auto buffer      = boost::asio::buffer(m_read_buffer);
+    const auto handler = std::bind_front(&PoTcpClient::ReadComplete, shared_from_this(), callback_id);
+    const auto buffer  = boost::asio::buffer(m_read_buffer);
 
     if (m_peer_closed)
     {
@@ -397,11 +399,19 @@ void PoTcpClient::StartTls(const TlsOptions& options, sol::main_protected_functi
         return;
     }
 
-    lua_State* L = state->lua.lua_state();
+    LuaState::AssertCallback(callback);
 
-    const auto fail = [&](const sol::table& err)
+    const auto fail = [&](std::function<sol::table(lua_State*)> make_error)
     {
-        state->InvokeCallback(state->RegisterCallback(callback, true), err);
+        const auto callback_id = state->RegisterCallback(callback, true);
+
+        boost::asio::post(state->io, [weak = m_state, callback_id, make_error = std::move(make_error)]()
+        {
+            auto state = weak.lock();
+            if (state == nullptr) { return; }
+
+            state->InvokeCallback(callback_id, make_error(state->lua.lua_state()));
+        });
     };
 
     const auto server_name = options.server_name ? options.server_name : m_connect_host;
@@ -410,7 +420,7 @@ void PoTcpClient::StartTls(const TlsOptions& options, sol::main_protected_functi
     {
         BOOST_LOG_SEV(m_logger, Log::error)
             << "Cannot do TLS upgrade due to missing connect host";
-        fail(PoError::Make(L, Errors::Code::invalid_state, "missing connect host"));
+        fail([](lua_State* L) { return PoError::Make(L, Errors::Code::invalid_state, "missing connect host"); });
         return;
     }
 
@@ -433,7 +443,7 @@ void PoTcpClient::StartTls(const TlsOptions& options, sol::main_protected_functi
 
         if (ec)
         {
-            fail(PoError::Make(L, Errors::Code::io_error, ec, "ca_file: " + ec.message()));
+            fail([ec](lua_State* L) { return PoError::Make(L, Errors::Code::io_error, ec, "ca_file: " + ec.message()); });
             return;
         }
     }
@@ -451,7 +461,7 @@ void PoTcpClient::StartTls(const TlsOptions& options, sol::main_protected_functi
 
     if (options.key_file && !options.cert_file)
     {
-        fail(PoError::Make(L, Errors::Code::invalid_params, "key_file needs cert_file"));
+        fail([](lua_State* L) { return PoError::Make(L, Errors::Code::invalid_params, "key_file needs cert_file"); });
         return;
     }
 
@@ -461,7 +471,7 @@ void PoTcpClient::StartTls(const TlsOptions& options, sol::main_protected_functi
 
         if (ec)
         {
-            fail(PoError::Make(L, Errors::Code::io_error, ec, "cert_file: " + ec.message()));
+            fail([ec](lua_State* L) { return PoError::Make(L, Errors::Code::io_error, ec, "cert_file: " + ec.message()); });
             return;
         }
 
@@ -469,7 +479,7 @@ void PoTcpClient::StartTls(const TlsOptions& options, sol::main_protected_functi
 
         if (ec)
         {
-            fail(PoError::Make(L, Errors::Code::io_error, ec, "key_file: " + ec.message()));
+            fail([ec](lua_State* L) { return PoError::Make(L, Errors::Code::io_error, ec, "key_file: " + ec.message()); });
             return;
         }
     }
@@ -483,7 +493,7 @@ void PoTcpClient::StartTls(const TlsOptions& options, sol::main_protected_functi
 
     if (ec)
     {
-        fail(PoError::Make(L, Errors::Code::io_error, ec));
+        fail([ec](lua_State* L) { return PoError::Make(L, Errors::Code::io_error, ec); });
         return;
     }
 

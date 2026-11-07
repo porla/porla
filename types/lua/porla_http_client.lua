@@ -12,10 +12,11 @@ local http_client = {}
 ---@field max_redirects? integer 10 by default; -1 = unlimited
 
 ---Only http and https URLs, also when redirecting. Raises `invalid_params` for a bad method, a negative
----timeout or a non-string header key or value. The callback never runs inside the call.
+---timeout, a missing callback, a non-string header key or value, a header name that isn't an HTTP token or a
+---header value with CR, LF or NUL. The callback never runs inside the call.
 ---@param url string
 ---@param options HttpClientOptions
----@param callback fun(err: PoError?, res: PoHttpClientResponse?) # `err` is an `http_error` (`category = "curl"`), also for a body over 8 MiB; HTTP status codes are not errors
+---@param callback fun(err: PoError?, res: PoHttpClientResponse?) # `err` is an `http_error` (`category = "curl"`), also for a body over 8 MiB (not for `HEAD`); HTTP status codes are not errors
 ---@overload fun(url: string, callback: fun(err: PoError?, res: PoHttpClientResponse?))
 function http_client.request(url, options, callback) end
 
