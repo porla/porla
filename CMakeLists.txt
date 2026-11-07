@@ -60,9 +60,24 @@ FetchContent_Declare(
     EXCLUDE_FROM_ALL
 )
 
+file(GLOB LIBTORRENT_PATCHES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/patches/libtorrent/*.patch)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${LIBTORRENT_PATCHES})
+
+foreach(PATCH IN LISTS LIBTORRENT_PATCHES)
+    file(SHA256 ${PATCH} PATCH_HASH)
+    string(APPEND LIBTORRENT_PATCHES_HASH ${PATCH_HASH})
+endforeach()
+
+string(SHA256 LIBTORRENT_PATCHES_HASH "${LIBTORRENT_PATCHES_HASH}")
+
+# FetchContent only runs the patch step again when the command changes, so the hash goes into it
 FetchContent_Declare(
     LibtorrentRasterbar
     URL https://github.com/arvidn/libtorrent/releases/download/v2.1.2/libtorrent-rasterbar-2.1.2.tar.gz
+    PATCH_COMMAND ${CMAKE_COMMAND}
+        -DPATCH_DIR=${CMAKE_CURRENT_SOURCE_DIR}/patches/libtorrent
+        -DPATCHES_HASH=${LIBTORRENT_PATCHES_HASH}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ApplyPatches.cmake
     EXCLUDE_FROM_ALL
 )
 
