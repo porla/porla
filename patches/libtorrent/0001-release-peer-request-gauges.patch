@@ -1,0 +1,30 @@
+--- a/src/peer_connection.cpp
++++ b/src/peer_connection.cpp
+@@ -862,6 +862,8 @@
+ 		m_connected = false;
+ 		if (!m_download_queue.empty())
+ 			m_counters.inc_stats_counter(counters::num_peers_down_requests, -1);
++		if (!m_requests.empty())
++			m_counters.inc_stats_counter(counters::num_peers_up_requests, -1);
+ 
+ 		// defensive
+ 		auto t = m_torrent.lock();
+@@ -4504,6 +4506,9 @@
+ 				}
+ 			}
+ 
++			if (!m_download_queue.empty())
++				m_counters.inc_stats_counter(counters::num_peers_down_requests, -1);
++
+ 			if (t->has_picker())
+ 			{
+ 				clear_download_queue();
+@@ -5307,6 +5312,8 @@
+ #endif
+ 			for (peer_request const& r : m_requests)
+ 				write_reject_request(r);
++			if (!m_requests.empty())
++				m_counters.inc_stats_counter(counters::num_peers_up_requests, -1);
+ 			m_requests.clear();
+ 			return;
+ 		}
