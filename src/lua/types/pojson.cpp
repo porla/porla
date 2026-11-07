@@ -2,6 +2,8 @@
 
 #include "poerror.hpp"
 
+#include "../../json/utils.hpp"
+
 using porla::Lua::Types::PoJson;
 using porla::Lua::Error;
 
@@ -9,7 +11,16 @@ namespace Errors = porla::Errors;
 
 namespace
 {
-    constexpr int kMaxDepth = 100;
+    // the parser's limit, so anything json.decode or an RPC request accepts also converts
+    constexpr int kMaxDepth = porla::Json::kMaxDepth;
+
+    void AssertDepth(int depth)
+    {
+        if (depth >= kMaxDepth)
+        {
+            throw Error(Errors::Code::invalid_params, "json: nested deeper than " + std::to_string(kMaxDepth) + " levels");
+        }
+    }
 
     sol::table ArrayMetatable(lua_State* L)
     {
@@ -55,6 +66,8 @@ namespace
 
     nlohmann::json ConvertTable(sol::this_state ts, const sol::table& tbl, int depth)
     {
+        AssertDepth(depth);
+
         bool         all_integer_keys = true;
         std::size_t  count            = 0;
         std::int64_t max_index        = 0;
@@ -118,11 +131,6 @@ namespace
 
 sol::object PoJson::ToLua(sol::this_state ts, const nlohmann::json& data, int depth)
 {
-    if (depth > kMaxDepth)
-    {
-        throw Error(Errors::Code::invalid_params, "json: maximum nesting depth exceeded");
-    }
-
     sol::state_view lua(ts);
 
     switch (data.type())
@@ -157,6 +165,8 @@ sol::object PoJson::ToLua(sol::this_state ts, const nlohmann::json& data, int de
 
     case nlohmann::json::value_t::array:
     {
+        AssertDepth(depth);
+
         sol::table out = lua.create_table(
             static_cast<int>(data.size()), 0);
 
@@ -174,6 +184,8 @@ sol::object PoJson::ToLua(sol::this_state ts, const nlohmann::json& data, int de
 
     case nlohmann::json::value_t::object:
     {
+        AssertDepth(depth);
+
         sol::table out = lua.create_table(
             0, static_cast<int>(data.size()));
 
@@ -198,11 +210,6 @@ sol::object PoJson::ToLua(sol::this_state ts, const nlohmann::json& data, int de
 
 nlohmann::json PoJson::ToJson(sol::this_state ts, const sol::object& data, int depth)
 {
-    if (depth > kMaxDepth)
-    {
-        throw Error(Errors::Code::invalid_params, "json: maximum nesting depth exceeded");
-    }
-
     switch (data.get_type())
     {
         case sol::type::lua_nil:

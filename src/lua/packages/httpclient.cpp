@@ -221,8 +221,16 @@ sol::object HttpClient::Load(sol::this_state ts)
                                 "http_client.request: header keys and values must be strings");
                         }
 
-                        const std::string header =
-                            key.as<std::string>() + ": " + val.as<std::string>();
+                        const auto name  = key.as<std::string>();
+                        const auto value = val.as<std::string>();
+
+                        if (!IsToken(name) || value.find_first_of(std::string_view{"\r\n\0", 3}) != std::string::npos)
+                        {
+                            throw Error(Errors::Code::invalid_params,
+                                "http_client.request: invalid header '" + name + "'");
+                        }
+
+                        const std::string header = name + ": " + value;
 
                         transfer_state->request_header_list = curl_slist_append(
                             transfer_state->request_header_list, header.c_str());
@@ -252,7 +260,6 @@ sol::object HttpClient::Load(sol::this_state ts)
         curl_easy_setopt(easy.get(), CURLOPT_NOSIGNAL,            1L);
         curl_easy_setopt(easy.get(), CURLOPT_PROTOCOLS_STR,       "http,https");
         curl_easy_setopt(easy.get(), CURLOPT_REDIR_PROTOCOLS_STR, "http,https");
-        curl_easy_setopt(easy.get(), CURLOPT_MAXFILESIZE_LARGE,   static_cast<curl_off_t>(kMaxResponseBytes));
 
         if (method == "POST")
         {
@@ -266,6 +273,13 @@ sol::object HttpClient::Load(sol::this_state ts)
             {
                 curl_easy_setopt(easy.get(), CURLOPT_NOBODY, 1L);
             }
+        }
+
+        if (method != "HEAD")
+        {
+            // libcurl checks this even without a body, so HEAD requests on large files
+            // would fail. only set on non-head requests
+            curl_easy_setopt(easy.get(), CURLOPT_MAXFILESIZE_LARGE, static_cast<curl_off_t>(kMaxResponseBytes));
         }
 
         // without post fields libcurl reads a POST body from stdin

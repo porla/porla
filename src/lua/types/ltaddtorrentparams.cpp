@@ -41,7 +41,7 @@ void LtAddTorrentParams::Register(sol::state& lua)
 
         if (ec)
         {
-            return std::make_tuple(sol::lua_nil, PoError::Construct(ts, ec, Errors::Code::invalid_params));
+            return std::make_tuple(sol::lua_nil, PoError::Construct(ts, ec, Errors::Code::decode_error));
         }
 
         return std::make_tuple(ToTable(ts, params), sol::lua_nil);
@@ -54,7 +54,7 @@ void LtAddTorrentParams::Register(sol::state& lua)
 
         if (ec)
         {
-            return std::make_tuple(sol::lua_nil, PoError::Construct(ts, ec, Errors::Code::invalid_params));
+            return std::make_tuple(sol::lua_nil, PoError::Construct(ts, ec, Errors::Code::decode_error));
         }
 
         return std::make_tuple(ToTable(ts, params), sol::lua_nil);
@@ -67,7 +67,12 @@ void LtAddTorrentParams::Register(sol::state& lua)
 
         if (ec)
         {
-            return std::make_tuple(sol::lua_nil, PoError::Construct(ts, ec, Errors::Code::invalid_params));
+            const bool unreadable = ec.category() == boost::system::system_category()
+                || ec.category() == boost::system::generic_category();
+
+            return std::make_tuple(sol::lua_nil, PoError::Construct(ts, ec, unreadable
+                ? Errors::Code::io_error
+                : Errors::Code::decode_error));
         }
 
         return std::make_tuple(ToTable(ts, params), sol::lua_nil);
@@ -125,9 +130,17 @@ lt::add_torrent_params LtAddTorrentParams::ToParams(const sol::object& params, c
     if (sol::optional<std::string>                       v = t["root_certificate"])   atp.root_certificate   = *v;
     if (sol::optional<int>                               v = t["seeding_time"])       atp.seeding_time       = *v;
     if (sol::optional<std::string>                       v = t["trackerid"])          atp.trackerid          = *v;
-    if (sol::optional<std::shared_ptr<lt::torrent_info>> v = t["ti"])                 atp.ti                 = *v;
     if (sol::optional<std::int64_t>                      v = t["total_downloaded"])   atp.total_downloaded   = *v;
     if (sol::optional<std::int64_t>                      v = t["total_uploaded"])     atp.total_uploaded     = *v;
+
+    // a torrent info from a status, handle or event is libtorrent's live one, which libtorrent mutates, so a new
+    // torrent gets its own copy; only the one the params were parsed with is still private
+    if (sol::optional<std::shared_ptr<const lt::torrent_info>> v = t["ti"]; v && *v != nullptr)
+    {
+        atp.ti = base != nullptr && v->get() == base->ti.get()
+            ? base->ti
+            : std::make_shared<lt::torrent_info>(**v);
+    }
 
     if (sol::optional<int>                 v = t["download_limit"];  v && changed(*v, &lt::add_torrent_params::download_limit))  atp.download_limit = *v;
     if (sol::optional<lt::torrent_flags_t> v = t["flags"];           v && changed(*v, &lt::add_torrent_params::flags))           atp.flags = *v;
@@ -365,7 +378,7 @@ sol::table LtAddTorrentParams::ToTable(sol::this_state ts, const lt::add_torrent
     tbl["save_path"]          = params.save_path;
     tbl["seeding_time"]       = params.seeding_time;
     tbl["storage_mode"]       = params.storage_mode == lt::storage_mode_allocate ? "allocate" : "sparse";
-    tbl["ti"]                 = params.ti;
+    tbl["ti"]                 = std::shared_ptr<const lt::torrent_info>(params.ti);
     tbl["trackerid"]          = params.trackerid;
     tbl["tracker_tiers"]      = tracker_tiers;
     tbl["trackers"]           = trackers;

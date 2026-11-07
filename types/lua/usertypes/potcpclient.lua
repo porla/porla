@@ -1,6 +1,6 @@
 ---@meta
 
----Callbacks run after the call returns, except for `tls` setup failures. Errors passed to them are `closed`
+---Callbacks run after the call returns. Errors passed to them are `closed`
 ---when the peer closed the connection, and `io_error` otherwise (`message = "timed out"` when a timeout
 ---closed the client).
 ---@class PoTcpClient
@@ -32,8 +32,8 @@ function PoTcpClient:read_exactly(n, callback) end
 ---@field server_name? string SNI and verified host name, the `connect` host by default
 
 ---Upgrades a connected client to TLS (1.2 or later); reads and writes are encrypted afterwards.
----Raises `invalid_params` for an unknown option or a value of the wrong type. Setup failures go to the
----callback before `tls` returns: `invalid_state` with neither a `connect` host nor `server_name`,
+---Raises `invalid_params` for an unknown option, a value of the wrong type or a missing callback. Setup
+---failures go to the callback like any other error: `invalid_state` with neither a `connect` host nor `server_name`,
 ---`invalid_params` for `key_file` without `cert_file`, `io_error` for an unreadable file.
 ---@param options PoTcpClientTlsOptions
 ---@param callback fun(err: PoError?)

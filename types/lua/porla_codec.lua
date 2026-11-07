@@ -55,13 +55,13 @@ function codec.json.array(tbl) end
 ---Integers above the signed 64-bit range decode as floats.
 ---@param data string
 ---@return any? value # Decoded value, or nil on error
----@return PoError? err # `decode_error` for malformed JSON or nesting deeper than 100, or nil on success
+---@return PoError? err # `decode_error` for malformed JSON or nesting deeper than 256 levels, or nil on success
 function codec.json.decode(data) end
 
 ---A table with only keys 1..n encodes as an array, any other table as an object; an empty table encodes as
 ---`{}` unless tagged by `codec.json.array`. nil and `codec.json.null` encode as `null`.
 ---Raises `invalid_params` for sparse arrays, non-string object keys, NaN or infinity, functions, userdata,
----invalid UTF-8 (base64-encode binary data first) or nesting deeper than 100.
+---invalid UTF-8 (base64-encode binary data first) or nesting deeper than 256 levels.
 ---@param data any
 ---@return string
 function codec.json.encode(data) end

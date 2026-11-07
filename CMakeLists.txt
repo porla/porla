@@ -272,7 +272,6 @@ add_library(
     src/lua/types/popreset.cpp
     src/lua/types/poquery.cpp
     src/lua/types/posessionhandle.cpp
-    src/lua/types/posessionsiterator.cpp
     src/lua/types/potcpclient.cpp
     src/lua/types/potorrentdata.cpp
     src/lua/types/potorrentshandle.cpp

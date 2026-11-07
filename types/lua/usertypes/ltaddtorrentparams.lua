@@ -50,15 +50,15 @@ LtAddTorrentParams = {}
 
 ---@param buffer string # contents of a .torrent file
 ---@return LtAddTorrentParams? params
----@return PoError? err # `invalid_params`
+---@return PoError? err # `decode_error` when the buffer isn't a valid .torrent
 function LtAddTorrentParams.from_buffer(buffer) end
 
 ---@param uri string
 ---@return LtAddTorrentParams? params
----@return PoError? err # `invalid_params`
+---@return PoError? err # `decode_error` when the uri isn't a valid magnet link
 function LtAddTorrentParams.from_magnet(uri) end
 
 ---@param path string # path to a .torrent file
 ---@return LtAddTorrentParams? params
----@return PoError? err # `invalid_params`
+---@return PoError? err # `io_error` when the file can't be read, `decode_error` when it isn't a valid .torrent
 function LtAddTorrentParams.from_path(path) end

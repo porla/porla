@@ -5,12 +5,10 @@
 #include "../pluginstate.hpp"
 
 #include "../types/posessionhandle.hpp"
-#include "../types/posessionsiterator.hpp"
 
 #include "../../sessions/sessions.hpp"
 
 using porla::Lua::Types::PoSessionHandle;
-using porla::Lua::Types::PoSessionsIterator;
 
 static const auto lt_session_metrics = lt::session_stats_metrics();
 
@@ -107,12 +105,17 @@ sol::object porla::Lua::Packages::Sessions::Load(sol::this_state ts)
     {
         auto state = LuaState::From(ts);
 
-        if (state == nullptr)
+        std::vector<std::shared_ptr<PoSessionHandle>> handles;
+
+        if (state != nullptr)
         {
-            return PoSessionsIterator({});
+            for (const auto& [ _, session ] : state->sessions.All())
+            {
+                handles.push_back(std::make_shared<PoSessionHandle>(session));
+            }
         }
 
-        return PoSessionsIterator(state->sessions.All());
+        return sol::as_table(std::move(handles));
     });
 
     tbl.set_function("metrics", [](sol::this_state ts)

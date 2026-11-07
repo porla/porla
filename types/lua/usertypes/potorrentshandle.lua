@@ -13,7 +13,8 @@ local PoTorrentsHandle = {}
 ---@field preset_id? integer # Takes precedence over `preset`
 ---@field preset? string
 
----Raises `invalid_params` for a malformed field in `params`.
+---Raises `invalid_params` for a malformed field in `params`. The returned hash means the add was queued:
+---`get`, `list` and `count` only see the torrent once `torrent.added` fires.
 ---@param params LtAddTorrentParams
 ---@param opts? PoTorrentsHandleAddOpts
 ---@return LtInfoHash?
