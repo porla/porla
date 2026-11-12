@@ -1103,9 +1103,11 @@ namespace porla::Rpc::Methods::Torrents
 
             if (req.flags.has_value())
             {
-                if (req.flags.value() == "always_replace_files") flags = lt::move_flags_t::always_replace_files;
-                if (req.flags.value() == "dont_replace")         flags = lt::move_flags_t::dont_replace;
-                if (req.flags.value() == "fail_if_exist")        flags = lt::move_flags_t::fail_if_exist;
+                if (req.flags.value() == "always_replace_files")      flags = lt::move_flags_t::always_replace_files;
+                if (req.flags.value() == "dont_replace")              flags = lt::move_flags_t::dont_replace;
+                if (req.flags.value() == "fail_if_exist")             flags = lt::move_flags_t::fail_if_exist;
+                if (req.flags.value() == "reset_save_path")           flags = lt::move_flags_t::reset_save_path;
+                if (req.flags.value() == "reset_save_path_unchecked") flags = lt::move_flags_t::reset_save_path_unchecked;
             }
 
             if (!resolved.torrent->status.handle.is_valid())
