@@ -10,6 +10,8 @@
 #include <libtorrent/magnet_uri.hpp>
 #include <sodium.h>
 
+#include <inja/inja.hpp>
+
 #include "resolve.hpp"
 
 #include "../functionmethod.hpp"
@@ -1115,7 +1117,12 @@ namespace porla::Rpc::Methods::Torrents
                 throw Error(-4, "Torrent not valid");
             }
 
-            resolved.torrent->status.handle.move_storage(req.path, flags);
+            inja::Environment env;
+            env.set_search_included_templates_in_files(false);
+
+            const std::string path = env.render(req.path, resolved.torrent->status);
+
+            resolved.torrent->status.handle.move_storage(path, flags);
             resolved.session->Refresh(resolved.torrent->status.info_hashes);
 
             co_return;
