@@ -41,10 +41,21 @@ function(porla_link_pkg target prefix)
     endif()
 endfunction()
 
+add_library(nlohmann_json INTERFACE)
+add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json)
+target_include_directories(nlohmann_json INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/vendor/nlohmann-json/include>)
+
 FetchContent_Declare(
     ANTLR4
     URL https://github.com/antlr/antlr4/archive/refs/tags/4.13.2.tar.gz
     SOURCE_SUBDIR runtime/Cpp
+    EXCLUDE_FROM_ALL
+)
+
+FetchContent_Declare(
+    inja
+    URL https://github.com/pantor/inja/archive/refs/tags/v3.5.0.tar.gz
     EXCLUDE_FROM_ALL
 )
 
@@ -103,6 +114,12 @@ set(BUILD_REGRESS   OFF CACHE BOOL "" FORCE)
 set(ENABLE_BZIP2 OFF CACHE BOOL "" FORCE)
 set(ENABLE_LZMA  OFF CACHE BOOL "" FORCE)
 
+# inja
+set(INJA_BUILD_TESTS       OFF)
+set(INJA_INSTALL           OFF)
+set(INJA_EXPORT            OFF)
+set(INJA_USE_EMBEDDED_JSON OFF)
+
 # lt options
 set(deprecated-functions OFF CACHE BOOL "" FORCE)
 set(build_examples       OFF CACHE BOOL "" FORCE)
@@ -113,6 +130,7 @@ set(webtorrent           OFF CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(
     ANTLR4
+    inja
     LibtorrentRasterbar
     Libzip
     uSockets
@@ -340,6 +358,7 @@ target_link_libraries(
 
     antlr4_static
     libzip::zip
+    pantor::inja
     torrent-rasterbar
 
     Boost::boost Boost::log Boost::program_options
